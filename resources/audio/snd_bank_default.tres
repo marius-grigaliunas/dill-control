@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="SoundBank" format=3]
+
+[ext_resource type="Script" path="res://scripts/audio/SoundBank.cs" id="1_bank"]
+
+[resource]
+resource_name = "SoundBankDefault"
+script = ExtResource("1_bank")

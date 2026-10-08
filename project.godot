@@ -23,6 +23,11 @@ performance/target_hardware="Intel Core i5 11th gen, 16 GB RAM, Iris Xe integrat
 performance/render_scale_policy="Render scale ships at 1.0. It is a dial for isolating GPU cost while testing, never a way to meet the target."
 performance/rule="A requirement, not an aspiration. Anything that cannot hold 60 fps at 1920x1080 native on the hardware above is a bug, and is measured on that machine with bench.gd rather than argued about."
 
+[autoload]
+
+EventBus="*res://scripts/core/EventBus.cs"
+AudioDirector="*res://scripts/audio/AudioDirector.cs"
+
 [display]
 
 window/size/viewport_width=1920

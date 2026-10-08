@@ -16,3 +16,5 @@ Number them in order, `NNNN-short-title.md`.
 | [0003](0003-jolt-physics.md) | Jolt physics, set explicitly |
 | [0004](0004-authored-over-generated.md) | Authored over generated |
 | [0005](0005-art-pipeline.md) | Blender, glTF binary, one palette, shader-animated pickles |
+| [0006](0006-event-bus.md) | The event bus, and why each of its signals is on it |
+| [0007](0007-audio-director.md) | `AudioDirector` as a second autoload |
