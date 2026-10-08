@@ -45,7 +45,39 @@ M2, because being carved and collapsing is what they are for.
 
 **LFS from the first commit.**
 
+## Added: voxel art, and animation by code
+
+*8 October 2026. The decisions above stand for Blender art; this adds a second
+pipeline beside it.*
+
+**Two pipelines, chosen by what the thing is.** Pickles, weapons and smooth
+props stay Blender, `.glb`, the palette and the shader-animated horde above.
+Mechs, robots and blocky props are voxel art: made on a tablet or in
+MagicaVoxel, saved as `.vox` straight into `art/voxels/`, imported by our own
+importer with colour in the vertices and emission from MagicaVoxel's own
+materials (0009). Bought voxel packs come in the same way.
+
+**The tablet models; the PC finishes.** Shape and paint can be done in any
+editor that saves `.vox`, on an Android tablet. Splitting into named parts,
+marking hinges (palette index 255) and points (`@Seat`, `@Muzzle`) is done in
+MagicaVoxel on the PC, because tablet editors do not reliably keep named
+objects. That pass is what turns a model into something code can move.
+
+**Nothing is animated by hand.** This extends the pickles' rule above to
+everything voxel: walking, turning, jumping, leaning, aiming and arm swing are
+procedural (`MechWalker`, two-bone IK in `MechLeg`, 0010). A model's whole
+animation brief is where it bends. The first-person hands remain the one
+rigged thing.
+
+**Size is set at import, not in the model.** One voxel's size in metres is an
+import option per file, so a model is built at whatever voxel count reads well
+and sized to its role afterwards: the storage bot 1.8 m, the tank 5.6 m, the
+field fighter 6.5 m.
+
+The checklist is the second half of `art/_source/README.md`.
+
 ## Still to verify
 
-Facing (`-Y` in Blender to `+Z` in Godot) and scale, with the first test asset.
-See `art/_source/README.md`.
+Facing (`-Y` in Blender to `+Z` in Godot) and scale, with a Blender test asset.
+Verified for voxel art: MagicaVoxel's `-Y` arrives facing `+Z`, at the voxel
+size the import sets.

@@ -15,7 +15,7 @@ Number them in order, `NNNN-short-title.md`.
 | [0002](0002-performance-target.md) | 60 fps at 1080p native on Iris Xe, and how it is measured |
 | [0003](0003-jolt-physics.md) | Jolt physics, set explicitly |
 | [0004](0004-authored-over-generated.md) | Authored over generated |
-| [0005](0005-art-pipeline.md) | Blender, glTF binary, one palette, shader-animated pickles |
+| [0005](0005-art-pipeline.md) | Blender, glTF binary, one palette, shader-animated pickles; voxel art beside it, animated by code |
 | [0006](0006-event-bus.md) | The event bus, and why each of its signals is on it |
 | [0007](0007-audio-director.md) | `AudioDirector` as a second autoload |
 | [0008](0008-horde-ground.md) | The horde stands on an interface, and the flats come first |

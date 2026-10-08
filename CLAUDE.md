@@ -98,7 +98,7 @@ scripts/        core/ player/ weapons/ enemies/ horde/ voxel/ planet/
                 vehicles/ mission/ levels/ ui/ audio/ debug/
 resources/      mirrors scripts/
 shaders/
-tools/          project-board/ (and voxel-bench/ from M2). .gdignore'd.
+tools/          project-board/, vox-tools/ (and voxel-bench/ from M2). .gdignore'd.
 docs/           pitch.md, plan.md, decisions/, project_board.json
 perflogs/       recordings and bench screenshots. Gitignored.
 ```
