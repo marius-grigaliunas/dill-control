@@ -107,9 +107,12 @@ static func _horde_timeline(count: int) -> Array:
 		["stop recording", ["perf_record"], [], 0.5],
 		["rifle into it", ["slot_1", "@aim:Horde:0.5"], ["fire"], 6.0],
 		["machete", ["slot_2"], ["~fire"], 5.0],
-		["rockets", ["slot_3"], ["~fire"], 6.0],
+		["rockets", ["slot_3"], ["~fire"], 3.0],
+		["rockets shot", ["#hud_rockets"], ["~fire"], 0.5],
+		["rockets, late", [], ["~fire"], 2.5],
 		["shotgun", ["slot_4"], ["~fire"], 5.0],
 		["grenades", ["slot_1"], ["grenade"], 5.0],
+		["hud shot", ["#hud_fight"], ["grenade"], 0.5],
 		["holding ground", [], [], 5.0],
 		["crowd, looking down", ["@aim:Horde:-40"], [], 4.0],
 		["shot", ["#horde_crowd"], [], 0.5],
@@ -141,6 +144,7 @@ const HORDE_AB_PAIRS := [
 	["flow rebuild off", ["!set:Horde:Stats:FlowRebuildInterval=1000.0"], ["!set:Horde:Stats:FlowRebuildInterval=0.5"]],
 	["horde one thread", ["!set:Horde:Stats:Multithreaded=false"], ["!set:Horde:Stats:Multithreaded=true"]],
 	["ranged off", ["!set:Horde:Stats:RangedEnabled=false"], ["!set:Horde:Stats:RangedEnabled=true"]],
+	["hud off", ["!hide:HudLayer"], ["!show:HudLayer"]],
 ]
 
 # The machete's two strokes, caught mid-swing: left to right, then the

@@ -86,6 +86,9 @@ public partial class WeaponLoadout : Node3D
 
     public int ActiveSlot { get; private set; }
 
+    /// <summary>The filled slots in key order: slot_1 is index 0. For the HUD.</summary>
+    public IReadOnlyList<WeaponBase> Slots => _slots;
+
     /// <summary>True while the hands are empty between two weapons.</summary>
     public bool IsSwitching => _switchRemaining > 0.0f;
 
