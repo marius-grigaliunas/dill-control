@@ -77,6 +77,12 @@ const INK_TIMELINE := [
 const GRAPPLE_TIMELINE := [
 	["aim at a pillar", ["@status", "@aim:Pillar6:24"], [], 1.0],
 	["throw", [], ["grapple"], 1.0],
+	["reel off the floor", [], ["grapple", "jump"], 0.6],
+	["swing, building speed", [], ["grapple", "move_forward"], 2.0],
+	["reel, keeping speed", [], ["grapple", "jump"], 0.9],
+	["let go after speed reel", [], [], 0.4],
+	["reset at spawn", ["@goto:0, 0.2, 70", "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:Pillar6:24"], [], 0.6],
+	["throw", [], ["grapple"], 1.0],
 	["reel, half way", [], ["grapple", "jump"], 0.9],
 	["let go mid-haul, carrying", [], [], 3.0],
 	["aim at a column", ["@aim:Column1:18"], [], 0.8],

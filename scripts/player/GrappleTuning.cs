@@ -38,8 +38,8 @@ public partial class GrappleTuning : Resource
     /// range reads as a throw and the attach has a moment to land on. Zero is
     /// instant.
     /// </summary>
-    [Export(PropertyHint.Range, "0,600,5,suffix:m/s")]
-    public float GrappleHookSpeed { get; set; } = 160.0f;
+    [Export(PropertyHint.Range, "0,800,5,suffix:m/s")]
+    public float GrappleHookSpeed { get; set; } = 500.0f;
 
     /// <summary>Shortest the line can be reeled to.</summary>
     [Export(PropertyHint.Range, "0.5,10,0.1,suffix:m")]
@@ -55,20 +55,37 @@ public partial class GrappleTuning : Resource
     /// this is what actually hauls you in.
     /// </summary>
     [Export(PropertyHint.Range, "1,150,0.5,suffix:m/s²")]
-    public float GrappleReelAcceleration { get; set; } = 38.0f;
+    public float GrappleReelAcceleration { get; set; } = 70.0f;
 
     /// <summary>Speed along the line past which reeling stops adding to it.</summary>
     [Export(PropertyHint.Range, "1,80,0.5,suffix:m/s")]
-    public float GrappleReelMaxSpeed { get; set; } = 26.0f;
+    public float GrappleReelMaxSpeed { get; set; } = 45.0f;
 
     /// <summary>
-    /// Fraction of sideways speed shed per second while reeling, relative to
-    /// the anchor. Zero is a stone on a string: reeling in spins you faster
-    /// and faster round the anchor. High is a winch: it takes you straight to
-    /// what you hooked.
+    /// How fast reeling turns existing speed toward the anchor, in radians
+    /// per second. The speed's size is kept, so holding jump cannot make you
+    /// slower than you were. Zero is a stone on a string: reeling in spins
+    /// you faster and faster round the anchor. High is a winch: it takes you
+    /// straight to what you hooked.
     /// </summary>
-    [Export(PropertyHint.Range, "0,20,0.1")]
-    public float GrappleReelSteadying { get; set; } = 4.0f;
+    [Export(PropertyHint.Range, "0,20,0.1,suffix:rad/s")]
+    public float GrappleReelTurnRate { get; set; } = 6.0f;
+
+    /// <summary>
+    /// Within this of the hang length, inward speed is capped so arriving at
+    /// the top of the line eases out rather than stopping in one frame.
+    /// Zero leaves the hang's hard stop as it is.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,20,0.1,suffix:m")]
+    public float GrappleReelArriveDistance { get; set; } = 5.0f;
+
+    /// <summary>
+    /// How much of the speed heading away from the anchor is kept as swing
+    /// when the line first goes taut. One turns it into the swing direction
+    /// at the same size; zero is a rope that eats the outward part.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float GrappleAttachCarry { get; set; } = 1.0f;
 
     /// <summary>How fast holding crouch lets line out.</summary>
     [Export(PropertyHint.Range, "0,40,0.5,suffix:m/s")]

@@ -348,7 +348,7 @@ public partial class GrappleHook : Node3D
 
     /// <summary>
     /// One segment of flight, swept by one ray -- the rocket's arrangement, and
-    /// for the rocket's reason: at 160 m/s a hook covers nearly three metres a
+    /// for the rocket's reason: at 500 m/s a hook covers about eight metres a
     /// frame, and a shape moved in steps would pass clean through a pillar.
     /// A speed of zero sweeps the whole range in one go, which is "instant".
     /// </summary>

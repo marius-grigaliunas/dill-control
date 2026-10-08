@@ -163,6 +163,13 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
     /// <summary>Seconds of zip already spent, for the ease-in.</summary>
     private float _zipElapsed;
 
+    /// <summary>
+    /// True until the first <see cref="ApplyRope"/> after attaching, so a
+    /// swing can keep the speed that would otherwise die when the line goes
+    /// taut.
+    /// </summary>
+    private bool _attachCarry;
+
     /// <summary>Remaining apex-float time after letting go of the line.</summary>
     private float _apexTimer;
 
@@ -1227,7 +1234,10 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
     /// to the anchor's own motion so a line in something that is moving tows
     /// rather than yanks. Removing it rather than reflecting it loses energy
     /// when the line snaps taut, which is correct: a rope that goes taut is a
-    /// small collision, and one that bounced would feel like elastic.
+    /// small collision, and one that bounced would feel like elastic. The first
+    /// taut frame of a swing is the exception: that outward speed is turned
+    /// into the swing instead, so catching a line at a dash does not throw
+    /// the dash away.
     ///
     /// Drift left over by integration is taken up by asking for a small inward
     /// speed proportional to the stretch, rather than by adding an impulse
@@ -1248,6 +1258,15 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
         Vector3 relative = velocity - Grapple.AnchorVelocity;
         float length = Grapple.RopeLength;
 
+        if (_attachCarry)
+        {
+            _attachCarry = false;
+            if (Grapple.Mode == GrappleLineMode.Swing)
+            {
+                CarryAttachSpeed(ref velocity, ref relative, along);
+            }
+        }
+
         if (reeling)
         {
             length = Mathf.Max(Line.GrappleMinLength, Mathf.Min(length, distance) - (Line.GrappleReelSpeed * dt));
@@ -1267,21 +1286,35 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
                 return;
             }
 
-            // Hauling in straightens the line out. A rope shortened under a
-            // body conserves its angular momentum, so the sideways speed grows
-            // as the length shrinks -- twenty-fold from thirty metres to one
-            // and a half, which in the first test spun the player round the
+            // Hauling in turns existing speed toward the anchor rather than
+            // shedding the sideways part. A rope shortened under a body
+            // conserves its angular momentum, so the sideways speed grows as
+            // the length shrinks -- twenty-fold from thirty metres to one and
+            // a half, which in the first test spun the player round the
             // anchor at 40 m/s. Correct for a stone on a string; wrong for a
-            // winch whose whole purpose is taking you to what you hooked.
-            Vector3 sideways = relative - (along * relative.Dot(along));
-            Vector3 settle = sideways * Mathf.Min(1.0f, Line.GrappleReelSteadying * dt);
-            velocity -= settle;
-            relative -= settle;
+            // winch whose whole purpose is taking you to what you hooked. The
+            // turn keeps the speed's size, so a swing reeled at the bottom
+            // does not dump the speed gravity just gave it.
+            relative = TurnToward(relative, along, Line.GrappleReelTurnRate * dt);
+            velocity = Grapple.AnchorVelocity + relative;
+
+            float remaining = distance - (Line.GrappleMinLength + HangSlack);
+            float inwardCap = Line.GrappleReelMaxSpeed;
+            if (Line.GrappleReelArriveDistance > 0.0f && remaining < Line.GrappleReelArriveDistance)
+            {
+                inwardCap *= Mathf.Sqrt(Mathf.Max(0.0f, remaining / Line.GrappleReelArriveDistance));
+            }
 
             float inward = relative.Dot(along);
-            if (inward < Line.GrappleReelMaxSpeed)
+            if (inward > inwardCap)
             {
-                float add = Mathf.Min(Line.GrappleReelAcceleration * dt, Line.GrappleReelMaxSpeed - inward);
+                float cut = inward - inwardCap;
+                velocity -= along * cut;
+                relative -= along * cut;
+            }
+            else if (inward < inwardCap)
+            {
+                float add = Mathf.Min(Line.GrappleReelAcceleration * dt, inwardCap - inward);
                 velocity += along * add;
                 relative += along * add;
             }
@@ -1305,6 +1338,94 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
         }
 
         velocity = velocity.LimitLength(Line.GrappleMaxSpeed);
+    }
+
+    /// <summary>
+    /// First taut frame of a swing: the speed heading away from the anchor
+    /// becomes speed across it, so a dash or a fall into the line keeps
+    /// moving instead of dying against the constraint.
+    /// </summary>
+    private void CarryAttachSpeed(ref Vector3 velocity, ref Vector3 relative, Vector3 along)
+    {
+        float alongSpeed = relative.Dot(along);
+        if (alongSpeed >= 0.0f || Line.GrappleAttachCarry <= 0.0f)
+        {
+            return;
+        }
+
+        float speed = relative.Length();
+        if (speed < 0.0001f)
+        {
+            return;
+        }
+
+        Vector3 tangent = relative - (along * alongSpeed);
+        Vector3 swingDir;
+        if (tangent.LengthSquared() > 0.0001f)
+        {
+            swingDir = tangent.Normalized();
+        }
+        else
+        {
+            swingDir = (-GlobalBasis.Z).Slide(along);
+            if (swingDir.LengthSquared() < 0.0001f)
+            {
+                swingDir = UpDirection.Slide(along);
+            }
+
+            if (swingDir.LengthSquared() < 0.0001f)
+            {
+                swingDir = along.Cross(Vector3.Right);
+            }
+
+            if (swingDir.LengthSquared() < 0.0001f)
+            {
+                return;
+            }
+
+            swingDir = swingDir.Normalized();
+        }
+
+        Vector3 converted = relative.Slerp(swingDir * speed, Line.GrappleAttachCarry);
+        velocity += converted - relative;
+        relative = converted;
+    }
+
+    /// <summary>
+    /// Rotates <paramref name="value"/> toward <paramref name="targetDir"/>
+    /// by at most <paramref name="radians"/>, keeping its size.
+    /// </summary>
+    private Vector3 TurnToward(Vector3 value, Vector3 targetDir, float radians)
+    {
+        float speed = value.Length();
+        if (speed < 0.0001f || radians <= 0.0f)
+        {
+            return value;
+        }
+
+        Vector3 from = value / speed;
+        float angle = from.AngleTo(targetDir);
+        if (angle < 0.0001f)
+        {
+            return value;
+        }
+
+        Vector3 axis = from.Cross(targetDir);
+        if (axis.LengthSquared() < 0.0001f)
+        {
+            axis = from.Cross(UpDirection);
+            if (axis.LengthSquared() < 0.0001f)
+            {
+                axis = from.Cross(Vector3.Right);
+            }
+        }
+
+        if (axis.LengthSquared() < 0.0001f)
+        {
+            return value;
+        }
+
+        return from.Rotated(axis.Normalized(), Mathf.Min(angle, radians)) * speed;
     }
 
     /// <summary>
@@ -1358,10 +1479,12 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
         _apexTimer = 0.0f;
         _zipElapsed = 0.0f;
         _orbitInit = false;
+        _attachCarry = true;
     }
 
     private void OnGrappleReleased(bool snapped)
     {
+        _attachCarry = false;
         _orbitInit = false;
         bool airborne = !IsOnFloor();
         _momentumCarry = airborne && HorizontalSpeed > Tuning.SprintSpeed;
