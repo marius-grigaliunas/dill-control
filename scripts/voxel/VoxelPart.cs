@@ -19,6 +19,10 @@ public enum VoxelAnchor
     Largest,
 }
 
+/// <summary>Where a falling piece hangs on what is left of its support: a
+/// point and a horizontal axis on the standing building's collision.</summary>
+public readonly record struct VoxelHinge(CollisionObject3D Anchor, Vector3 Pivot, Vector3 Axis);
+
 /// <summary>
 /// One destructible piece: a voxel grid drawn as sections, optionally given
 /// box collision, carved by hits, and checked after each burst of hits for
@@ -30,9 +34,10 @@ public enum VoxelAnchor
 /// node: a leg swinging, a chunk tumbling.
 ///
 /// A building also carries its own weight: a layer that has lost too much of
-/// what held it up gives way, and what is above comes down tipping towards the
-/// side that went. Anything big that comes loose fractures into storey-sized
-/// blocks that fall together and crumble as they land (docs/decisions/0013).
+/// what held it up gives way, its storey buckles, and what is above comes down
+/// whole: straight down if the support went evenly, hanging on what is left
+/// and leaning over if it went on one side. It breaks where it lands, crushing
+/// through storey by storey (docs/decisions/0013, 0014).
 ///
 /// Every voxel model in the game is made of these, which is what makes them all
 /// break the same way (docs/decisions/0011).
@@ -185,6 +190,39 @@ public partial class VoxelPart : Node3D
         return count;
     }
 
+    /// <summary>
+    /// Takes a horizontal slit out, <paramref name="height"/> metres up and
+    /// <paramref name="thickness"/> thick, through the given share of its width
+    /// from its -X side. A clean, repeatable cut for benches.
+    /// </summary>
+    public void Cut(float height, float thickness, float share)
+    {
+        if (IsEmpty)
+        {
+            return;
+        }
+        int z0 = Mathf.RoundToInt(height / Grid.VoxelSize);
+        int z1 = Math.Min(Grid.Size.Z, z0 + Math.Max(1, Mathf.RoundToInt(thickness / Grid.VoxelSize)));
+        int x1 = Mathf.RoundToInt(Grid.Size.X * share);
+        var cells = new List<int>();
+        for (int z = z0; z < z1; z++)
+            for (int y = 0; y < Grid.Size.Y; y++)
+                for (int x = 0; x < x1; x++)
+                {
+                    int i = Grid.Index(x, y, z);
+                    if (Grid.Cells[i] != 0)
+                    {
+                        cells.Add(i);
+                    }
+                }
+        _removed.Clear();
+        Grid.Remove(cells, _removed);
+        CollapseDust(_removed);
+        MarkAllDirty();
+        RebuildCollisionNow(new Vector3I(0, 0, z0), new Vector3I(x1, Grid.Size.Y - 1, z1));
+        _integrityTimer = _stats.IntegrityDelay;
+    }
+
     /// <summary>The first solid cell a world-space ray meets, as a world point.</summary>
     public bool Raycast(Vector3 from, Vector3 direction, float maxDistance, out Vector3 point)
     {
@@ -249,9 +287,12 @@ public partial class VoxelPart : Node3D
     /// <summary>
     /// Breaks into blocks about half its own size, each thrown a little apart,
     /// in a burst of dust: how a big loose piece comes apart when it lands
-    /// hard. False when it is too small to split, and nothing was done.
+    /// hard. With <paramref name="snap"/>, it breaks across its length only,
+    /// into segments of about <see cref="VoxelDestructionStats.SnapLength"/>:
+    /// how a fallen tower lands on its side. False when it is too small to
+    /// split, and nothing was done.
     /// </summary>
-    public bool Crumble(Vector3 push)
+    public bool Crumble(Vector3 push, bool snap = false)
     {
         if (IsEmpty)
         {
@@ -259,7 +300,8 @@ public partial class VoxelPart : Node3D
         }
         var anchored = new List<bool>();
         List<List<int>> islands = Grid.Islands(_ => false, anchored);
-        if (islands.Count == 1 && CrumbleBlock(islands[0]) == Vector3.Zero)
+        Breakup breakup = snap ? Breakup.Snap : Breakup.Crumble;
+        if (islands.Count == 1 && (snap ? SnapBlock(islands[0]) : CrumbleBlock(islands[0])) == Vector3.Zero)
         {
             return false;
         }
@@ -271,7 +313,7 @@ public partial class VoxelPart : Node3D
         }
         foreach (List<int> island in islands)
         {
-            Release(island, push, null, Vector3.Zero, crumble: true);
+            Release(island, push, null, Vector3.Zero, breakup);
         }
         MarkAllDirty();
         RaiseEmptied();
@@ -290,7 +332,7 @@ public partial class VoxelPart : Node3D
         List<List<int>> islands = Grid.Islands(_ => false, anchored);
         foreach (List<int> island in islands)
         {
-            Release(island, push, null, Vector3.Zero, crumble: false);
+            Release(island, push, null, Vector3.Zero, Breakup.Fracture);
         }
         MarkAllDirty();
         RaiseEmptied();
@@ -394,7 +436,10 @@ public partial class VoxelPart : Node3D
                 anyHeld = true;
                 continue;
             }
-            Release(islands[k], Vector3.Zero, null, Vector3.Zero, crumble: false);
+            // What comes loose of a building falls whole, unspun, and breaks
+            // where it lands; anything else is thrown off with a spin.
+            Release(islands[k], Vector3.Zero, Anchor == VoxelAnchor.Ground ? Vector3.Zero : null, Vector3.Zero,
+                Breakup.Intact);
             changed = true;
         }
 
@@ -480,18 +525,22 @@ public partial class VoxelPart : Node3D
             return false;
         }
 
+        // The storey from the failed layer up buckles; what is above drops
+        // through it whole.
+        int top = fail + Math.Max(1, Mathf.RoundToInt(_stats.FailureDepth / Grid.VoxelSize));
+        bool held = count[fail] > 0;
         var crushed = new List<int>();
         var falling = new List<int>();
         foreach (int i in island)
         {
             int z = Grid.CellOf(i).Z;
-            if (z == fail)
-            {
-                crushed.Add(i);
-            }
-            else if (z > fail)
+            if (z >= top)
             {
                 falling.Add(i);
+            }
+            else if (z >= fail)
+            {
+                crushed.Add(i);
             }
         }
 
@@ -499,35 +548,130 @@ public partial class VoxelPart : Node3D
         Grid.Remove(crushed, _removed);
         CollapseDust(_removed);
 
-        // Tip about the remains of the support, towards where the load hangs.
-        Vector3 pivot = ToGlobal(VoxSpace.ToGodot(new Vector3(failSupport.X, failSupport.Y, fail + 0.5f) - Grid.Origin) * Grid.VoxelSize);
+        // Tip about the remains of the support, towards where the load hangs:
+        // not at all if it went evenly all round.
+        Vector3 pivot = ToGlobal(VoxSpace.ToGodot(new Vector3(failSupport.X, failSupport.Y, top) - Grid.Origin) * Grid.VoxelSize);
         Vector3 up = Up();
         Vector3 lean = GlobalBasis * VoxSpace.ToGodot(new Vector3(failLean.X, failLean.Y, 0.0f));
         lean -= up * lean.Dot(up);
-        if (lean.LengthSquared() < 1e-4f)
-        {
-            lean = up.Cross(Vector3.Right).Rotated(up, GD.Randf() * Mathf.Tau);
-        }
-        Vector3 spin = up.Cross(lean.Normalized()).Normalized() * (_stats.ToppleSpin * (0.35f + 0.65f * failOffCentre));
+        Vector3 axis = lean.LengthSquared() < 1e-4f ? Vector3.Zero : up.Cross(lean.Normalized()).Normalized();
+        Vector3 spin = axis * (_stats.ToppleSpin * failOffCentre);
 
-        foreach (List<int> piece in Grid.Pieces(falling, _ => 0))
+        // Lost on one side only, what is left on the other still holds: the
+        // building hangs on it, leans over and tears free (VoxelChunk).
+        bool hinged = held && failOffCentre >= _stats.HingeOffCentre && axis != Vector3.Zero && CollisionOwner != null;
+        List<List<int>> pieces = Grid.Pieces(falling, _ => 0);
+        int largest = -1;
+        for (int k = 0; k < pieces.Count; k++)
         {
-            Release(piece, Vector3.Zero, spin, pivot, crumble: false);
+            if (largest < 0 || pieces[k].Count > pieces[largest].Count)
+            {
+                largest = k;
+            }
+        }
+        for (int k = 0; k < pieces.Count; k++)
+        {
+            VoxelHinge? hinge = hinged && k == largest ? new VoxelHinge(CollisionOwner, pivot, axis) : null;
+            Release(pieces[k], Vector3.Zero, spin, pivot, Breakup.Intact, hinge);
         }
         AudioDirector.PlayAt(Sfx.VoxelCollapse, pivot);
         return true;
     }
 
     /// <summary>
-    /// Lifts an island out as loose pieces, or dust if it is small. A big one
-    /// fractures into storey-sized blocks first (with <paramref name="crumble"/>,
-    /// into blocks about half its own size), all starting as one rigid body
-    /// would: each moves at the velocity its place in the whole has.
+    /// Crushes a slab out of it: every cell from a world point to
+    /// <paramref name="depth"/> metres along <paramref name="direction"/>,
+    /// within <paramref name="radius"/> of the line through the point. What is
+    /// crushed goes up as dust. Collision follows at once, since what is
+    /// crushing through must not rest on what it crushed; meshes follow as
+    /// usual. Returns the voxels removed.
+    /// </summary>
+    public int CrushSlab(Vector3 worldPoint, Vector3 direction, float depth, float radius)
+    {
+        if (IsEmpty)
+        {
+            return 0;
+        }
+        Vector3 from = Grid.ToVox(ToLocal(worldPoint));
+        Vector3 along = VoxSpace.FromGodot(GlobalBasis.Inverse() * direction).Normalized();
+        float deep = depth / Grid.VoxelSize;
+        float wide2 = radius / Grid.VoxelSize * (radius / Grid.VoxelSize);
+
+        // Only the box round the slab is looked at.
+        float reach = deep + radius / Grid.VoxelSize;
+        Vector3I lo = new Vector3I(Mathf.FloorToInt(from.X - reach), Mathf.FloorToInt(from.Y - reach), Mathf.FloorToInt(from.Z - reach))
+            .Clamp(Vector3I.Zero, Grid.Size - Vector3I.One);
+        Vector3I hi = new Vector3I(Mathf.CeilToInt(from.X + reach), Mathf.CeilToInt(from.Y + reach), Mathf.CeilToInt(from.Z + reach))
+            .Clamp(Vector3I.Zero, Grid.Size - Vector3I.One);
+        var cells = new List<int>();
+        Vector3I min = hi, max = lo;
+        for (int z = lo.Z; z <= hi.Z; z++)
+            for (int y = lo.Y; y <= hi.Y; y++)
+                for (int x = lo.X; x <= hi.X; x++)
+                {
+                    int i = Grid.Index(x, y, z);
+                    if (Grid.Cells[i] == 0)
+                    {
+                        continue;
+                    }
+                    Vector3 q = new Vector3(x + 0.5f, y + 0.5f, z + 0.5f) - from;
+                    float d = q.Dot(along);
+                    if (d < -1.0f || d > deep || q.LengthSquared() - d * d > wide2)
+                    {
+                        continue;
+                    }
+                    cells.Add(i);
+                    var c = new Vector3I(x, y, z);
+                    min = min.Min(c);
+                    max = max.Max(c);
+                }
+        if (cells.Count == 0)
+        {
+            return 0;
+        }
+
+        _removed.Clear();
+        Grid.Remove(cells, _removed);
+        CollapseDust(_removed);
+        MarkDirty(min, max);
+        RebuildCollisionNow(min, max);
+        _integrityTimer = _stats.IntegrityDelay;
+        Carved?.Invoke(this, cells.Count);
+        if (Grid.SolidCount <= 0)
+        {
+            RaiseEmptied();
+        }
+        return cells.Count;
+    }
+
+    private enum Breakup
+    {
+        /// <summary>Falls as one body, however big: a building's upper part.</summary>
+        Intact,
+
+        /// <summary>A big one splits into storey-sized blocks: a thing destroyed outright.</summary>
+        Fracture,
+
+        /// <summary>Into blocks about half its own size: a piece landing hard.</summary>
+        Crumble,
+
+        /// <summary>Across its length into segments: a long piece landing on its side.</summary>
+        Snap,
+    }
+
+    /// <summary>
+    /// Lifts an island out as loose pieces, or dust if it is small. Unless
+    /// <see cref="Breakup.Intact"/>, a big one is split into blocks first, all
+    /// starting as one rigid body would: each moves at the velocity its place
+    /// in the whole has.
     /// </summary>
     /// <param name="spin">The whole's angular velocity about
     /// <paramref name="pivot"/>; null throws each piece off with a spin of
     /// its own.</param>
-    private void Release(List<int> island, Vector3 push, Vector3? spin, Vector3 pivot, bool crumble)
+    /// <param name="hinge">Where an intact piece hangs on what is left of its
+    /// support, if it does.</param>
+    private void Release(List<int> island, Vector3 push, Vector3? spin, Vector3 pivot, Breakup breakup,
+        VoxelHinge? hinge = null)
     {
         Vector3 velocity = Velocity() + push;
         if (island.Count < _stats.MinChunkVoxels || VoxelDebris.Current == null)
@@ -538,10 +682,18 @@ public partial class VoxelPart : Node3D
             return;
         }
 
-        Vector3 block = crumble ? CrumbleBlock(island) : FractureBlock(island);
+        bool crumble = breakup is Breakup.Crumble or Breakup.Snap;
+        Vector3I extent = CellMax(island) - CellMin(island) + Vector3I.One;
+        Vector3 block = breakup switch
+        {
+            Breakup.Crumble => CrumbleBlock(island),
+            Breakup.Snap => SnapBlock(island),
+            Breakup.Fracture => FractureBlock(island),
+            _ => Vector3.Zero,
+        };
         if (block == Vector3.Zero)
         {
-            SpawnPiece(island, velocity, spin, pivot);
+            SpawnPiece(island, velocity, spin, pivot, hinge);
             return;
         }
 
@@ -551,10 +703,11 @@ public partial class VoxelPart : Node3D
         {
             // Block boundaries shifted by up to a third of a block in steps of
             // a few voxels, so the blocks break out jagged rather than as boxes.
+            // Not along a side that is not split: it would shave its edges off.
             Vector3I c = Grid.CellOf(i) - min;
-            float jx = Jitter(c.Y >> 2, c.Z >> 2, seed) * block.X * 0.3f;
-            float jy = Jitter(c.X >> 2, c.Z >> 2, seed + 1) * block.Y * 0.3f;
-            float jz = Jitter(c.X >> 2, c.Y >> 2, seed + 2) * block.Z * 0.3f;
+            float jx = block.X < extent.X ? Jitter(c.Y >> 2, c.Z >> 2, seed) * block.X * 0.3f : 0.0f;
+            float jy = block.Y < extent.Y ? Jitter(c.X >> 2, c.Z >> 2, seed + 1) * block.Y * 0.3f : 0.0f;
+            float jz = block.Z < extent.Z ? Jitter(c.X >> 2, c.Y >> 2, seed + 2) * block.Z * 0.3f : 0.0f;
             int kx = Mathf.FloorToInt((c.X + jx) / block.X) + 1;
             int ky = Mathf.FloorToInt((c.Y + jy) / block.Y) + 1;
             int kz = Mathf.FloorToInt((c.Z + jz) / block.Z) + 1;
@@ -585,7 +738,7 @@ public partial class VoxelPart : Node3D
         Dust(_removed);
     }
 
-    private void SpawnPiece(List<int> piece, Vector3 velocity, Vector3? spin, Vector3 pivot)
+    private void SpawnPiece(List<int> piece, Vector3 velocity, Vector3? spin, Vector3 pivot, VoxelHinge? hinge = null)
     {
         VoxelGrid grid = Grid.Extract(piece, out Vector3 offset);
         Transform3D at = GlobalTransform * new Transform3D(Basis.Identity, offset);
@@ -593,7 +746,7 @@ public partial class VoxelPart : Node3D
         {
             velocity += w.Cross(at.Origin - pivot);
         }
-        VoxelDebris.Current.SpawnChunk(grid, Palette, Emission, Material, at, velocity, spin);
+        VoxelDebris.Current.SpawnChunk(grid, Palette, Emission, Material, at, velocity, spin, hinge);
     }
 
     /// <summary>Fracture blocks for a released piece, in voxels: storey-sized,
@@ -623,6 +776,23 @@ public partial class VoxelPart : Node3D
         var block = new Vector3(
             Mathf.Max(size.X * 0.5f, least), Mathf.Max(size.Y * 0.5f, least), Mathf.Max(size.Z * 0.5f, least));
         return Blocks(size, block) > 1 ? block : Vector3.Zero;
+    }
+
+    /// <summary>Snap blocks: its whole size, but its longest side cut into
+    /// segments of about <see cref="VoxelDestructionStats.SnapLength"/>.
+    /// Zero: too short to snap.</summary>
+    private Vector3 SnapBlock(List<int> island)
+    {
+        Vector3I size = CellMax(island) - CellMin(island) + Vector3I.One;
+        var block = new Vector3(size.X, size.Y, size.Z);
+        int axis = (int)block.MaxAxisIndex();
+        int segments = Mathf.RoundToInt(block[axis] * Grid.VoxelSize / _stats.SnapLength);
+        if (segments < 2)
+        {
+            return Vector3.Zero;
+        }
+        block[axis] /= segments;
+        return block;
     }
 
     private static int Blocks(Vector3I size, Vector3 block) =>
@@ -707,12 +877,36 @@ public partial class VoxelPart : Node3D
         _anyDirty = true;
     }
 
-    private void RebuildSection(int s)
+    /// <summary>Re-boxes the collision of the sections a change touched, now
+    /// rather than within the frame budget. Their meshes still wait their turn.</summary>
+    private void RebuildCollisionNow(Vector3I min, Vector3I max)
+    {
+        if (CollisionOwner == null || _shapeOwners == null)
+        {
+            return;
+        }
+        int edge = Math.Max(4, _stats.SectionEdge);
+        Vector3I lo = (min - Vector3I.One).Clamp(Vector3I.Zero, Grid.Size - Vector3I.One) / edge;
+        Vector3I hi = (max + Vector3I.One).Clamp(Vector3I.Zero, Grid.Size - Vector3I.One) / edge;
+        for (int z = lo.Z; z <= hi.Z; z++)
+            for (int y = lo.Y; y <= hi.Y; y++)
+                for (int x = lo.X; x <= hi.X; x++)
+                {
+                    RebuildCollision(x + _sectionCount.X * (y + _sectionCount.Y * z));
+                }
+    }
+
+    private (Vector3I min, Vector3I max) SectionBounds(int s)
     {
         int edge = Math.Max(4, _stats.SectionEdge);
         int sx = s % _sectionCount.X, sy = (s / _sectionCount.X) % _sectionCount.Y, sz = s / (_sectionCount.X * _sectionCount.Y);
         var min = new Vector3I(sx * edge, sy * edge, sz * edge);
-        Vector3I max = (min + new Vector3I(edge, edge, edge)).Min(Grid.Size);
+        return (min, (min + new Vector3I(edge, edge, edge)).Min(Grid.Size));
+    }
+
+    private void RebuildSection(int s)
+    {
+        (Vector3I min, Vector3I max) = SectionBounds(s);
 
         Godot.Collections.Array arrays = VoxMesher.Build(Grid.Cells, Grid.Size, min, max, Palette, Emission,
             Grid.Origin, Grid.VoxelSize, -1);
@@ -738,10 +932,16 @@ public partial class VoxelPart : Node3D
             instance.Mesh = mesh;
         }
 
+        RebuildCollision(s);
+    }
+
+    private void RebuildCollision(int s)
+    {
         if (CollisionOwner == null)
         {
             return;
         }
+        (Vector3I min, Vector3I max) = SectionBounds(s);
         // One shape owner per box: an owner's shapes share its transform.
         foreach (uint owner in _shapeOwners[s])
         {

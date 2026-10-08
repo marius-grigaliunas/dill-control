@@ -85,15 +85,68 @@ public partial class VoxelDestructionStats : Resource
     public int MinLoadVoxels { get; set; } = 150;
 
     /// <summary>How fast what is above a failed layer starts to tip over,
-    /// towards the side that lost its support, at its most off-centre.</summary>
+    /// towards the side that lost its support, at its most off-centre. A
+    /// layer that failed evenly all round tips not at all: it comes straight
+    /// down.</summary>
     [Export(PropertyHint.Range, "0,2,0.01,suffix:rad/s")]
     public float ToppleSpin { get; set; } = 0.22f;
 
+    /// <summary>How much of a building buckles when a layer fails: the storey
+    /// from that layer up goes to dust, and what is above drops through it.</summary>
+    [Export(PropertyHint.Range, "0.5,20,0.5,suffix:m")]
+    public float FailureDepth { get; set; } = 4.0f;
+
+    [ExportGroup("Collapse")]
+    /// <summary>A layer that failed this far off-centre (as a fraction of the
+    /// footprint's half width) still holds on the side that is left: what is
+    /// above hangs on a hinge there, leans over towards the side that went,
+    /// and tears free at <see cref="HingeBreakAngle"/>. Less, and it drops.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float HingeOffCentre { get; set; } = 0.15f;
+
+    /// <summary>How far a building leans on what is left of its support
+    /// before that tears and it falls free.</summary>
+    [Export(PropertyHint.Range, "1,45,0.5,suffix:°")]
+    public float HingeBreakAngle { get; set; } = 10.0f;
+
+    /// <summary>Longest a building hangs on its hinge, however far it has
+    /// leant: what is left of the support gives way.</summary>
+    [Export(PropertyHint.Range, "0.1,20,0.1,suffix:s")]
+    public float HingeHoldSeconds { get; set; } = 2.5f;
+
+    /// <summary>A big loose piece landing at least this fast does not stop: it
+    /// crushes a slab of itself and of the building it lands on, and keeps
+    /// going. A tower dropped one storey comes down storey by storey.</summary>
+    [Export(PropertyHint.Range, "0,30,0.1,suffix:m/s")]
+    public float CrushThroughSpeed { get; set; } = 2.5f;
+
+    /// <summary>How deep one landing crushes, into the piece and into the
+    /// building under it.</summary>
+    [Export(PropertyHint.Range, "0.5,20,0.5,suffix:m")]
+    public float CrushDepth { get; set; } = 4.0f;
+
+    /// <summary>How far round the contact a crush reaches, past the contacts'
+    /// own spread.</summary>
+    [Export(PropertyHint.Range, "0,20,0.5,suffix:m")]
+    public float CrushWidth { get; set; } = 4.0f;
+
+    /// <summary>Share of its speed a piece keeps through a crush: what it
+    /// crushed took the rest.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float CrushKeep { get; set; } = 0.7f;
+
+    /// <summary>A piece less than this tall, along the way it is landing,
+    /// has too little weight above the contact to crush through: it lands,
+    /// and breaks up if it landed hard (<see cref="BreakSpeed"/>).</summary>
+    [Export(PropertyHint.Range, "1,100,0.5,suffix:m")]
+    public float CrushStopHeight { get; set; } = 16.0f;
+
     [ExportGroup("Fracture")]
-    /// <summary>A loose piece bigger than this does not fall as one body: it
-    /// fractures into blocks that start out moving together and come apart
-    /// as they land. In cubic metres, so a mech's fine voxels never fracture
-    /// where a building's coarse ones would.</summary>
+    /// <summary>A piece bigger than this is heavy: what comes loose of a
+    /// building falls as one body and crushes through what it lands on
+    /// (<see cref="CrushThroughSpeed"/>), and a thing destroyed outright
+    /// fractures into blocks rather than falling as one. In cubic metres, so a
+    /// mech's fine voxels never count where a building's coarse ones would.</summary>
     [Export(PropertyHint.Range, "1,2000,1,suffix:m³")]
     public float FractureVolume { get; set; } = 40.0f;
 
@@ -111,6 +164,11 @@ public partial class VoxelDestructionStats : Resource
     /// bigger blocks.</summary>
     [Export(PropertyHint.Range, "2,200,1")]
     public int MaxFracturePieces { get; set; } = 36;
+
+    /// <summary>A heavy piece landing hard on its side snaps across its
+    /// length into segments about this long, rather than crumbling.</summary>
+    [Export(PropertyHint.Range, "4,100,1,suffix:m")]
+    public float SnapLength { get; set; } = 20.0f;
 
     /// <summary>Smallest block a landing piece crumbles into.</summary>
     [Export(PropertyHint.Range, "0.2,10,0.1,suffix:m")]

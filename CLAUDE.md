@@ -145,8 +145,10 @@ animated by code, never clips: `docs/decisions/0010`.
 `VoxelBody` in its wrapper (static for buildings, hinged parts for mechs). No
 voxel thing gets damage code of its own; its numbers are in
 `resources/voxel/voxel_destruction_default.tres`, or for armoured things
-(mechs) `voxel_destruction_mech.tres`. Buildings carry their own weight and
-what falls fractures by storey: `docs/decisions/0013`.
+(mechs) `voxel_destruction_mech.tres`. Buildings carry their own weight
+(`docs/decisions/0013`); what comes loose falls whole, crushes through storey
+by storey, hangs on a hinge when it went on one side, and snaps where it lands
+(`docs/decisions/0014`).
 
 What still needs modelling, part by part, is `docs/models.md`. After changing the importer,
 force a reimport (delete `.godot/imported/*.vox-*`): Godot skips unchanged
@@ -172,6 +174,8 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn wreck     # the compound shot down
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mechwreck # the allies shot apart
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn collapse  # a skyscraper brought down
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut       # a tower cut through: drops whole, crushes down
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cutside   # cut on one side: leans, tears, topples
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn siege 25000  # crowd vs player and allies
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn horde 25000
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn hordeab 25000

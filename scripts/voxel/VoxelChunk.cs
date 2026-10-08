@@ -12,6 +12,12 @@ namespace DillControl.Voxel;
 /// crushes what it lands on, and once it has lain still long enough stops
 /// being simulated and stays as rubble you can still blow up.
 ///
+/// A big, tall one (a building's upper part) does not stop where it lands: it
+/// crushes a slab of itself and of the building under it and keeps going, so
+/// a tower comes down storey by storey and stays whole above the crush. One
+/// that came loose on one side first hangs on a hinge to what is left, leans
+/// over and tears free (docs/decisions/0014).
+///
 /// Made only by <see cref="VoxelDebris"/>, which counts them.
 /// </summary>
 public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
@@ -27,8 +33,17 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
     private float _still;
     private float _crushCooldown;
     private bool _breaking;
+    private bool _heavy;
+    private Vector3 _lastSpin;
+    private HingeJoint3D _hinge;
+    private Vector3 _hingePivot;
+    private Quaternion _hingeStart;
+    private float _hingeDust;
+    private float _hingeAge;
 
     public bool IsSettled { get; private set; }
+
+    public bool IsHinged => _hinge != null;
 
     public bool IsAlive => _part != null && !_part.IsEmpty;
 
@@ -48,8 +63,15 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         CollisionLayer = GameLayers.Mask(GameLayers.Prop);
         CollisionMask = GameLayers.Mask(GameLayers.World, GameLayers.Prop);
         float volume = _grid.SolidCount * _grid.VoxelSize * _grid.VoxelSize * _grid.VoxelSize;
-        Mass = Mathf.Clamp(volume * _stats.Density, 1.0f, 2_000_000.0f);
+        Weigh();
         CanSleep = true;
+        _heavy = volume >= _stats.FractureVolume;
+        if (_heavy)
+        {
+            // Where it lands decides what it crushes.
+            ContactMonitor = true;
+            MaxContactsReported = 8;
+        }
         // Heavy: it lands and stays, grinds rather than skates, and a block
         // on its corner falls over instead of spinning on.
         PhysicsMaterialOverride = new PhysicsMaterial { Friction = _stats.Friction, Bounce = 0.0f, Rough = true };
@@ -77,8 +99,18 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
 
         Vector3 velocity = LinearVelocity;
         float change = (_lastVelocity - velocity).Length();
+        if (_hinge != null)
+        {
+            Lean(dt);
+        }
         if (_age > 0.15f && !_breaking)
         {
+            if (_heavy && _hinge == null && change > _stats.CrushThroughSpeed && CrushThrough(change))
+            {
+                _lastVelocity = LinearVelocity;
+                _lastSpin = AngularVelocity;
+                return;
+            }
             if (change > _stats.CrushSpeed && _crushCooldown <= 0.0f)
             {
                 Crush(change);
@@ -90,6 +122,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
             }
         }
         _lastVelocity = velocity;
+        _lastSpin = AngularVelocity;
 
         _still = Sleeping || velocity.LengthSquared() < 0.01f ? _still + dt : 0.0f;
         if (!IsSettled && _still > _stats.SettleSeconds)
@@ -99,6 +132,149 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
             FreezeMode = FreezeModeEnum.Static;
             Freeze = true;
         }
+    }
+
+    public override void _ExitTree()
+    {
+        if (IsInstanceValid(_hinge))
+        {
+            _hinge.QueueFree();
+        }
+        _hinge = null;
+    }
+
+    private void Weigh()
+    {
+        float volume = _grid.SolidCount * _grid.VoxelSize * _grid.VoxelSize * _grid.VoxelSize;
+        Mass = Mathf.Clamp(volume * _stats.Density, 1.0f, 2_000_000.0f);
+    }
+
+    /// <summary>Hangs on a joint to what is left of the building it fell
+    /// from, until it leans <see cref="VoxelDestructionStats.HingeBreakAngle"/>.</summary>
+    public void HangOn(HingeJoint3D joint, Vector3 pivot)
+    {
+        _hinge = joint;
+        _hingePivot = pivot;
+        _hingeStart = GlobalBasis.GetRotationQuaternion();
+    }
+
+    /// <summary>
+    /// Leaning on the hinge: what is left of the support buckles at the pivot,
+    /// in puffs that grow as it goes over, and tears when it has leant far
+    /// enough, when it has held as long as it can (propped on its own rubble,
+    /// it would otherwise hang there), or when the building it hangs on has
+    /// gone.
+    /// </summary>
+    private void Lean(float dt)
+    {
+        _hingeAge += dt;
+        float angle = (GlobalBasis.GetRotationQuaternion() * _hingeStart.Inverse()).GetAngle();
+        float limit = Mathf.DegToRad(_stats.HingeBreakAngle);
+        bool anchored = IsInstanceValid(_hinge) && _hinge.GetNodeOrNull(_hinge.NodeB) is VoxelCollider { IsAlive: true };
+        Color colour = VoxelDebris.AverageColour(_grid, _palette);
+        if (angle < limit && _hingeAge < _stats.HingeHoldSeconds && anchored)
+        {
+            _hingeDust -= dt;
+            if (_hingeDust <= 0.0f && VoxelDebris.Current != null)
+            {
+                _hingeDust = 0.35f;
+                VoxelDebris.Current.Dust(_hingePivot, Vector3.Up, Vector3.Zero, colour, 2.0f + 4.0f * angle / limit);
+            }
+            return;
+        }
+
+        if (IsInstanceValid(_hinge))
+        {
+            _hinge.QueueFree();
+        }
+        _hinge = null;
+        VoxelDebris.Current?.Dust(_hingePivot, Vector3.Up, LinearVelocity * 0.3f, colour, 7.0f);
+        AudioDirector.PlayAt(Sfx.VoxelCollapse, _hingePivot);
+    }
+
+    /// <summary>
+    /// Lands and keeps going: a slab of itself and of the building under it,
+    /// <see cref="VoxelDestructionStats.CrushDepth"/> deep across the contact,
+    /// goes to dust, and it carries on with
+    /// <see cref="VoxelDestructionStats.CrushKeep"/> of its speed. Only while
+    /// it is taller than <see cref="VoxelDestructionStats.CrushStopHeight"/>
+    /// along the way it landed: below that there is too little weight above
+    /// the contact, and it lands like any piece; nor when it lands on its side.
+    /// False when it did not crush.
+    /// </summary>
+    private bool CrushThrough(float speed)
+    {
+        PhysicsDirectBodyState3D state = PhysicsServer3D.BodyGetDirectState(GetRid());
+        int contacts = state?.GetContactCount() ?? 0;
+        if (contacts == 0)
+        {
+            return false;
+        }
+
+        // The contacts' middle and their normal, pointing into this piece.
+        Vector3 com = GlobalPosition + state.CenterOfMass;
+        Vector3 centre = Vector3.Zero, normal = Vector3.Zero;
+        VoxelBody under = null;
+        for (int i = 0; i < contacts; i++)
+        {
+            Vector3 p = state.GetContactLocalPosition(i);
+            Vector3 n = state.GetContactLocalNormal(i);
+            centre += p;
+            normal += n.Dot(com - p) < 0.0f ? -n : n;
+            if (under == null && state.GetContactColliderObject(i) is VoxelCollider collider)
+            {
+                under = collider.Body;
+            }
+        }
+        centre /= contacts;
+        if (normal.LengthSquared() < 1e-6f)
+        {
+            return false;
+        }
+        normal = normal.Normalized();
+
+        // The contact plane is the deepest contact; the slab reaches past the
+        // contacts' own spread.
+        float plane = float.MaxValue, spread = 0.0f;
+        for (int i = 0; i < contacts; i++)
+        {
+            Vector3 p = state.GetContactLocalPosition(i);
+            plane = Mathf.Min(plane, p.Dot(normal));
+            Vector3 q = p - centre;
+            spread = Mathf.Max(spread, (q - normal * q.Dot(normal)).Length());
+        }
+        centre += normal * (plane - centre.Dot(normal));
+        float radius = spread + _stats.CrushWidth;
+
+        if (!_grid.SolidBounds(out Aabb box))
+        {
+            return false;
+        }
+        float lo = float.MaxValue, hi = float.MinValue;
+        for (int k = 0; k < 8; k++)
+        {
+            float d = ToGlobal(box.GetEndpoint(k)).Dot(normal);
+            lo = Mathf.Min(lo, d);
+            hi = Mathf.Max(hi, d);
+        }
+        // End on, and tall enough to have weight above the contact. A tower
+        // that comes down on its side snaps instead (Break).
+        if (hi - lo < _stats.CrushStopHeight || hi - lo < 0.5f * box.Size[(int)box.Size.MaxAxisIndex()])
+        {
+            return false;
+        }
+
+        int crushed = _part.CrushSlab(centre, normal, _stats.CrushDepth, radius);
+        crushed += under?.Crush(centre, -normal, _stats.CrushDepth, radius) ?? 0;
+        if (crushed == 0)
+        {
+            return false;
+        }
+        Crush(speed, centre, radius);
+        Weigh();
+        LinearVelocity = _lastVelocity * _stats.CrushKeep;
+        AngularVelocity = _lastSpin * _stats.CrushKeep;
+        return true;
     }
 
     /// <summary>
@@ -133,6 +309,15 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
     /// Other loose pieces ignore it (<see cref="ApplyDamage"/>).</summary>
     private void Crush(float speed)
     {
+        // From its centre of mass to past its farthest corner.
+        float reach = (new Vector3(_grid.Size.X, _grid.Size.Y, _grid.Size.Z) * _grid.VoxelSize).Length() * 0.5f;
+        Crush(speed, GlobalPosition, reach);
+    }
+
+    /// <summary>The same, round where it actually landed: a tower crushing
+    /// through lands only on what is under the crush.</summary>
+    private void Crush(float speed, Vector3 centre, float reach)
+    {
         _crushCooldown = 0.4f;
         float damage = Mathf.Min(Mass * speed * _stats.CrushDamagePerMomentum, _stats.CrushDamageMax);
         if (damage < 1.0f)
@@ -140,12 +325,11 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
             return;
         }
         float across = Mathf.Pow(_grid.SolidCount, 1.0f / 3.0f) * _grid.VoxelSize;
-        AudioDirector.PlayAt(across > 3.0f ? Sfx.VoxelCollapse : Sfx.RubbleImpact, GlobalPosition);
-        // From its centre of mass to past its farthest corner.
-        float reach = (new Vector3(_grid.Size.X, _grid.Size.Y, _grid.Size.Z) * _grid.VoxelSize).Length() * 0.5f + 1.5f;
+        AudioDirector.PlayAt(across > 3.0f ? Sfx.VoxelCollapse : Sfx.RubbleImpact, centre);
+        reach += 1.5f;
         var blast = new Blast.Settings
         {
-            Centre = GlobalPosition,
+            Centre = centre,
             InnerRadius = reach * 0.7f,
             Radius = reach,
             Damage = damage,
@@ -171,8 +355,9 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         _part.Velocity = () => velocity * 0.4f;
         // Crumbling makes up to eight pieces; with no room for them under the
         // cap it would only push out pieces still falling, so it cracks instead.
+        // A heavy one snaps across its length first, if it is long enough.
         bool room = VoxelDebris.Current != null && VoxelDebris.Current.HasRoom(8);
-        if (!room || !_part.Crumble(Vector3.Zero))
+        if (!room || !((_heavy && _part.Crumble(Vector3.Zero, snap: true)) || _part.Crumble(Vector3.Zero)))
         {
             _part.Shatter(normal, normal.Normalized() * 1.5f);
         }

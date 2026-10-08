@@ -103,10 +103,11 @@ public partial class VoxelDebris : Node3D
         public readonly Transform3D At;
         public readonly Vector3 Velocity;
         public readonly Vector3 Spin;
+        public readonly VoxelHinge? Hinge;
         public readonly ulong Asked;
 
         public Pending(VoxelGrid grid, Color[] palette, float[] emission, Material material, Transform3D at,
-            Vector3 velocity, Vector3 spin)
+            Vector3 velocity, Vector3 spin, VoxelHinge? hinge)
         {
             Grid = grid;
             Palette = palette;
@@ -115,6 +116,7 @@ public partial class VoxelDebris : Node3D
             At = at;
             Velocity = velocity;
             Spin = spin;
+            Hinge = hinge;
             Asked = Time.GetTicksUsec();
         }
     }
@@ -131,8 +133,10 @@ public partial class VoxelDebris : Node3D
     /// </summary>
     /// <param name="spin">Its angular velocity; null for a spin of its own,
     /// slower the bigger it is.</param>
+    /// <param name="hinge">What it hangs on until it leans far enough to tear
+    /// free; null for none.</param>
     public void SpawnChunk(VoxelGrid grid, Color[] palette, float[] emission, Material material,
-        Transform3D at, Vector3 velocity, Vector3? spin = null)
+        Transform3D at, Vector3 velocity, Vector3? spin = null, VoxelHinge? hinge = null)
     {
         if (grid.SolidCount < Stats.MinChunkVoxels || Stats.MaxChunks <= 0)
         {
@@ -148,7 +152,7 @@ public partial class VoxelDebris : Node3D
             spin = new Vector3((float)GD.RandRange(-s, s), (float)GD.RandRange(-s, s), (float)GD.RandRange(-s, s));
         }
 
-        var pending = new Pending(grid, palette, emission, material, at, velocity, spin.Value);
+        var pending = new Pending(grid, palette, emission, material, at, velocity, spin.Value, hinge);
         if (_pending.Count == 0 && TakeSpawn())
         {
             Make(pending, 0.0f);
@@ -189,7 +193,8 @@ public partial class VoxelDebris : Node3D
     {
         Transform3D at = p.At;
         Vector3 velocity = p.Velocity;
-        if (late > 0.0f)
+        // A hinged piece has not fallen while it waited: it hangs.
+        if (late > 0.0f && p.Hinge == null)
         {
             Vector3 gravity = ProjectSettings.GetSetting("physics/3d/default_gravity_vector").AsVector3()
                               * ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
@@ -207,6 +212,10 @@ public partial class VoxelDebris : Node3D
         chunk.GlobalTransform = at;
         chunk.LinearVelocity = velocity;
         chunk.AngularVelocity = p.Spin;
+        if (p.Hinge is VoxelHinge hinge && IsInstanceValid(hinge.Anchor) && hinge.Anchor.IsInsideTree())
+        {
+            Hang(chunk, hinge);
+        }
         _chunks.Add(chunk);
         chunk.TreeExiting += () => _chunks.Remove(chunk);
 
@@ -217,6 +226,26 @@ public partial class VoxelDebris : Node3D
             _chunks.Remove(expendable);
             expendable.Dissolve();
         }
+    }
+
+    /// <summary>Hangs a chunk on a hinge: a joint about the hinge's axis to
+    /// what is left of the building. The joint is not the chunk's child, so it
+    /// keeps where it was made; the chunk tears it off (VoxelChunk).</summary>
+    private void Hang(VoxelChunk chunk, VoxelHinge hinge)
+    {
+        Vector3 z = hinge.Axis.Normalized();
+        Vector3 x = z.Cross(Mathf.Abs(z.Y) < 0.9f ? Vector3.Up : Vector3.Right).Normalized();
+        var joint = new HingeJoint3D
+        {
+            Name = "Hinge",
+            // The building still stands under it: the two must still collide.
+            ExcludeNodesFromCollision = false,
+        };
+        AddChild(joint);
+        joint.GlobalTransform = new Transform3D(new Basis(x, z.Cross(x), z), hinge.Pivot);
+        joint.NodeA = joint.GetPathTo(chunk);
+        joint.NodeB = joint.GetPathTo(hinge.Anchor);
+        chunk.HangOn(joint, hinge.Pivot);
     }
 
     /// <summary>Room for this many more pieces under the cap, counting those
@@ -255,12 +284,19 @@ public partial class VoxelDebris : Node3D
     public void PrintBenchStatus()
     {
         int settled = 0, sleeping = 0;
+        VoxelChunk biggest = null;
         foreach (VoxelChunk chunk in _chunks)
         {
             settled += chunk.IsSettled ? 1 : 0;
             sleeping += chunk.Sleeping ? 1 : 0;
+            if (biggest == null || chunk.VoxelCount > biggest.VoxelCount)
+            {
+                biggest = chunk;
+            }
         }
-        GD.Print($"[bench]   debris chunks={_chunks.Count} sleeping={sleeping} settled={settled} queued={_pending.Count}");
+        string big = biggest == null ? "" :
+            $" biggest={biggest.VoxelCount} at y={biggest.GlobalPosition.Y:F1} tilt={Mathf.RadToDeg(biggest.GlobalBasis.Y.AngleTo(Vector3.Up)):F1}° speed={biggest.LinearVelocity.Length():F1} hinged={biggest.IsHinged}";
+        GD.Print($"[bench]   debris chunks={_chunks.Count} sleeping={sleeping} settled={settled} queued={_pending.Count}{big}");
     }
 
     public static Color AverageColour(VoxelGrid grid, Color[] palette)

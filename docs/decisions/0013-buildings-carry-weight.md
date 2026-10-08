@@ -2,6 +2,8 @@
 
 *8 October 2026. Builds on 0011.*
 
+*"What falls fractures" is superseded by 0014: what falls stays whole and breaks where it lands.*
+
 ## Context
 
 0011 made every voxel thing break alike, but a building only fell when it was

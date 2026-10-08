@@ -46,7 +46,8 @@ const PULSE_SECONDS := 0.15
 #   "!set:Node:prop=value"   set a property, value parsed as a Godot literal. The
 #                            property may be an indexed path into a resource,
 #                            "!set:Horde:Stats:AgentCount=25000"
-#   "!call:Node:method"      call a method with no arguments
+#   "!call:Node:method"      call a method with no arguments; "Node/Child"
+#                            for a child of that node
 #   "@goto:x, y, z"          move the level's player there
 #   "@aim:Node:height"       turn the player to look at that node, raised by
 #                            height metres
@@ -261,6 +262,26 @@ const COLLAPSE_TIMELINE := [
 	["settled shot", ["#collapse_settled", WRECK_STATUS], [], 0.3],
 ]
 
+# A tower cut by a slit 2 m up, as a beam would leave it: clean through
+# (cut), it drops whole and crushes down storey by storey; through 60% of
+# one side (cutside), it hangs on what is left, leans over and tears free.
+# Watched from 85 m off with the biggest falling piece printed every phase.
+static func _cut_timeline(method: String, shot: String) -> Array:
+	var status := "!call:VoxelDebris:PrintBenchStatus"
+	var timeline := [
+		["hold the horde off", ["@status", "!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
+			"@goto:-60, 0.2, -40"], [], 2.0],
+		["look", ["@aim:Tower11:40"], [], 2.0],
+		["cut", ["!call:Tower11/Voxels:%s" % method], [], 0.5],
+	]
+	for i in 16:
+		timeline.append(["t+%.1f" % (0.5 + i * 0.5), [status], [], 0.5])
+		if i % 2 == 1:
+			timeline.append(["%s %d" % [shot, i], ["#%s_%02d" % [shot, i]], [], 0.3])
+	timeline.append(["settling", [status], [], 5.0])
+	timeline.append(["settled shot", ["#%s_settled" % shot, status], [], 0.3])
+	return timeline
+
 # The crowd brought onto the player and the three allies: the allies guard,
 # fire and stomp, the pickles bite, strike and spit at them. Every ally's body
 # and legs printed as it goes; the frame is a full fight.
@@ -416,6 +437,8 @@ func _initialize() -> void:
 		"wreck": _timeline = WRECK_TIMELINE
 		"mechwreck": _timeline = MECHWRECK_TIMELINE
 		"collapse": _timeline = COLLAPSE_TIMELINE
+		"cut": _timeline = _cut_timeline("BenchCutThrough", "cut")
+		"cutside": _timeline = _cut_timeline("BenchCutSide", "cutside")
 		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
@@ -501,7 +524,11 @@ func _tap(action: String) -> void:
 		return
 	if action.begins_with("!call:"):
 		var call_parts := action.substr(6).split(":")
-		var callee := root.find_child(call_parts[0], true, false)
+		# "Node/Child" names a child of the first node of that name.
+		var path := call_parts[0].split("/", true, 1)
+		var callee := root.find_child(path[0], true, false)
+		if callee != null and path.size() == 2:
+			callee = callee.get_node_or_null(path[1])
 		if callee != null and call_parts.size() == 2:
 			callee.call(call_parts[1])
 		else:

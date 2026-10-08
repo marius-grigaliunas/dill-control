@@ -135,6 +135,34 @@ public partial class VoxelBody : Node
     public Vector3 NearestBlastPoint(Vector3 from) =>
         VoxelDamage.NearestPoint(_parts, from, Model?.GlobalPosition ?? Vector3.Zero);
 
+    /// <summary>Something heavy has landed on it: a slab under the contact goes
+    /// to dust (<see cref="VoxelPart.CrushSlab"/>). Returns the voxels removed.</summary>
+    public int Crush(Vector3 point, Vector3 direction, float depth, float radius)
+    {
+        int crushed = 0;
+        foreach (VoxelPart part in _parts)
+        {
+            crushed += part.CrushSlab(point, direction, depth, radius);
+        }
+        return crushed;
+    }
+
+    /// <summary>For <c>bench.gd</c>: a 1 m slit clean through at 2 m up, as a
+    /// beam swept all the way round would leave.</summary>
+    public void BenchCutThrough() => BenchCut(1.0f);
+
+    /// <summary>For <c>bench.gd</c>: the same slit through 60% of the width
+    /// from the -X side, as a beam swept along one side would leave.</summary>
+    public void BenchCutSide() => BenchCut(0.6f);
+
+    private void BenchCut(float share)
+    {
+        foreach (VoxelPart part in _parts)
+        {
+            part.Cut(2.0f, 1.0f, share);
+        }
+    }
+
     /// <summary>Everything left falls apart as chunks: the thing is destroyed.</summary>
     public void BreakAll(Vector3 push)
     {
