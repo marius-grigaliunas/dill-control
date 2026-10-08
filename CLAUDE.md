@@ -36,8 +36,8 @@ A frame that misses it is a bug, on the same footing as a crash. Recorded in
 | Renderer | Forward+, D3D12 |
 | Physics | `physics/3d/physics_engine="Jolt Physics"`, explicit. **`DEFAULT` is not Jolt in 4.7.2.** Never fall back to Godot Physics; raise it instead. |
 | Input device ids | Keyboard events arrive as device `16`, mouse as `32`. A stored event with device `0` never matches. Hand-edited input maps keep `16`/`32`, or `-1` for any. |
-| Art facing | *Not yet verified.* Expected: a model facing Blender's `-Y` arrives facing Godot's `+Z` (`Vector3.ModelFront`). Confirm with the M0 test asset and replace this line. |
-| Art scale | *Not yet verified.* Expected: 1 Blender unit = 1 m with transforms applied. |
+| Art facing | **MagicaVoxel: verified.** A `.vox` model's front (`-Y`) arrives facing Godot's `+Z` (`Vector3.ModelFront`); the tank in `lvl_pipeline_test`. **Blender: not yet verified.** Expected the same from Blender's `-Y`; confirm with a Blender test asset and replace this half. |
+| Art scale | **MagicaVoxel: verified,** 0.1 m per voxel (import option `voxel/size`). **Blender: not yet verified.** Expected: 1 Blender unit = 1 m with transforms applied. |
 
 ## Rules
 
@@ -58,7 +58,9 @@ A frame that misses it is a bug, on the same footing as a crash. Recorded in
    project broken across more than one commit.
 6. **No function keys.** Development is on a laptop where they need `Fn`. Every
    debug key is a letter.
-7. **No third-party addons** without a proposal and a reason.
+7. **No third-party addons** without a proposal and a reason. Our own editor
+   plugins live in `addons/` because Godot looks for them nowhere else; there
+   is one, `vox_importer`.
 
 ## The level tree
 
@@ -83,9 +85,11 @@ with `U` and benches with no wiring.
 ## Folder map
 
 ```
+addons/         our own editor plugins only (vox_importer)
 art/
-  _source/      .blend and paint sources. .gdignore'd, LFS. Read its README.
+  _source/      .blend and paint sources, packs as downloaded. .gdignore'd, LFS. Read its README.
   models/       .glb exports
+  voxels/       .vox files, imported directly (they are source and export at once)
   textures/     palette.png and the few textures that are not the palette
   materials/    shared .tres materials models are mapped onto
 audio/          recordings
@@ -118,6 +122,7 @@ Folders appear when their first file does.
 | `mat_` | material |
 | `snd_` | sound bank or event |
 | `vxl_` | voxel model |
+| `mch_` | mech or other walker |
 
 ## Art
 
@@ -128,7 +133,14 @@ nearest filtering). The outlines are `shaders/toon_ink.gdshader`, a depth-only
 screen pass carried by `ToonPass` on the camera. Pickles are animated in the
 vertex shader, not rigged.
 
-Git LFS tracks every binary asset (`.gitattributes`). Godot's text formats stay
+Voxel art is MagicaVoxel `.vox`, saved into `art/voxels/` and imported by our
+own importer: one node per MagicaVoxel object, colour per vertex on
+`art/materials/mat_voxel_toon.tres`, emission from MagicaVoxel's Emit
+materials, palette index 255 marks a part's pivot, objects named `@Name` become
+markers. See `docs/decisions/0009` and the voxel half of `art/_source/README.md`.
+Everything not ours is listed in `credits.md` the day it arrives.
+
+Git LFS tracks every binary asset (`.gitattributes`), `.vox` included. Godot's text formats stay
 in git proper.
 
 ## Workflow

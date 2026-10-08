@@ -1,0 +1,9 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://shaders/voxel_toon.gdshader" id="1_shader"]
+
+[resource]
+resource_name = "voxel_toon"
+render_priority = 0
+shader = ExtResource("1_shader")
+shader_parameter/emission_scale = 1.0

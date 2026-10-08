@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" uid="uid://c7b2pe5a0rfq7" path="res://art/voxels/mch_quadruped_tank.vox" id="1_model"]
+
+[sub_resource type="BoxShape3D" id="HullShape"]
+size = Vector3(3.6, 2.8, 4.2)
+
+[node name="MchQuadrupedTank" type="StaticBody3D"]
+collision_layer = 32
+
+[node name="Model" parent="." instance=ExtResource("1_model")]
+
+[node name="Hull" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.4, 0)
+shape = SubResource("HullShape")

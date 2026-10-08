@@ -81,3 +81,78 @@ and look at `perflogs/look.png`. Check that it faces the camera (the camera look
 along `-Z`, so a model facing `+Z` faces it), that it is the size you modelled,
 and that its colours are the swatches you picked. Then replace the two *Not yet
 verified* lines in `CLAUDE.md` with what you found.
+
+---
+
+# Voxel models (MagicaVoxel)
+
+The reasoning is in `docs/decisions/0009-voxel-models.md`. A `.vox` is not
+exported to anything: Godot imports it directly, with our importer
+(`addons/vox_importer/`). So a voxel model's working file lives in
+`art/voxels/`, not here. This folder keeps bought packs exactly as downloaded.
+
+## Making one
+
+- **Scale:** one voxel is 0.1 m. A standard pickle is 18 voxels tall; the
+  player's eye is at 17. Another size is the import option `voxel/size`.
+- **Facing:** the front looks along MagicaVoxel's `-Y`. It arrives facing
+  Godot's `+Z`. The tank's gun is a known-good reference: a model that arrives
+  backwards is turned in MagicaVoxel, never in the wrapper.
+- **Colour:** any palette. Every voxel model shares one material whatever its
+  palette; the colours are written into the mesh.
+- **Light:** to make a colour glow, select it in the palette and set its
+  material to **Emit** in the Render tab. **Weight** and **Power** set how bright
+  it is. It glows in the game the same way: a visor, a neon strip, a lit window.
+  The glow costs nothing; a halo around it is the level's glow setting.
+- **Palette index 255 is reserved** (the last swatch). Do not paint with it;
+  it marks pivots (below).
+
+## Parts that move
+
+Anything that moves on its own (a leg, a turret, a hatch) is a separate
+**object** in MagicaVoxel's world view (Tab), not part of one big model.
+
+- **Name every object** (the outliner on the right). The name becomes the
+  node's name in Godot, and the code that moves a part finds it by that name
+  in the wrapper: `Body`, `Turret`, `Gun`, `HipFL`, `ShinFL`, ...
+- **Mark the hinge:** paint one voxel in palette index 255 where the part
+  turns: the hip of an upper leg, the knee of a shin, the ring of a turret.
+  That voxel is not drawn, and the part's origin goes there. Put it inside the
+  part, where the hole it leaves cannot be seen. A part without one turns
+  about its centre.
+- **Mark points:** a small object whose name starts with `@` draws nothing and
+  becomes a marker: `@Seat` (where the rider's eyes go), `@Muzzle` (where shots
+  leave), `@FootFL` (where a foot touches the ground), `@Jet` (a nozzle). One
+  voxel is enough; the marker goes to its centre.
+- **Groups** come across as groups, so `LegFL` holding `HipFL` and `ShinFL` is
+  tidy, but nothing depends on it.
+- Hidden objects and hidden layers are not imported: keep reference models
+  there.
+
+No keyframes. MagicaVoxel's animation frames are ignored; every part is moved
+by code (`docs/decisions/0009`).
+
+## Into Godot
+
+1. Save as `art/voxels/<prefix>_<name>.vox`, for example
+   `art/voxels/mch_quadruped_tank.vox`. Godot reimports on focus.
+2. Wrap it, as for a `.glb`: a new scene, its root a body or a `Node3D`, the
+   `.vox` instanced under it, collision as a few boxes, scripts. Save as
+   `scenes/<kind>/<same name>.tscn`.
+3. If it is not ours, add it to `credits.md` now.
+
+## On the tablet
+
+MagicaVoxel runs on Windows and macOS only. On an Android tablet, any editor
+that saves `.vox` works for modelling, then the parts, names and pivots are
+checked on the PC in MagicaVoxel:
+
+- **Goxel** (free, open source, has layers, saves `.vox`).
+- **Mega Voxels** (made for phones and tablets, imports and exports `.vox`).
+- **FunVoxel** (`.vox` in and out; reported limit 64x64x64).
+- Or MagicaVoxel itself, streamed from the PC to the tablet with a remote
+  desktop app, which keeps the real tool and the pen.
+
+To move files, sync one folder from the tablet straight into `art/voxels/`
+(Syncthing, or a cloud folder), so a save on the tablet is a reimport in
+Godot.

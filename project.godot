@@ -41,6 +41,10 @@ window/stretch/aspect="expand"
 
 project/assembly_name="DillControl"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/vox_importer/plugin.cfg")
+
 [input]
 
 move_forward={

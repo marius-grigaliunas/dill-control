@@ -1,10 +1,11 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
 [ext_resource type="Script" path="res://scripts/player/ToonPass.cs" id="2_toon"]
 [ext_resource type="Material" path="res://art/materials/mat_graybox_floor.tres" id="3_floor"]
 [ext_resource type="Material" path="res://art/materials/mat_graybox_accent.tres" id="4_accent"]
 [ext_resource type="Material" path="res://art/materials/mat_palette_toon.tres" id="5_palette"]
+[ext_resource type="PackedScene" path="res://scenes/vehicles/mch_quadruped_tank.tscn" id="6_tank"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
 sky_top_color = Color(0.3, 0.52, 0.84, 1)
@@ -100,7 +101,9 @@ mesh = SubResource("BoardMesh")
 surface_material_override/0 = ExtResource("5_palette")
 
 [node name="TestAsset" type="Marker3D" parent="Props"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -11)
+
+[node name="QuadrupedTank" parent="Props/TestAsset" instance=ExtResource("6_tank")]
 
 [node name="Lighting" type="Node3D" parent="."]
 
