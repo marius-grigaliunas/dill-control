@@ -6,7 +6,8 @@
 #   Godot..._console.exe --path . --script scripts/debug/bench.gd -- <res://scene.tscn> <mode>
 #
 # Modes: idle (the default), look (screenshots of the view, for checking art
-# and shaders), ink (the ink pass on, off and on again).
+# and shaders), ink (the ink pass on, off and on again), grapple (the line
+# thrown, reeled, swung and zipped against lvl_horde_flats' compound).
 #
 # It instances the level itself and sets current_scene, so effects that parent
 # to the scene behave as they do on a normal launch. Vsync goes off so the frame
@@ -37,6 +38,9 @@ const BUDGET := 1.0 / 60.0
 #                            reports it as its worst frame; time a separate phase.
 #   "!hide:Node" "!show:Node"  flip the first node of that name, for an A/B
 #   "!set:Node:prop=value"   set a property, value parsed as a Godot literal
+#   "@aim:Node:height"       turn the player to look at that node, raised by
+#                            height metres
+#   "@status"                toggle a line of the player's state twice a second
 const IDLE_TIMELINE := [
 	["idle", [], [], 6.0],
 ]
@@ -55,6 +59,31 @@ const INK_TIMELINE := [
 	["ink off again", ["!hide:ToonPass"], [], 5.0],
 ]
 
+# The line against lvl_horde_flats' compound. With @status on, the rope state
+# is printed twice a second, which is what this mode is for: the frame numbers
+# matter less than whether the line attaches, hauls, holds a speed cap and lets
+# go. Ported from the lab's grapple mode, aimed at authored nodes by name.
+const GRAPPLE_TIMELINE := [
+	["aim at a pillar", ["@status", "@aim:Pillar6:24"], [], 1.0],
+	["throw", [], ["grapple"], 1.0],
+	["reel, half way", [], ["grapple", "jump"], 0.9],
+	["let go mid-haul, carrying", [], [], 3.0],
+	["aim at a column", ["@aim:Column1:18"], [], 0.8],
+	["throw", [], ["grapple"], 1.0],
+	["reel to the top of the line", [], ["grapple", "jump"], 3.0],
+	["swing, pumping forward", [], ["grapple", "move_forward"], 3.0],
+	["swing, pumping back", [], ["grapple", "move_back"], 3.0],
+	["released", [], [], 1.5],
+	["aim for a tap zip", ["@aim:Pillar1:28"], [], 0.6],
+	["tap zip", [], ["grapple"], 0.12],
+	["zipping", [], [], 2.0],
+	["jump lets go, apex float", ["jump"], [], 1.5],
+	["hover", ["fly_toggle"], [], 2.0],
+	["dash", ["sprint"], [], 1.0],
+	["falling", ["fly_toggle"], [], 2.5],
+	["shot", ["#grapple_end"], [], 0.5],
+]
+
 const TARGET_SIZE := Vector2i(1920, 1080)
 
 var _elapsed := 0.0
@@ -67,6 +96,9 @@ var _held: Array[String] = []
 var _settled := false
 var _steady_draws := 0.0
 var _steady_since := 0.0
+
+var _status := false
+var _status_next := 0.0
 
 # Per phase. The worst frame and the count of frames over budget are the two
 # numbers that answer "does it ever miss 60"; a smoothed or sampled average is
@@ -88,6 +120,7 @@ func _initialize() -> void:
 	match mode:
 		"look": _timeline = LOOK_TIMELINE
 		"ink": _timeline = INK_TIMELINE
+		"grapple": _timeline = GRAPPLE_TIMELINE
 		_: _timeline = IDLE_TIMELINE
 
 	print("=== bench: ", path, "  mode=", mode, "  window ", DisplayServer.window_get_size(),
@@ -138,6 +171,19 @@ func _tap(action: String) -> void:
 		else:
 			print("[bench] no visible node named ", action.substr(6))
 		return
+	if action == "@status":
+		_status = not _status
+		return
+	if action.begins_with("@aim:"):
+		var parts := action.substr(5).split(":")
+		var target := root.find_child(parts[0], true, false) as Node3D
+		var player := _player()
+		if target == null or player == null:
+			print("[bench] cannot ", action)
+			return
+		var height := float(parts[1]) if parts.size() > 1 else 0.0
+		player.call("BenchLookAt", target.global_position + Vector3.UP * height)
+		return
 	if action.begins_with("!set:"):
 		var parts := action.substr(5).split(":", true, 1)
 		var pair := parts[1].split("=") if parts.size() == 2 else PackedStringArray()
@@ -149,6 +195,12 @@ func _tap(action: String) -> void:
 		return
 	_send(action, true)
 	_send(action, false)
+
+# The level's spawned player, through LevelRoot.Player.
+func _player() -> Node:
+	if current_scene == null or not ("Player" in current_scene):
+		return null
+	return current_scene.get("Player")
 
 func _send(action: String, pressed: bool) -> void:
 	var event := InputEventAction.new()
@@ -200,6 +252,12 @@ func _process(delta: float) -> bool:
 		return false
 
 	# Every frame, not a sample of them.
+	if _status and _elapsed >= _status_next:
+		_status_next = _elapsed + 0.5
+		var player := _player()
+		if player != null:
+			print("[bench]   @ %-26s %s" % [_timeline[maxi(_phase, 0)][0], player.call("BenchStatus")])
+
 	_gpu_total += RenderingServer.viewport_get_measured_render_time_gpu(_vp)
 	_worst = max(_worst, delta)
 	_total += delta

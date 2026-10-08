@@ -1,0 +1,130 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="Material" path="res://art/materials/mat_graybox_grid_ground.tres" id="3_ground"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_pillar.tscn" id="4_pillar"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_column.tscn" id="5_column"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_block.tscn" id="6_block"]
+
+[sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
+sky_top_color = Color(0.3, 0.52, 0.84, 1)
+sky_horizon_color = Color(0.74, 0.82, 0.9, 1)
+ground_bottom_color = Color(0.32, 0.3, 0.26, 1)
+ground_horizon_color = Color(0.74, 0.82, 0.9, 1)
+
+[sub_resource type="Sky" id="Sky"]
+sky_material = SubResource("SkyMat")
+
+[sub_resource type="Environment" id="Env"]
+background_mode = 2
+sky = SubResource("Sky")
+ambient_light_source = 3
+tonemap_mode = 4
+tonemap_white = 2.0
+fog_enabled = true
+fog_light_color = Color(0.74, 0.82, 0.9, 1)
+fog_density = 0.0016
+fog_sky_affect = 0.0
+
+[sub_resource type="BoxMesh" id="GroundMesh"]
+size = Vector3(1200, 2, 1200)
+
+[sub_resource type="BoxShape3D" id="GroundShape"]
+size = Vector3(1200, 2, 1200)
+
+[node name="Level" type="Node3D" node_paths=PackedStringArray("PlayerSpawn")]
+script = ExtResource("1_root")
+PlayerScene = ExtResource("2_player")
+PlayerSpawn = NodePath("Spawns/PlayerSpawn")
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="Ground" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Geometry/Ground"]
+mesh = SubResource("GroundMesh")
+surface_material_override/0 = ExtResource("3_ground")
+
+[node name="Shape" type="CollisionShape3D" parent="Geometry/Ground"]
+shape = SubResource("GroundShape")
+
+[node name="Water" type="Node3D" parent="."]
+
+[node name="Foliage" type="Node3D" parent="."]
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Compound" type="Node3D" parent="Props"]
+
+[node name="Pillar1" parent="Props/Compound" instance=ExtResource("4_pillar")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -30, 0.0, -20)
+
+[node name="Pillar2" parent="Props/Compound" instance=ExtResource("4_pillar")]
+transform = Transform3D(0.9848, 0, 0.1736, 0, 1, 0, -0.1736, 0, 0.9848, 28, 0.0, -34)
+
+[node name="Pillar3" parent="Props/Compound" instance=ExtResource("4_pillar")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 0.0, -58)
+
+[node name="Pillar4" parent="Props/Compound" instance=ExtResource("4_pillar")]
+transform = Transform3D(0.9063, 0, 0.4226, 0, 1, 0, -0.4226, 0, 0.9063, 40, 0.0, 6)
+
+[node name="Pillar5" parent="Props/Compound" instance=ExtResource("4_pillar")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -42, 0.0, 22)
+
+[node name="Pillar6" parent="Props/Compound" instance=ExtResource("4_pillar")]
+transform = Transform3D(0.9659, 0, 0.2588, 0, 1, 0, -0.2588, 0, 0.9659, 12, 0.0, 30)
+
+[node name="Column1" parent="Props/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0.0, -20)
+
+[node name="Column2" parent="Props/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -22, 0.0, -44)
+
+[node name="Column3" parent="Props/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 22, 0.0, -6)
+
+[node name="Column4" parent="Props/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -18, 0.0, 8)
+
+[node name="Column5" parent="Props/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 48, 0.0, -24)
+
+[node name="Column6" parent="Props/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 0.0, -80)
+
+[node name="Column7" parent="Props/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -50, 0.0, -10)
+
+[node name="Block1" parent="Props/Compound" instance=ExtResource("6_block")]
+transform = Transform3D(0.9397, 0, 0.342, 0, 1, 0, -0.342, 0, 0.9397, 8, 0.0, -34)
+
+[node name="Block2" parent="Props/Compound" instance=ExtResource("6_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -34, 0.0, -2)
+
+[node name="Block3" parent="Props/Compound" instance=ExtResource("6_block")]
+transform = Transform3D(0.9659, 0, -0.2588, 0, 1, 0, 0.2588, 0, 0.9659, 30, 0.0, 24)
+
+[node name="Block4" parent="Props/Compound" instance=ExtResource("6_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10, 0.0, 40)
+
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="Sun" type="DirectionalLight3D" parent="Lighting"]
+transform = Transform3D(0.8192, -0.4394, 0.3687, 0, 0.6428, 0.766, -0.5736, -0.6275, 0.5265, 0, 40, 0)
+shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_max_distance = 140.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Lighting"]
+environment = SubResource("Env")
+
+[node name="Audio" type="Node3D" parent="."]
+
+[node name="Spawns" type="Node3D" parent="."]
+
+[node name="PlayerSpawn" type="Marker3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 70)
+
+[node name="Navigation" type="Node3D" parent="."]

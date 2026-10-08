@@ -1,0 +1,72 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/PlayerController.cs" id="1_ctrl"]
+[ext_resource type="Resource" path="res://resources/player/movement_tuning_default.tres" id="2_move"]
+[ext_resource type="Resource" path="res://resources/player/player_health_tuning_default.tres" id="3_health"]
+[ext_resource type="Script" path="res://scripts/player/CameraRig.cs" id="4_rig"]
+[ext_resource type="Script" path="res://scripts/player/GrappleHook.cs" id="5_grapple"]
+[ext_resource type="Resource" path="res://resources/player/grapple_tuning_default.tres" id="6_line"]
+[ext_resource type="Script" path="res://scripts/player/ToonPass.cs" id="7_toon"]
+[ext_resource type="Script" path="res://scripts/ui/PlayerHud.cs" id="8_hud"]
+
+[sub_resource type="CapsuleShape3D" id="BodyShape"]
+radius = 0.35
+height = 1.8
+
+[sub_resource type="SphereShape3D" id="HeadroomShape"]
+radius = 0.34
+
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("CameraRig", "BodyCollision", "HeadroomCheck", "Grapple")]
+script = ExtResource("1_ctrl")
+Tuning = ExtResource("2_move")
+HealthTuning = ExtResource("3_health")
+CameraRig = NodePath("CameraPivot")
+BodyCollision = NodePath("BodyCollision")
+HeadroomCheck = NodePath("HeadroomCheck")
+Grapple = NodePath("CameraPivot/CameraOffset/Camera3D/Grapple")
+
+[node name="BodyCollision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("BodyShape")
+
+[node name="HeadroomCheck" type="ShapeCast3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
+enabled = false
+shape = SubResource("HeadroomShape")
+target_position = Vector3(0, 0.05, 0)
+collision_mask = 33
+
+[node name="CameraPivot" type="Node3D" parent="." node_paths=PackedStringArray("Offset", "Camera")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.64, 0)
+script = ExtResource("4_rig")
+Offset = NodePath("CameraOffset")
+Camera = NodePath("CameraOffset/Camera3D")
+
+[node name="CameraOffset" type="Node3D" parent="CameraPivot"]
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot/CameraOffset"]
+fov = 90.0
+near = 0.02
+far = 4000.0
+
+[node name="ToonPass" type="MeshInstance3D" parent="CameraPivot/CameraOffset/Camera3D"]
+script = ExtResource("7_toon")
+
+[node name="Grapple" type="Node3D" parent="CameraPivot/CameraOffset/Camera3D" node_paths=PackedStringArray("AimCamera")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.28, -0.22, -0.35)
+script = ExtResource("5_grapple")
+Tuning = ExtResource("6_line")
+AimCamera = NodePath("..")
+
+[node name="HudLayer" type="CanvasLayer" parent="."]
+
+[node name="Hud" type="Control" parent="HudLayer" node_paths=PackedStringArray("Player")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("8_hud")
+Player = NodePath("../..")

@@ -1,0 +1,16 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://shaders/graybox_grid.gdshader" id="1_grid"]
+
+[resource]
+resource_name = "graybox_grid_wall"
+render_priority = 0
+shader = ExtResource("1_grid")
+shader_parameter/base_color = Color(0.41, 0.42, 0.43, 1)
+shader_parameter/line_color = Color(0.27, 0.28, 0.29, 1)
+shader_parameter/major_line_color = Color(0.54, 0.55, 0.56, 1)
+shader_parameter/cell_size = 1.0
+shader_parameter/major_every = 8
+shader_parameter/roughness_value = 0.92
+shader_parameter/metallic_value = 0.0
+shader_parameter/triplanar_blend = false
