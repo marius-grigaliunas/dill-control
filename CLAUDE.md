@@ -138,7 +138,8 @@ own importer: one node per MagicaVoxel object, colour per vertex on
 `art/materials/mat_voxel_toon.tres`, emission from MagicaVoxel's Emit
 materials, palette index 255 marks a part's pivot, objects named `@Name` become
 markers. See `docs/decisions/0009` and the voxel half of `art/_source/README.md`.
-Everything not ours is listed in `credits.md` the day it arrives.
+Everything not ours is listed in `credits.md` the day it arrives. Mechs are
+animated by code, never clips: `docs/decisions/0010`.
 
 Git LFS tracks every binary asset (`.gitattributes`), `.vox` included. Godot's text formats stay
 in git proper.
@@ -152,6 +153,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/<lvl>.tscn look  # screenshots
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/<lvl>.tscn ink   # ink A/B
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn grapple
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mech
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn horde 25000
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn hordeab 25000
 ```

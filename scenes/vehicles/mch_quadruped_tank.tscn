@@ -1,15 +1,56 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="PackedScene" uid="uid://c7b2pe5a0rfq7" path="res://art/voxels/mch_quadruped_tank.vox" id="1_model"]
+[ext_resource type="Script" path="res://scripts/vehicles/MechWalker.cs" id="2_walker"]
+[ext_resource type="Script" path="res://scripts/vehicles/MechCompanion.cs" id="3_companion"]
+[ext_resource type="Resource" path="res://resources/vehicles/mch_quadruped_tank_tuning.tres" id="4_tuning"]
+[ext_resource type="Script" path="res://scripts/player/ToonPass.cs" id="5_toon"]
 
 [sub_resource type="BoxShape3D" id="HullShape"]
-size = Vector3(3.6, 2.8, 4.2)
+size = Vector3(3.6, 4.4, 4.4)
 
-[node name="MchQuadrupedTank" type="StaticBody3D"]
-collision_layer = 32
+[node name="MchQuadrupedTank" type="CharacterBody3D" node_paths=PackedStringArray("Model", "Turret", "Thighs", "Shins", "Feet")]
+script = ExtResource("2_walker")
+Tuning = ExtResource("4_tuning")
+Model = NodePath("Model")
+Turret = NodePath("Model/Turret")
+Thighs = [NodePath("Model/ThighFL"), NodePath("Model/ThighFR"), NodePath("Model/ThighBL"), NodePath("Model/ThighBR")]
+Shins = [NodePath("Model/ShinFL"), NodePath("Model/ShinFR"), NodePath("Model/ShinBL"), NodePath("Model/ShinBR")]
+Feet = [NodePath("Model/FootFL"), NodePath("Model/FootFR"), NodePath("Model/FootBL"), NodePath("Model/FootBR")]
 
 [node name="Model" parent="." instance=ExtResource("1_model")]
 
 [node name="Hull" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.4, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
 shape = SubResource("HullShape")
+
+[node name="Prompt" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.8, 0)
+pixel_size = 0.006
+billboard = 1
+no_depth_test = true
+text = "E  ride"
+font_size = 48
+outline_size = 12
+
+[node name="CameraPivot" type="Node3D" parent="."]
+top_level = true
+
+[node name="Arm" type="SpringArm3D" parent="CameraPivot"]
+spring_length = 11.0
+margin = 0.3
+
+[node name="Camera" type="Camera3D" parent="CameraPivot/Arm"]
+fov = 75.0
+
+[node name="ToonPass" type="MeshInstance3D" parent="CameraPivot/Arm/Camera"]
+script = ExtResource("5_toon")
+
+[node name="Companion" type="Node" parent="." node_paths=PackedStringArray("Walker", "Seat", "CameraPivot", "CameraArm", "Camera", "Prompt")]
+script = ExtResource("3_companion")
+Walker = NodePath("..")
+Seat = NodePath("../Model/Seat")
+CameraPivot = NodePath("../CameraPivot")
+CameraArm = NodePath("../CameraPivot/Arm")
+Camera = NodePath("../CameraPivot/Arm/Camera")
+Prompt = NodePath("../Prompt")

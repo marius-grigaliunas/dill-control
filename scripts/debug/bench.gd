@@ -8,7 +8,8 @@
 # Modes: idle (the default), look (screenshots of the view, for checking art
 # and shaders), ink (the ink pass on, off and on again), grapple (the line
 # thrown, reeled, swung and zipped against lvl_horde_flats' compound), horde
-# [count] (the crowd seeded, arriving and on top of the player).
+# [count] (the crowd seeded, arriving and on top of the player), mech (the ally
+# mech followed, ridden, jumped and left, in lvl_horde_flats).
 #
 # It instances the level itself and sets current_scene, so effects that parent
 # to the scene behave as they do on a normal launch. Vsync goes off so the frame
@@ -90,6 +91,43 @@ const GRAPPLE_TIMELINE := [
 	["dash", ["sprint"], [], 1.0],
 	["falling", ["fly_toggle"], [], 2.5],
 	["shot", ["#grapple_end"], [], 0.5],
+]
+
+# The ally mech in lvl_horde_flats: it walks to its spot beside the player,
+# is climbed on, walked forward, sideways and back, turned by the camera,
+# jumped, jetted, seen from the seat and climbed off. Screenshots at each, and
+# the mech's state printed. The frame numbers include the horde arriving.
+const MECH_STATUS := "!call:Companion:PrintBenchStatus"
+const MECH_TIMELINE := [
+	["look at the tank", ["@aim:QuadrupedTank:2.5", MECH_STATUS], [], 0.5],
+	["shot", ["#mech_start"], [], 0.3],
+	["it walks to its spot", [MECH_STATUS], [], 1.0],
+	["watching it walk", ["@aim:QuadrupedTank:2.5", MECH_STATUS], [], 0.3],
+	["walking shot", ["#mech_follow"], [], 0.3],
+	["arrived", [MECH_STATUS], [], 3.0],
+	["walk to it", ["@aim:QuadrupedTank:0", MECH_STATUS], ["move_forward"], 1.0],
+	["climb on", ["interact"], [], 1.0],
+	["forward", [MECH_STATUS], ["move_forward"], 2.0],
+	["forward shot", ["#mech_ride", MECH_STATUS], ["move_forward"], 0.3],
+	["strafe right", [], ["move_right"], 2.0],
+	["strafe shot", ["#mech_strafe", MECH_STATUS], ["move_right"], 0.3],
+	["backward", [], ["move_back"], 1.5],
+	["camera swung, walking", ["!call:Companion:BenchTurnCamera", MECH_STATUS], ["move_forward"], 0.5],
+	["turning shot", ["#mech_turn", MECH_STATUS], ["move_forward"], 0.3],
+	["walking on", [], ["move_forward"], 1.0],
+	["stop", [MECH_STATUS], [], 1.5],
+	["jump", ["jump"], [], 0.45],
+	["jump shot", ["#mech_jump", MECH_STATUS], [], 0.2],
+	["jets", [], ["jump"], 1.2],
+	["jets shot", ["#mech_jets", MECH_STATUS], ["jump"], 0.2],
+	["falling", [], [], 2.5],
+	["landed", [MECH_STATUS], [], 0.5],
+	["seat view", ["view_toggle"], [], 0.5],
+	["seat shot", ["#mech_seat"], [], 0.3],
+	["seat, walking", [], ["move_forward"], 2.0],
+	["climb off", ["interact"], [], 1.0],
+	["looking back", ["@aim:QuadrupedTank:2.5", MECH_STATUS], [], 0.4],
+	["off shot", ["#mech_off"], [], 0.3],
 ]
 
 # The horde coming for the player at a given count, then held on top of them.
@@ -199,6 +237,7 @@ func _initialize() -> void:
 		"ink": _timeline = INK_TIMELINE
 		"grapple": _timeline = GRAPPLE_TIMELINE
 		"machete": _timeline = MACHETE_TIMELINE
+		"mech": _timeline = MECH_TIMELINE
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
 		_: _timeline = IDLE_TIMELINE

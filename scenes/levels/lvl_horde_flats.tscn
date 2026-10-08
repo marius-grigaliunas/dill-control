@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/horde/HordeDirector.cs" id="7_horde"]
 [ext_resource type="Resource" path="res://resources/horde/horde_stats_default.tres" id="8_stats"]
 [ext_resource type="Resource" path="res://resources/enemies/nme_composition_default.tres" id="9_comp"]
+[ext_resource type="PackedScene" path="res://scenes/vehicles/mch_quadruped_tank.tscn" id="10_tank"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
 sky_top_color = Color(0.3, 0.52, 0.84, 1)
@@ -114,6 +115,12 @@ transform = Transform3D(0.9659, 0, -0.2588, 0, 1, 0, 0.2588, 0, 0.9659, 30, 0.0,
 
 [node name="Block4" parent="Props/Compound" instance=ExtResource("6_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10, 0.0, 40)
+
+[node name="QuadrupedTank" parent="Props" instance=ExtResource("10_tank")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, 60)
+
+[node name="Companion" parent="Props/QuadrupedTank" node_paths=PackedStringArray("Level")]
+Level = NodePath("../../..")
 
 [node name="Lighting" type="Node3D" parent="."]
 

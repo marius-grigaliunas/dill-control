@@ -20,3 +20,4 @@ Number them in order, `NNNN-short-title.md`.
 | [0007](0007-audio-director.md) | `AudioDirector` as a second autoload |
 | [0008](0008-horde-ground.md) | The horde stands on an interface, and the flats come first |
 | [0009](0009-voxel-models.md) | MagicaVoxel `.vox` imported directly: parts as nodes, colour per vertex, emission |
+| [0010](0010-procedural-mech.md) | Mechs walk by code: stepping feet, our own two-bone IK, brains apart from walkers |
