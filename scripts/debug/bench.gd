@@ -227,6 +227,22 @@ const MECHWRECK_TIMELINE := [
 	["after shot", ["#mechwreck_after", WRECK_STATUS], [], 0.3],
 ]
 
+# The crowd brought onto the player and the three allies: the allies guard,
+# fire and stomp, the pickles bite, strike and spit at them. Every ally's body
+# and legs printed as it goes; the frame is a full fight.
+static func _siege_timeline(count: int) -> Array:
+	return [
+		["seed %d close" % count, ["@status", "!set:Horde:Stats:HuntSeedMinRadius=40.0",
+			"!set:Horde:Stats:HuntSeedRadius=140.0", "!set:Horde:Stats:AgentCount=%d" % count, MECH_STATUS], [], 3.0],
+		["reseed", ["!call:Horde:BenchReseed"], [], 8.0],
+		["arriving", [MECH_STATUS], [], 8.0],
+		["fighting", [MECH_STATUS, "@aim:QuadrupedTank:2"], [], 8.0],
+		["fight shot", ["#siege_fight"], [], 0.3],
+		["still fighting", [MECH_STATUS, "!set:Horde:Stats:HuntSeedMinRadius=150.0", "!set:Horde:Stats:HuntSeedRadius=450.0"], [], 10.0],
+		["late", [MECH_STATUS, "@aim:QuadrupedTank:2"], [], 8.0],
+		["late shot", ["#siege_late", MECH_STATUS], [], 0.3],
+	]
+
 # The hoverbike in lvl_horde_flats: boarded, flown out in both modes, every
 # weapon fired toward the crowd, landed and left. Its state comes from the
 # player's line (stowed, so it reads where they boarded) and screenshots.
@@ -365,6 +381,7 @@ func _initialize() -> void:
 		"arsenal": _timeline = _arsenal_timeline()
 		"wreck": _timeline = WRECK_TIMELINE
 		"mechwreck": _timeline = MECHWRECK_TIMELINE
+		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
 		_: _timeline = IDLE_TIMELINE

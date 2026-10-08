@@ -67,6 +67,9 @@ public partial class HordeDirector : Node3D
     private bool _built;
     private float _flowTimer;
     private float _strikeTokens;
+    private float _allyStrikeTokens;
+    private readonly System.Collections.Generic.List<IHordeTarget> _allyTargets = new();
+    private readonly System.Collections.Generic.List<HordeManager.AllyTarget> _allyData = new();
     private float _shotTokens;
     private int _targetCell = -1;
     private ulong _aimRandom = 0xA0761D6478BD642FUL;
@@ -96,6 +99,10 @@ public partial class HordeDirector : Node3D
             Position = PlayerAvailable ? PlayerChest : Vector3.Zero,
         };
         Brine.Hit = OnBrineHit;
+        Brine.ExtraCount = () => _allyTargets.Count;
+        Brine.ExtraCentre = i => AllyChest(i);
+        Brine.ExtraRadius = i => Mathf.Max(_allyData[i].Radius, _allyData[i].Height * 0.5f) * 0.8f;
+        Brine.ExtraHit = OnBrineHitAlly;
         Brine.Struck = point => AudioDirector.PlayAt(Sfx.SpitSplat, point);
 
         // LevelRoot readies after its children, so this is connected before
@@ -155,6 +162,7 @@ public partial class HordeDirector : Node3D
         // the horde never learns that a player or a projectile exists.
         Manager.AgentStruck = OnAgentStruck;
         Manager.RangedRequested = OnRangedRequested;
+        Manager.AllyStruck = OnAllyStruck;
 
         Brine.Build(Stats.ShotCapacity, BrineColour, 0.22f);
         Brine.Ground = Ground;
@@ -189,6 +197,8 @@ public partial class HordeDirector : Node3D
 
         float strikeRate = Mathf.Max(Stats.StrikesPerSecond, 0.0f);
         _strikeTokens = Mathf.Min(Mathf.Max(strikeRate, 1.0f), _strikeTokens + (strikeRate * dt));
+        float allyRate = Mathf.Max(Stats.AllyStrikesPerSecond, 0.0f);
+        _allyStrikeTokens = Mathf.Min(Mathf.Max(allyRate, 1.0f), _allyStrikeTokens + (allyRate * dt));
         float shotRate = Mathf.Max(Stats.ShotsPerSecond, 0.0f);
         _shotTokens = Mathf.Min(Mathf.Max(shotRate, 1.0f), _shotTokens + (shotRate * dt));
 
@@ -198,6 +208,8 @@ public partial class HordeDirector : Node3D
             camera?.GlobalTransform ?? Transform3D.Identity,
             camera?.Fov ?? 0.0f,
             view.Y > 0.0f ? view.X / view.Y : 0.0f);
+
+        GatherAllies();
 
         Vector3 eye = camera?.GlobalPosition ?? GlobalPosition;
         Manager.Tick(dt, eye, Vector3.Up, 0.0f, false);
@@ -238,6 +250,7 @@ public partial class HordeDirector : Node3D
         horde.FrustumCullEnabled = Stats.FrustumCull;
         horde.RangedEnabled = Stats.RangedEnabled;
         horde.ThrownHitRadius = Stats.ThrownHitRadius;
+        horde.AllyAggroRange = Stats.AllyAggroRange;
         horde.FlingSeconds = Stats.FlingSeconds;
         horde.FlingDrag = Stats.FlingDrag;
         horde.AirGravity = Stats.Gravity;
@@ -296,13 +309,80 @@ public partial class HordeDirector : Node3D
     /// <summary>Where the horde is going: the ground under the player while it hunts, else here.</summary>
     private Vector3 HuntPoint(out bool hunting)
     {
-        hunting = Stats.HuntsPlayer && PlayerAvailable;
+        // Riding something, the player is still hunted: a mech carries them
+        // at its seat, so the crowd comes for the mech.
+        hunting = Stats.HuntsPlayer && PlayerExists;
         Vector3 point = hunting ? _player.GlobalPosition : GlobalPosition;
         return Ground != null ? Ground.GroundBelow(point, out _) : point;
     }
 
-    private bool PlayerAvailable =>
-        _player != null && IsInstanceValid(_player) && _player.IsInsideTree() && !_player.IsStowed;
+    private bool PlayerAvailable => PlayerExists && !_player.IsStowed;
+
+    private bool PlayerExists => _player != null && IsInstanceValid(_player) && _player.IsInsideTree();
+
+    // ---------------- Allies ----------------
+
+    /// <summary>
+    /// The player's allies this frame, from their group: what the crowd may
+    /// go for besides the player. Snapshotted before the tick, so an ally's
+    /// place in the list is the one the tick's strikes refer to.
+    /// </summary>
+    private void GatherAllies()
+    {
+        _allyTargets.Clear();
+        _allyData.Clear();
+        foreach (Node node in GetTree().GetNodesInGroup(IHordeTarget.GroupName))
+        {
+            if (node is IHordeTarget target && target.IsTargetable && _allyData.Count < 8)
+            {
+                _allyTargets.Add(target);
+                _allyData.Add(new HordeManager.AllyTarget
+                {
+                    Base = target.TargetBase,
+                    Radius = target.TargetRadius,
+                    Height = target.TargetHeight,
+                });
+            }
+        }
+        Manager.SetAllies(_allyData);
+    }
+
+    private Vector3 AllyChest(int i) =>
+        _allyData[i].Base + Ground.UpAt(_allyData[i].Base) * (_allyData[i].Height * 0.5f);
+
+    /// <summary>A pickle reached an ally: a bite or a strike, as hard as its kind's stats say.</summary>
+    private void OnAllyStruck(int ally, Vector3 position, int kind)
+    {
+        if (ally >= _allyTargets.Count || _allyStrikeTokens < 1.0f || !_allyTargets[ally].IsTargetable)
+        {
+            return;
+        }
+        AgentKindStats stats = Manager.KindStats(kind);
+        if (stats == null)
+        {
+            return;
+        }
+        _allyStrikeTokens -= 1.0f;
+        StruckCount++;
+
+        Vector3 up = Ground.UpAt(position);
+        Vector3 mouth = position + up * (stats.Height * 0.6f);
+        Vector3 toward = (AllyChest(ally) - mouth).Slide(up);
+        toward = toward.LengthSquared() > 1e-4f ? toward.Normalized() : up;
+        _allyTargets[ally].TakeHordeHit(mouth, stats.StrikeDamage, toward * stats.StrikeImpulse);
+        AudioDirector.PlayAt(kind == (int)AgentKind.Tank ? Sfx.TankStomp : Sfx.PickleBite, position);
+    }
+
+    private void OnBrineHitAlly(int ally, Vector3 point, Vector3 impulse)
+    {
+        if (ally >= _allyTargets.Count || !_allyTargets[ally].IsTargetable)
+        {
+            return;
+        }
+        _allyTargets[ally].TakeHordeHit(point - impulse.Normalized() * 0.5f,
+            Manager.KindStats((int)AgentKind.Spitter)?.ProjectileDamage ?? 0.0f, impulse);
+        AudioDirector.PlayAt(Sfx.SpitSplat, point);
+    }
 
     /// <summary>What a throw or a spit is aimed at, and what the brine fuses against.</summary>
     private Vector3 PlayerChest => _player.GlobalPosition + (_player.GravityUp * 1.1f);
@@ -398,7 +478,7 @@ public partial class HordeDirector : Node3D
     /// </summary>
     private void OnRangedRequested(Vector3 position, int kind)
     {
-        if (_shotTokens < 1.0f || !Stats.RangedEnabled || !PlayerAvailable)
+        if (_shotTokens < 1.0f || !Stats.RangedEnabled)
         {
             return;
         }
@@ -409,12 +489,33 @@ public partial class HordeDirector : Node3D
             return;
         }
 
+        // The nearest thing in reach: the player, or an ally nearer than them.
+        bool any = PlayerAvailable;
+        Vector3 target = any ? PlayerChest : Vector3.Zero;
+        Vector3 lead = any ? _player.Velocity * stats.ProjectileLead : Vector3.Zero;
+        float best = any ? position.DistanceSquaredTo(target) : float.MaxValue;
+        float reach = stats.RangedRange * 1.2f;
+        for (int i = 0; i < _allyTargets.Count; i++)
+        {
+            Vector3 chest = AllyChest(i);
+            float d = position.DistanceSquaredTo(chest);
+            if (d < best && d <= reach * reach)
+            {
+                best = d;
+                target = chest;
+                lead = Vector3.Zero;
+                any = true;
+            }
+        }
+        if (!any)
+        {
+            return;
+        }
+
         Vector3 up = Ground.UpAt(position);
         Vector3 muzzle = position + (up * ((stats.Height * 0.5f) + 0.3f));
-        Vector3 target = PlayerChest;
         float speed = Mathf.Max(stats.ProjectileSpeed, 1.0f);
         float spread = Mathf.DegToRad(stats.ProjectileSpreadDegrees);
-        Vector3 lead = _player.Velocity * stats.ProjectileLead;
 
         if (kind == (int)AgentKind.Spitter)
         {

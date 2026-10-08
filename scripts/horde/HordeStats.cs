@@ -192,6 +192,17 @@ public partial class HordeStats : Resource
     [Export(PropertyHint.Range, "0,60,0.5,suffix:/s")]
     public float StrikesPerSecond { get; set; } = 6.0f;
 
+    /// <summary>Bites and strikes that may land on allies per second, all
+    /// allies together. Its own budget: a crowd on a mech must not use up the
+    /// player's.</summary>
+    [Export(PropertyHint.Range, "0,200,0.5,suffix:/s")]
+    public float AllyStrikesPerSecond { get; set; } = 24.0f;
+
+    /// <summary>How near an ally a pickle has to be to go for it instead of
+    /// the player.</summary>
+    [Export(PropertyHint.Range, "0,100,0.5,suffix:m")]
+    public float AllyAggroRange { get; set; } = 18.0f;
+
     /// <summary>Throws and spits the crowd may make per second, the whole crowd together.</summary>
     [Export(PropertyHint.Range, "0,200,0.5,suffix:/s")]
     public float ShotsPerSecond { get; set; } = 20.0f;

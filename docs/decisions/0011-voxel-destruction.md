@@ -63,6 +63,5 @@ every ally a voxel body: 11-13 ms, no worse than before.
 
 - The horde's flow graph is built once, so a fallen pillar still blocks its
   routing until the planet's restamp arrives.
-- Allies are not hurt by pickles yet; only by blasts and shots, friendly
-  included.
+- Allies hurt by pickles: done, `0012`.
 - A grapple anchored on voxels that are then shot away stays where it was.

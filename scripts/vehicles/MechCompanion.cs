@@ -220,6 +220,13 @@ public partial class MechCompanion : Node
 
     // ---------------- Following ----------------
 
+    /// <summary>
+    /// What it does when nobody rides it. With a threat near the player it
+    /// guards: it takes a stand between the player and the threat, a little
+    /// to its own side so allies do not stack, and fights from there. With a
+    /// threat near itself only, it holds and fights. Otherwise it follows. It
+    /// never strays past the leash.
+    /// </summary>
     private void Follow()
     {
         Vector3 up = Walker.Up;
@@ -227,6 +234,26 @@ public partial class MechCompanion : Node
         Vector3 back = look.Z.Slide(up).Normalized();
         Vector3 side = look.X.Slide(up).Normalized();
         Vector3 spot = _player.GlobalPosition + back * Tuning.FollowBehind + side * Tuning.FollowSide;
+
+        Vector3? threat = Gunner?.Target;
+        float fromPlayer = (Walker.GlobalPosition - _player.GlobalPosition).Slide(up).Length();
+        bool leashed = fromPlayer > Tuning.LeashRange;
+        if (threat is Vector3 danger && !leashed)
+        {
+            Vector3 toThreat = (danger - _player.GlobalPosition).Slide(up);
+            if (toThreat.Length() <= Tuning.GuardRadius)
+            {
+                // Guard: stand off the player toward the threat.
+                Vector3 dir = toThreat.Normalized();
+                Vector3 across = up.Cross(dir) * Mathf.Sign(Tuning.FollowSide == 0.0f ? 1.0f : Tuning.FollowSide) * 3.0f;
+                spot = _player.GlobalPosition + dir * Mathf.Min(Tuning.GuardDistance, toThreat.Length() * 0.5f) + across;
+            }
+            else
+            {
+                // Something is on it: hold where it is and fight.
+                spot = Walker.GlobalPosition;
+            }
+        }
 
         Vector3 toSpot = (spot - Walker.GlobalPosition).Slide(up);
         float distance = toSpot.Length();
@@ -382,6 +409,12 @@ public partial class MechCompanion : Node
     /// <summary>One line of state, for <c>bench.gd</c>'s <c>!call</c>.</summary>
     public void PrintBenchStatus()
     {
-        GD.Print("[bench]   ", Walker.BenchStatus(), IsRidden ? (_seatView ? " ridden, seat view" : " ridden") : " following");
+        foreach (Node node in GetTree().GetNodesInGroup(MechWalker.AllyGroup))
+        {
+            if (node is MechWalker walker)
+            {
+                GD.Print("[bench]   ", walker.BenchStatus(), walker == Walker && IsRidden ? " ridden" : "");
+            }
+        }
     }
 }

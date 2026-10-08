@@ -111,6 +111,24 @@ public partial class MechTuning : Resource
     [Export(PropertyHint.Range, "0,1,0.01")]
     public float BodyDeathFraction { get; set; } = 0.45f;
 
+    /// <summary>Share of a pickle's bite or spit that reaches the voxels:
+    /// armour. A mech is many bites, not one.</summary>
+    [Export(PropertyHint.Range, "0,2,0.01")]
+    public float HordeDamageScale { get; set; } = 0.4f;
+
+    /// <summary>Velocity a pickle's strike adds, per unit of its impulse. A
+    /// heavy machine barely rocks.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float HordeShove { get; set; } = 0.05f;
+
+    /// <summary>A foot coming down hurts the pickles under it: this much,
+    /// over this radius.</summary>
+    [Export(PropertyHint.Range, "0,500,1")]
+    public float StompDamage { get; set; } = 70.0f;
+
+    [Export(PropertyHint.Range, "0,5,0.05,suffix:m")]
+    public float StompRadius { get; set; } = 1.0f;
+
     /// <summary>Legs it can lose and still walk. A four-legged walker limps on
     /// three; a biped falls when it loses one.</summary>
     [Export(PropertyHint.Range, "0,4,1")]
@@ -173,6 +191,20 @@ public partial class MechTuning : Resource
     /// steers around them and backs off, rather than walking through.</summary>
     [Export(PropertyHint.Range, "0,20,0.5,suffix:m")]
     public float PersonalSpace { get; set; } = 6.0f;
+
+    /// <summary>A threat within this of the player draws the mech out to
+    /// stand between them and it.</summary>
+    [Export(PropertyHint.Range, "0,100,1,suffix:m")]
+    public float GuardRadius { get; set; } = 30.0f;
+
+    /// <summary>How far toward the threat from the player it takes its stand.</summary>
+    [Export(PropertyHint.Range, "0,40,0.5,suffix:m")]
+    public float GuardDistance { get; set; } = 8.0f;
+
+    /// <summary>However it fights, it never goes further than this from the
+    /// player.</summary>
+    [Export(PropertyHint.Range, "5,200,1,suffix:m")]
+    public float LeashRange { get; set; } = 25.0f;
 
     /// <summary>How close the player has to be to climb on.</summary>
     [Export(PropertyHint.Range, "1,20,0.5,suffix:m")]

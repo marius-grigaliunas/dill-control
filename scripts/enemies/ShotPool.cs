@@ -52,6 +52,19 @@ public partial class ShotPool : Node3D
 
     public Func<ShotTarget> Target { get; set; }
 
+    /// <summary>
+    /// Other things a shot fuses against besides <see cref="Target"/>: how
+    /// many this frame, and each one's centre and reach. The allies.
+    /// </summary>
+    public Func<int> ExtraCount { get; set; }
+
+    public Func<int, Vector3> ExtraCentre { get; set; }
+
+    public Func<int, float> ExtraRadius { get; set; }
+
+    /// <summary>A shot reached an extra target: which, where, the shove along its path.</summary>
+    public Action<int, Vector3, Vector3> ExtraHit { get; set; }
+
     /// <summary>A shot reached the target: point, the shove along its path, camera trauma.</summary>
     public Action<Vector3, Vector3, float> Hit { get; set; }
 
@@ -200,6 +213,21 @@ public partial class ShotPool : Node3D
                 {
                     HitCount++;
                     Hit?.Invoke(closest, _velocity[i].Normalized() * Impulse, Trauma);
+                    ImpactEffect.Spawn(_impactScene, this, closest);
+                    remove = true;
+                }
+            }
+
+            int extras = !remove && ExtraCount != null ? ExtraCount() : 0;
+            for (int e = 0; e < extras && !remove; e++)
+            {
+                Vector3 centre = ExtraCentre(e);
+                float reach = ExtraRadius(e);
+                Vector3 closest = ClosestOnSegment(from, to, centre);
+                if (closest.DistanceSquaredTo(centre) <= reach * reach)
+                {
+                    HitCount++;
+                    ExtraHit?.Invoke(e, closest, _velocity[i].Normalized() * Impulse);
                     ImpactEffect.Spawn(_impactScene, this, closest);
                     remove = true;
                 }

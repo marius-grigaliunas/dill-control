@@ -461,6 +461,72 @@ public partial class HordeManager : Node3D
     /// </summary>
     public Vector3 HuntPoint { get; set; } = Vector3.Up;
 
+    /// <summary>One ally the crowd attacks besides the player: an upright
+    /// body of a radius and a height, standing on a point.</summary>
+    public struct AllyTarget
+    {
+        public Vector3 Base;
+        public float Radius;
+        public float Height;
+    }
+
+    private AllyTarget[] _allies = new AllyTarget[8];
+    private int _allyCount;
+
+    /// <summary>
+    /// How near an ally a pickle has to be to leave the flow and go for it
+    /// instead. The rest keep coming for the player.
+    /// </summary>
+    public float AllyAggroRange { get; set; } = 18.0f;
+
+    /// <summary>
+    /// A pickle reached an ally: which one (its place in the list last set),
+    /// from where, and what kind. Raised on the main thread.
+    /// </summary>
+    public Action<int, Vector3, int> AllyStruck { get; set; }
+
+    /// <summary>
+    /// The allies this frame, before <see cref="Tick"/>. Read by every worker
+    /// during it, so it is only ever set between ticks. Up to eight.
+    /// </summary>
+    public void SetAllies(System.Collections.Generic.IReadOnlyList<AllyTarget> allies)
+    {
+        _allyCount = Mathf.Min(allies.Count, _allies.Length);
+        for (int i = 0; i < _allyCount; i++)
+        {
+            _allies[i] = allies[i];
+        }
+    }
+
+    /// <summary>The nearest ally to a point by the reach to its body, or -1.</summary>
+    private int NearestAlly(Vector3 position, out float distanceSquared)
+    {
+        distanceSquared = float.MaxValue;
+        int best = -1;
+        for (int i = 0; i < _allyCount; i++)
+        {
+            float d = DistanceToAllySquared(position, _allies[i]);
+            if (d < distanceSquared)
+            {
+                distanceSquared = d;
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    /// <summary>Squared distance from a point to an upright body: the gap
+    /// sideways past its radius, and above or below its height.</summary>
+    private float DistanceToAllySquared(Vector3 position, in AllyTarget ally)
+    {
+        Vector3 up = _ground.UpAt(ally.Base);
+        Vector3 offset = position - ally.Base;
+        float height = offset.Dot(up);
+        float side = Mathf.Max(0.0f, (offset - up * height).Length() - ally.Radius);
+        float vertical = height < 0.0f ? -height : Mathf.Max(0.0f, height - ally.Height);
+        return side * side + vertical * vertical;
+    }
+
     /// <summary>
     /// How near the hunt point an agent with no flow direction steers straight
     /// at it. Zero switches the final approach off, which is the garrison:
@@ -2388,7 +2454,14 @@ public partial class HordeManager : Node3D
                         break;
 
                     case HordeEventType.Strike:
-                        AgentStruck?.Invoke(raised.Position, _agents[raised.Index].Kind, raised.Magnitude > 0.0f);
+                        if (raised.Magnitude < 0.0f)
+                        {
+                            AllyStruck?.Invoke(-(int)raised.Magnitude - 1, raised.Position, _agents[raised.Index].Kind);
+                        }
+                        else
+                        {
+                            AgentStruck?.Invoke(raised.Position, _agents[raised.Index].Kind, raised.Magnitude > 0.0f);
+                        }
                         break;
 
                     case HordeEventType.Ranged:
@@ -2477,6 +2550,18 @@ public partial class HordeManager : Node3D
                 // Counted for every frame it sits out, so the overlay's figure
                 // does not drop by the stride when the far tier is on.
                 stranded = step;
+            }
+        }
+
+        // Near an ally, and nearer it than the player: go for the ally.
+        if (_allyCount > 0)
+        {
+            int ally = NearestAlly(agent.Position, out float allySquared);
+            if (ally >= 0 && allySquared <= AllyAggroRange * AllyAggroRange
+                && allySquared < DistanceToPlayerSquared(agent.Position, playerPosition))
+            {
+                desired = _allies[ally].Base - agent.Position;
+                stranded = 0;
             }
         }
 
@@ -2601,10 +2686,26 @@ public partial class HordeManager : Node3D
         }
 
         float distanceSquared = DistanceToPlayerSquared(agent.Position, playerPosition);
+        Vector3 targetPoint = playerPosition;
+
+        // An ally nearer than the player is what it strikes and dashes at.
+        // The magnitude carries which ally, negative, so the drain can tell
+        // it from a strike on the player.
+        float strikeTag = 0.0f;
+        if (_allyCount > 0)
+        {
+            int ally = NearestAlly(agent.Position, out float allySquared);
+            if (ally >= 0 && allySquared < distanceSquared)
+            {
+                distanceSquared = allySquared;
+                targetPoint = _allies[ally].Base;
+                strikeTag = -(ally + 1);
+            }
+        }
 
         if (stats.StrikeRange > 0.0f && distanceSquared <= stats.StrikeRange * stats.StrikeRange)
         {
-            RaiseEvent(partition, HordeEventType.Strike, index, agent.Id, agent.Position, 0.0f);
+            RaiseEvent(partition, HordeEventType.Strike, index, agent.Id, agent.Position, strikeTag);
             agent.Cooldown = stats.StrikeInterval;
             return speed;
         }
@@ -2627,7 +2728,7 @@ public partial class HordeManager : Node3D
             // of that clamp, and it ends on its own once drag has spent the
             // burst.
             Vector3 up = _ground.UpAt(agent.Position);
-            Vector3 toward = (playerPosition - agent.Position).Slide(up);
+            Vector3 toward = (targetPoint - agent.Position).Slide(up);
             toward = toward.LengthSquared() > 1e-4f ? toward.Normalized() : agent.Forward;
             agent.Velocity = agent.Velocity.Slide(up) + (toward * stats.DashSpeed);
             agent.Flung = DashSeconds;

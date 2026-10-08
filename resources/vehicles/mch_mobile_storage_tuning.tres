@@ -29,3 +29,5 @@ FollowSlowRadius = 2.5
 PersonalSpace = 2.2
 KneeBias = Vector3(0, 0, 1)
 MountRange = 0.0
+StompDamage = 12.0
+StompRadius = 0.35

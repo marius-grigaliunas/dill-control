@@ -28,7 +28,7 @@ namespace DillControl.Vehicles;
 ///
 /// The model's front is +Z, as every imported model's is.
 /// </summary>
-public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface
+public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, IHordeTarget
 {
     [ExportGroup("Data")]
     [Export]
@@ -183,6 +183,8 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface
 
         HookVoxels();
         AddToGroup(AllyGroup);
+        AddToGroup(IHordeTarget.GroupName);
+        MeasureHull();
         _fuel = Tuning.JetFuelSeconds;
         CollisionLayer = GameLayers.Mask(GameLayers.Prop);
         // The player too, so a step that does come too close is blocked
@@ -198,6 +200,80 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface
         {
             leg.Planted = self * leg.RestFoot;
         }
+    }
+
+    // ---------------- The horde ----------------
+
+    private float _hullRadius = 1.5f;
+    private float _hullHeight = 3.0f;
+
+    public bool IsTargetable => !IsDestroyed;
+
+    public Vector3 TargetBase => GlobalPosition;
+
+    public float TargetRadius => _hullRadius;
+
+    public float TargetHeight => _hullHeight;
+
+    /// <summary>What the horde aims at is its hull's box, measured once.</summary>
+    private void MeasureHull()
+    {
+        foreach (Node child in GetChildren())
+        {
+            if (child is CollisionShape3D { Shape: BoxShape3D box } shape)
+            {
+                _hullRadius = Mathf.Max(box.Size.X, box.Size.Z) * 0.5f;
+                _hullHeight = shape.Position.Y + box.Size.Y * 0.5f;
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// A pickle bit, struck or spat at it. The bite goes into the voxels like
+    /// any other hit, along the line from the pickle's mouth to the body, so
+    /// a crowd round its legs chews the legs.
+    /// </summary>
+    public void TakeHordeHit(Vector3 from, float damage, Vector3 impulse)
+    {
+        if (IsDestroyed || Voxels == null)
+        {
+            return;
+        }
+        Vector3 chest = GlobalPosition + Up * (_hullHeight * 0.5f);
+        var info = new DamageInfo
+        {
+            Amount = damage * Tuning.HordeDamageScale,
+            BaseAmount = damage,
+            Position = from,
+            Direction = (chest - from).Normalized(),
+            Distance = 0.0f,
+            IsSplash = false,
+        };
+        Voxels.ApplyDamage(info, this);
+        Velocity += impulse * Tuning.HordeShove;
+    }
+
+    /// <summary>A foot came down: the pickles under it take a stamp, over
+    /// the bus, so only the horde hears it.</summary>
+    private void Stomp(Vector3 at)
+    {
+        if (Tuning.StompDamage <= 0.0f || Tuning.StompRadius <= 0.0f)
+        {
+            return;
+        }
+        EventBus.EmitAreaBlast(new BlastInfo
+        {
+            Centre = at,
+            InnerRadius = Tuning.StompRadius * 0.6f,
+            Radius = Tuning.StompRadius,
+            Damage = Tuning.StompDamage,
+            MinMultiplier = 0.5f,
+            Up = Up,
+            Source = this,
+            SourceRid = GetRid(),
+            NoCrater = true,
+        });
     }
 
     // ---------------- Damage ----------------
@@ -457,6 +533,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface
             {
                 leg.Stepping = false;
                 leg.Planted = leg.StepTo;
+                Stomp(leg.Planted);
             }
         }
 
@@ -652,7 +729,13 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface
             stepping += leg.Stepping ? 1 : 0;
         }
         Vector3 p = GlobalPosition;
+        float health = Voxels?.PartOf(Core)?.Health01 ?? 1.0f;
+        int legs = 0;
+        foreach (MechLeg leg in _legs)
+        {
+            legs += leg.Alive ? 1 : 0;
+        }
         return System.FormattableString.Invariant(
-            $"mech pos=({p.X:F1},{p.Y:F1},{p.Z:F1}) speed={Velocity.Slide(Up).Length():F1} up={Velocity.Dot(Up):F1} grounded={IsGrounded} stepping={stepping} fuel={JetFuel01:F2} turret={Mathf.RadToDeg(_turretYaw):F0}");
+            $"{Name} body={health * 100.0f:F0}% legs={legs}/{_legs.Count} destroyed={IsDestroyed} pos=({p.X:F1},{p.Y:F1},{p.Z:F1}) speed={Velocity.Slide(Up).Length():F1} up={Velocity.Dot(Up):F1} grounded={IsGrounded} stepping={stepping} fuel={JetFuel01:F2} turret={Mathf.RadToDeg(_turretYaw):F0}");
     }
 }
