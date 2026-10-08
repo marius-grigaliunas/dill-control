@@ -141,6 +141,13 @@ markers. See `docs/decisions/0009` and the voxel half of `art/_source/README.md`
 Everything not ours is listed in `credits.md` the day it arrives. Mechs are
 animated by code, never clips: `docs/decisions/0010`.
 
+**Every voxel model is destructible, the same way** (`docs/decisions/0011`): a
+`VoxelBody` in its wrapper (static for buildings, hinged parts for mechs). No
+voxel thing gets damage code of its own; its numbers are in
+`resources/voxel/voxel_destruction_default.tres`. After changing the importer,
+force a reimport (delete `.godot/imported/*.vox-*`): Godot skips unchanged
+sources.
+
 Git LFS tracks every binary asset (`.gitattributes`), `.vox` included. Godot's text formats stay
 in git proper.
 
@@ -158,6 +165,8 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mechs     # all three allies
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mechsab   # what vehicles cost to draw
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn arsenal   # designator, burner, lance, manipulator
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn wreck     # the compound shot down
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mechwreck # the allies shot apart
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn horde 25000
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn hordeab 25000
 ```

@@ -151,14 +151,36 @@ public partial class MechGunner : Node
             _targetHandle = followed != null ? handle : 0;
         }
 
-        if (followed is Vector3 at && Friendly != null
-            && at.DistanceTo(Friendly.GlobalPosition) < Stats.PlayerSafetyRadius)
+        if (followed is Vector3 at && NearFriend(at))
         {
             followed = null;
         }
 
         // Aim at the middle of a pickle, not its feet.
         Target = followed is Vector3 p ? p + Walker.Up * 0.6f : null;
+    }
+
+    /// <summary>
+    /// Whether a target is too close to the player or another ally to shoot
+    /// at: everything on this side breaks like everything else, so a round
+    /// into a pickle at a friend's feet is a round into the friend.
+    /// </summary>
+    private bool NearFriend(Vector3 at)
+    {
+        float r2 = Stats.PlayerSafetyRadius * Stats.PlayerSafetyRadius;
+        if (Friendly != null && at.DistanceSquaredTo(Friendly.GlobalPosition) < r2)
+        {
+            return true;
+        }
+        foreach (Node node in GetTree().GetNodesInGroup(MechWalker.AllyGroup))
+        {
+            if (node != Walker && node is MechWalker ally && !ally.IsDestroyed
+                && at.DistanceSquaredTo(ally.GlobalPosition) < r2 * 1.5f)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static bool Aligned(Vector3 forward, Vector3 toTarget, float degrees)
@@ -194,7 +216,7 @@ public partial class MechGunner : Node
 
     private void FireTurret(Vector3 target)
     {
-        if (TurretMuzzle == null)
+        if (TurretMuzzle == null || !MountAlive(TurretMuzzle))
         {
             return;
         }
@@ -290,7 +312,7 @@ public partial class MechGunner : Node
 
     private void FireCannon(Vector3 target)
     {
-        if (CannonMuzzle == null || ShellScene == null || Stats.CannonShell == null)
+        if (CannonMuzzle == null || ShellScene == null || Stats.CannonShell == null || !MountAlive(CannonMuzzle))
         {
             return;
         }
@@ -312,4 +334,8 @@ public partial class MechGunner : Node
     }
 
     private Node Scene() => GetTree().CurrentScene ?? (Node)this;
+
+    /// <summary>A gun on a part that has been shot off does not fire.</summary>
+    private bool MountAlive(Node3D muzzle) =>
+        !Walker.IsDestroyed && (muzzle.GetParent() is not Node3D mount || Walker.PartAlive(mount));
 }

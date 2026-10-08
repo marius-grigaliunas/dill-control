@@ -1,6 +1,7 @@
 using Godot;
 using DillControl.Debug;
 using DillControl.Player;
+using DillControl.Voxel;
 using DillControl.Weapons;
 
 namespace DillControl.Levels;
@@ -51,6 +52,7 @@ public partial class LevelRoot : Node3D
     {
         AddChild(new PerfDriver { Name = "PerfDriver" });
         AddChild(new FireField { Name = "FireField" });
+        AddChild(new VoxelDebris { Name = "VoxelDebris" });
         SpawnPlayer();
     }
 

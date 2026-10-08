@@ -47,6 +47,7 @@ const PULSE_SECONDS := 0.15
 #                            property may be an indexed path into a resource,
 #                            "!set:Horde:Stats:AgentCount=25000"
 #   "!call:Node:method"      call a method with no arguments
+#   "@goto:x, y, z"          move the level's player there
 #   "@aim:Node:height"       turn the player to look at that node, raised by
 #                            height metres
 #   "@status"                toggle a line of the player's and the horde's state
@@ -181,6 +182,50 @@ static func _arsenal_timeline() -> Array:
 		["vinegar lance", ["slot_7", "@aim:Horde:0.5"], ["~fire"], 5.0],
 		["lance shot", ["#arsenal_lance"], ["~fire"], 0.3],
 	]
+
+# Voxel destruction against the compound: a pillar shot at its base with the
+# rifle, then rockets, then a strike, with the debris count and shots. The
+# horde is held far away so the frame is the destruction's.
+const WRECK_STATUS := "!call:VoxelDebris:PrintBenchStatus"
+const WRECK_TIMELINE := [
+	["hold the horde off", ["@status", "!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
+		"@goto:-24, 0.2, 4"], [], 2.0],
+	["aim at the pillar base", ["@aim:Pillar1:3", "@status"], [], 1.0],
+	["before", ["#wreck_before", WRECK_STATUS], [], 0.3],
+	["rifle at the base", ["slot_1", "@aim:Pillar1:3"], ["fire"], 3.0],
+	["rifle shot", ["#wreck_rifle", WRECK_STATUS], [], 0.3],
+	["rockets at the base", ["slot_3", "@aim:Pillar1:3"], ["~fire"], 3.0],
+	["falling", ["@aim:Pillar1:12", WRECK_STATUS], [], 1.0],
+	["falling shot", ["#wreck_falling"], [], 0.3],
+	["rockets shot", ["@aim:Pillar1:3"], [], 1.5],
+	["landed shot", ["#wreck_landed", WRECK_STATUS], [], 0.3],
+	["settling", [], [], 3.0],
+	["settled shot", ["#wreck_settled", WRECK_STATUS], [], 0.3],
+	["strike on a block", ["slot_4", "@aim:Column1:0"], ["~fire"], 6.0],
+	["strike shot", ["#wreck_strike", WRECK_STATUS], [], 0.3],
+	["after", [], [], 4.0],
+	["after shot", ["#wreck_after", WRECK_STATUS], [], 0.3],
+]
+
+# The allies broken by the same rules as everything else: the tank's legs shot
+# out from under it, rockets into its body until it falls apart, then the
+# fighter. The horde is held off so the allies stand still to be shot.
+const MECHWRECK_TIMELINE := [
+	["hold the horde off", ["!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed"], [], 3.0],
+	["aim at the tank's legs", ["@aim:QuadrupedTank:0.6"], [], 0.5],
+	["before", ["#mechwreck_before"], [], 0.3],
+	["rifle at the legs", ["slot_1", "@aim:QuadrupedTank:0.6"], ["fire"], 4.0],
+	["legs shot", ["#mechwreck_legs", WRECK_STATUS], [], 0.3],
+	["rockets at the body", ["slot_3", "@aim:QuadrupedTank:3.5"], ["~fire"], 4.0],
+	["body shot", ["#mechwreck_body", WRECK_STATUS], [], 0.3],
+	["more rockets", ["@aim:QuadrupedTank:3.5"], ["~fire"], 4.0],
+	["falling apart", [WRECK_STATUS], [], 2.0],
+	["tank shot", ["#mechwreck_tank", WRECK_STATUS], [], 0.3],
+	["rockets at the fighter", ["@aim:FieldFighter:4"], ["~fire"], 5.0],
+	["fighter shot", ["#mechwreck_fighter", WRECK_STATUS], [], 0.3],
+	["after", [], [], 3.0],
+	["after shot", ["#mechwreck_after", WRECK_STATUS], [], 0.3],
+]
 
 # The hoverbike in lvl_horde_flats: boarded, flown out in both modes, every
 # weapon fired toward the crowd, landed and left. Its state comes from the
@@ -318,6 +363,8 @@ func _initialize() -> void:
 		"mechs": _timeline = MECHS_TIMELINE
 		"mechsab": _timeline = MECHSAB_TIMELINE
 		"arsenal": _timeline = _arsenal_timeline()
+		"wreck": _timeline = WRECK_TIMELINE
+		"mechwreck": _timeline = MECHWRECK_TIMELINE
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
 		_: _timeline = IDLE_TIMELINE
@@ -372,6 +419,14 @@ func _tap(action: String) -> void:
 		return
 	if action == "@status":
 		_status = not _status
+		return
+	if action.begins_with("@goto:"):
+		var player := _player() as Node3D
+		var at = str_to_var("Vector3(%s)" % action.substr(6))
+		if player != null and at is Vector3:
+			player.global_position = at
+		else:
+			print("[bench] cannot ", action)
 		return
 	if action.begins_with("@aim:"):
 		var parts := action.substr(5).split(":")

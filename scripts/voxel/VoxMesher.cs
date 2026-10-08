@@ -28,7 +28,19 @@ public static class VoxMesher
     /// <param name="skip">A palette index treated as empty (the pivot marker),
     /// or -1.</param>
     public static Godot.Collections.Array Build(
-        VoxFile.Model model, Color[] palette, float[] emission, Vector3 origin, float voxelSize, int skip)
+        VoxFile.Model model, Color[] palette, float[] emission, Vector3 origin, float voxelSize, int skip) =>
+        Build(model.Cells, model.Size, Vector3I.Zero, model.Size, palette, emission, origin, voxelSize, skip);
+
+    /// <summary>
+    /// Meshes one box of a grid: the cells from <paramref name="regionMin"/>
+    /// (inclusive) to <paramref name="regionMax"/> (exclusive). A face on the
+    /// region's edge still looks at the neighbour outside it, so sections meshed
+    /// one by one meet with no seam and no doubled face. How a destructible
+    /// body re-meshes only the section a hit landed in.
+    /// </summary>
+    public static Godot.Collections.Array Build(
+        byte[] cells, Vector3I size, Vector3I regionMin, Vector3I regionMax,
+        Color[] palette, float[] emission, Vector3 origin, float voxelSize, int skip)
     {
         var vertices = new List<Vector3>();
         var normals = new List<Vector3>();
@@ -36,19 +48,24 @@ public static class VoxMesher
         var uvs = new List<Vector2>();
         var indices = new List<int>();
 
-        Vector3I size = model.Size;
         int[] dims = { size.X, size.Y, size.Z };
+        int[] lo = { regionMin.X, regionMin.Y, regionMin.Z };
+        int[] hi = { regionMax.X, regionMax.Y, regionMax.Z };
 
         byte Solid(int[] p)
         {
-            byte c = model.At(p[0], p[1], p[2]);
+            if (p[0] < 0 || p[1] < 0 || p[2] < 0 || p[0] >= dims[0] || p[1] >= dims[1] || p[2] >= dims[2])
+            {
+                return 0;
+            }
+            byte c = cells[p[0] + dims[0] * (p[1] + dims[1] * p[2])];
             return c == skip ? (byte)0 : c;
         }
 
         for (int axis = 0; axis < 3; axis++)
         {
             int u = (axis + 1) % 3, v = (axis + 2) % 3;
-            int su = dims[u], sv = dims[v];
+            int su = hi[u] - lo[u], sv = hi[v] - lo[v];
             byte[] mask = new byte[su * sv];
             int[] p = new int[3];
             int[] n = new int[3];
@@ -59,16 +76,16 @@ public static class VoxMesher
                 normalVox[axis] = dir;
                 Vector3 normal = VoxSpace.ToGodot(normalVox);
 
-                for (int slice = 0; slice < dims[axis]; slice++)
+                for (int slice = lo[axis]; slice < hi[axis]; slice++)
                 {
                     for (int pv = 0; pv < sv; pv++)
                         for (int pu = 0; pu < su; pu++)
                         {
-                            p[axis] = slice; p[u] = pu; p[v] = pv;
+                            p[axis] = slice; p[u] = lo[u] + pu; p[v] = lo[v] + pv;
                             byte c = Solid(p);
                             if (c != 0)
                             {
-                                n[axis] = slice + dir; n[u] = pu; n[v] = pv;
+                                n[axis] = slice + dir; n[u] = lo[u] + pu; n[v] = lo[v] + pv;
                                 if (Solid(n) != 0)
                                     c = 0;
                             }
@@ -94,10 +111,11 @@ public static class VoxMesher
                                     mask[pu + du + (pv + dv) * su] = 0;
 
                             int first = vertices.Count;
-                            AddCorner(vertices, axis, u, v, plane, pu, pv, origin, voxelSize);
-                            AddCorner(vertices, axis, u, v, plane, pu + w, pv, origin, voxelSize);
-                            AddCorner(vertices, axis, u, v, plane, pu + w, pv + h, origin, voxelSize);
-                            AddCorner(vertices, axis, u, v, plane, pu, pv + h, origin, voxelSize);
+                            int cu = lo[u] + pu, cv = lo[v] + pv;
+                            AddCorner(vertices, axis, u, v, plane, cu, cv, origin, voxelSize);
+                            AddCorner(vertices, axis, u, v, plane, cu + w, cv, origin, voxelSize);
+                            AddCorner(vertices, axis, u, v, plane, cu + w, cv + h, origin, voxelSize);
+                            AddCorner(vertices, axis, u, v, plane, cu, cv + h, origin, voxelSize);
                             for (int k = 0; k < 4; k++)
                             {
                                 normals.Add(normal);

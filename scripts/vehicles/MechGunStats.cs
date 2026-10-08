@@ -84,7 +84,8 @@ public partial class MechGunStats : Resource
     [Export(PropertyHint.Range, "0,100,1,suffix:m")]
     public float CannonMinRange { get; set; } = 12.0f;
 
-    /// <summary>On its own, it holds fire at anything this close to the player.</summary>
+    /// <summary>On its own, it holds fire at anything this close to the player
+    /// or another ally (a little further for allies: they are bigger).</summary>
     [Export(PropertyHint.Range, "0,30,0.5,suffix:m")]
     public float PlayerSafetyRadius { get; set; } = 7.0f;
 }

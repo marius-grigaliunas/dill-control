@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="PackedScene" uid="uid://685mpe2o71wn" path="res://art/voxels/mch_mobile_storage.vox" id="1_model"]
 [ext_resource type="Script" path="res://scripts/vehicles/MechWalker.cs" id="2_walker"]
+[ext_resource type="Script" path="res://scripts/voxel/VoxelBody.cs" id="30_voxels"]
 [ext_resource type="Script" path="res://scripts/vehicles/MechCompanion.cs" id="3_companion"]
 [ext_resource type="Resource" path="res://resources/vehicles/mch_mobile_storage_tuning.tres" id="4_tuning"]
 [ext_resource type="Script" path="res://scripts/vehicles/MechSupply.cs" id="5_supply"]
@@ -9,15 +10,22 @@
 [sub_resource type="BoxShape3D" id="HullShape"]
 size = Vector3(1.8, 1.8, 1.3)
 
-[node name="MchMobileStorage" type="CharacterBody3D" node_paths=PackedStringArray("Model", "Thighs", "Shins", "Feet")]
+[node name="MchMobileStorage" type="CharacterBody3D" node_paths=PackedStringArray("Model", "Thighs", "Shins", "Feet", "Voxels", "Core")]
 script = ExtResource("2_walker")
 Tuning = ExtResource("4_tuning")
 Model = NodePath("Model")
+Voxels = NodePath("Voxels")
+Core = NodePath("Model/Body")
 Thighs = [NodePath("Model/ThighFL"), NodePath("Model/ThighFR"), NodePath("Model/ThighBL"), NodePath("Model/ThighBR")]
 Shins = [NodePath("Model/ShinFL"), NodePath("Model/ShinFR"), NodePath("Model/ShinBL"), NodePath("Model/ShinBR")]
 Feet = [NodePath("Model/FootFL"), NodePath("Model/FootFR"), NodePath("Model/FootBL"), NodePath("Model/FootBR")]
 
 [node name="Model" parent="." instance=ExtResource("1_model")]
+
+[node name="Voxels" type="Node" parent="." node_paths=PackedStringArray("Model", "Hinged")]
+script = ExtResource("30_voxels")
+Model = NodePath("../Model")
+Hinged = [NodePath("../Model/ThighFL"), NodePath("../Model/ShinFL"), NodePath("../Model/FootFL"), NodePath("../Model/ThighFR"), NodePath("../Model/ShinFR"), NodePath("../Model/FootFR"), NodePath("../Model/ThighBL"), NodePath("../Model/ShinBL"), NodePath("../Model/FootBL"), NodePath("../Model/ThighBR"), NodePath("../Model/ShinBR"), NodePath("../Model/FootBR")]
 
 [node name="Hull" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)

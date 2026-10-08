@@ -85,6 +85,12 @@ public partial class VoxSceneImporter : EditorSceneFormatImporter
                 AddShape(context, i, null, $"Model{i}", root);
         }
 
+        // The voxels themselves travel with the scene, so a destructible body
+        // can carve, re-mesh and break the model at runtime (VoxelBody).
+        root.SetMeta(VoxelMeta.VoxelSize, context.VoxelSize);
+        root.SetMeta(VoxelMeta.Palette, file.Palette);
+        root.SetMeta(VoxelMeta.Emission, file.Emission);
+
         SetOwner(root, root);
         return root;
     }
@@ -157,7 +163,24 @@ public partial class VoxSceneImporter : EditorSceneFormatImporter
 
         var mesh = new ImporterMesh { ResourceName = name };
         mesh.AddSurface(Mesh.PrimitiveType.Triangles, arrays, material: ctx.Material, name: "voxel");
-        parent.AddChild(new ImporterMeshInstance3D { Name = name, Mesh = mesh, Transform = transform }, forceReadableName: true);
+        var node = new ImporterMeshInstance3D { Name = name, Mesh = mesh, Transform = transform };
+
+        // The pivot voxel is a marker, never material: it does not travel.
+        byte[] cells = (byte[])model.Cells.Clone();
+        if (ctx.PivotIndex >= 1)
+        {
+            for (int i = 0; i < cells.Length; i++)
+            {
+                if (cells[i] == ctx.PivotIndex)
+                {
+                    cells[i] = 0;
+                }
+            }
+        }
+        node.SetMeta(VoxelMeta.Cells, cells);
+        node.SetMeta(VoxelMeta.Dims, model.Size);
+        node.SetMeta(VoxelMeta.Origin, origin);
+        parent.AddChild(node, forceReadableName: true);
     }
 
     private static Vector3 PivotOrCentre(Context ctx, VoxFile.Model model, string name)

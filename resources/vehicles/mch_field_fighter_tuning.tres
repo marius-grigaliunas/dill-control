@@ -26,5 +26,6 @@ FollowSide = -7.0
 PersonalSpace = 7.0
 MountRange = 9.0
 FaceCameraWhenIdle = true
+SpareLegs = 0
 CameraDistance = 15.0
 CameraHeight = 6.5

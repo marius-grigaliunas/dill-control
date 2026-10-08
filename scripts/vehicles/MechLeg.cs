@@ -38,6 +38,10 @@ public sealed class MechLeg
     /// <summary>Ankle pivot height above the sole.</summary>
     public readonly float AnkleHeight;
 
+    /// <summary>False once a segment has been shot away: the rest of the leg
+    /// has fallen off and the walker stands on the others.</summary>
+    public bool Alive = true;
+
     // Gait state, world space.
     /// <summary>Where the sole was last posed, stepping or not.</summary>
     public Vector3 Sole;

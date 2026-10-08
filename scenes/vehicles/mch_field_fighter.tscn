@@ -2,6 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://bm2p4imekmllq" path="res://art/voxels/mch_field_fighter.vox" id="1_model"]
 [ext_resource type="Script" path="res://scripts/vehicles/MechWalker.cs" id="2_walker"]
+[ext_resource type="Script" path="res://scripts/voxel/VoxelBody.cs" id="30_voxels"]
 [ext_resource type="Script" path="res://scripts/vehicles/MechCompanion.cs" id="3_companion"]
 [ext_resource type="Resource" path="res://resources/vehicles/mch_field_fighter_tuning.tres" id="4_tuning"]
 [ext_resource type="Script" path="res://scripts/player/ToonPass.cs" id="5_toon"]
@@ -15,10 +16,12 @@
 [sub_resource type="BoxShape3D" id="HullShape"]
 size = Vector3(3.2, 6.4, 1.9)
 
-[node name="MchFieldFighter" type="CharacterBody3D" node_paths=PackedStringArray("Model", "Thighs", "Shins", "Feet", "Arms", "Mounted", "MountedOn")]
+[node name="MchFieldFighter" type="CharacterBody3D" node_paths=PackedStringArray("Model", "Thighs", "Shins", "Feet", "Arms", "Mounted", "MountedOn", "Voxels", "Core")]
 script = ExtResource("2_walker")
 Tuning = ExtResource("4_tuning")
 Model = NodePath("Model")
+Voxels = NodePath("Voxels")
+Core = NodePath("Model/Body")
 Thighs = [NodePath("Model/ThighR"), NodePath("Model/ThighL")]
 Shins = [NodePath("Model/ShinR"), NodePath("Model/ShinL")]
 Feet = [NodePath("Model/FootR"), NodePath("Model/FootL")]
@@ -27,6 +30,11 @@ Mounted = [NodePath("Model/Muzzle"), NodePath("Model/Cannon")]
 MountedOn = [NodePath("Model/ArmR"), NodePath("Model/ArmL")]
 
 [node name="Model" parent="." instance=ExtResource("1_model")]
+
+[node name="Voxels" type="Node" parent="." node_paths=PackedStringArray("Model", "Hinged")]
+script = ExtResource("30_voxels")
+Model = NodePath("../Model")
+Hinged = [NodePath("../Model/ThighL"), NodePath("../Model/ShinL"), NodePath("../Model/FootL"), NodePath("../Model/ThighR"), NodePath("../Model/ShinR"), NodePath("../Model/FootR"), NodePath("../Model/ArmR"), NodePath("../Model/ArmL")]
 
 [node name="Hull" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)

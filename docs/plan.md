@@ -157,9 +157,10 @@ rather than a creature that walks.
 
 ### Voxel models stay in `voxel-bench`
 
-*Changed by `docs/decisions/0009`: voxel models are authored in MagicaVoxel and
-imported directly; destructibles get a `.vox` to `VoxelModel` step in M2, and
-the bench stays for previewing destruction.*
+*Changed by `docs/decisions/0009` and `0011`: voxel models are authored in
+MagicaVoxel and imported directly, and every one of them is destructible
+through `scripts/voxel/`. The lab's `VoxelBuilding` and `VoxelModel` are not
+ported; the bench stays only as a reference.*
 
 Destructible structures (spires, towers, the jar, ruins, Mother Brine's armour)
 are voxel bodies, because being carved and collapsing is what they are for.

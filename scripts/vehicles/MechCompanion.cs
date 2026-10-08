@@ -98,6 +98,7 @@ public partial class MechCompanion : Node
             CameraPivot.TopLevel = true;
         }
         CameraArm?.AddExcludedObject(Walker.GetRid());
+        Walker.Destroyed += OnWalkerDestroyed;
         if (Prompt != null)
         {
             Prompt.Visible = false;
@@ -110,6 +111,30 @@ public partial class MechCompanion : Node
         {
             Gunner.AimCamera = Camera;
         }
+    }
+
+    /// <summary>The mech fell apart: the rider is thrown clear, and nothing
+    /// here runs again.</summary>
+    private void OnWalkerDestroyed()
+    {
+        if (IsRidden && _player != null)
+        {
+            IsRidden = false;
+            _player.GlobalPosition = Walker.GlobalPosition + Walker.Up * 1.0f;
+            _player.SetStowed(false);
+            _player.ApplyBlastImpulse(Walker.Up * 8.0f);
+        }
+        if (Prompt != null)
+        {
+            Prompt.Visible = false;
+        }
+        if (RideHint != null)
+        {
+            RideHint.Visible = false;
+        }
+        SetPhysicsProcess(false);
+        SetProcess(false);
+        SetProcessUnhandledInput(false);
     }
 
     private void OnPlayerSpawned(Node3D player)

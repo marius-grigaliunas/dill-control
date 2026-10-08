@@ -21,3 +21,4 @@ Number them in order, `NNNN-short-title.md`.
 | [0008](0008-horde-ground.md) | The horde stands on an interface, and the flats come first |
 | [0009](0009-voxel-models.md) | MagicaVoxel `.vox` imported directly: parts as nodes, colour per vertex, emission |
 | [0010](0010-procedural-mech.md) | Mechs walk by code: stepping feet, our own two-bone IK, brains apart from walkers |
+| [0011](0011-voxel-destruction.md) | Every voxel model breaks the same way: carve, structure, physics chunks, dust |

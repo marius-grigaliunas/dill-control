@@ -209,6 +209,13 @@ Point it at the new `.vox`, re-wire the part lists (`Thighs`, `Shins`, `Feet`,
 `Arms`, `Turret`, `Mounted`/`MountedOn` for markers that ride a moving part),
 and size the `Hull` box to the body. Give it its own tuning `.tres`.
 
+Every wrapper has a `Voxels` node (`VoxelBody`): that is what makes the model
+break the way every voxel model breaks (`docs/decisions/0011`). For a building
+or a prop tick **Static** and give the root no collision of its own; for a mech
+list its moving parts under **Hinged**. Nothing else: no hit points, no damage
+code. A prop's wrapper is just the model and that node
+(`scenes/props/prp_graybox_pillar.tscn`).
+
 ### 6. Tune it and bench it
 
 Everything about how it moves is in its `MechTuning` `.tres`: speed, turn rate,

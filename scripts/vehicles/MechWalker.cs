@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using DillControl.Core;
+using DillControl.Voxel;
 using Godot;
 
 namespace DillControl.Vehicles;
@@ -26,7 +28,7 @@ namespace DillControl.Vehicles;
 ///
 /// The model's front is +Z, as every imported model's is.
 /// </summary>
-public partial class MechWalker : CharacterBody3D
+public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface
 {
     [ExportGroup("Data")]
     [Export]
@@ -40,6 +42,14 @@ public partial class MechWalker : CharacterBody3D
 
     [Export]
     public Node3D Turret { get; set; }
+
+    /// <summary>What it is made of: hits break it (docs/decisions/0011).</summary>
+    [Export]
+    public VoxelBody Voxels { get; set; }
+
+    /// <summary>The part whose loss kills it.</summary>
+    [Export]
+    public Node3D Core { get; set; }
 
     /// <summary>Front left, front right, back left, back right.</summary>
     [Export]
@@ -85,6 +95,23 @@ public partial class MechWalker : CharacterBody3D
     public float JetFuel01 => Tuning == null || Tuning.JetFuelSeconds <= 0.0f ? 0.0f : _fuel / Tuning.JetFuelSeconds;
 
     public Vector3 Up { get; private set; } = Vector3.Up;
+
+    /// <summary>Every walker on the player's side. Guns hold fire on targets
+    /// near any of them: they break like everything else.</summary>
+    public const string AllyGroup = "dill_allies";
+
+    /// <summary>Raised once, as it falls apart.</summary>
+    public event Action Destroyed;
+
+    public bool IsDestroyed { get; private set; }
+
+    public bool IsAlive => !IsDestroyed;
+
+    /// <summary>Whether the turret still has anything on it.</summary>
+    public bool TurretAlive => Turret != null && (Voxels?.PartOf(Turret) is not VoxelPart part || !part.IsEmpty);
+
+    /// <summary>Whether a part (an arm, the turret) still exists.</summary>
+    public bool PartAlive(Node3D node) => Voxels?.PartOf(node) is not VoxelPart part || !part.IsEmpty;
 
     /// <summary>Which way the turret points, world space.</summary>
     public Vector3 TurretForward => Turret != null ? Turret.GlobalBasis.Z : GlobalBasis.Z;
@@ -154,6 +181,8 @@ public partial class MechWalker : CharacterBody3D
         // The body tilts about its hips, not about the feet.
         _pivotHeight = _legs.Count > 0 ? (_modelRest * Thighs[0].Transform.Origin).Y : 0.0f;
 
+        HookVoxels();
+        AddToGroup(AllyGroup);
         _fuel = Tuning.JetFuelSeconds;
         CollisionLayer = GameLayers.Mask(GameLayers.Prop);
         // The player too, so a step that does come too close is blocked
@@ -169,6 +198,98 @@ public partial class MechWalker : CharacterBody3D
         {
             leg.Planted = self * leg.RestFoot;
         }
+    }
+
+    // ---------------- Damage ----------------
+
+    private void HookVoxels()
+    {
+        if (Voxels == null)
+        {
+            return;
+        }
+
+        Voxels.Velocity = () => Velocity;
+        Voxels.PartEmptied += OnPartEmptied;
+        if (Voxels.PartOf(Core) is VoxelPart core)
+        {
+            core.Carved += (part, _) =>
+            {
+                if (part.Health01 < Tuning.BodyDeathFraction)
+                {
+                    Destroy();
+                }
+            };
+        }
+    }
+
+    public void ApplyDamage(DamageInfo info)
+    {
+        if (!IsDestroyed)
+        {
+            Voxels?.ApplyDamage(info, this);
+        }
+    }
+
+    public Vector3 NearestBlastPoint(Vector3 from) => Voxels?.NearestBlastPoint(from) ?? GlobalPosition;
+
+    /// <summary>
+    /// A part has nothing left, or nothing holds it. A leg segment takes the
+    /// rest of its leg with it; too few legs, or the body, and the mech is
+    /// destroyed.
+    /// </summary>
+    private void OnPartEmptied(Node3D node, VoxelPart part)
+    {
+        if (IsDestroyed)
+        {
+            return;
+        }
+        if (node == Core)
+        {
+            Destroy();
+            return;
+        }
+
+        foreach (MechLeg leg in _legs)
+        {
+            if (!leg.Alive || (node != leg.Thigh && node != leg.Shin && node != leg.Foot))
+            {
+                continue;
+            }
+            leg.Alive = false;
+            leg.Stepping = false;
+            foreach (Node3D segment in new[] { leg.Thigh, leg.Shin, leg.Foot })
+            {
+                Voxels.PartOf(segment)?.BreakAway(Vector3.Zero);
+            }
+        }
+
+        int alive = 0;
+        foreach (MechLeg leg in _legs)
+        {
+            alive += leg.Alive ? 1 : 0;
+        }
+        if (_legs.Count > 0 && alive < _legs.Count - Tuning.SpareLegs)
+        {
+            Destroy();
+        }
+    }
+
+    /// <summary>Falls apart: every part left becomes loose chunks, thrown a
+    /// little up and out, and the walker is gone.</summary>
+    public void Destroy()
+    {
+        if (IsDestroyed)
+        {
+            return;
+        }
+        IsDestroyed = true;
+        Destroyed?.Invoke();
+        Voxels?.BreakAll(Up * 3.0f);
+        SetPhysicsProcess(false);
+        CollisionLayer = 0;
+        CollisionMask = 0;
+        GetTree().CreateTimer(0.5).Timeout += QueueFree;
     }
 
     /// <summary>Jumps from the ground, after the wind-up. Ignored in the air.</summary>
@@ -306,6 +427,10 @@ public partial class MechWalker : CharacterBody3D
             float follow = 1.0f - Mathf.Exp(-12.0f * dt);
             foreach (MechLeg leg in _legs)
             {
+                if (!leg.Alive)
+                {
+                    continue;
+                }
                 leg.Planted = leg.Planted.Lerp(self * leg.RestFoot - Up * 0.25f, follow);
             }
             return;
@@ -321,7 +446,7 @@ public partial class MechWalker : CharacterBody3D
         // the body's motion over the lead time, turn included.
         foreach (MechLeg leg in _legs)
         {
-            if (!leg.Stepping)
+            if (!leg.Alive || !leg.Stepping)
             {
                 continue;
             }
@@ -349,6 +474,10 @@ public partial class MechWalker : CharacterBody3D
         float[] worst = new float[2];
         foreach (MechLeg leg in _legs)
         {
+            if (!leg.Alive)
+            {
+                continue;
+            }
             float error = (leg.Planted - self * leg.RestFoot).Slide(Up).Length();
             worst[leg.Group] = Mathf.Max(worst[leg.Group], error);
         }
@@ -360,7 +489,7 @@ public partial class MechWalker : CharacterBody3D
 
         foreach (MechLeg leg in _legs)
         {
-            if (leg.Group != group)
+            if (leg.Group != group || !leg.Alive)
             {
                 continue;
             }
@@ -448,6 +577,10 @@ public partial class MechWalker : CharacterBody3D
         float stepHeight = Tuning.StepHeight;
         foreach (MechLeg leg in _legs)
         {
+            if (!leg.Alive)
+            {
+                continue;
+            }
             Vector3 sole = leg.Planted;
             float toe = 0.0f;
             if (leg.Stepping)

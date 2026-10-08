@@ -15,11 +15,13 @@
 [sub_resource type="BoxShape3D" id="HullShape"]
 size = Vector3(3.6, 4.4, 4.4)
 
-[node name="MchQuadrupedTank" type="CharacterBody3D" unique_id=115492337 node_paths=PackedStringArray("Model", "Turret", "Thighs", "Shins", "Feet", "Mounted", "MountedOn")]
+[node name="MchQuadrupedTank" type="CharacterBody3D" unique_id=115492337 node_paths=PackedStringArray("Model", "Turret", "Thighs", "Shins", "Feet", "Mounted", "MountedOn", "Voxels", "Core")]
 transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, 0, 0, 0)
 script = ExtResource("2_walker")
 Tuning = ExtResource("4_tuning")
 Model = NodePath("Model")
+Voxels = NodePath("Voxels")
+Core = NodePath("Model/Body")
 Turret = NodePath("Model/Turret")
 Thighs = [NodePath("Model/ThighFL"), NodePath("Model/ThighFR"), NodePath("Model/ThighBL"), NodePath("Model/ThighBR")]
 Shins = [NodePath("Model/ShinFL"), NodePath("Model/ShinFR"), NodePath("Model/ShinBL"), NodePath("Model/ShinBR")]

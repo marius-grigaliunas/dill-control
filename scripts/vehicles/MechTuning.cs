@@ -105,6 +105,17 @@ public partial class MechTuning : Resource
     [Export(PropertyHint.Range, "0,90,1,suffix:°")]
     public float MaxArmSwingDegrees { get; set; } = 30.0f;
 
+    [ExportGroup("Damage")]
+    /// <summary>The mech is destroyed when its body is down to this share of
+    /// its voxels: everything left falls apart.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float BodyDeathFraction { get; set; } = 0.45f;
+
+    /// <summary>Legs it can lose and still walk. A four-legged walker limps on
+    /// three; a biped falls when it loses one.</summary>
+    [Export(PropertyHint.Range, "0,4,1")]
+    public int SpareLegs { get; set; } = 1;
+
     [ExportGroup("Body")]
     /// <summary>How far the body sinks at full speed, to give the legs more
     /// reach. The voxel legs are short; without it a stride is half a metre.</summary>
