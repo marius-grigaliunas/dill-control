@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="AgentKindStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/AgentKindStats.cs" id="1_kind"]
+
+[resource]
+resource_name = "Cornichon"
+script = ExtResource("1_kind")
+DisplayName = "Cornichon"
+Kind = 1
+Radius = 0.2
+Height = 0.9
+Colour = Color(0.92, 0.9, 0.16, 1)
+Mass = 25.0
+HealthMultiplier = 0.4
+SpeedMultiplier = 1.35
+StrikeRange = 1.0
+StrikeInterval = 0.8
+StrikeImpulse = 2.0
+StrikeTrauma = 0.08
+StrikeDamage = 2.0
+DashRange = 18.0
+DashInterval = 2.5
+DashSpeed = 11.0
+SpawnWeight = 20.0
+CapacityShare = 0.35

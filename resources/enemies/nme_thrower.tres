@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="AgentKindStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/AgentKindStats.cs" id="1_kind"]
+
+[resource]
+resource_name = "Thrower"
+script = ExtResource("1_kind")
+DisplayName = "Thrower"
+Kind = 2
+Radius = 0.45
+Height = 1.9
+Colour = Color(0.95, 0.5, 0.1, 1)
+Mass = 110.0
+HealthMultiplier = 1.5
+SpeedMultiplier = 0.8
+StrikeRange = 1.4
+StrikeInterval = 1.2
+StrikeImpulse = 3.0
+StrikeTrauma = 0.12
+StrikeDamage = 4.0
+RangedRange = 70.0
+RangedMinRange = 8.0
+RangedInterval = 5.0
+ProjectileSpeed = 30.0
+ProjectileSpreadDegrees = 4.0
+ProjectileLead = 0.6
+ProjectileImpulse = 5.0
+ProjectileTrauma = 0.2
+ProjectileDamage = 8.0
+SpawnWeight = 8.0
+CapacityShare = 0.15

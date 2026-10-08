@@ -139,6 +139,9 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd                                       # main scene, idle
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/<lvl>.tscn look  # screenshots
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/<lvl>.tscn ink   # ink A/B
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn grapple
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn horde 25000
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn hordeab 25000
 ```
 
 - `bench.gd` waits for the draw count to settle, then reports per phase: mean,
@@ -149,7 +152,8 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 - A bench run compiles every shader against the real driver, so it is how a
   shader edit is checked. `--headless` compiles none.
 - A screenshot (`#name`) costs 100-150 ms in its own frame; never read a worst
-  frame from a phase that takes one.
+  frame from a phase that takes one. Status lines (`@status`) and the recorder
+  add hitches of their own; read worst frames from a quiet run.
 - `U` in any level records every frame to `perflogs/` and prints a summary.
 - After a fresh clone or new asset: `"$GODOT" --headless --path . --editor --quit`
   imports everything.

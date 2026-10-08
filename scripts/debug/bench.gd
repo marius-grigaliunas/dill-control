@@ -7,7 +7,8 @@
 #
 # Modes: idle (the default), look (screenshots of the view, for checking art
 # and shaders), ink (the ink pass on, off and on again), grapple (the line
-# thrown, reeled, swung and zipped against lvl_horde_flats' compound).
+# thrown, reeled, swung and zipped against lvl_horde_flats' compound), horde
+# [count] (the crowd seeded, arriving and on top of the player).
 #
 # It instances the level itself and sets current_scene, so effects that parent
 # to the scene behave as they do on a normal launch. Vsync goes off so the frame
@@ -37,10 +38,14 @@ const BUDGET := 1.0 / 60.0
 #                            costs 100-150 ms itself, so a phase that takes one
 #                            reports it as its worst frame; time a separate phase.
 #   "!hide:Node" "!show:Node"  flip the first node of that name, for an A/B
-#   "!set:Node:prop=value"   set a property, value parsed as a Godot literal
+#   "!set:Node:prop=value"   set a property, value parsed as a Godot literal. The
+#                            property may be an indexed path into a resource,
+#                            "!set:Horde:Stats:AgentCount=25000"
+#   "!call:Node:method"      call a method with no arguments
 #   "@aim:Node:height"       turn the player to look at that node, raised by
 #                            height metres
-#   "@status"                toggle a line of the player's state twice a second
+#   "@status"                toggle a line of the player's and the horde's state
+#                            twice a second
 const IDLE_TIMELINE := [
 	["idle", [], [], 6.0],
 ]
@@ -84,6 +89,50 @@ const GRAPPLE_TIMELINE := [
 	["shot", ["#grapple_end"], [], 0.5],
 ]
 
+# The horde coming for the player at a given count, then held on top of them.
+# Seeded on a tighter ring than it ships with, so the crowd arrives inside a
+# run rather than after two minutes; the ring goes back before the crowd phase
+# so respawns land where they would in play. Weapons join this when they are
+# ported. Ported from the lab's horde mode.
+static func _horde_timeline(count: int) -> Array:
+	return [
+		["seed %d" % count, ["@status", "!set:Horde:Stats:HuntSeedMinRadius=30.0",
+			"!set:Horde:Stats:HuntSeedRadius=150.0", "!set:Horde:Stats:AgentCount=%d" % count], [], 3.0],
+		["reseed", ["!call:Horde:BenchReseed"], [], 12.0],
+		["arriving", ["perf_record"], [], 12.0],
+		["crowd on you", ["!set:Horde:Stats:HuntSeedMinRadius=150.0", "!set:Horde:Stats:HuntSeedRadius=450.0"], [], 10.0],
+		["stop recording", ["perf_record"], [], 0.5],
+		["crowd, looking down", ["@aim:Horde:-40"], [], 6.0],
+		["shot", ["#horde_crowd"], [], 0.5],
+		["frustum cull off", ["!set:Horde:Stats:FrustumCull=false"], [], 4.0],
+		["frustum cull on", ["!set:Horde:Stats:FrustumCull=true"], [], 4.0],
+		["low detail off", ["!set:Horde:Stats:LodDistance=200.0"], [], 4.0],
+		["low detail on", ["!set:Horde:Stats:LodDistance=40.0"], [], 4.0],
+	]
+
+# The arrived crowd with candidate changes, each between two baseline phases
+# so heat drift shows up as the baselines moving rather than as a phantom
+# saving. Pairs are [label, entry actions, restore actions].
+static func _hordeab_timeline(count: int, pairs: Array) -> Array:
+	var timeline := [
+		["seed %d" % count, ["!set:Horde:Stats:HuntSeedMinRadius=30.0",
+			"!set:Horde:Stats:HuntSeedRadius=150.0", "!set:Horde:Stats:AgentCount=%d" % count], [], 3.0],
+		["reseed", ["!call:Horde:BenchReseed"], [], 12.0],
+		["arriving", [], [], 12.0],
+		["crowd on you", ["!set:Horde:Stats:HuntSeedMinRadius=150.0", "!set:Horde:Stats:HuntSeedRadius=450.0"], [], 4.0],
+	]
+	for pair in pairs:
+		timeline.append(["base", [], [], 6.0])
+		timeline.append([pair[0], pair[1], [], 6.0])
+		timeline.append(["  restore", pair[2], [], 1.0])
+	timeline.append(["base", [], [], 6.0])
+	return timeline
+
+const HORDE_AB_PAIRS := [
+	["flow rebuild off", ["!set:Horde:Stats:FlowRebuildInterval=1000.0"], ["!set:Horde:Stats:FlowRebuildInterval=0.5"]],
+	["horde one thread", ["!set:Horde:Stats:Multithreaded=false"], ["!set:Horde:Stats:Multithreaded=true"]],
+]
+
 const TARGET_SIZE := Vector2i(1920, 1080)
 
 var _elapsed := 0.0
@@ -121,6 +170,8 @@ func _initialize() -> void:
 		"look": _timeline = LOOK_TIMELINE
 		"ink": _timeline = INK_TIMELINE
 		"grapple": _timeline = GRAPPLE_TIMELINE
+		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
+		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
 		_: _timeline = IDLE_TIMELINE
 
 	print("=== bench: ", path, "  mode=", mode, "  window ", DisplayServer.window_get_size(),
@@ -189,7 +240,15 @@ func _tap(action: String) -> void:
 		var pair := parts[1].split("=") if parts.size() == 2 else PackedStringArray()
 		var node := root.find_child(parts[0], true, false)
 		if node != null and pair.size() == 2:
-			node.set(pair[0], str_to_var(pair[1]))
+			node.set_indexed(pair[0], str_to_var(pair[1]))
+		else:
+			print("[bench] cannot ", action)
+		return
+	if action.begins_with("!call:"):
+		var call_parts := action.substr(6).split(":")
+		var callee := root.find_child(call_parts[0], true, false)
+		if callee != null and call_parts.size() == 2:
+			callee.call(call_parts[1])
 		else:
 			print("[bench] cannot ", action)
 		return
@@ -254,9 +313,13 @@ func _process(delta: float) -> bool:
 	# Every frame, not a sample of them.
 	if _status and _elapsed >= _status_next:
 		_status_next = _elapsed + 0.5
+		var label: String = _timeline[maxi(_phase, 0)][0]
 		var player := _player()
 		if player != null:
-			print("[bench]   @ %-26s %s" % [_timeline[maxi(_phase, 0)][0], player.call("BenchStatus")])
+			print("[bench]   @ %-26s %s" % [label, player.call("BenchStatus")])
+		var horde := root.find_child("Horde", true, false)
+		if horde != null and horde.has_method("BenchStatus"):
+			print("[bench]   @ %-26s %s" % [label, horde.call("BenchStatus")])
 
 	_gpu_total += RenderingServer.viewport_get_measured_render_time_gpu(_vp)
 	_worst = max(_worst, delta)

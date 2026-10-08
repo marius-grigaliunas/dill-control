@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="HordeComposition" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/HordeComposition.cs" id="1_comp"]
+[ext_resource type="Resource" path="res://resources/enemies/nme_standard.tres" id="2_std"]
+[ext_resource type="Resource" path="res://resources/enemies/nme_cornichon.tres" id="3_corn"]
+[ext_resource type="Resource" path="res://resources/enemies/nme_thrower.tres" id="4_throw"]
+[ext_resource type="Resource" path="res://resources/enemies/nme_spitter.tres" id="5_spit"]
+[ext_resource type="Resource" path="res://resources/enemies/nme_tank.tres" id="6_tank"]
+
+[resource]
+resource_name = "CompositionDefault"
+script = ExtResource("1_comp")
+Standard = ExtResource("2_std")
+Cornichon = ExtResource("3_corn")
+Thrower = ExtResource("4_throw")
+Spitter = ExtResource("5_spit")
+Tank = ExtResource("6_tank")

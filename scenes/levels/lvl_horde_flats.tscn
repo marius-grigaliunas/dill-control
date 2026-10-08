@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
@@ -6,6 +6,9 @@
 [ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_pillar.tscn" id="4_pillar"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_column.tscn" id="5_column"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_block.tscn" id="6_block"]
+[ext_resource type="Script" path="res://scripts/horde/HordeDirector.cs" id="7_horde"]
+[ext_resource type="Resource" path="res://resources/horde/horde_stats_default.tres" id="8_stats"]
+[ext_resource type="Resource" path="res://resources/enemies/nme_composition_default.tres" id="9_comp"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
 sky_top_color = Color(0.3, 0.52, 0.84, 1)
@@ -23,9 +26,12 @@ ambient_light_source = 3
 tonemap_mode = 4
 tonemap_white = 2.0
 fog_enabled = true
+fog_mode = 1
 fog_light_color = Color(0.74, 0.82, 0.9, 1)
-fog_density = 0.0016
 fog_sky_affect = 0.0
+fog_depth_curve = 1.6
+fog_depth_begin = 120.0
+fog_depth_end = 400.0
 
 [sub_resource type="BoxMesh" id="GroundMesh"]
 size = Vector3(1200, 2, 1200)
@@ -126,5 +132,11 @@ environment = SubResource("Env")
 
 [node name="PlayerSpawn" type="Marker3D" parent="Spawns"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 70)
+
+[node name="Horde" type="Node3D" parent="Spawns" node_paths=PackedStringArray("Level")]
+script = ExtResource("7_horde")
+Stats = ExtResource("8_stats")
+Composition = ExtResource("9_comp")
+Level = NodePath("../..")
 
 [node name="Navigation" type="Node3D" parent="."]

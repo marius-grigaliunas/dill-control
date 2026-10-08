@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="AgentKindStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/AgentKindStats.cs" id="1_kind"]
+
+[resource]
+resource_name = "Spitter"
+script = ExtResource("1_kind")
+DisplayName = "Spitter"
+Kind = 3
+Radius = 0.34
+Height = 1.9
+Colour = Color(0.62, 0.24, 0.82, 1)
+Mass = 60.0
+HealthMultiplier = 0.9
+SpeedMultiplier = 0.8
+StrikeRange = 1.3
+StrikeInterval = 1.2
+StrikeImpulse = 2.5
+StrikeTrauma = 0.1
+StrikeDamage = 3.0
+RangedRange = 45.0
+RangedMinRange = 5.0
+RangedInterval = 3.4
+ProjectileSpeed = 55.0
+ProjectileSpreadDegrees = 3.5
+ProjectileLead = 0.6
+ProjectileImpulse = 4.0
+ProjectileTrauma = 0.15
+ProjectileDamage = 3.0
+SpawnWeight = 10.0
+CapacityShare = 0.18
