@@ -1,0 +1,14 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>disable</Nullable>
+    <RootNamespace>DillControl</RootNamespace>
+  </PropertyGroup>
+  <!-- F5 from the editor runs Debug, and that is the build the game is played
+       and measured in. The lab measured the optimiser at a third of the horde's
+       update on its own. The cost is a worse debugger. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+</Project>

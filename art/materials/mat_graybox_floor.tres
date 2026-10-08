@@ -1,0 +1,8 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[resource]
+resource_name = "graybox_floor"
+diffuse_mode = 3
+specular_mode = 1
+albedo_color = Color(0.72, 0.68, 0.58, 1)
+roughness = 1.0

@@ -1,0 +1,46 @@
+# ---- Godot 4 ----
+.godot/
+.mono/
+/android/
+
+# ---- .NET / C# ----
+bin/
+obj/
+*.user
+*.userprefs
+*.suo
+*.swp
+*.tmp
+.vs/
+.idea/
+
+# ---- Blender ----
+# Blender writes a .blend1 backup on every save.
+*.blend1
+*.blend2
+
+# ---- Build output ----
+/build/
+/exports/
+/.export/
+
+# ---- Export presets ----
+# Will hold keystore paths and store credentials. Commit a scrubbed
+# export_presets.template.cfg instead when exports start.
+export_presets.cfg
+*.keystore
+*.jks
+*.p12
+
+# ---- OS noise ----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# ---- Local overrides ----
+override.cfg
+*.local.cfg
+
+# Perf recordings and bench screenshots. Local diagnostics, not source.
+/perflogs/

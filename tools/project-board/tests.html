@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Board Tests</title>
+<link rel="stylesheet" href="css/board.css">
+<style>
+  body { overflow: auto; padding: 20px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h1 span { color: var(--accent); }
+  .lead { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; max-width: 70ch; }
+  #out { font-family: var(--mono); font-size: 12.5px; }
+  #out p { font-size: 15px; font-family: var(--ui); font-weight: 600; margin: 0 0 10px; }
+  .row { padding: 2px 0; }
+  .pass { color: var(--third); }
+  .fail { color: var(--over); }
+</style>
+</head>
+<body>
+<h1>Project Board <span>tests</span></h1>
+<p class="lead">
+  The schema repair, the drop-index arithmetic, undo, the filter, the Markdown
+  renderer and the exports. These are the parts that fail silently when wrong:
+  a card that files itself one row from where you pointed, or a hand-edited
+  board file that loads with a card in no column and never appears again.
+  The same suite runs without a browser: <code>node run-tests.js</code>.
+</p>
+<div id="out"></div>
+
+<script src="js/seed.js"></script>
+<script src="js/store.js"></script>
+<script src="js/md.js"></script>
+<script src="js/project.js"></script>
+<script src="js/exports.js"></script>
+<script src="js/dnd.js"></script>
+<script src="js/render.js"></script>
+<script src="js/tests.js"></script>
+</body>
+</html>

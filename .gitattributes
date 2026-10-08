@@ -1,0 +1,42 @@
+# Normalize line endings: LF in the repository, native in the working tree.
+* text=auto eol=lf
+
+# ---- Explicit text types (Godot + C#) ----
+*.cs        text diff=csharp
+*.csproj    text
+*.sln       text eol=crlf
+*.gd        text
+*.tres      text
+*.tscn      text
+*.godot     text
+*.cfg       text
+*.import    text
+*.gdshader  text
+*.json      text
+*.md        text
+*.svg       text
+
+# ---- Git LFS ----
+# On from the first commit, because art is why this repository exists. Every
+# binary asset goes through LFS; Godot's own text formats (.tscn, .tres,
+# .import) stay in git proper so they diff and merge.
+*.blend  filter=lfs diff=lfs merge=lfs -text
+*.glb    filter=lfs diff=lfs merge=lfs -text
+*.gltf   filter=lfs diff=lfs merge=lfs -text
+*.bin    filter=lfs diff=lfs merge=lfs -text
+*.fbx    filter=lfs diff=lfs merge=lfs -text
+*.png    filter=lfs diff=lfs merge=lfs -text
+*.jpg    filter=lfs diff=lfs merge=lfs -text
+*.jpeg   filter=lfs diff=lfs merge=lfs -text
+*.tga    filter=lfs diff=lfs merge=lfs -text
+*.webp   filter=lfs diff=lfs merge=lfs -text
+*.exr    filter=lfs diff=lfs merge=lfs -text
+*.hdr    filter=lfs diff=lfs merge=lfs -text
+*.kra    filter=lfs diff=lfs merge=lfs -text
+*.psd    filter=lfs diff=lfs merge=lfs -text
+*.wav    filter=lfs diff=lfs merge=lfs -text
+*.ogg    filter=lfs diff=lfs merge=lfs -text
+*.mp3    filter=lfs diff=lfs merge=lfs -text
+*.flac   filter=lfs diff=lfs merge=lfs -text
+*.ttf    filter=lfs diff=lfs merge=lfs -text
+*.otf    filter=lfs diff=lfs merge=lfs -text
