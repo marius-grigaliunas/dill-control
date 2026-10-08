@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="GrenadeStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/GrenadeStats.cs" id="1_bomb"]
+
+[resource]
+resource_name = "HoverBikeBomb"
+script = ExtResource("1_bomb")
+DisplayName = "Bike Bomb"
+FuseTime = 2.2
+GravityScale = 2.4
+Bounce = 0.05
+Friction = 0.9
+MaxLifetime = 12.0
+Damage = 300.0
+InnerRadius = 8.0
+BlastRadius = 22.0
+MinMultiplier = 0.35
+Impulse = 34.0
+ImpulseUpBias = 0.5
+SelfImpulseScale = 0.0
+DebrisImpulseScale = 3.5
+CraterRadius = 13.0
+CraterDepth = 4.0

@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
@@ -10,6 +10,7 @@
 [ext_resource type="Resource" path="res://resources/horde/horde_stats_default.tres" id="8_stats"]
 [ext_resource type="Resource" path="res://resources/enemies/nme_composition_default.tres" id="9_comp"]
 [ext_resource type="PackedScene" path="res://scenes/vehicles/mch_quadruped_tank.tscn" id="10_tank"]
+[ext_resource type="PackedScene" path="res://scenes/vehicles/shp_hoverbike.tscn" id="11_bike"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
 sky_top_color = Color(0.3, 0.52, 0.84, 1)
@@ -120,6 +121,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10, 0.0, 40)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, 60)
 
 [node name="Companion" parent="Props/QuadrupedTank" node_paths=PackedStringArray("Level")]
+Level = NodePath("../../..")
+
+[node name="HoverBike" parent="Props" instance=ExtResource("11_bike")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.3, 64)
+
+[node name="Systems" parent="Props/HoverBike" node_paths=PackedStringArray("Level")]
 Level = NodePath("../../..")
 
 [node name="Lighting" type="Node3D" parent="."]

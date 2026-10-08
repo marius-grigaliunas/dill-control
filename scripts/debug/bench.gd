@@ -9,7 +9,8 @@
 # and shaders), ink (the ink pass on, off and on again), grapple (the line
 # thrown, reeled, swung and zipped against lvl_horde_flats' compound), horde
 # [count] (the crowd seeded, arriving and on top of the player), mech (the ally
-# mech followed, ridden, jumped and left, in lvl_horde_flats).
+# mech followed, ridden, jumped and left), bike (the hoverbike flown and every
+# weapon fired), both in lvl_horde_flats.
 #
 # It instances the level itself and sets current_scene, so effects that parent
 # to the scene behave as they do on a normal launch. Vsync goes off so the frame
@@ -130,6 +131,30 @@ const MECH_TIMELINE := [
 	["off shot", ["#mech_off"], [], 0.3],
 ]
 
+# The hoverbike in lvl_horde_flats: boarded, flown out in both modes, every
+# weapon fired toward the crowd, landed and left. Its state comes from the
+# player's line (stowed, so it reads where they boarded) and screenshots.
+const BIKE_TIMELINE := [
+	["board", ["@status", "!call:Systems:BoardNow"], [], 1.0],
+	["climb", [], ["jump"], 1.0],
+	["hover forward", [], ["move_forward"], 2.0],
+	["hover shot", ["#bike_hover"], ["move_forward"], 0.3],
+	["cruise, boosting", ["ship_mode_toggle"], ["move_forward", "sprint"], 3.0],
+	["cruise shot", ["#bike_cruise"], ["move_forward"], 0.3],
+	["hover again", ["ship_mode_toggle"], [], 2.0],
+	["gun", ["slot_1"], ["fire"], 3.0],
+	["gun shot", ["#bike_gun"], ["fire"], 0.3],
+	["laser", ["slot_2"], ["fire"], 3.0],
+	["laser shot", ["#bike_laser"], ["fire"], 0.3],
+	["pod", [], ["alt_fire"], 2.0],
+	["pod shot", ["#bike_pod"], [], 0.3],
+	["bombs", [], ["~grenade"], 3.0],
+	["roll", [], ["ship_roll_right"], 1.0],
+	["descend", [], ["crouch"], 2.5],
+	["leave", ["!call:Systems:LeaveNow"], [], 1.5],
+	["off shot", ["#bike_off"], [], 0.3],
+]
+
 # The horde coming for the player at a given count, then held on top of them.
 # Seeded on a tighter ring than it ships with, so the crowd arrives inside a
 # run rather than after two minutes; the ring goes back before the crowd phase
@@ -238,6 +263,7 @@ func _initialize() -> void:
 		"grapple": _timeline = GRAPPLE_TIMELINE
 		"machete": _timeline = MACHETE_TIMELINE
 		"mech": _timeline = MECH_TIMELINE
+		"bike": _timeline = BIKE_TIMELINE
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
 		_: _timeline = IDLE_TIMELINE

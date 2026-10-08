@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="FlightRigStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/vehicles/flightrig/FlightRigStats.cs" id="1_flightrig"]
+
+[resource]
+resource_name = "HoverBikeFlightRig"
+script = ExtResource("1_flightrig")
+HoverMainThrust = 39.0
+HoverStrafeThrust = 39.0
+HoverVerticalThrust = 16.0
+HoverCruiseSpeed = 30.0
+CruiseMainThrust = 101.0
+CruiseStrafeThrust = 11.0
+CruiseVerticalThrust = 26.0
+CruiseSpeed = 78.0
+LinearDamping = 0.95
+ParkedDamping = 6.0
+FovSpeedReference = 140.0
+HoverHoldMaxSpeed = 9.0
