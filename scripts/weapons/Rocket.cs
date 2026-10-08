@@ -165,6 +165,11 @@ public partial class Rocket : Node3D
     {
         LiveCount = System.Math.Max(0, LiveCount - 1);
         ReleaseTrimmings();
+
+        // Disposed here rather than left to the garbage collector, which can
+        // finalize it after the engine has shut down.
+        _query?.Dispose();
+        _query = null;
     }
 
     // Detonations run inside the physics step, so without these their cost

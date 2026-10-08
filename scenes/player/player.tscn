@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.cs" id="1_ctrl"]
 [ext_resource type="Resource" path="res://resources/player/movement_tuning_default.tres" id="2_move"]
@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" path="res://scenes/weapons/wpn_dill_hammer.tscn" id="12_hammer"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/wpn_grenade_thrower.tscn" id="13_grenades"]
 [ext_resource type="Script" path="res://scripts/player/HitStop.cs" id="14_hitstop"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/wpn_bayou_machete.tscn" id="15_machete"]
 
 [sub_resource type="CapsuleShape3D" id="BodyShape"]
 radius = 0.35
@@ -59,14 +60,18 @@ far = 4000.0
 [node name="ToonPass" type="MeshInstance3D" parent="CameraPivot/CameraOffset/Camera3D"]
 script = ExtResource("7_toon")
 
-[node name="WeaponMount" type="Node3D" parent="CameraPivot/CameraOffset/Camera3D" node_paths=PackedStringArray("Primary", "Launcher", "Sidearm", "Thrower")]
+[node name="WeaponMount" type="Node3D" parent="CameraPivot/CameraOffset/Camera3D" node_paths=PackedStringArray("Primary", "Melee", "Launcher", "Sidearm", "Thrower")]
 script = ExtResource("9_loadout")
 Primary = NodePath("BrineRipper")
+Melee = NodePath("BayouMachete")
 Launcher = NodePath("GherkinVolley")
 Sidearm = NodePath("DillHammer")
 Thrower = NodePath("Grenades")
 
 [node name="BrineRipper" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("10_ripper")]
+AimCamera = NodePath("../..")
+
+[node name="BayouMachete" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("15_machete")]
 AimCamera = NodePath("../..")
 
 [node name="GherkinVolley" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("11_volley")]

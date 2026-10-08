@@ -836,7 +836,7 @@ public partial class ExplosionEffect : Node3D
         normal = _up;
 
         float reach = Mathf.Max(1.5f, _targetRadius * ProbeReachScale);
-        PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(
+        using PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(
             _centre + (_up * ProbeLift),
             _centre - (_up * reach));
 

@@ -578,7 +578,7 @@ public partial class GrappleHook : Node3D
     private bool CastPhysics(Vector3 from, Vector3 to, Rid self, out Vector3 point, out Vector3 normal, out Node3D body)
     {
         PhysicsDirectSpaceState3D space = GetWorld3D().DirectSpaceState;
-        PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(from, to, AnchorMask);
+        using PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(from, to, AnchorMask);
         query.CollideWithAreas = false;
         query.CollideWithBodies = true;
         if (self.IsValid)

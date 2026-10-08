@@ -1731,8 +1731,12 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
                 : "line flying";
 
         return System.FormattableString.Invariant(
-            $"pos=({GlobalPosition.X:F1},{GlobalPosition.Y:F1},{GlobalPosition.Z:F1}) speed={Velocity.Length():F1} state={_state} {line} gas={FlightFuel01:F2} weapon={Loadout?.Active?.Name ?? "none"} fire={Input.IsActionPressed("fire")}");
+            $"pos=({GlobalPosition.X:F1},{GlobalPosition.Y:F1},{GlobalPosition.Z:F1}) speed={Velocity.Length():F1} state={_state} {line} gas={FlightFuel01:F2} weapon={Loadout?.Active?.Name ?? "none"}{SwingStatus()} fire={Input.IsActionPressed("fire")}");
     }
+
+    private string SwingStatus() => Loadout?.Active is MeleeWeapon blade
+        ? (blade.IsSwinging ? (blade.LeftToRight ? " swing=L>R" : " swing=R>L") : " swing=ready")
+        : string.Empty;
 
     /// <summary>
     /// Freezes mouse-look without releasing the mouse. See the field comment

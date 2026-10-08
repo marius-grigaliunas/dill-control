@@ -135,8 +135,8 @@ public sealed class FlatGround : IHordeGround, IFlowGraph
     /// <returns>How many cells were blocked.</returns>
     public int StampObstacles(PhysicsDirectSpaceState3D space, FlowField flow, uint mask)
     {
-        BoxShape3D box = new() { Size = new Vector3(CellSize * 0.9f, 1.6f, CellSize * 0.9f) };
-        PhysicsShapeQueryParameters3D query = new()
+        using BoxShape3D box = new() { Size = new Vector3(CellSize * 0.9f, 1.6f, CellSize * 0.9f) };
+        using PhysicsShapeQueryParameters3D query = new()
         {
             Shape = box,
             CollisionMask = mask,

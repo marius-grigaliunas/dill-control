@@ -153,6 +153,19 @@ public partial class ShotPool : Node3D
         }
     }
 
+    /// <summary>
+    /// One query for every near shot, kept rather than made each frame. A
+    /// query is a ref-counted engine object, and ones left to the garbage
+    /// collector can be finalized after the engine has shut down.
+    /// </summary>
+    private PhysicsRayQueryParameters3D _query;
+
+    public override void _ExitTree()
+    {
+        _query?.Dispose();
+        _query = null;
+    }
+
     public override void _PhysicsProcess(double delta)
     {
         if (_count == 0)
@@ -163,7 +176,6 @@ public partial class ShotPool : Node3D
         float dt = (float)delta;
         ShotTarget target = Target?.Invoke() ?? default;
         PhysicsDirectSpaceState3D space = GetWorld3D().DirectSpaceState;
-        PhysicsRayQueryParameters3D query = null;
         float rayRangeSquared = RayRange * RayRange;
 
         int i = 0;
@@ -200,15 +212,15 @@ public partial class ShotPool : Node3D
 
                 if (near)
                 {
-                    query ??= new PhysicsRayQueryParameters3D
+                    _query ??= new PhysicsRayQueryParameters3D
                     {
                         CollisionMask = GameLayers.Mask(GameLayers.World),
                         CollideWithAreas = false,
                         CollideWithBodies = true,
                     };
-                    query.From = from;
-                    query.To = to;
-                    Godot.Collections.Dictionary hit = space.IntersectRay(query);
+                    _query.From = from;
+                    _query.To = to;
+                    Godot.Collections.Dictionary hit = space.IntersectRay(_query);
                     if (hit.Count > 0)
                     {
                         Vector3 point = (Vector3)hit["position"];

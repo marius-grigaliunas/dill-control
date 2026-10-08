@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="MeleeStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/MeleeStats.cs" id="1_mstat"]
+
+[resource]
+resource_name = "BayouMachete"
+script = ExtResource("1_mstat")
+DisplayName = "Bayou Machete"

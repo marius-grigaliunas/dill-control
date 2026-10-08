@@ -334,9 +334,10 @@ public static class Blast
     private static List<GodotObject> Overlaps(
         PhysicsDirectSpaceState3D space, in Settings blast, uint mask, bool includeAreas)
     {
-        PhysicsShapeQueryParameters3D query = new()
+        using SphereShape3D sphere = new() { Radius = blast.Radius };
+        using PhysicsShapeQueryParameters3D query = new()
         {
-            Shape = new SphereShape3D { Radius = blast.Radius },
+            Shape = sphere,
             Transform = new Transform3D(Basis.Identity, blast.Centre),
             CollisionMask = mask,
             CollideWithAreas = includeAreas,  // Hitboxes are monitorable areas.
@@ -432,7 +433,7 @@ public static class Blast
         }
 
         Vector3 direction = toTarget / distance;
-        PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(
+        using PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(
             centre,
             centre + (direction * (distance - LineOfSightMargin)));
 

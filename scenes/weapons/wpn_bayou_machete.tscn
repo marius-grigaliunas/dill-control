@@ -1,0 +1,79 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/MeleeWeapon.cs" id="1_mlwp0"]
+[ext_resource type="Resource" path="res://resources/weapons/wpn_bayou_machete.tres" id="2_mstat"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_impact.tscn" id="3_impct"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_grip"]
+albedo_color = Color(0.15, 0.13, 0.11, 1)
+metallic = 0.1
+roughness = 0.85
+
+[sub_resource type="BoxMesh" id="BoxMesh_grip"]
+size = Vector3(0.038, 0.05, 0.17)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_guard"]
+albedo_color = Color(0.19, 0.18, 0.17, 1)
+metallic = 0.4
+roughness = 0.55
+
+[sub_resource type="BoxMesh" id="BoxMesh_guard"]
+size = Vector3(0.085, 0.022, 0.035)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_blade"]
+albedo_color = Color(0.46, 0.47, 0.5, 1)
+metallic = 0.7
+roughness = 0.32
+
+[sub_resource type="BoxMesh" id="BoxMesh_blade"]
+size = Vector3(0.014, 0.078, 0.4)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_edge"]
+albedo_color = Color(0.62, 0.63, 0.66, 1)
+metallic = 0.75
+roughness = 0.22
+
+[sub_resource type="BoxMesh" id="BoxMesh_edge"]
+size = Vector3(0.016, 0.02, 0.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_tip"]
+size = Vector3(0.014, 0.052, 0.09)
+
+[node name="BayouMachete" type="Node3D" node_paths=PackedStringArray("ViewModel")]
+script = ExtResource("1_mlwp0")
+ViewModel = NodePath("ViewModel")
+Stats = ExtResource("2_mstat")
+ImpactScene = ExtResource("3_impct")
+
+[node name="ViewModel" type="Node3D" parent="."]
+transform = Transform3D(0.97992, 0.084186, -0.18101, 0, 0.90715, 0.42188, 0.19943, -0.41338, 0.88872, 0.21, -0.19, -0.42)
+
+[node name="Grip" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.115)
+material_override = SubResource("StandardMaterial3D_grip")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_grip")
+
+[node name="Guard" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.006, 0.018)
+material_override = SubResource("StandardMaterial3D_guard")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_guard")
+
+[node name="Blade" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.024, -0.2)
+material_override = SubResource("StandardMaterial3D_blade")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_blade")
+
+[node name="BladeEdge" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.021, -0.2)
+material_override = SubResource("StandardMaterial3D_edge")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_edge")
+
+[node name="BladeTip" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.037, -0.435)
+material_override = SubResource("StandardMaterial3D_blade")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_tip")

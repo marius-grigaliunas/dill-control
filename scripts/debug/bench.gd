@@ -106,8 +106,9 @@ static func _horde_timeline(count: int) -> Array:
 		["crowd on you", ["!set:Horde:Stats:HuntSeedMinRadius=150.0", "!set:Horde:Stats:HuntSeedRadius=450.0"], [], 10.0],
 		["stop recording", ["perf_record"], [], 0.5],
 		["rifle into it", ["slot_1", "@aim:Horde:0.5"], ["fire"], 6.0],
-		["rockets", ["slot_2"], ["~fire"], 6.0],
-		["shotgun", ["slot_3"], ["~fire"], 5.0],
+		["machete", ["slot_2"], ["~fire"], 5.0],
+		["rockets", ["slot_3"], ["~fire"], 6.0],
+		["shotgun", ["slot_4"], ["~fire"], 5.0],
 		["grenades", ["slot_1"], ["grenade"], 5.0],
 		["holding ground", [], [], 5.0],
 		["crowd, looking down", ["@aim:Horde:-40"], [], 4.0],
@@ -140,6 +141,19 @@ const HORDE_AB_PAIRS := [
 	["flow rebuild off", ["!set:Horde:Stats:FlowRebuildInterval=1000.0"], ["!set:Horde:Stats:FlowRebuildInterval=0.5"]],
 	["horde one thread", ["!set:Horde:Stats:Multithreaded=false"], ["!set:Horde:Stats:Multithreaded=true"]],
 	["ranged off", ["!set:Horde:Stats:RangedEnabled=false"], ["!set:Horde:Stats:RangedEnabled=true"]],
+]
+
+# The machete's two strokes, caught mid-swing: left to right, then the
+# chained return right to left, then a late click that has to start left to
+# right again. Shots are taken a little into each strike, after the windup.
+const MACHETE_TIMELINE := [
+	["out", ["slot_2", "@status"], [], 1.0],
+	["swing 1", ["fire"], [], 0.17],
+	["swing 1 shot", ["#machete_1_l2r"], [], 0.45],
+	["swing 2", ["fire"], [], 0.13],
+	["swing 2 shot", ["#machete_2_r2l"], [], 1.4],
+	["late swing", ["fire"], [], 0.17],
+	["late swing shot", ["#machete_3_l2r"], [], 1.0],
 ]
 
 const TARGET_SIZE := Vector2i(1920, 1080)
@@ -180,6 +194,7 @@ func _initialize() -> void:
 		"look": _timeline = LOOK_TIMELINE
 		"ink": _timeline = INK_TIMELINE
 		"grapple": _timeline = GRAPPLE_TIMELINE
+		"machete": _timeline = MACHETE_TIMELINE
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
 		_: _timeline = IDLE_TIMELINE

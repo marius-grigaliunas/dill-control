@@ -341,7 +341,7 @@ public partial class HitscanWeapon : WeaponBase
 
         int passes = Mathf.Max(0, Stats.PenetrationCount) + 1;
 
-        PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(from, end);
+        using PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(from, end);
         query.CollisionMask = GameLayers.HitscanMask;
         query.CollideWithAreas = true;   // Hitboxes are Area3D.
         query.CollideWithBodies = true;  // World and props are bodies.
