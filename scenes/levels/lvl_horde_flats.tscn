@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
@@ -11,6 +11,8 @@
 [ext_resource type="Resource" path="res://resources/enemies/nme_composition_default.tres" id="9_comp"]
 [ext_resource type="PackedScene" path="res://scenes/vehicles/mch_quadruped_tank.tscn" id="10_tank"]
 [ext_resource type="PackedScene" path="res://scenes/vehicles/shp_hoverbike.tscn" id="11_bike"]
+[ext_resource type="PackedScene" path="res://scenes/vehicles/mch_field_fighter.tscn" id="12_fighter"]
+[ext_resource type="PackedScene" path="res://scenes/vehicles/mch_mobile_storage.tscn" id="13_storage"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
 sky_top_color = Color(0.3, 0.52, 0.84, 1)
@@ -130,6 +132,24 @@ Horde = NodePath("../../../Spawns/Horde")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.3, 74)
 
 [node name="Systems" parent="Props/HoverBike" node_paths=PackedStringArray("Level")]
+Level = NodePath("../../..")
+
+[node name="FieldFighter" parent="Props" instance=ExtResource("12_fighter")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 58)
+
+[node name="Companion" parent="Props/FieldFighter" node_paths=PackedStringArray("Level")]
+Level = NodePath("../../..")
+
+[node name="Gunner" parent="Props/FieldFighter" node_paths=PackedStringArray("Horde")]
+Horde = NodePath("../../../Spawns/Horde")
+
+[node name="MobileStorage" parent="Props" instance=ExtResource("13_storage")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 67)
+
+[node name="Companion" parent="Props/MobileStorage" node_paths=PackedStringArray("Level")]
+Level = NodePath("../../..")
+
+[node name="Supply" parent="Props/MobileStorage" node_paths=PackedStringArray("Level")]
 Level = NodePath("../../..")
 
 [node name="Lighting" type="Node3D" parent="."]

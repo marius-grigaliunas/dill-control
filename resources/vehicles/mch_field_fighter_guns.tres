@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MechGunStats" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/vehicles/MechGunStats.cs" id="1_script"]
+[ext_resource type="Resource" path="res://resources/vehicles/mch_quadruped_tank_shell.tres" id="2_shell"]
+
+[resource]
+resource_name = "FieldFighterGuns"
+script = ExtResource("1_script")
+TurretFireInterval = 0.09
+CannonShell = ExtResource("2_shell")
+CannonFireInterval = 1.0
+CannonTraverseDegrees = 25.0
+AutoRange = 65.0
+AutoAimToleranceDegrees = 12.0
+AutoCannonConeDegrees = 15.0

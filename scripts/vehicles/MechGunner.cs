@@ -144,8 +144,10 @@ public partial class MechGunner : Node
         if (followed == null || _scanTimer <= 0.0f)
         {
             _scanTimer = Stats.AutoScanInterval;
-            Vector3 from = Walker.GlobalPosition + Walker.Up * 2.0f;
-            followed = horde.NearestAgent(from, Stats.AutoRange, out Vector3 position, out long handle) ? position : null;
+            // The crowd on the ground only: a few cells up and down, not a
+            // cube of sky as tall as the range is wide.
+            Vector3 from = Walker.GlobalPosition;
+            followed = horde.NearestAgent(from, Stats.AutoRange, out Vector3 position, out long handle, 8.0f) ? position : null;
             _targetHandle = followed != null ? handle : 0;
         }
 

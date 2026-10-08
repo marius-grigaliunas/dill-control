@@ -634,8 +634,13 @@ public partial class HordeManager : Node3D
     /// standing on -- a turret holding a lane, a strike landing downrange --
     /// would find an empty pool by construction. That is the same bug the
     /// blast path already had to be rescued from once.
+    ///
+    /// <paramref name="verticalRange"/> limits the search above and below,
+    /// for a caller that only wants the crowd on the ground: the hash is a
+    /// cube of cells, and a 60 m range otherwise walks 60 m of empty sky too,
+    /// fifty times the cells.
     /// </summary>
-    public bool NearestAgent(Vector3 from, float range, out Vector3 position, out long handle)
+    public bool NearestAgent(Vector3 from, float range, out Vector3 position, out long handle, float verticalRange = -1.0f)
     {
         position = Vector3.Zero;
         handle = 0L;
@@ -646,6 +651,9 @@ public partial class HordeManager : Node3D
         }
 
         int cellRange = Mathf.Max(1, Mathf.CeilToInt(range / HashCellSize));
+        int cellRangeY = verticalRange > 0.0f
+            ? Mathf.Clamp(Mathf.CeilToInt(verticalRange / HashCellSize), 1, cellRange)
+            : cellRange;
         int cx = Mathf.FloorToInt(from.X / HashCellSize);
         int cy = Mathf.FloorToInt(from.Y / HashCellSize);
         int cz = Mathf.FloorToInt(from.Z / HashCellSize);
@@ -654,7 +662,7 @@ public partial class HordeManager : Node3D
 
         for (int dx = -cellRange; dx <= cellRange; dx++)
         {
-            for (int dy = -cellRange; dy <= cellRange; dy++)
+            for (int dy = -cellRangeY; dy <= cellRangeY; dy++)
             {
                 for (int dz = -cellRange; dz <= cellRange; dz++)
                 {

@@ -38,9 +38,10 @@ public partial class MechGunStats : Resource
 
     /// <summary>A round's explosion is drawn at most this often; the ones
     /// between still do their damage and show an impact flash. The bike gun's
-    /// rule, for the same reason: a drawn blast every 0.11 s is a fill cost.</summary>
+    /// rule, for the same reason: a drawn blast every 0.11 s is a fill cost.
+    /// At 0.15 the fighter firing both arms ran 17 ms frames.</summary>
     [Export(PropertyHint.Range, "0,1,0.01,suffix:s")]
-    public float ExplosionEffectInterval { get; set; } = 0.15f;
+    public float ExplosionEffectInterval { get; set; } = 0.25f;
 
     [Export(PropertyHint.Range, "0.1,10,0.1,suffix:m")]
     public float ExplosionEffectRadius { get; set; } = 2.2f;

@@ -51,11 +51,20 @@ public partial class MechWalker : CharacterBody3D
     [Export]
     public Godot.Collections.Array<Node3D> Feet { get; set; } = new();
 
-    /// <summary>Markers that ride on the turret: its muzzle, the seat. The
-    /// importer puts every marker beside the parts, so they are moved under
-    /// the turret here, keeping where they are.</summary>
+    /// <summary>Arms, if it has them: each swings against the leg on the
+    /// other side. Right, left, matching the legs' order.</summary>
     [Export]
-    public Godot.Collections.Array<Node3D> TurretMounted { get; set; } = new();
+    public Godot.Collections.Array<Node3D> Arms { get; set; } = new();
+
+    /// <summary>Markers that ride on a moving part (a muzzle on a turret or
+    /// an arm, the seat on the turret). The importer puts every marker beside
+    /// the parts, so each is moved under the part at the same index of
+    /// <see cref="MountedOn"/> here, keeping where it is.</summary>
+    [Export]
+    public Godot.Collections.Array<Node3D> Mounted { get; set; } = new();
+
+    [Export]
+    public Godot.Collections.Array<Node3D> MountedOn { get; set; } = new();
 
     /// <summary>Where to walk, world space, length up to 1 for full speed.</summary>
     public Vector3 MoveIntent { get; set; }
@@ -90,6 +99,7 @@ public partial class MechWalker : CharacterBody3D
     }
 
     private readonly List<MechLeg> _legs = new();
+    private readonly List<Transform3D> _armRest = new();
     private Transform3D _modelRest;
     private Transform3D _turretRest;
     private float _turretYaw;
@@ -122,18 +132,23 @@ public partial class MechWalker : CharacterBody3D
         if (Turret != null)
         {
             _turretRest = Turret.Transform;
-            foreach (Node3D mounted in TurretMounted)
-            {
-                mounted?.Reparent(Turret, true);
-            }
+        }
+        for (int i = 0; i < Mathf.Min(Mounted.Count, MountedOn.Count); i++)
+        {
+            Mounted[i]?.Reparent(MountedOn[i], true);
+        }
+        foreach (Node3D arm in Arms)
+        {
+            _armRest.Add(arm.Transform);
         }
 
         int count = Mathf.Min(Thighs.Count, Mathf.Min(Shins.Count, Feet.Count));
         for (int i = 0; i < count; i++)
         {
             // FL and BR step together, FR and BL together.
+            // Two legs alternate: a walk.
             int group = i == 0 || i == 3 ? 0 : 1;
-            _legs.Add(new MechLeg(Thighs[i], Shins[i], Feet[i], group, _modelRest));
+            _legs.Add(new MechLeg(Thighs[i], Shins[i], Feet[i], group, _modelRest, Tuning.KneeBias));
         }
 
         // The body tilts about its hips, not about the feet.
@@ -446,6 +461,30 @@ public partial class MechWalker : CharacterBody3D
                 toe = arc * 0.35f;
             }
             leg.Pose(model, level, Up, sole, toe);
+        }
+
+        SwingArms();
+    }
+
+    /// <summary>Each arm swings against the leg on the other side: forward as
+    /// that foot goes back. Pitch about the shoulder, nothing else.</summary>
+    private void SwingArms()
+    {
+        if (_armRest.Count == 0 || _legs.Count == 0)
+        {
+            return;
+        }
+
+        Transform3D self = GlobalTransform;
+        Vector3 forward = self.Basis.Z.Normalized();
+        float max = Mathf.DegToRad(Tuning.MaxArmSwingDegrees);
+        for (int i = 0; i < _armRest.Count; i++)
+        {
+            MechLeg opposite = _legs[_legs.Count - 1 - Mathf.Min(i, _legs.Count - 1)];
+            float ahead = (opposite.Sole - self * opposite.RestFoot).Dot(forward);
+            float angle = Mathf.Clamp(-ahead * Mathf.DegToRad(Tuning.ArmSwingDegreesPerMetre), -max, max);
+            Transform3D rest = _armRest[i];
+            Arms[i].Transform = new Transform3D(new Basis(Vector3.Right, angle) * rest.Basis, rest.Origin);
         }
     }
 

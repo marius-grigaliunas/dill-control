@@ -39,13 +39,16 @@ public sealed class MechLeg
     public readonly float AnkleHeight;
 
     // Gait state, world space.
+    /// <summary>Where the sole was last posed, stepping or not.</summary>
+    public Vector3 Sole;
+
     public Vector3 Planted;
     public bool Stepping;
     public float StepT;
     public Vector3 StepFrom;
     public Vector3 StepTo;
 
-    public MechLeg(Node3D thigh, Node3D shin, Node3D foot, int group, Transform3D modelRest)
+    public MechLeg(Node3D thigh, Node3D shin, Node3D foot, int group, Transform3D modelRest, Vector3 kneeBias)
     {
         Thigh = thigh;
         Shin = shin;
@@ -65,7 +68,8 @@ public sealed class MechLeg
         // The way the knee bends: its rest offset from the hip-ankle line. A
         // leg modelled straight bends outward.
         Vector3 axis = (ankle - hip).Normalized();
-        Vector3 offset = (knee - hip) - axis * (knee - hip).Dot(axis);
+        Vector3 offset = (knee - hip) - axis * (knee - hip).Dot(axis) + kneeBias;
+        offset -= axis * offset.Dot(axis);
         _pole = offset.LengthSquared() > 1e-6f
             ? offset.Normalized()
             : new Vector3(hip.X >= 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f);
@@ -86,6 +90,7 @@ public sealed class MechLeg
     /// <param name="toeLift">Radians the toe tips up mid-step.</param>
     public void Pose(Transform3D model, Basis level, Vector3 up, Vector3 sole, float toeLift)
     {
+        Sole = sole;
         Vector3 hip = model * _thighRest.Origin;
         Vector3 target = sole + up * AnkleHeight;
 

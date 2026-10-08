@@ -64,9 +64,14 @@ The halo around a light is not the emission; it is the environment's glow, a
 full-screen pass. The lab measured it at 2.6 ms of GPU (15-20 % of a fight
 frame) on the target machine. Neon under the bike and lit windows on the night
 side are emissive voxels and cost nothing; their bloom is that 2.6 ms, and is a
-decision for when there is a night side to bench, not one taken here. Real
-lights that spill colour onto the ground are `OmniLight3D`s without shadows,
-which Forward+ clusters cheaply, and are benched per scene.
+decision for when there is a night side to bench, not one taken here.
+
+**Real lights are not cheap.** The bike's underglow was first one shadowless
+`OmniLight3D` of 4.5 m range. Paired A/B in `lvl_horde_flats` (`bench.gd
+mechsab`): 9.1 ms GPU with it, 7.3 without, 10.1 with it again. One positional
+light puts the whole frame on the clustered lighting path. Light spilled onto
+the ground is faked instead: an additive gradient quad under the source, which
+costs its few pixels. A real light is a decision with a bench pair behind it.
 
 ## Still to do
 

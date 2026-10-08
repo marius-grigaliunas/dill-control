@@ -129,6 +129,38 @@ const MECH_TIMELINE := [
 	["guard shot", ["#mech_guard", MECH_STATUS, "@status"], [], 0.5],
 ]
 
+# The three ally mechs side by side for scale, then the fighter walking,
+# ridden from its cockpit and firing, and the storage bot keeping up.
+const MECHS_TIMELINE := [
+	["line-up", ["@aim:MobileStorage:0.5", "@status"], [], 0.6],
+	["line-up shot", ["#mechs_lineup"], [], 0.3],
+	["walk forward, they follow", [], ["move_forward"], 3.0],
+	["turn round", ["@aim:FieldFighter:3"], [], 0.4],
+	["following shot", ["#mechs_follow"], [], 0.3],
+	["board the fighter", [], ["move_forward"], 1.2],
+	["climb in", ["interact", "!call:Companion:PrintBenchStatus"], [], 1.0],
+	["cockpit shot", ["#fighter_cockpit"], [], 0.3],
+	["walk", [], ["move_forward"], 2.5],
+	["fire", [], ["fire", "alt_fire"], 2.5],
+	["firing shot", ["#fighter_fire"], ["fire"], 0.3],
+	["chase view", ["view_toggle"], ["move_forward"], 1.5],
+	["chase shot", ["#fighter_chase"], ["move_forward"], 0.3],
+	["off", ["interact"], [], 1.0],
+	["guarding", ["@aim:FieldFighter:3"], [], 6.0],
+	["guard shot", ["#mechs_guard", "@status"], [], 0.3],
+]
+
+# What the vehicles cost to draw: every one shown, then hidden, in pairs,
+# standing still facing them. Hidden is visibility only; they still think.
+const MECHSAB_TIMELINE := [
+	["face them", ["@aim:FieldFighter:3"], [], 3.0],
+	["all shown", [], [], 5.0],
+	["vehicles hidden", ["!hide:FieldFighter", "!hide:MobileStorage", "!hide:HoverBike", "!hide:QuadrupedTank"], [], 5.0],
+	["all shown again", ["!show:FieldFighter", "!show:MobileStorage", "!show:HoverBike", "!show:QuadrupedTank"], [], 5.0],
+	["vehicles hidden again", ["!hide:FieldFighter", "!hide:MobileStorage", "!hide:HoverBike", "!hide:QuadrupedTank"], [], 5.0],
+	["all shown, last", ["!show:FieldFighter", "!show:MobileStorage", "!show:HoverBike", "!show:QuadrupedTank"], [], 5.0],
+]
+
 # The hoverbike in lvl_horde_flats: boarded, flown out in both modes, every
 # weapon fired toward the crowd, landed and left. Its state comes from the
 # player's line (stowed, so it reads where they boarded) and screenshots.
@@ -262,6 +294,8 @@ func _initialize() -> void:
 		"machete": _timeline = MACHETE_TIMELINE
 		"mech": _timeline = MECH_TIMELINE
 		"bike": _timeline = BIKE_TIMELINE
+		"mechs": _timeline = MECHS_TIMELINE
+		"mechsab": _timeline = MECHSAB_TIMELINE
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
 		_: _timeline = IDLE_TIMELINE

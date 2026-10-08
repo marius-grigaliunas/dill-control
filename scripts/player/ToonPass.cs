@@ -15,6 +15,12 @@ namespace DillControl.Player;
 ///
 /// <see cref="Enabled"/> is the switch. Off hides the quad outright, since a
 /// full-screen pass that does nothing still costs a screen of bandwidth.
+///
+/// It also hides itself whenever its camera is not the one being looked
+/// through. The quad is pinned to whichever camera renders, so every vehicle
+/// camera's pass drew on top of the player's: with a tank, a fighter and the
+/// bike in the level that was four full-screen passes a frame, measured at
+/// 3 ms of GPU against one.
 /// </summary>
 public partial class ToonPass : MeshInstance3D
 {
@@ -42,6 +48,16 @@ public partial class ToonPass : MeshInstance3D
         ExtraCullMargin = 16384.0f;
         SortingOffset = 1000.0f;
         Visible = Enabled;
+    }
+
+    public override void _Process(double delta)
+    {
+        bool current = GetParent() is not Camera3D camera || camera.IsCurrent();
+        bool show = Enabled && current;
+        if (Visible != show)
+        {
+            Visible = show;
+        }
     }
 
     public void SetEnabled(bool enabled)

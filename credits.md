@@ -9,8 +9,10 @@ game ships.
 | Asset | Pack | Author | Licence | Used as |
 |---|---|---|---|---|
 | Quadruped Tank | [Voxel Robot Collection](https://maxparata.itch.io/voxel-mechas) | Max Parata | Any project, commercial or not; credit appreciated | `art/voxels/mch_quadruped_tank.vox`, the player's ally mech |
+| Field Fighter | [Voxel Robot Collection](https://maxparata.itch.io/voxel-mechas) | Max Parata | As above | `art/voxels/mch_field_fighter.vox`, the rideable biped |
+| Mobile-storage Robot | [Voxel Robot Collection](https://maxparata.itch.io/voxel-mechas) | Max Parata | As above | `art/voxels/mch_mobile_storage.vox`, the ammunition carrier. Rebuilt from the pack's OBJ, which came without its `.vox` |
 
-The original download is kept untouched in `art/_source/QuadrupedTank/`.
+The original downloads are kept untouched in `art/_source/<Name>/`.
 
 ## In the game's credits screen
 

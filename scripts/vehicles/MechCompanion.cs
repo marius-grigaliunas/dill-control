@@ -156,6 +156,7 @@ public partial class MechCompanion : Node
         {
             PlaceCamera((float)delta);
             // Carried at the seat, so the horde comes for the mech.
+            // (A mech with no seat is never ridden: InRange.)
             if (Seat != null)
             {
                 _player.GlobalPosition = Seat.GlobalPosition;
@@ -257,7 +258,7 @@ public partial class MechCompanion : Node
     }
 
     private bool InRange() =>
-        _player != null && !_player.IsStowed
+        _player != null && !_player.IsStowed && Tuning.MountRange > 0.0f && Camera != null
         && (_player.GlobalPosition - Walker.GlobalPosition).Slide(Walker.Up).Length() <= Tuning.MountRange;
 
     // ---------------- Riding ----------------
@@ -311,7 +312,7 @@ public partial class MechCompanion : Node
         Vector2 input = Input.GetVector("move_left", "move_right", "move_forward", "move_back");
         Vector3 move = right * input.X - forward * input.Y;
         Walker.MoveIntent = move;
-        Walker.FaceDirection = move.LengthSquared() > 0.01f ? forward : Vector3.Zero;
+        Walker.FaceDirection = move.LengthSquared() > 0.01f || Tuning.FaceCameraWhenIdle ? forward : Vector3.Zero;
         Walker.TurretAim = forward;
 
         if (Input.IsActionJustPressed("jump"))
@@ -340,7 +341,7 @@ public partial class MechCompanion : Node
         Vector3 anchor;
         if (_seatView && Seat != null)
         {
-            // The seat rides on the turret (MechWalker.TurretMounted).
+            // The seat rides on whatever it is mounted on (MechWalker.Mounted).
             anchor = Seat.GlobalPosition;
             CameraArm.SpringLength = 0.0f;
         }

@@ -1,0 +1,94 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="PackedScene" uid="uid://bm2p4imekmllq" path="res://art/voxels/mch_field_fighter.vox" id="1_model"]
+[ext_resource type="Script" path="res://scripts/vehicles/MechWalker.cs" id="2_walker"]
+[ext_resource type="Script" path="res://scripts/vehicles/MechCompanion.cs" id="3_companion"]
+[ext_resource type="Resource" path="res://resources/vehicles/mch_field_fighter_tuning.tres" id="4_tuning"]
+[ext_resource type="Script" path="res://scripts/player/ToonPass.cs" id="5_toon"]
+[ext_resource type="Script" path="res://scripts/vehicles/MechGunner.cs" id="6_gunner"]
+[ext_resource type="Resource" path="res://resources/vehicles/mch_field_fighter_guns.tres" id="7_guns"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_tracer.tscn" id="8_tracer"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_impact.tscn" id="9_impact"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_explosion.tscn" id="10_expl"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_rocket.tscn" id="11_shell"]
+
+[sub_resource type="BoxShape3D" id="HullShape"]
+size = Vector3(3.2, 6.4, 1.9)
+
+[node name="MchFieldFighter" type="CharacterBody3D" node_paths=PackedStringArray("Model", "Thighs", "Shins", "Feet", "Arms", "Mounted", "MountedOn")]
+script = ExtResource("2_walker")
+Tuning = ExtResource("4_tuning")
+Model = NodePath("Model")
+Thighs = [NodePath("Model/ThighR"), NodePath("Model/ThighL")]
+Shins = [NodePath("Model/ShinR"), NodePath("Model/ShinL")]
+Feet = [NodePath("Model/FootR"), NodePath("Model/FootL")]
+Arms = [NodePath("Model/ArmR"), NodePath("Model/ArmL")]
+Mounted = [NodePath("Model/Muzzle"), NodePath("Model/Cannon")]
+MountedOn = [NodePath("Model/ArmR"), NodePath("Model/ArmL")]
+
+[node name="Model" parent="." instance=ExtResource("1_model")]
+
+[node name="Hull" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
+shape = SubResource("HullShape")
+
+[node name="Prompt" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.6, 0)
+pixel_size = 0.006
+billboard = 1
+no_depth_test = true
+text = "F  ride"
+font_size = 48
+outline_size = 12
+
+[node name="CameraPivot" type="Node3D" parent="."]
+top_level = true
+
+[node name="Arm" type="SpringArm3D" parent="CameraPivot"]
+spring_length = 15.0
+margin = 0.3
+
+[node name="Camera" type="Camera3D" parent="CameraPivot/Arm"]
+fov = 75.0
+
+[node name="ToonPass" type="MeshInstance3D" parent="CameraPivot/Arm/Camera"]
+script = ExtResource("5_toon")
+
+[node name="RideHint" type="CanvasLayer" parent="."]
+
+[node name="Keys" type="Label" parent="RideHint"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -150.0
+offset_right = 600.0
+offset_bottom = -24.0
+theme_override_colors/font_outline_color = Color(0.08, 0.1, 0.06, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 20
+text = "WASD  walk        Space  jump, hold for jets
+LMB  arm gun       RMB  arm cannon
+V  cockpit / chase view        F  climb off"
+
+[node name="Gunner" type="Node" parent="." node_paths=PackedStringArray("Walker", "TurretMuzzle", "CannonMuzzle")]
+script = ExtResource("6_gunner")
+Stats = ExtResource("7_guns")
+Walker = NodePath("..")
+TurretMuzzle = NodePath("../Model/Muzzle")
+CannonMuzzle = NodePath("../Model/Cannon")
+TracerScene = ExtResource("8_tracer")
+ImpactScene = ExtResource("9_impact")
+ExplosionScene = ExtResource("10_expl")
+ShellScene = ExtResource("11_shell")
+
+[node name="Companion" type="Node" parent="." node_paths=PackedStringArray("Walker", "Seat", "CameraPivot", "CameraArm", "Camera", "Prompt", "Gunner", "RideHint")]
+script = ExtResource("3_companion")
+Walker = NodePath("..")
+Seat = NodePath("../Model/Seat")
+CameraPivot = NodePath("../CameraPivot")
+CameraArm = NodePath("../CameraPivot/Arm")
+Camera = NodePath("../CameraPivot/Arm/Camera")
+Prompt = NodePath("../Prompt")
+Gunner = NodePath("../Gunner")
+RideHint = NodePath("../RideHint")

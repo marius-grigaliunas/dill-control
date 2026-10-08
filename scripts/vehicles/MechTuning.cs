@@ -91,6 +91,20 @@ public partial class MechTuning : Resource
     [Export(PropertyHint.Range, "0,1,0.01,suffix:s")]
     public float StepLeadSeconds { get; set; } = 0.2f;
 
+    /// <summary>Which way knees bend, in the model's space (+Z is its
+    /// front), added to the bend the model was built with. Zero keeps the
+    /// modelled bend; a leg modelled straight needs one.</summary>
+    [Export]
+    public Vector3 KneeBias { get; set; } = Vector3.Zero;
+
+    /// <summary>How far an arm swings, in degrees per metre its opposite foot
+    /// is ahead of or behind where it rests.</summary>
+    [Export(PropertyHint.Range, "0,90,0.5")]
+    public float ArmSwingDegreesPerMetre { get; set; } = 25.0f;
+
+    [Export(PropertyHint.Range, "0,90,1,suffix:°")]
+    public float MaxArmSwingDegrees { get; set; } = 30.0f;
+
     [ExportGroup("Body")]
     /// <summary>How far the body sinks at full speed, to give the legs more
     /// reach. The voxel legs are short; without it a stride is half a metre.</summary>
@@ -152,6 +166,11 @@ public partial class MechTuning : Resource
     /// <summary>How close the player has to be to climb on.</summary>
     [Export(PropertyHint.Range, "1,20,0.5,suffix:m")]
     public float MountRange { get; set; } = 9.0f;
+
+    /// <summary>Ridden, the body turns to the camera even standing still.
+    /// For a mech with no turret, whose guns point where its body does.</summary>
+    [Export]
+    public bool FaceCameraWhenIdle { get; set; }
 
     [ExportGroup("Ride camera")]
     [Export(PropertyHint.Range, "2,40,0.5,suffix:m")]

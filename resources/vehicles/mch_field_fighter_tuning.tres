@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="MechTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/vehicles/MechTuning.cs" id="1_script"]
+
+[resource]
+resource_name = "MchFieldFighterTuning"
+script = ExtResource("1_script")
+MaxSpeed = 6.5
+TurnRateDegrees = 220.0
+JumpSpeed = 12.0
+JumpWindupSeconds = 0.22
+StepThreshold = 1.0
+IdleTidyThreshold = 0.25
+StepSeconds = 0.42
+StepSecondsFast = 0.3
+StepHeight = 0.7
+StepLeadSeconds = 0.25
+KneeBias = Vector3(0, 0, 3)
+ArmSwingDegreesPerMetre = 14.0
+MaxArmSwingDegrees = 22.0
+WalkCrouch = 0.45
+StepBob = 0.14
+JumpCrouch = 0.6
+FollowBehind = 9.0
+FollowSide = -7.0
+PersonalSpace = 7.0
+MountRange = 9.0
+FaceCameraWhenIdle = true
+CameraDistance = 15.0
+CameraHeight = 6.5

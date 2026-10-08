@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MechTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/vehicles/MechTuning.cs" id="1_script"]
+
+[resource]
+resource_name = "MchMobileStorageTuning"
+script = ExtResource("1_script")
+MaxSpeed = 7.5
+Acceleration = 14.0
+Deceleration = 18.0
+TurnRateDegrees = 420.0
+JumpSpeed = 0.0
+JetFuelSeconds = 0.0
+StepThreshold = 0.2
+IdleTidyThreshold = 0.05
+StepSeconds = 0.16
+StepSecondsFast = 0.1
+StepHeight = 0.12
+StepLeadSeconds = 0.1
+WalkCrouch = 0.06
+StepBob = 0.02
+LeanPerAcceleration = 1.2
+BodySpring = 260.0
+LandingKick = 0.15
+FollowBehind = 3.0
+FollowSide = -1.8
+FollowArriveRadius = 0.8
+FollowSlowRadius = 2.5
+PersonalSpace = 2.2
+KneeBias = Vector3(0, 0, 1)
+MountRange = 0.0
