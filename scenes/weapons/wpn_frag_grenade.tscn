@@ -1,0 +1,46 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/Grenade.cs" id="1_grnd0"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_explosion.tscn" id="2_expl0"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(0.21, 0.25, 0.19, 1)
+metallic = 0.3
+roughness = 0.7
+
+[sub_resource type="SphereMesh" id="SphereMesh_body"]
+radius = 0.055
+height = 0.13
+radial_segments = 10
+rings = 6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lever"]
+albedo_color = Color(0.55, 0.5, 0.3, 1)
+metallic = 0.6
+roughness = 0.4
+
+[sub_resource type="BoxMesh" id="BoxMesh_lever"]
+size = Vector3(0.018, 0.075, 0.018)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_body"]
+radius = 0.06
+
+[node name="Grenade" type="RigidBody3D" unique_id=1355098433 node_paths=PackedStringArray("Model")]
+continuous_cd = true
+script = ExtResource("1_grnd0")
+Model = NodePath("Model")
+ExplosionScene = ExtResource("2_expl0")
+
+[node name="Model" type="Node3D" parent="." unique_id=1355098434]
+
+[node name="Body" type="MeshInstance3D" parent="Model" unique_id=1355098435]
+material_override = SubResource("StandardMaterial3D_body")
+mesh = SubResource("SphereMesh_body")
+
+[node name="Lever" type="MeshInstance3D" parent="Model" unique_id=1355098436]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.055, 0)
+material_override = SubResource("StandardMaterial3D_lever")
+mesh = SubResource("BoxMesh_lever")
+
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=1355098437]
+shape = SubResource("SphereShape3D_body")

@@ -1,11 +1,12 @@
 using Godot;
+using DillControl.Core;
 using DillControl.Player;
 
 namespace DillControl.UI;
 
 /// <summary>
 /// The working HUD: a crosshair that says whether the line would land, the
-/// gas charges, and the health jar as a bar.
+/// gas charges, the health jar as a bar, and the ammo in hand.
 ///
 /// PLACEHOLDER. The lab's HUD (the sloshing pickle jar, the kill tally, the
 /// tier words) comes across with real art in M7. This one exists so the line
@@ -40,10 +41,34 @@ public partial class PlayerHud : Control
     [Export]
     public Color BackingColour { get; set; } = new(0.0f, 0.0f, 0.0f, 0.45f);
 
+    private int _inMagazine = -1;
+    private int _magazineSize;
+    private int _reserve;
+
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Ignore;
         SetAnchorsPreset(LayoutPreset.FullRect);
+
+        if (EventBus.Instance != null)
+        {
+            EventBus.Instance.AmmoChanged += OnAmmoChanged;
+        }
+    }
+
+    public override void _ExitTree()
+    {
+        if (EventBus.Instance != null)
+        {
+            EventBus.Instance.AmmoChanged -= OnAmmoChanged;
+        }
+    }
+
+    private void OnAmmoChanged(int inMagazine, int magazineSize, int reserve)
+    {
+        _inMagazine = inMagazine;
+        _magazineSize = magazineSize;
+        _reserve = reserve;
     }
 
     public override void _Process(double delta)
@@ -61,6 +86,22 @@ public partial class PlayerHud : Control
         DrawCrosshair();
         DrawGas();
         DrawHealth();
+        DrawAmmo();
+    }
+
+    /// <summary>Magazine over reserve, bottom right. Hidden for anything with nothing to count.</summary>
+    private void DrawAmmo()
+    {
+        if (_inMagazine < 0 || Player.Loadout?.Active is not { UsesAmmo: true })
+        {
+            return;
+        }
+
+        Font font = ThemeDB.FallbackFont;
+        string text = $"{_inMagazine} / {_magazineSize}   {_reserve}";
+        Vector2 position = new(Size.X - 260.0f, Size.Y - 40.0f);
+        DrawString(font, position + new Vector2(2.0f, 2.0f), text, HorizontalAlignment.Left, -1, 28, BackingColour);
+        DrawString(font, position, text, HorizontalAlignment.Left, -1, 28, CrosshairColour);
     }
 
     /// <summary>

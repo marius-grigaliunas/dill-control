@@ -154,6 +154,9 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 - A screenshot (`#name`) costs 100-150 ms in its own frame; never read a worst
   frame from a phase that takes one. Status lines (`@status`) and the recorder
   add hitches of their own; read worst frames from a quiet run.
+- A bench window is fullscreen and captures the mouse: keys and clicks while it
+  runs reach the player (`@status` shows `fire=`). Hands off, and nothing else
+  running -- a stuck game in the background halves the frame rate.
 - `U` in any level records every frame to `perflogs/` and prints a summary.
 - After a fresh clone or new asset: `"$GODOT" --headless --path . --editor --quit`
   imports everything.

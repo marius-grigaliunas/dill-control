@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="WeaponStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/WeaponStats.cs" id="1_hammer"]
+
+[resource]
+resource_name = "DillHammer"
+script = ExtResource("1_hammer")
+DisplayName = "Dill Hammer"
+FireMode = 0
+Damage = 34.0
+PelletsPerShot = 12
+PenetrationCount = 3
+PenetrationDamageRetention = 0.8
+MaxRange = 70.0
+FalloffStart = 10.0
+FalloffEnd = 32.0
+FalloffMinMultiplier = 0.35
+RoundsPerMinute = 150.0
+MagazineSize = 8
+ReserveAmmo = 120
+ReloadTime = 0.7
+TacticalReloadTime = 0.55
+BaseSpreadDegrees = 3.0
+MaxSpreadDegrees = 6.0
+SpreadPerShotDegrees = 0.6
+SpreadRecoveryPerSecond = 9.0
+AimFovScale = 0.82
+AimSpreadMultiplier = 0.55
+RecoilPitchPerShot = 2.8
+RecoilYawPerShot = 0.7
+RecoilRecoverSpeed = 6.0
+RecoilSnappiness = 32.0
+ViewmodelKickBack = 0.13
+ViewmodelKickPitch = 9.0
+ViewmodelRecoverSpeed = 14.0
+TracerEveryNShots = 1
+FireSfx = 2
+RecoilThrust = 11.0
+SplashRadius = 2.6
+SplashInnerRadius = 1.3
+SplashDamage = 36.0
+SplashImpulse = 5.0
+SplashEffectRadius = 2.0
+SplashEffectInterval = 0.06
+SplashScorchSeconds = 1.0
+SplashMaxPerShot = 8
+FirePitch = 0.82
+FireVolumeDb = 2.0

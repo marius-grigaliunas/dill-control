@@ -1,5 +1,7 @@
 using Godot;
 using DillControl.Debug;
+using DillControl.Player;
+using DillControl.Weapons;
 
 namespace DillControl.Levels;
 
@@ -25,7 +27,8 @@ namespace DillControl.Levels;
 /// and look through a camera of its own.
 ///
 /// It also adds the perf instruments, so every level can be recorded with
-/// <c>U</c> and benched with <c>bench.gd</c> without wiring anything.
+/// <c>U</c> and benched with <c>bench.gd</c> without wiring anything, and
+/// fires a harmless rocket to pay for the first explosion up front.
 /// </summary>
 [GlobalClass]
 public partial class LevelRoot : Node3D
@@ -67,5 +70,66 @@ public partial class LevelRoot : Node3D
         PlayerSpawn.AddChild(Player);
         Player.GlobalTransform = PlayerSpawn.GlobalTransform;
         EmitSignal(SignalName.PlayerSpawned, Player);
+        WarmUpExplosionEffects();
     }
+
+    /// <summary>
+    /// Fires one real, harmless rocket the instant the player spawns, so
+    /// whatever a first explosion costs is paid while the level is still
+    /// settling rather than during the player's first real grenade or rocket.
+    ///
+    /// Measured in the lab, not guessed. A live rocket's very first
+    /// detonation cost 50-60 ms of a single physics frame, and it was not the
+    /// project's own code: what removed it was replaying the exact same shot --
+    /// flight sweep, Blast queries, a real ExplosionEffect with its
+    /// GPUParticles3D -- once before the real one. That points at a one-time
+    /// engine or driver cost, most likely a shader or particle pipeline
+    /// compiled on first use. Here it covers every explosive weapon in every
+    /// level, because every level instances its player through this method.
+    /// </summary>
+    private void WarmUpExplosionEffects()
+    {
+        if (Player is not PlayerController player)
+        {
+            return;
+        }
+
+        PackedScene rocketScene = GD.Load<PackedScene>(WarmupRocketPath);
+        PackedScene explosionScene = GD.Load<PackedScene>(WarmupExplosionPath);
+        if (rocketScene == null || explosionScene == null)
+        {
+            return;
+        }
+
+        RocketStats warmupStats = new()
+        {
+            MuzzleSpeed = 40.0f,
+            CruiseSpeed = 40.0f,
+            Acceleration = 0.0f,
+            GravityScale = 0.0f,
+            MaxLifetime = 2.0f,
+            DirectHitDamage = 0.0f,
+            Damage = 0.0f,
+            InnerRadius = 0.1f,
+            BlastRadius = 0.5f,
+            Impulse = 0.0f,
+            DebrisImpulseScale = 0.0f,
+        };
+
+        Rocket warmup = rocketScene.Instantiate<Rocket>();
+        warmup.ExplosionScene = explosionScene;
+        warmup.SilentExplosion = true;
+        AddChild(warmup);
+        warmup.Launch(
+            warmupStats,
+            null,
+            player.GlobalPosition + (player.GravityUp * 1.5f),
+            -player.GravityUp,
+            player.GravityUp,
+            player.GetGravity(),
+            default);
+    }
+
+    private const string WarmupRocketPath = "res://scenes/weapons/fx_rocket.tscn";
+    private const string WarmupExplosionPath = "res://scenes/weapons/fx_explosion.tscn";
 }

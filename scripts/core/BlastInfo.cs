@@ -45,14 +45,6 @@ public partial class BlastInfo : RefCounted
     /// <summary>How deep that crater goes.</summary>
     public float CraterDepth { get; set; }
 
-    /// <summary>
-    /// Coolant to pour in at the centre, in wetness units. The company's
-    /// cheapest round is the water that made the alligators, sold back as a
-    /// weapon -- and because craters hold water, a round that digs and a round
-    /// that floods are the same system from two ends.
-    /// </summary>
-    public float CoolantAmount { get; set; }
-
     /// <summary>Seconds of burning denial zone left behind.</summary>
     public float FireSeconds { get; set; }
 
@@ -95,7 +87,6 @@ public partial class BlastInfo : RefCounted
         Source = blast.Source,
         CraterRadius = blast.CraterRadius,
         CraterDepth = blast.CraterDepth,
-        CoolantAmount = blast.CoolantAmount,
         FireSeconds = blast.FireSeconds,
         Sustained = blast.Sustained,
         NoCrater = blast.NoCrater,

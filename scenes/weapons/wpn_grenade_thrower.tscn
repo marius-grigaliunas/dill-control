@@ -1,0 +1,49 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/GrenadeThrower.cs" id="1_thrw0"]
+[ext_resource type="Resource" path="res://resources/weapons/wpn_frag_grenade.tres" id="2_gstat"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/wpn_frag_grenade.tscn" id="3_grnd0"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(0.21, 0.25, 0.19, 1)
+metallic = 0.3
+roughness = 0.7
+
+[sub_resource type="SphereMesh" id="SphereMesh_body"]
+radius = 0.055
+height = 0.13
+radial_segments = 10
+rings = 6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lever"]
+albedo_color = Color(0.55, 0.5, 0.3, 1)
+metallic = 0.6
+roughness = 0.4
+
+[sub_resource type="BoxMesh" id="BoxMesh_lever"]
+size = Vector3(0.018, 0.075, 0.018)
+
+[node name="Grenades" type="Node3D" unique_id=1091223001 node_paths=PackedStringArray("ViewModel", "ThrowPoint")]
+script = ExtResource("1_thrw0")
+ViewModel = NodePath("ViewModel")
+ThrowPoint = NodePath("ThrowPoint")
+Stats = ExtResource("2_gstat")
+GrenadeScene = ExtResource("3_grnd0")
+
+[node name="ViewModel" type="Node3D" parent="." unique_id=1091223002]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.24, -0.21, -0.44)
+visible = false
+
+[node name="Body" type="MeshInstance3D" parent="ViewModel" unique_id=1091223003]
+material_override = SubResource("StandardMaterial3D_body")
+cast_shadow = 0
+mesh = SubResource("SphereMesh_body")
+
+[node name="Lever" type="MeshInstance3D" parent="ViewModel" unique_id=1091223004]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.055, 0.02, 0)
+material_override = SubResource("StandardMaterial3D_lever")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_lever")
+
+[node name="ThrowPoint" type="Node3D" parent="." unique_id=1091223005]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, -0.12, -0.55)

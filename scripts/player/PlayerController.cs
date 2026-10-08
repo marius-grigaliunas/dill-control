@@ -1,6 +1,7 @@
 using Godot;
 using DillControl.Audio;
 using DillControl.Core;
+using DillControl.Weapons;
 
 namespace DillControl.Player;
 
@@ -48,6 +49,15 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
     /// <summary>Cast upward to test for headroom before standing back up.</summary>
     [Export]
     public ShapeCast3D HeadroomCheck { get; set; }
+
+    /// <summary>
+    /// What is in the player's hands. The player wires its camera kick into the
+    /// rig and feeds it locomotion state, so neither the weapons nor the rig has
+    /// to know the other exists. The loadout re-emits the active weapon's kick,
+    /// so this connection survives every weapon switch without being rewired.
+    /// </summary>
+    [Export]
+    public WeaponLoadout Loadout { get; set; }
 
     /// <summary>
     /// The line. It throws the hook and holds the anchor; everything that
@@ -256,6 +266,14 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
         _targetHeight = Tuning.StandHeight;
         ApplyHeight(_currentHeight);
 
+        if (Loadout != null)
+        {
+            Loadout.Fired += OnWeaponFired;
+            Loadout.AimStateChanged += OnWeaponAimStateChanged;
+            Loadout.Thrust += OnWeaponThrust;
+            Loadout.TakeOwnerResupply = TryRefuel;
+        }
+
         if (CameraRig != null)
         {
             CameraRig.Footstep += OnFootstep;
@@ -279,6 +297,14 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
 
     public override void _ExitTree()
     {
+        if (Loadout != null)
+        {
+            Loadout.Fired -= OnWeaponFired;
+            Loadout.AimStateChanged -= OnWeaponAimStateChanged;
+            Loadout.Thrust -= OnWeaponThrust;
+            Loadout.TakeOwnerResupply = null;
+        }
+
         if (CameraRig != null)
         {
             CameraRig.Footstep -= OnFootstep;
@@ -354,6 +380,21 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
         }
 
         AudioDirector.PlayAt(Sfx.FootstepDry, GlobalPosition);
+    }
+
+    private void OnWeaponFired(Vector2 recoilRadians, float recoverSpeed, float snappiness)
+    {
+        CameraRig?.AddRecoil(recoilRadians, recoverSpeed, snappiness);
+    }
+
+    private void OnWeaponThrust(Vector3 impulse)
+    {
+        _pendingImpulse += impulse;
+    }
+
+    private void OnWeaponAimStateChanged(bool aiming, float fovScale, float transitionSpeed)
+    {
+        CameraRig?.SetAim(aiming, fovScale, transitionSpeed);
     }
 
     /// <summary>
@@ -1446,6 +1487,13 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
             (float)delta,
             Tuning,
             new CameraRig.ProceduralInput(HorizontalSpeed, onFloor, IsSprinting, strafeAxis, swingRoll, speedFovAdd));
+
+        // Pushed, not pulled: a weapon needs stance for spread but must never
+        // go looking up the tree for a player to ask.
+        Loadout?.SetOwnerLocomotion(HorizontalSpeed > MovingThreshold, !onFloor, _isCrouched);
+        Loadout?.SetOwnerUp(GravityUp);
+        Loadout?.SetOwnerFrame(GravityUp, GetGravity());
+        Loadout?.SetOwnerVelocity(Velocity);
     }
 
     /// <summary>
@@ -1633,9 +1681,15 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
             Grapple?.Release(false);
             _momentumCarry = false;
             Velocity = Vector3.Zero;
+            Loadout?.SetStowed(true);
+            Loadout?.SetProcess(false);
         }
         else
         {
+            // Order matters: the loadout has to be running again before it is
+            // asked to put a weapon back in the hands.
+            Loadout?.SetProcess(true);
+            Loadout?.SetStowed(false);
             ClaimCamera();
         }
     }
@@ -1677,7 +1731,7 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
                 : "line flying";
 
         return System.FormattableString.Invariant(
-            $"pos=({GlobalPosition.X:F1},{GlobalPosition.Y:F1},{GlobalPosition.Z:F1}) speed={Velocity.Length():F1} state={_state} {line} gas={FlightFuel01:F2}");
+            $"pos=({GlobalPosition.X:F1},{GlobalPosition.Y:F1},{GlobalPosition.Z:F1}) speed={Velocity.Length():F1} state={_state} {line} gas={FlightFuel01:F2} weapon={Loadout?.Active?.Name ?? "none"} fire={Input.IsActionPressed("fire")}");
     }
 
     /// <summary>

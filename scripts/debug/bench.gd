@@ -31,8 +31,11 @@ const SETTLE_MIN := 6.0          # never measure before this
 const WARMUP_MAX := 40.0         # give up and measure anyway
 const STEP := 4.0                # default phase length
 const BUDGET := 1.0 / 60.0
+const PULSE_SECONDS := 0.15
 
 # Phases: [label, actions on entry, actions held for the phase, optional length].
+# A held action written "~fire" is tapped every PULSE_SECONDS instead, for a
+# weapon that fires on the press rather than while held.
 # An action is an input action name, or one of:
 #   "#name"                  save the screen to perflogs/name.png. The capture
 #                            costs 100-150 ms itself, so a phase that takes one
@@ -92,8 +95,8 @@ const GRAPPLE_TIMELINE := [
 # The horde coming for the player at a given count, then held on top of them.
 # Seeded on a tighter ring than it ships with, so the crowd arrives inside a
 # run rather than after two minutes; the ring goes back before the crowd phase
-# so respawns land where they would in play. Weapons join this when they are
-# ported. Ported from the lab's horde mode.
+# so respawns land where they would in play. Then fought with every gun, the
+# load held constant by respawning the dead. Ported from the lab's horde mode.
 static func _horde_timeline(count: int) -> Array:
 	return [
 		["seed %d" % count, ["@status", "!set:Horde:Stats:HuntSeedMinRadius=30.0",
@@ -102,7 +105,12 @@ static func _horde_timeline(count: int) -> Array:
 		["arriving", ["perf_record"], [], 12.0],
 		["crowd on you", ["!set:Horde:Stats:HuntSeedMinRadius=150.0", "!set:Horde:Stats:HuntSeedRadius=450.0"], [], 10.0],
 		["stop recording", ["perf_record"], [], 0.5],
-		["crowd, looking down", ["@aim:Horde:-40"], [], 6.0],
+		["rifle into it", ["slot_1", "@aim:Horde:0.5"], ["fire"], 6.0],
+		["rockets", ["slot_2"], ["~fire"], 6.0],
+		["shotgun", ["slot_3"], ["~fire"], 5.0],
+		["grenades", ["slot_1"], ["grenade"], 5.0],
+		["holding ground", [], [], 5.0],
+		["crowd, looking down", ["@aim:Horde:-40"], [], 4.0],
 		["shot", ["#horde_crowd"], [], 0.5],
 		["frustum cull off", ["!set:Horde:Stats:FrustumCull=false"], [], 4.0],
 		["frustum cull on", ["!set:Horde:Stats:FrustumCull=true"], [], 4.0],
@@ -131,6 +139,7 @@ static func _hordeab_timeline(count: int, pairs: Array) -> Array:
 const HORDE_AB_PAIRS := [
 	["flow rebuild off", ["!set:Horde:Stats:FlowRebuildInterval=1000.0"], ["!set:Horde:Stats:FlowRebuildInterval=0.5"]],
 	["horde one thread", ["!set:Horde:Stats:Multithreaded=false"], ["!set:Horde:Stats:Multithreaded=true"]],
+	["ranged off", ["!set:Horde:Stats:RangedEnabled=false"], ["!set:Horde:Stats:RangedEnabled=true"]],
 ]
 
 const TARGET_SIZE := Vector2i(1920, 1080)
@@ -147,6 +156,7 @@ var _steady_draws := 0.0
 var _steady_since := 0.0
 
 var _status := false
+var _pulse_timer := 0.0
 var _status_next := 0.0
 
 # Per phase. The worst frame and the count of frames over budget are the two
@@ -328,6 +338,13 @@ func _process(delta: float) -> bool:
 	if delta > BUDGET:
 		_over += 1
 
+	_pulse_timer -= delta
+	if _pulse_timer <= 0.0:
+		_pulse_timer = PULSE_SECONDS
+		for action in _held:
+			if action.begins_with("~"):
+				_tap(action.substr(1))
+
 	var want := _phase
 	if _phase < 0:
 		want = 0
@@ -349,14 +366,14 @@ func _process(delta: float) -> bool:
 		for action in entry[2]:
 			next_held.append(action)
 		for action in _held:
-			if not next_held.has(action):
+			if not next_held.has(action) and not action.begins_with("~"):
 				_send(action, false)
 		_phase = want
 		_phase_started = _elapsed
 		for action in entry[1]:
 			_tap(action)
 		for action in next_held:
-			if not _held.has(action):
+			if not _held.has(action) and not action.begins_with("~"):
 				_send(action, true)
 		_held = next_held
 

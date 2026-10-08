@@ -1,0 +1,32 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/ImpactEffect.cs" id="1_8xi0a"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_05fg0"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(1, 0.92, 0.7, 0.9)
+disable_receive_shadows = true
+
+[sub_resource type="SphereMesh" id="SphereMesh_e3l7h"]
+radius = 0.055
+height = 0.11
+radial_segments = 8
+rings = 4
+
+[node name="ImpactEffect" type="Node3D" unique_id=334666127 node_paths=PackedStringArray("Flash", "Light")]
+script = ExtResource("1_8xi0a")
+Flash = NodePath("Flash")
+Light = NodePath("Light")
+
+[node name="Flash" type="MeshInstance3D" parent="." unique_id=2017319538]
+material_override = SubResource("StandardMaterial3D_05fg0")
+cast_shadow = 0
+mesh = SubResource("SphereMesh_e3l7h")
+
+[node name="Light" type="OmniLight3D" parent="." unique_id=1575615229]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.15)
+light_color = Color(1, 0.88, 0.62, 1)
+light_energy = 1.6
+omni_range = 2.5

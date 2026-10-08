@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="GrenadeStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/GrenadeStats.cs" id="1_gren0"]
+[ext_resource type="Resource" path="res://resources/weapons/wpn_jar_bomblet.tres" id="2_bomb"]
+
+[resource]
+resource_name = "ClusterJar"
+script = ExtResource("1_gren0")
+DisplayName = "Cluster Jar"
+CarriedCount = 8
+ThrowCooldown = 0.45
+FuseTime = 1.6
+InnerRadius = 5.0
+BlastRadius = 14.0
+MinMultiplier = 0.35
+Impulse = 26.0
+BombletCount = 8
+Bomblet = ExtResource("2_bomb")
+BombletSpeed = 10.0

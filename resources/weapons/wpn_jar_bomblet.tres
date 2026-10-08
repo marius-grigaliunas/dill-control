@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GrenadeStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/GrenadeStats.cs" id="1_bomb"]
+
+[resource]
+resource_name = "JarBomblet"
+script = ExtResource("1_bomb")
+DisplayName = "Jar Bomblet"
+FuseTime = 0.6
+Bounce = 0.25
+Damage = 140.0
+InnerRadius = 2.5
+BlastRadius = 7.0
+MinMultiplier = 0.4
+Impulse = 12.0
+SelfImpulseScale = 0.5
+DebrisImpulseScale = 1.5

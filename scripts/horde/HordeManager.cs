@@ -806,6 +806,13 @@ public partial class HordeManager : Node3D
         _bucketCount = new int[buckets];
         _bucketMask = buckets - 1;
 
+        // Empty, not zero. Until the first Tick rebuilds the hash, a blast or
+        // a nearest-agent query walks these chains -- and a zeroed head is
+        // agent 0, whose zeroed next is agent 0 again. A rocket that went off
+        // before the horde's first tick looped there until the process ran out
+        // of memory and died without a word.
+        System.Array.Fill(_bucketHead, -1);
+
         BuildKinds();
         BuildMultiMeshes();
         BuildHitProxies(hitProxyCount, weakPointMultiplier);

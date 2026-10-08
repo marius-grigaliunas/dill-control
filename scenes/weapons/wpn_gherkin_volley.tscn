@@ -1,0 +1,126 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/RocketLauncher.cs" id="1_rlnch"]
+[ext_resource type="Resource" path="res://resources/weapons/wpn_gherkin_volley.tres" id="2_rstat"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_rocket.tscn" id="3_rckt0"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tube"]
+albedo_color = Color(0.22, 0.24, 0.21, 1)
+metallic = 0.4
+roughness = 0.55
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_tube"]
+top_radius = 0.075
+bottom_radius = 0.075
+height = 0.82
+radial_segments = 10
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mouth"]
+albedo_color = Color(0.13, 0.13, 0.12, 1)
+metallic = 0.5
+roughness = 0.45
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_mouth"]
+top_radius = 0.095
+bottom_radius = 0.075
+height = 0.12
+radial_segments = 10
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_grip"]
+albedo_color = Color(0.17, 0.15, 0.13, 1)
+metallic = 0.2
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_grip"]
+size = Vector3(0.055, 0.17, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sight"]
+albedo_color = Color(0.35, 0.36, 0.33, 1)
+metallic = 0.5
+roughness = 0.4
+
+[sub_resource type="BoxMesh" id="BoxMesh_sight"]
+size = Vector3(0.03, 0.09, 0.03)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_flash"]
+transparency = 1
+blend_mode = 1
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(1, 0.79, 0.43, 0.9)
+
+[sub_resource type="QuadMesh" id="QuadMesh_flash1"]
+size = Vector2(0.6, 0.6)
+
+[sub_resource type="QuadMesh" id="QuadMesh_flash2"]
+size = Vector2(0.6, 0.6)
+
+[node name="GherkinVolley" type="Node3D" node_paths=PackedStringArray("MuzzlePoint", "ViewModel", "MuzzleFlash")]
+script = ExtResource("1_rlnch")
+Stats = ExtResource("2_rstat")
+MuzzlePoint = NodePath("ViewModel/MuzzlePoint")
+ViewModel = NodePath("ViewModel")
+MuzzleFlash = NodePath("ViewModel/MuzzlePoint/MuzzleFlash")
+RocketScene = ExtResource("3_rckt0")
+
+[node name="ViewModel" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.23, -0.19, -0.44)
+
+[node name="Tube" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, -0.1)
+material_override = SubResource("StandardMaterial3D_tube")
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_tube")
+
+[node name="Mouth" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, -0.62)
+material_override = SubResource("StandardMaterial3D_mouth")
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_mouth")
+
+[node name="Vent" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0.42)
+material_override = SubResource("StandardMaterial3D_mouth")
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_mouth")
+
+[node name="Grip" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.12, 0.06)
+material_override = SubResource("StandardMaterial3D_grip")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_grip")
+
+[node name="ForeGrip" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, -0.3)
+material_override = SubResource("StandardMaterial3D_grip")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_grip")
+
+[node name="Sight" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.07, 0.1, -0.2)
+material_override = SubResource("StandardMaterial3D_sight")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_sight")
+
+[node name="MuzzlePoint" type="Node3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.72)
+
+[node name="MuzzleFlash" type="Node3D" parent="ViewModel/MuzzlePoint"]
+
+[node name="FlashQuad1" type="MeshInstance3D" parent="ViewModel/MuzzlePoint/MuzzleFlash"]
+material_override = SubResource("StandardMaterial3D_flash")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_flash1")
+
+[node name="FlashQuad2" type="MeshInstance3D" parent="ViewModel/MuzzlePoint/MuzzleFlash"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+material_override = SubResource("StandardMaterial3D_flash")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_flash2")
+
+[node name="FlashLight" type="OmniLight3D" parent="ViewModel/MuzzlePoint/MuzzleFlash"]
+light_color = Color(1, 0.8, 0.5, 1)
+light_energy = 6.0
+omni_range = 10.0

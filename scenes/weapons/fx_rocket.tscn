@@ -1,0 +1,126 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/Rocket.cs" id="1_rckt0"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_explosion.tscn" id="2_expl0"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_case"]
+albedo_color = Color(0.26, 0.27, 0.24, 1)
+metallic = 0.4
+roughness = 0.55
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_case"]
+radius = 0.075
+height = 0.62
+radial_segments = 8
+rings = 2
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_nose"]
+albedo_color = Color(0.5, 0.17, 0.12, 1)
+metallic = 0.2
+roughness = 0.6
+
+[sub_resource type="SphereMesh" id="SphereMesh_nose"]
+radius = 0.078
+height = 0.16
+radial_segments = 8
+rings = 4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_flame"]
+transparency = 1
+blend_mode = 1
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(1, 0.72, 0.34, 0.85)
+
+[sub_resource type="SphereMesh" id="SphereMesh_flame"]
+radius = 0.11
+height = 0.44
+radial_segments = 6
+rings = 3
+
+[sub_resource type="Gradient" id="Gradient_trail"]
+offsets = PackedFloat32Array(0, 0.12, 1)
+colors = PackedColorArray(1, 0.82, 0.5, 0.9, 0.55, 0.52, 0.5, 0.55, 0.42, 0.42, 0.42, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_trail"]
+gradient = SubResource("Gradient_trail")
+
+[sub_resource type="Curve" id="Curve_trail"]
+_data = [Vector2(0, 0.3), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_trail"]
+curve = SubResource("Curve_trail")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_trail"]
+lifetime_randomness = 0.3
+emission_shape = 1
+emission_sphere_radius = 0.12
+spread = 25.0
+initial_velocity_min = 0.5
+initial_velocity_max = 2.5
+gravity = Vector3(0, 0.4, 0)
+damping_min = 1.0
+damping_max = 2.5
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.5
+scale_max = 1.1
+scale_curve = SubResource("CurveTexture_trail")
+color_ramp = SubResource("GradientTexture1D_trail")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trail"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.7, 0.68, 0.66, 1)
+billboard_mode = 3
+billboard_keep_scale = true
+disable_receive_shadows = true
+
+[sub_resource type="QuadMesh" id="QuadMesh_trail"]
+material = SubResource("StandardMaterial3D_trail")
+size = Vector2(0.8, 0.8)
+
+[node name="Rocket" type="Node3D" node_paths=PackedStringArray("Model", "Trail", "MotorLight")]
+script = ExtResource("1_rckt0")
+Model = NodePath("Model")
+Trail = NodePath("Trail")
+MotorLight = NodePath("Model/MotorLight")
+ExplosionScene = ExtResource("2_expl0")
+
+[node name="Model" type="Node3D" parent="."]
+
+[node name="Case" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0)
+material_override = SubResource("StandardMaterial3D_case")
+cast_shadow = 0
+mesh = SubResource("CapsuleMesh_case")
+
+[node name="Nose" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, -0.3)
+material_override = SubResource("StandardMaterial3D_nose")
+cast_shadow = 0
+mesh = SubResource("SphereMesh_nose")
+
+[node name="Flame" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0.42)
+material_override = SubResource("StandardMaterial3D_flame")
+cast_shadow = 0
+mesh = SubResource("SphereMesh_flame")
+
+[node name="Trail" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.35)
+cast_shadow = 0
+amount = 40
+lifetime = 1.1
+local_coords = false
+explosiveness = 0.0
+process_material = SubResource("ParticleProcessMaterial_trail")
+draw_pass_1 = SubResource("QuadMesh_trail")
+
+[node name="MotorLight" type="OmniLight3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.4)
+light_color = Color(1, 0.74, 0.42, 1)
+light_energy = 4.0
+omni_range = 9.0

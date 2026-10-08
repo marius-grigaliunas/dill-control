@@ -99,17 +99,14 @@ public static class Blast
         // All zero by default, which is what every explosive in the project was
         // before ordnance types existed. Blast itself does none of it -- it only
         // carries the numbers into the BlastInfo it already broadcasts, and
-        // whoever owns the terrain and the wetness field acts on them. core/
-        // does not get to know that a planet exists.
+        // whoever owns the terrain acts on them. core/ does not get to know
+        // that a planet exists.
 
         /// <summary>Crater radius to dig at the centre. Zero leaves the ground alone.</summary>
         public float CraterRadius { get; init; }
 
         /// <summary>How deep that crater goes.</summary>
         public float CraterDepth { get; init; }
-
-        /// <summary>Coolant to pour in at the centre, in wetness units.</summary>
-        public float CoolantAmount { get; init; }
 
         /// <summary>
         /// A burn resolved on a tick rather than a detonation: a fire zone

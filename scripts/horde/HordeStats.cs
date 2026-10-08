@@ -203,9 +203,20 @@ public partial class HordeStats : Resource
     [Export(PropertyHint.Range, "0,4000,10")]
     public int MaxThrownCornichons { get; set; } = 400;
 
-    /// <summary>How close a lobbed cornichon has to pass to land on the player.</summary>
+    /// <summary>How close a lobbed cornichon or a spitter's brine has to pass to land on the player.</summary>
     [Export(PropertyHint.Range, "0.2,5,0.05,suffix:m")]
     public float ThrownHitRadius { get; set; } = 1.4f;
+
+    /// <summary>Brine in the air at once, at most. Read once at load.</summary>
+    [Export(PropertyHint.Range, "1,4000,1")]
+    public int ShotCapacity { get; set; } = 512;
+
+    /// <summary>
+    /// How much of gravity the brine feels. A quarter: enough to arc and be
+    /// read coming, not so much that a spitter has to lob.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,2,0.01")]
+    public float SpitGravityScale { get; set; } = 0.25f;
 
     // ---------------- Routing ----------------
 

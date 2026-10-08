@@ -57,6 +57,12 @@ public partial class HordeDirector : Node3D
     /// <summary>How many cornichons were thrown, for the bench.</summary>
     public int ThrownCount { get; private set; }
 
+    /// <summary>The spitters' brine in flight.</summary>
+    public ShotPool Brine { get; private set; }
+
+    /// <summary>Brine reads as brine: a sour yellow-green, over-bright so a shot is seen coming.</summary>
+    private static readonly Color BrineColour = new(0.72f, 0.82f, 0.2f);
+
     private PlayerController _player;
     private bool _built;
     private float _flowTimer;
@@ -81,6 +87,16 @@ public partial class HordeDirector : Node3D
 
         Manager = new HordeManager { Name = "Manager" };
         AddChild(Manager);
+
+        Brine = new ShotPool { Name = "Brine" };
+        AddChild(Brine);
+        Brine.Target = () => new ShotPool.ShotTarget
+        {
+            Valid = PlayerAvailable,
+            Position = PlayerAvailable ? PlayerChest : Vector3.Zero,
+        };
+        Brine.Hit = OnBrineHit;
+        Brine.Struck = point => AudioDirector.PlayAt(Sfx.SpitSplat, point);
 
         // LevelRoot readies after its children, so this is connected before
         // the player exists.
@@ -139,6 +155,9 @@ public partial class HordeDirector : Node3D
         // the horde never learns that a player or a projectile exists.
         Manager.AgentStruck = OnAgentStruck;
         Manager.RangedRequested = OnRangedRequested;
+
+        Brine.Build(Stats.ShotCapacity, BrineColour, 0.22f);
+        Brine.Ground = Ground;
 
         _built = true;
         GD.Print(System.FormattableString.Invariant(
@@ -236,6 +255,20 @@ public partial class HordeDirector : Node3D
         // The last stretch, inside the cell the field routes to, is steered
         // straight at the player. Two cells is the target's own and a margin.
         horde.FinalApproachRange = hunting ? Ground.CellSize * 2.0f : 0.0f;
+
+        Brine.Gravity = Stats.Gravity * Stats.SpitGravityScale;
+        Brine.HitRadius = Stats.ThrownHitRadius;
+        AgentKindStats spitter = horde.KindStats((int)AgentKind.Spitter);
+        if (spitter != null)
+        {
+            Brine.Impulse = spitter.ProjectileImpulse;
+            Brine.Trauma = spitter.ProjectileTrauma;
+            Brine.Lifetime = (spitter.RangedRange * 1.5f / Mathf.Max(spitter.ProjectileSpeed, 1.0f)) + 0.5f;
+        }
+        if (!Stats.RangedEnabled)
+        {
+            Brine.Clear();
+        }
     }
 
     /// <summary>
@@ -270,6 +303,9 @@ public partial class HordeDirector : Node3D
 
     private bool PlayerAvailable =>
         _player != null && IsInstanceValid(_player) && _player.IsInsideTree() && !_player.IsStowed;
+
+    /// <summary>What a throw or a spit is aimed at, and what the brine fuses against.</summary>
+    private Vector3 PlayerChest => _player.GlobalPosition + (_player.GravityUp * 1.1f);
 
     /// <summary>
     /// Where agents are seeded and respawned: a ring round the player while
@@ -322,18 +358,36 @@ public partial class HordeDirector : Node3D
         Vector3 away = (_player.GlobalPosition - position).Slide(up);
         away = away.LengthSquared() > 1e-4f ? away.Normalized() : up;
 
+        // Mostly along the ground. A crowd lands several of these a second,
+        // and with the upward share a blast shove has, it juggled the player
+        // tens of metres into the air and out of the fight.
+        HitPlayer(position, (away * impulse) + (up * (impulse * 0.15f)), trauma, damage);
+        AudioDirector.PlayAt(kind == (int)AgentKind.Tank ? Sfx.TankStomp : Sfx.PickleBite, position);
+    }
+
+    /// <summary>A spitter's brine reached the player.</summary>
+    private void OnBrineHit(Vector3 point, Vector3 impulse, float trauma)
+    {
+        if (!PlayerAvailable)
+        {
+            return;
+        }
+
+        HitPlayer(point, impulse, trauma, Manager.KindStats((int)AgentKind.Spitter)?.ProjectileDamage ?? 0.0f);
+        AudioDirector.PlayAt(Sfx.SpitSplat, point);
+    }
+
+    /// <summary>The one way the crowd hurts the player: health, a shove, a shake and a red flash.</summary>
+    private void HitPlayer(Vector3 from, Vector3 impulse, float trauma, float damage)
+    {
         if (_player.TakeDamage(damage))
         {
             AudioDirector.Play(Sfx.BossSlam);
         }
 
-        // Mostly along the ground. A crowd lands several of these a second,
-        // and with the upward share a blast shove has, it juggled the player
-        // tens of metres into the air and out of the fight.
-        _player.ApplyBlastImpulse((away * impulse) + (up * (impulse * 0.15f)));
+        _player.ApplyBlastImpulse(impulse);
         _player.CameraRig?.AddShake(trauma);
-        _player.FlashHit(trauma, position);
-        AudioDirector.PlayAt(kind == (int)AgentKind.Tank ? Sfx.TankStomp : Sfx.PickleBite, position);
+        _player.FlashHit(trauma, from);
     }
 
     /// <summary>
@@ -341,29 +395,50 @@ public partial class HordeDirector : Node3D
     /// and its cooldown is spent; this decides whether the budget allows it,
     /// where to aim, and what comes out. Over budget, the request is dropped --
     /// its cooldown is already spent, so it simply waits its turn again.
-    ///
-    /// Spitters have nothing to spit until the shot pool comes across with the
-    /// weapons' impact effects; until then their requests are dropped here.
     /// </summary>
     private void OnRangedRequested(Vector3 position, int kind)
     {
-        if (_shotTokens < 1.0f || !Stats.RangedEnabled || !PlayerAvailable || kind != (int)AgentKind.Thrower)
+        if (_shotTokens < 1.0f || !Stats.RangedEnabled || !PlayerAvailable)
         {
             return;
         }
 
         AgentKindStats stats = Manager.KindStats(kind);
-        if (stats == null || Manager.ExtraCount(HordeManager.SpawnOrigin.Thrown) >= Stats.MaxThrownCornichons)
+        if (stats == null)
         {
             return;
         }
 
         Vector3 up = Ground.UpAt(position);
         Vector3 muzzle = position + (up * ((stats.Height * 0.5f) + 0.3f));
-        Vector3 target = _player.GlobalPosition + (up * 0.9f);
+        Vector3 target = PlayerChest;
         float speed = Mathf.Max(stats.ProjectileSpeed, 1.0f);
         float spread = Mathf.DegToRad(stats.ProjectileSpreadDegrees);
         Vector3 lead = _player.Velocity * stats.ProjectileLead;
+
+        if (kind == (int)AgentKind.Spitter)
+        {
+            Vector3 aim = Ballistics.Intercept(muzzle, target, lead, speed);
+
+            // A little over the line, by the droop the brine will pick up on
+            // the way, so a still target is hit rather than undershot.
+            float time = muzzle.DistanceTo(aim) / speed;
+            aim += up * (0.5f * Brine.Gravity * time * time);
+
+            Vector3 direction = Ballistics.Scatter((aim - muzzle).Normalized(), spread, AimUnit(), AimUnit());
+            if (Brine.Fire(muzzle, direction * speed))
+            {
+                _shotTokens -= 1.0f;
+                AudioDirector.PlayAt(Sfx.SpitterSpit, muzzle);
+            }
+            return;
+        }
+
+        if (kind != (int)AgentKind.Thrower
+            || Manager.ExtraCount(HordeManager.SpawnOrigin.Thrown) >= Stats.MaxThrownCornichons)
+        {
+            return;
+        }
 
         // Solved twice: once to learn how long it will be in the air, and
         // again at where the target will be by then.
@@ -414,6 +489,6 @@ public partial class HordeDirector : Node3D
             ? System.FormattableString.Invariant($" health={_player.Health.Current:F0} pickled={_player.Health.TimesPickled}")
             : string.Empty;
         return System.FormattableString.Invariant(
-            $"agents={Manager.AgentCount} drawn={Manager.VisibleAgentCount} stepped={Manager.SteppedCount} near={Manager.NearPlayerCount} proxies={Manager.ActiveProxyCount} stranded={Manager.StrandedCount} kills={Manager.KillCount} struck={StruckCount} thrown={ThrownCount} flow={Flow.LastBuildMilliseconds:F1}ms{health}");
+            $"agents={Manager.AgentCount} drawn={Manager.VisibleAgentCount} stepped={Manager.SteppedCount} near={Manager.NearPlayerCount} proxies={Manager.ActiveProxyCount} stranded={Manager.StrandedCount} kills={Manager.KillCount} struck={StruckCount} thrown={ThrownCount} brine={Brine.FiredCount}/{Brine.HitCount} flow={Flow.LastBuildMilliseconds:F1}ms{health}");
     }
 }

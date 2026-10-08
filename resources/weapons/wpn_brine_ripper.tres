@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="WeaponStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/WeaponStats.cs" id="1_78m6c"]
+
+[resource]
+resource_name = "BrineRipper"
+script = ExtResource("1_78m6c")
+DisplayName = "Brine Ripper"
+Damage = 32.0
+PenetrationCount = 4
+PenetrationDamageRetention = 0.85
+MaxRange = 260.0
+FalloffStart = 45.0
+FalloffEnd = 120.0
+FalloffMinMultiplier = 0.7
+RoundsPerMinute = 780.0
+MagazineSize = 50
+ReserveAmmo = 600
+ReloadTime = 0.9
+TacticalReloadTime = 0.7
+BaseSpreadDegrees = 0.25
+MaxSpreadDegrees = 3.0
+SpreadPerShotDegrees = 0.18
+SpreadRecoveryPerSecond = 9.0
+RecoilPitchPerShot = 0.55
+RecoilYawPerShot = 0.22
+RecoilRecoverSpeed = 9.0
+RecoilSnappiness = 30.0
+ViewmodelKickBack = 0.06
+ViewmodelKickPitch = 4.0
+ViewmodelRecoverSpeed = 18.0
+MuzzleFlashDuration = 0.05
+TracerSpeed = 1400.0
+SplashRadius = 3.0
+SplashInnerRadius = 1.4
+SplashDamage = 34.0
+SplashImpulse = 4.0
+SplashEffectRadius = 2.6
+SplashEffectInterval = 0.1
+SplashScorchSeconds = 1.5
+FirePitch = 1.18
+FireVolumeDb = -1.0

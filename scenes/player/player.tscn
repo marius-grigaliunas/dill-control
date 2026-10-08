@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.cs" id="1_ctrl"]
 [ext_resource type="Resource" path="res://resources/player/movement_tuning_default.tres" id="2_move"]
@@ -8,6 +8,12 @@
 [ext_resource type="Resource" path="res://resources/player/grapple_tuning_default.tres" id="6_line"]
 [ext_resource type="Script" path="res://scripts/player/ToonPass.cs" id="7_toon"]
 [ext_resource type="Script" path="res://scripts/ui/PlayerHud.cs" id="8_hud"]
+[ext_resource type="Script" path="res://scripts/weapons/WeaponLoadout.cs" id="9_loadout"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/wpn_brine_ripper.tscn" id="10_ripper"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/wpn_gherkin_volley.tscn" id="11_volley"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/wpn_dill_hammer.tscn" id="12_hammer"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/wpn_grenade_thrower.tscn" id="13_grenades"]
+[ext_resource type="Script" path="res://scripts/player/HitStop.cs" id="14_hitstop"]
 
 [sub_resource type="CapsuleShape3D" id="BodyShape"]
 radius = 0.35
@@ -16,13 +22,14 @@ height = 1.8
 [sub_resource type="SphereShape3D" id="HeadroomShape"]
 radius = 0.34
 
-[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("CameraRig", "BodyCollision", "HeadroomCheck", "Grapple")]
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("CameraRig", "BodyCollision", "HeadroomCheck", "Loadout", "Grapple")]
 script = ExtResource("1_ctrl")
 Tuning = ExtResource("2_move")
 HealthTuning = ExtResource("3_health")
 CameraRig = NodePath("CameraPivot")
 BodyCollision = NodePath("BodyCollision")
 HeadroomCheck = NodePath("HeadroomCheck")
+Loadout = NodePath("CameraPivot/CameraOffset/Camera3D/WeaponMount")
 Grapple = NodePath("CameraPivot/CameraOffset/Camera3D/Grapple")
 
 [node name="BodyCollision" type="CollisionShape3D" parent="."]
@@ -52,6 +59,25 @@ far = 4000.0
 [node name="ToonPass" type="MeshInstance3D" parent="CameraPivot/CameraOffset/Camera3D"]
 script = ExtResource("7_toon")
 
+[node name="WeaponMount" type="Node3D" parent="CameraPivot/CameraOffset/Camera3D" node_paths=PackedStringArray("Primary", "Launcher", "Sidearm", "Thrower")]
+script = ExtResource("9_loadout")
+Primary = NodePath("BrineRipper")
+Launcher = NodePath("GherkinVolley")
+Sidearm = NodePath("DillHammer")
+Thrower = NodePath("Grenades")
+
+[node name="BrineRipper" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("10_ripper")]
+AimCamera = NodePath("../..")
+
+[node name="GherkinVolley" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("11_volley")]
+AimCamera = NodePath("../..")
+
+[node name="DillHammer" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("12_hammer")]
+AimCamera = NodePath("../..")
+
+[node name="Grenades" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("13_grenades")]
+AimCamera = NodePath("../..")
+
 [node name="Grapple" type="Node3D" parent="CameraPivot/CameraOffset/Camera3D" node_paths=PackedStringArray("AimCamera")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.28, -0.22, -0.35)
 script = ExtResource("5_grapple")
@@ -70,3 +96,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("8_hud")
 Player = NodePath("../..")
+
+[node name="HitStop" type="Node" parent="." node_paths=PackedStringArray("Player")]
+script = ExtResource("14_hitstop")
+Player = NodePath("..")

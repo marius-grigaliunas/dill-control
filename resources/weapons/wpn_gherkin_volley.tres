@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="RocketStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/RocketStats.cs" id="1_rstat"]
+
+[resource]
+resource_name = "GherkinVolley"
+script = ExtResource("1_rstat")
+DisplayName = "Gherkin Volley"
+MagazineSize = 4
+ReserveAmmo = 36
+ReloadTime = 1.0
+FireInterval = 0.35
+RocketsPerShot = 4
+VolleyInterval = 0.07
+VolleySpreadDegrees = 2.2
+MuzzleSpeed = 40.0
+CruiseSpeed = 95.0
+Acceleration = 180.0
+DirectHitDamage = 120.0
+Damage = 260.0
+InnerRadius = 6.0
+BlastRadius = 15.0
+Impulse = 24.0
+SelfImpulseScale = 0.4
+KickPitchDegrees = 2.0
+KickYawDegrees = 0.6
+KickRecoverSpeed = 6.0
+KickSnappiness = 20.0
+ViewModelKickBack = 0.09
+ViewModelKickPitch = 4.5
+ViewModelRecoverSpeed = 12.0

@@ -1,0 +1,287 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/ExplosionEffect.cs" id="1_expl0"]
+[ext_resource type="Shader" path="res://shaders/fx_toon_fireball.gdshader" id="2_fball"]
+[ext_resource type="Shader" path="res://shaders/fx_comic_burst.gdshader" id="3_burst"]
+[ext_resource type="Shader" path="res://shaders/fx_toon_puff.gdshader" id="4_puff"]
+
+[sub_resource type="Gradient" id="Gradient_puff"]
+offsets = PackedFloat32Array(0, 0.42, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.72, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_puff"]
+gradient = SubResource("Gradient_puff")
+width = 64
+height = 64
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_shell"]
+render_priority = 0
+shader = ExtResource("2_fball")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_core"]
+render_priority = 0
+shader = ExtResource("2_fball")
+shader_parameter/heat_bias = 0.45
+shader_parameter/cooling = 1.1
+shader_parameter/lump_amount = 0.2
+shader_parameter/dissolve_start = 0.55
+
+[sub_resource type="SphereMesh" id="SphereMesh_core"]
+radius = 0.5
+height = 1.0
+radial_segments = 16
+rings = 8
+
+[sub_resource type="SphereMesh" id="SphereMesh_shell"]
+radius = 0.5
+height = 1.0
+radial_segments = 22
+rings = 11
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_burst"]
+render_priority = 0
+shader = ExtResource("3_burst")
+
+[sub_resource type="QuadMesh" id="QuadMesh_burst"]
+size = Vector2(2, 2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ring"]
+transparency = 1
+blend_mode = 1
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(1, 0.88, 0.62, 0.9)
+disable_receive_shadows = true
+
+[sub_resource type="TorusMesh" id="TorusMesh_ring"]
+inner_radius = 0.41
+outer_radius = 0.5
+rings = 32
+ring_segments = 4
+
+[sub_resource type="Gradient" id="Gradient_spark"]
+offsets = PackedFloat32Array(0, 0.2, 0.55, 1)
+colors = PackedColorArray(1, 1, 0.85, 1, 1, 0.82, 0.2, 1, 1, 0.32, 0.08, 1, 0.75, 0.05, 0.35, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_spark"]
+gradient = SubResource("Gradient_spark")
+
+[sub_resource type="Curve" id="Curve_spark"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.3), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_spark"]
+curve = SubResource("Curve_spark")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_spark"]
+lifetime_randomness = 0.4
+direction = Vector3(0, 1, 0)
+spread = 78.0
+emission_shape = 1
+emission_sphere_radius = 0.35
+initial_velocity_min = 9.0
+initial_velocity_max = 26.0
+gravity = Vector3(0, -9, 0)
+damping_min = 2.0
+damping_max = 5.0
+scale_min = 0.08
+scale_max = 0.2
+scale_curve = SubResource("CurveTexture_spark")
+color_ramp = SubResource("GradientTexture1D_spark")
+hue_variation_min = -0.04
+hue_variation_max = 0.06
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_spark"]
+albedo_texture = SubResource("GradientTexture2D_puff")
+transparency = 1
+blend_mode = 1
+cull_mode = 2
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(1.6, 1.2, 0.7, 1)
+disable_receive_shadows = true
+
+[sub_resource type="QuadMesh" id="QuadMesh_spark"]
+material = SubResource("StandardMaterial3D_spark")
+size = Vector2(0.55, 3.2)
+
+[sub_resource type="Gradient" id="Gradient_smoke"]
+offsets = PackedFloat32Array(0, 0.1, 0.3, 0.45, 1)
+colors = PackedColorArray(1, 0.55, 0.12, 0.75, 0.75, 0.3, 0.25, 1, 0.42, 0.36, 0.46, 1, 0.58, 0.56, 0.64, 0.9, 0.66, 0.65, 0.72, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_smoke"]
+gradient = SubResource("Gradient_smoke")
+
+[sub_resource type="Curve" id="Curve_smoke"]
+_data = [Vector2(0, 0.25), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_smoke"]
+curve = SubResource("Curve_smoke")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_smoke"]
+lifetime_randomness = 0.35
+direction = Vector3(0, 1, 0)
+spread = 60.0
+emission_shape = 1
+emission_sphere_radius = 0.6
+initial_velocity_min = 2.0
+initial_velocity_max = 6.5
+gravity = Vector3(0, 2.4, 0)
+damping_min = 1.5
+damping_max = 3.0
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.6
+scale_max = 1.3
+scale_curve = SubResource("CurveTexture_smoke")
+color_ramp = SubResource("GradientTexture1D_smoke")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_puff"]
+render_priority = 0
+shader = ExtResource("4_puff")
+
+[sub_resource type="QuadMesh" id="QuadMesh_smoke"]
+material = SubResource("ShaderMaterial_puff")
+size = Vector2(1.6, 1.6)
+
+[sub_resource type="Gradient" id="Gradient_dust"]
+offsets = PackedFloat32Array(0, 0.15, 0.65, 1)
+colors = PackedColorArray(0.95, 0.62, 0.3, 0.8, 0.72, 0.55, 0.36, 1, 0.6, 0.5, 0.4, 0.9, 0.55, 0.48, 0.42, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_dust"]
+gradient = SubResource("Gradient_dust")
+
+[sub_resource type="Curve" id="Curve_dust"]
+_data = [Vector2(0, 0.3), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_dust"]
+curve = SubResource("Curve_dust")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_dust"]
+lifetime_randomness = 0.4
+direction = Vector3(0, 1, 0)
+spread = 84.0
+flatness = 0.85
+emission_shape = 3
+emission_box_extents = Vector3(1.1, 0.12, 1.1)
+initial_velocity_min = 3.0
+initial_velocity_max = 8.0
+radial_accel_min = 10.0
+radial_accel_max = 22.0
+gravity = Vector3(0, -1.6, 0)
+damping_min = 2.5
+damping_max = 5.0
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.7
+scale_max = 1.5
+scale_curve = SubResource("CurveTexture_dust")
+color_ramp = SubResource("GradientTexture1D_dust")
+
+[sub_resource type="QuadMesh" id="QuadMesh_dust"]
+material = SubResource("ShaderMaterial_puff")
+size = Vector2(1.8, 1.8)
+
+[sub_resource type="Gradient" id="Gradient_scorch"]
+offsets = PackedFloat32Array(0, 0.5, 0.82, 1)
+colors = PackedColorArray(0.05, 0.04, 0.03, 1, 0.08, 0.065, 0.05, 0.95, 0.12, 0.1, 0.08, 0.55, 0.15, 0.13, 0.1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_scorch"]
+gradient = SubResource("Gradient_scorch")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[node name="ExplosionEffect" type="Node3D" node_paths=PackedStringArray("SurfaceAlign", "UpAlign", "Shell", "Core", "Ring", "Burst", "Light", "Sparks", "Smoke", "Dust", "Scorch")]
+script = ExtResource("1_expl0")
+SurfaceAlign = NodePath("SurfaceAlign")
+UpAlign = NodePath("UpAlign")
+Shell = NodePath("SurfaceAlign/Shell")
+Core = NodePath("SurfaceAlign/Core")
+Ring = NodePath("SurfaceAlign/Ring")
+Burst = NodePath("Burst")
+Light = NodePath("Light")
+Sparks = NodePath("SurfaceAlign/Sparks")
+Smoke = NodePath("UpAlign/Smoke")
+Dust = NodePath("SurfaceAlign/Dust")
+Scorch = NodePath("SurfaceAlign/Scorch")
+
+[node name="Light" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.76, 0.42, 1)
+light_energy = 40.0
+omni_range = 10.0
+
+[node name="Burst" type="MeshInstance3D" parent="."]
+material_override = SubResource("ShaderMaterial_burst")
+cast_shadow = 0
+extra_cull_margin = 4.0
+mesh = SubResource("QuadMesh_burst")
+
+[node name="SurfaceAlign" type="Node3D" parent="."]
+
+[node name="Shell" type="MeshInstance3D" parent="SurfaceAlign"]
+material_override = SubResource("ShaderMaterial_shell")
+cast_shadow = 0
+mesh = SubResource("SphereMesh_shell")
+
+[node name="Core" type="MeshInstance3D" parent="SurfaceAlign"]
+material_override = SubResource("ShaderMaterial_core")
+cast_shadow = 0
+mesh = SubResource("SphereMesh_core")
+
+[node name="Ring" type="MeshInstance3D" parent="SurfaceAlign"]
+material_override = SubResource("StandardMaterial3D_ring")
+cast_shadow = 0
+mesh = SubResource("TorusMesh_ring")
+
+[node name="Sparks" type="GPUParticles3D" parent="SurfaceAlign"]
+cast_shadow = 0
+emitting = false
+amount = 96
+lifetime = 1.0
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+transform_align = 2
+transform_align_axis = 1
+process_material = SubResource("ParticleProcessMaterial_spark")
+draw_pass_1 = SubResource("QuadMesh_spark")
+
+[node name="Dust" type="GPUParticles3D" parent="SurfaceAlign"]
+cast_shadow = 0
+emitting = false
+amount = 24
+lifetime = 1.6
+one_shot = true
+explosiveness = 0.9
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_dust")
+draw_pass_1 = SubResource("QuadMesh_dust")
+
+[node name="Scorch" type="Decal" parent="SurfaceAlign"]
+size = Vector3(4, 3, 4)
+texture_albedo = SubResource("GradientTexture2D_scorch")
+albedo_mix = 1.0
+modulate = Color(1, 1, 1, 1)
+upper_fade = 0.1
+lower_fade = 0.1
+
+[node name="UpAlign" type="Node3D" parent="."]
+
+[node name="Smoke" type="GPUParticles3D" parent="UpAlign"]
+cast_shadow = 0
+emitting = false
+amount = 20
+lifetime = 1.5
+one_shot = true
+explosiveness = 0.85
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_smoke")
+draw_pass_1 = SubResource("QuadMesh_smoke")

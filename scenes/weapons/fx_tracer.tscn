@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/Tracer.cs" id="1_6qdw8"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ukm7l"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(1, 0.86, 0.55, 0.85)
+disable_receive_shadows = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_n7poq"]
+size = Vector3(0.035, 0.035, 1)
+
+[node name="Tracer" type="Node3D" unique_id=1864055684 node_paths=PackedStringArray("Beam")]
+script = ExtResource("1_6qdw8")
+Beam = NodePath("Beam")
+
+[node name="Beam" type="MeshInstance3D" parent="." unique_id=1229063772]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
+material_override = SubResource("StandardMaterial3D_ukm7l")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_n7poq")
