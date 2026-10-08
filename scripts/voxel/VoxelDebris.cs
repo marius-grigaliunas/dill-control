@@ -94,47 +94,161 @@ public partial class VoxelDebris : Node3D
     public void Dust(Vector3 position, Vector3 up, Vector3 velocity, Color colour, float edge) =>
         _dust?.Request(position, up, velocity, colour, edge);
 
+    private readonly struct Pending
+    {
+        public readonly VoxelGrid Grid;
+        public readonly Color[] Palette;
+        public readonly float[] Emission;
+        public readonly Material Material;
+        public readonly Transform3D At;
+        public readonly Vector3 Velocity;
+        public readonly Vector3 Spin;
+        public readonly ulong Asked;
+
+        public Pending(VoxelGrid grid, Color[] palette, float[] emission, Material material, Transform3D at,
+            Vector3 velocity, Vector3 spin)
+        {
+            Grid = grid;
+            Palette = palette;
+            Emission = emission;
+            Material = material;
+            At = at;
+            Velocity = velocity;
+            Spin = spin;
+            Asked = Time.GetTicksUsec();
+        }
+    }
+
+    private readonly Queue<Pending> _pending = new();
+    private ulong _spawnFrame = ulong.MaxValue;
+    private int _spawnedThisFrame;
+
     /// <summary>
     /// Makes a loose chunk of a grid, at a world transform, moving. Too small
-    /// a piece is dust instead. Returns the chunk, or null.
+    /// a piece is dust instead. A collapse asks for dozens at once; past
+    /// <see cref="VoxelDestructionStats.ChunksPerFrame"/> they are made over
+    /// the next frames, each where it would have got to by then.
     /// </summary>
-    public VoxelChunk SpawnChunk(VoxelGrid grid, Color[] palette, float[] emission, Material material,
-        Transform3D at, Vector3 velocity)
+    /// <param name="spin">Its angular velocity; null for a spin of its own,
+    /// slower the bigger it is.</param>
+    public void SpawnChunk(VoxelGrid grid, Color[] palette, float[] emission, Material material,
+        Transform3D at, Vector3 velocity, Vector3? spin = null)
     {
         if (grid.SolidCount < Stats.MinChunkVoxels || Stats.MaxChunks <= 0)
         {
             Dust(at.Origin, Vector3.Up, velocity, AverageColour(grid, palette),
                 Mathf.Pow(grid.SolidCount, 1.0f / 3.0f) * grid.VoxelSize);
-            return null;
+            return;
+        }
+
+        if (spin == null)
+        {
+            float across = Mathf.Max(1.0f, Mathf.Pow(grid.SolidCount, 1.0f / 3.0f) * grid.VoxelSize);
+            float s = Stats.LooseSpin / across;
+            spin = new Vector3((float)GD.RandRange(-s, s), (float)GD.RandRange(-s, s), (float)GD.RandRange(-s, s));
+        }
+
+        var pending = new Pending(grid, palette, emission, material, at, velocity, spin.Value);
+        if (_pending.Count == 0 && TakeSpawn())
+        {
+            Make(pending, 0.0f);
+            return;
+        }
+        _pending.Enqueue(pending);
+    }
+
+    public override void _PhysicsProcess(double delta)
+    {
+        ulong now = Time.GetTicksUsec();
+        while (_pending.Count > 0 && TakeSpawn())
+        {
+            Pending p = _pending.Dequeue();
+            Make(p, (now - p.Asked) / 1_000_000.0f);
+        }
+    }
+
+    private bool TakeSpawn()
+    {
+        ulong frame = Engine.GetPhysicsFrames();
+        if (frame != _spawnFrame)
+        {
+            _spawnFrame = frame;
+            _spawnedThisFrame = 0;
+        }
+        if (_spawnedThisFrame >= Stats.ChunksPerFrame)
+        {
+            return false;
+        }
+        _spawnedThisFrame++;
+        return true;
+    }
+
+    /// <summary>Makes a chunk that was asked for <paramref name="late"/>
+    /// seconds ago, where it would be now had it been made then.</summary>
+    private void Make(in Pending p, float late)
+    {
+        Transform3D at = p.At;
+        Vector3 velocity = p.Velocity;
+        if (late > 0.0f)
+        {
+            Vector3 gravity = ProjectSettings.GetSetting("physics/3d/default_gravity_vector").AsVector3()
+                              * ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
+            at.Origin += velocity * late + gravity * (0.5f * late * late);
+            velocity += gravity * late;
+            if (p.Spin.LengthSquared() > 1e-8f)
+            {
+                at.Basis = new Basis(p.Spin.Normalized(), p.Spin.Length() * late) * at.Basis;
+            }
         }
 
         var chunk = new VoxelChunk { Name = "Chunk" };
-        chunk.Setup(grid, palette, emission, material, Stats);
+        chunk.Setup(p.Grid, p.Palette, p.Emission, p.Material, Stats);
         AddChild(chunk);
         chunk.GlobalTransform = at;
         chunk.LinearVelocity = velocity;
-        chunk.AngularVelocity = new Vector3(
-            (float)GD.RandRange(-1.5, 1.5), (float)GD.RandRange(-1.5, 1.5), (float)GD.RandRange(-1.5, 1.5));
+        chunk.AngularVelocity = p.Spin;
         _chunks.Add(chunk);
         chunk.TreeExiting += () => _chunks.Remove(chunk);
 
         while (_chunks.Count > Stats.MaxChunks)
         {
-            Oldest().Dissolve();
+            // Out of the count now: it is only freed at the end of the frame.
+            VoxelChunk expendable = Expendable();
+            _chunks.Remove(expendable);
+            expendable.Dissolve();
         }
-        return chunk;
     }
 
-    private VoxelChunk Oldest()
+    /// <summary>Room for this many more pieces under the cap, counting those
+    /// still waiting to be made.</summary>
+    public bool HasRoom(int pieces) => _chunks.Count + _pending.Count + pieces <= Stats.MaxChunks;
+
+    /// <summary>
+    /// The piece to give up for the cap: the smallest settled rubble, else the
+    /// smallest asleep, else the smallest of all. Never simply the oldest: a
+    /// collapse makes its pieces bottom first, and the oldest was the base of
+    /// a falling tower, which vanished in the air.
+    /// </summary>
+    private VoxelChunk Expendable()
     {
+        VoxelChunk settled = null, sleeping = null, any = null;
         foreach (VoxelChunk chunk in _chunks)
         {
-            if (chunk.IsSettled || chunk.Sleeping)
+            int n = chunk.VoxelCount;
+            if (chunk.IsSettled && (settled == null || n < settled.VoxelCount))
             {
-                return chunk;
+                settled = chunk;
+            }
+            else if (chunk.Sleeping && (sleeping == null || n < sleeping.VoxelCount))
+            {
+                sleeping = chunk;
+            }
+            if (any == null || n < any.VoxelCount)
+            {
+                any = chunk;
             }
         }
-        return _chunks[0];
+        return settled ?? sleeping ?? any;
     }
 
     /// <summary>One line of state, for <c>bench.gd</c>.</summary>
@@ -146,7 +260,7 @@ public partial class VoxelDebris : Node3D
             settled += chunk.IsSettled ? 1 : 0;
             sleeping += chunk.Sleeping ? 1 : 0;
         }
-        GD.Print($"[bench]   debris chunks={_chunks.Count} sleeping={sleeping} settled={settled}");
+        GD.Print($"[bench]   debris chunks={_chunks.Count} sleeping={sleeping} settled={settled} queued={_pending.Count}");
     }
 
     public static Color AverageColour(VoxelGrid grid, Color[] palette)

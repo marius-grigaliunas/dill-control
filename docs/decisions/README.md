@@ -23,3 +23,4 @@ Number them in order, `NNNN-short-title.md`.
 | [0010](0010-procedural-mech.md) | Mechs walk by code: stepping feet, our own two-bone IK, brains apart from walkers |
 | [0011](0011-voxel-destruction.md) | Every voxel model breaks the same way: carve, structure, physics chunks, dust |
 | [0012](0012-horde-attacks-allies.md) | The horde attacks the allies: targets by group, bites into voxels, guard and stomp |
+| [0013](0013-buildings-carry-weight.md) | Buildings carry their own weight: load check, storey fracture, heavy rubble that crushes; armour as data |

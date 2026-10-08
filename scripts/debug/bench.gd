@@ -240,6 +240,27 @@ const MECHWRECK_TIMELINE := [
 	["after shot", ["#mechwreck_after", WRECK_STATUS], [], 0.3],
 ]
 
+# A skyscraper brought down (docs/decisions/0013): first what standing in the
+# downtown block costs, then rockets and a strike into one tower's lobby until
+# it can no longer carry itself, the fall, and the rubble settling. The horde
+# is held off so the frame is the collapse's.
+const COLLAPSE_TIMELINE := [
+	["hold the horde off", ["@status", "!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
+		"@goto:-60, 0.2, -96"], [], 2.0],
+	["downtown", ["@aim:Tower11:45", "@status"], [], 3.0],
+	["downtown shot", ["#collapse_downtown", WRECK_STATUS], [], 0.3],
+	["rockets at the lobby", ["slot_3", "@aim:Tower11:2"], ["~fire"], 6.0],
+	["rockets shot", ["#collapse_rockets", WRECK_STATUS], [], 0.3],
+	["strike on the lobby", ["slot_4", "@aim:Tower11:0"], ["~fire"], 6.0],
+	["strike shot", ["@aim:Tower11:25", "#collapse_strike", WRECK_STATUS], [], 0.3],
+	["coming down", ["@aim:Tower11:25"], [], 2.0],
+	["coming down shot", ["#collapse_falling", WRECK_STATUS], [], 0.3],
+	["landing", [], [], 3.0],
+	["landed shot", ["@aim:Tower11:5", "#collapse_landed", WRECK_STATUS], [], 0.3],
+	["settling", [], [], 5.0],
+	["settled shot", ["#collapse_settled", WRECK_STATUS], [], 0.3],
+]
+
 # The crowd brought onto the player and the three allies: the allies guard,
 # fire and stomp, the pickles bite, strike and spit at them. Every ally's body
 # and legs printed as it goes; the frame is a full fight.
@@ -394,6 +415,7 @@ func _initialize() -> void:
 		"arsenal": _timeline = _arsenal_timeline()
 		"wreck": _timeline = WRECK_TIMELINE
 		"mechwreck": _timeline = MECHWRECK_TIMELINE
+		"collapse": _timeline = COLLAPSE_TIMELINE
 		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)

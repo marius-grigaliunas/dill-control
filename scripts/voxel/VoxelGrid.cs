@@ -290,6 +290,88 @@ public sealed class VoxelGrid
     }
 
     /// <summary>
+    /// Splits an island into pieces: cells with the same key that are
+    /// face-connected to each other. A fracture gives each block its own key;
+    /// one key for all gives the island's connected parts.
+    /// </summary>
+    public List<List<int>> Pieces(List<int> island, Func<int, int> key)
+    {
+        int n = Cells.Length;
+        if (_label == null || _label.Length != n)
+        {
+            _label = new int[n];
+            _queue = new int[n];
+        }
+        if (_key == null || _key.Length != n)
+        {
+            _key = new int[n];
+        }
+        // -1 not in the island, -2 in it and not yet reached.
+        Array.Fill(_label, -1);
+        foreach (int i in island)
+        {
+            _label[i] = -2;
+            _key[i] = key(i);
+        }
+
+        var pieces = new List<List<int>>();
+        int sx = Size.X, sxy = Size.X * Size.Y;
+        foreach (int start in island)
+        {
+            if (_label[start] != -2)
+            {
+                continue;
+            }
+            int id = pieces.Count;
+            int k = _key[start];
+            var members = new List<int>();
+            int head = 0, tail = 0;
+            _queue[tail++] = start;
+            _label[start] = id;
+            while (head < tail)
+            {
+                int i = _queue[head++];
+                members.Add(i);
+                int x = i % sx, y = (i / sx) % Size.Y, z = i / sxy;
+                void Visit(int j)
+                {
+                    if (_label[j] == -2 && _key[j] == k)
+                    {
+                        _label[j] = id;
+                        _queue[tail++] = j;
+                    }
+                }
+                if (x > 0) Visit(i - 1);
+                if (x < sx - 1) Visit(i + 1);
+                if (y > 0) Visit(i - sx);
+                if (y < Size.Y - 1) Visit(i + sx);
+                if (z > 0) Visit(i - sxy);
+                if (z < Size.Z - 1) Visit(i + sxy);
+            }
+            pieces.Add(members);
+        }
+        return pieces;
+    }
+
+    private int[] _key;
+
+    /// <summary>Clears the given cells, reporting each into <paramref name="removed"/>.</summary>
+    public void Remove(List<int> cells, List<Removed> removed)
+    {
+        foreach (int i in cells)
+        {
+            if (Cells[i] == 0)
+            {
+                continue;
+            }
+            Vector3I c = CellOf(i);
+            removed?.Add(new Removed(CellCentre(c.X, c.Y, c.Z), Cells[i]));
+            Cells[i] = 0;
+            SolidCount--;
+        }
+    }
+
+    /// <summary>
     /// Lifts an island out into a grid of its own, sized to it, with its
     /// origin at its centre of mass so a rigid body built on it turns about
     /// the right point. The cells are cleared here. <paramref name="offset"/>

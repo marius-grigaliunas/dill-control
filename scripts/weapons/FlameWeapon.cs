@@ -110,37 +110,49 @@ public partial class FlameWeapon : WeaponBase
         {
             return;
         }
+        _flameProcess = BuildJet(FlameVisual, Stats.Range * Stats.FlameVisualScale, Stats.ConeDegrees);
+    }
 
-        float length = Mathf.Max(0.5f, Stats.Range * Stats.FlameVisualScale);
-        float endRadius = Mathf.Tan(Mathf.DegToRad(Stats.ConeDegrees)) * length;
+    /// <summary>
+    /// Sets an emitter up as the flame jet along its local -Z, reaching
+    /// <paramref name="length"/> metres in a cone of <paramref name="coneDegrees"/>.
+    /// Shared with anything else that throws flame (a mech's flamer), so every
+    /// flame in the game is drawn the same way. Returns the process material,
+    /// whose gravity the owner points up as the flame's lift.
+    /// </summary>
+    public static ParticleProcessMaterial BuildJet(GpuParticles3D visual, float length, float coneDegrees)
+    {
+        length = Mathf.Max(0.5f, length);
+        float endRadius = Mathf.Tan(Mathf.DegToRad(coneDegrees)) * length;
 
         // Damping bleeds speed over the flight, so the launch speed is set a
         // little over range/lifetime for the puffs to actually arrive.
-        _flameProcess ??= BuildFlameProcess();
-        _flameProcess.InitialVelocityMin = length / FlameLifetime * 1.05f;
-        _flameProcess.InitialVelocityMax = length / FlameLifetime * 1.3f;
+        ParticleProcessMaterial process = BuildFlameProcess();
+        process.InitialVelocityMin = length / FlameLifetime * 1.05f;
+        process.InitialVelocityMax = length / FlameLifetime * 1.3f;
 
         // The spread is narrower than the cone and the growth fills the rest:
         // a puff's centre travelling at the full half-angle would draw its own
         // disc beyond the edge the query tests.
-        _flameProcess.Spread = Stats.ConeDegrees * 0.6f;
-        _flameProcess.ScaleMin = Mathf.Max(0.4f, endRadius * 0.5f);
-        _flameProcess.ScaleMax = Mathf.Max(0.5f, endRadius * 0.8f);
+        process.Spread = coneDegrees * 0.6f;
+        process.ScaleMin = Mathf.Max(0.4f, endRadius * 0.5f);
+        process.ScaleMax = Mathf.Max(0.5f, endRadius * 0.8f);
 
-        FlameVisual.ProcessMaterial = _flameProcess;
-        FlameVisual.DrawPass1 = BuildFlameQuad();
-        FlameVisual.Amount = FlameParticles;
-        FlameVisual.Lifetime = FlameLifetime;
-        FlameVisual.Randomness = 0.35f;
-        FlameVisual.LocalCoords = false;
-        FlameVisual.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
-        FlameVisual.Emitting = false;
+        visual.ProcessMaterial = process;
+        visual.DrawPass1 = BuildFlameQuad();
+        visual.Amount = FlameParticles;
+        visual.Lifetime = FlameLifetime;
+        visual.Randomness = 0.35f;
+        visual.LocalCoords = false;
+        visual.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+        visual.Emitting = false;
 
         // Culling needs a box that holds the whole stream wherever the view
         // has swept it; a tight one blinks the flame off at the edges.
-        FlameVisual.VisibilityAabb = new Aabb(
+        visual.VisibilityAabb = new Aabb(
             new Vector3(-length, -length, -length * 1.5f),
             new Vector3(length * 2.0f, length * 2.0f, length * 3.0f));
+        return process;
     }
 
     /// <summary>Particles alive at once. Over the lifetime that is ~190 puffs
@@ -151,7 +163,7 @@ public partial class FlameWeapon : WeaponBase
     private const float FlameLifetime = 0.5f;
 
     /// <summary>Upward acceleration on the puffs, in m/s², along the local up.</summary>
-    private const float FlameLift = 4.0f;
+    public const float FlameLift = 4.0f;
 
     private ParticleProcessMaterial _flameProcess;
 

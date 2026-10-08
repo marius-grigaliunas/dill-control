@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FlamethrowerStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/FlamethrowerStats.cs" id="1_torch"]
+
+[resource]
+resource_name = "FieldFighterFlamer"
+script = ExtResource("1_torch")
+DisplayName = "Arm Flamer"
+DamagePerSecond = 280.0
+Range = 22.0
+ConeDegrees = 18.0
+FalloffStart = 15.0
+FalloffMinMultiplier = 0.6
+HordeWashSpheres = 4
+FuelSeconds = 8.0
+FuelRefillPerSecond = 2.5
+RefillDelay = 0.8

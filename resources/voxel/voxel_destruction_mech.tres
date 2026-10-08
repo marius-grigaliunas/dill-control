@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="VoxelDestructionStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/voxel/VoxelDestructionStats.cs" id="1_script"]
+
+[resource]
+resource_name = "VoxelDestructionMech"
+script = ExtResource("1_script")
+CarveMax = 1.2
+Armour = 28.0
+MinCarveDamage = 40.0
+CarveVolumePerDamage = 0.00025
+HingeRadius = 1.0

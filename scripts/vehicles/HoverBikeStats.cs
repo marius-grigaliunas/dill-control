@@ -135,6 +135,25 @@ public partial class HoverBikeStats : Resource
     [Export(PropertyHint.Range, "0,30,0.5,suffix:s")]
     public float LaserScorchSeconds { get; set; } = 14.0f;
 
+    /// <summary>How long the burned path the beam drags across the ground
+    /// lasts (ScorchTrail), dissolving from its edges over all of it. 0 for
+    /// none.</summary>
+    [Export(PropertyHint.Range, "0,120,1,suffix:s")]
+    public float LaserTrailSeconds { get; set; } = 25.0f;
+
+    /// <summary>Width of the burned path.</summary>
+    [Export(PropertyHint.Range, "0.2,8,0.1,suffix:m")]
+    public float LaserTrailWidth { get; set; } = 1.8f;
+
+    /// <summary>How long a fresh stretch of the path glows.</summary>
+    [Export(PropertyHint.Range, "0,20,0.1,suffix:s")]
+    public float LaserTrailEmberSeconds { get; set; } = 2.5f;
+
+    /// <summary>Most marks in the path at once: one draw however many. Past
+    /// it the oldest stretch is reused.</summary>
+    [Export(PropertyHint.Range, "16,4000,1")]
+    public int LaserTrailMarks { get; set; } = 800;
+
     /// <summary>
     /// What the beam removes from a destructible body each tick: a sphere of
     /// this radius, bored half a radius into the surface, regardless of the

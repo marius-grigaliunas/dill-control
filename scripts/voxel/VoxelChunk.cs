@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DillControl.Audio;
 using DillControl.Core;
 using Godot;
 
@@ -47,14 +48,19 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         CollisionLayer = GameLayers.Mask(GameLayers.Prop);
         CollisionMask = GameLayers.Mask(GameLayers.World, GameLayers.Prop);
         float volume = _grid.SolidCount * _grid.VoxelSize * _grid.VoxelSize * _grid.VoxelSize;
-        Mass = Mathf.Clamp(volume * _stats.Density, 1.0f, 50000.0f);
+        Mass = Mathf.Clamp(volume * _stats.Density, 1.0f, 2_000_000.0f);
         CanSleep = true;
+        // Heavy: it lands and stays, grinds rather than skates, and a block
+        // on its corner falls over instead of spinning on.
+        PhysicsMaterialOverride = new PhysicsMaterial { Friction = _stats.Friction, Bounce = 0.0f, Rough = true };
+        AngularDampMode = DampMode.Combine;
+        AngularDamp = _stats.AngularDamp;
 
         _part = new VoxelPart
         {
             Name = "Voxels",
             CollisionOwner = this,
-            CollisionStep = _grid.SolidCount > 2000 ? 4 : _grid.SolidCount > 250 ? 2 : 1,
+            CollisionStep = CollisionStepFor(_grid, _stats.MaxChunkBoxes),
             Velocity = () => LinearVelocity,
         };
         _part.Setup(_grid, VoxelAnchor.Largest, _palette, _emission, _material, _stats);
@@ -95,25 +101,55 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         }
     }
 
+    /// <summary>
+    /// The finest collision that stays within <paramref name="maxBoxes"/>:
+    /// exact voxels if it can, so pieces of one fracture start touching rather
+    /// than overlapping (coarse boxes overhang and would throw them apart).
+    /// </summary>
+    private static int CollisionStepFor(VoxelGrid grid, int maxBoxes)
+    {
+        var boxes = new List<(Vector3, Vector3)>();
+        int step = grid.SolidCount > 4000 ? 2 : 1;
+        for (; step < 8; step *= 2)
+        {
+            boxes.Clear();
+            grid.Boxes(Vector3I.Zero, grid.Size, step, boxes);
+            if (boxes.Count <= maxBoxes)
+            {
+                break;
+            }
+        }
+        return step;
+    }
+
+    /// <summary>Voxels in it: how much it matters, when the cap needs room.</summary>
+    public int VoxelCount => _grid?.SolidCount ?? 0;
+
     /// <summary>Lands hard on something: it hurts what is under it, through
-    /// the same blast every explosive uses, so the horde and other voxel
-    /// bodies take it with no special case.</summary>
+    /// the same blast every explosive uses, so the horde, the player and the
+    /// buildings take it with no special case. Its reach is its own size: a
+    /// storey-sized block lands on everything under its footprint, and what
+    /// it lands on is killed (<see cref="VoxelDestructionStats.CrushDamageMax"/>).
+    /// Other loose pieces ignore it (<see cref="ApplyDamage"/>).</summary>
     private void Crush(float speed)
     {
         _crushCooldown = 0.4f;
-        float damage = Mass * speed * _stats.CrushDamagePerMomentum;
+        float damage = Mathf.Min(Mass * speed * _stats.CrushDamagePerMomentum, _stats.CrushDamageMax);
         if (damage < 1.0f)
         {
             return;
         }
-        float reach = Mathf.Pow(_grid.SolidCount, 1.0f / 3.0f) * _grid.VoxelSize * 0.6f + 0.5f;
+        float across = Mathf.Pow(_grid.SolidCount, 1.0f / 3.0f) * _grid.VoxelSize;
+        AudioDirector.PlayAt(across > 3.0f ? Sfx.VoxelCollapse : Sfx.RubbleImpact, GlobalPosition);
+        // From its centre of mass to past its farthest corner.
+        float reach = (new Vector3(_grid.Size.X, _grid.Size.Y, _grid.Size.Z) * _grid.VoxelSize).Length() * 0.5f + 1.5f;
         var blast = new Blast.Settings
         {
             Centre = GlobalPosition,
-            InnerRadius = reach * 0.5f,
+            InnerRadius = reach * 0.7f,
             Radius = reach,
             Damage = damage,
-            MinMultiplier = 0.3f,
+            MinMultiplier = 0.5f,
             Up = Vector3.Up,
             Source = this,
             SourceRid = GetRid(),
@@ -130,9 +166,16 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         {
             normal = Vector3.Right;
         }
-        // The pieces keep some of the speed it had, spread a little apart.
+        // The pieces keep some of the speed it had, spread a little apart: into
+        // blocks half its size if it is big enough, else cracked in two.
         _part.Velocity = () => velocity * 0.4f;
-        _part.Shatter(normal, normal.Normalized() * 1.5f);
+        // Crumbling makes up to eight pieces; with no room for them under the
+        // cap it would only push out pieces still falling, so it cracks instead.
+        bool room = VoxelDebris.Current != null && VoxelDebris.Current.HasRoom(8);
+        if (!room || !_part.Crumble(Vector3.Zero))
+        {
+            _part.Shatter(normal, normal.Normalized() * 1.5f);
+        }
     }
 
     /// <summary>Gone to dust: the debris cap needed the room.</summary>
@@ -148,6 +191,12 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
 
     public void ApplyDamage(DamageInfo info)
     {
+        // Rubble landing on rubble does not grind it to dust: a collapse
+        // leaves a pile, not a cloud.
+        if (info?.Source is VoxelChunk)
+        {
+            return;
+        }
         if (IsSettled && info.IsSplash)
         {
             // A blast wakes rubble up.

@@ -37,11 +37,24 @@ public static class VoxelDamage
         }
 
         float amount = info.Amount;
-        if (info.IsSustained)
+        bool melt = info.MeltRadius > 0.0f;
+        if (!info.IsSustained && !melt && stats.Armour > 0.0f)
         {
+            amount -= stats.Armour;
+            if (amount <= 0.0f)
+            {
+                Report(info, parts, target);
+                return;
+            }
+        }
+
+        float threshold = Mathf.Max(info.IsSustained ? stats.SustainedDamagePerCarve : 0.0f, stats.MinCarveDamage);
+        if (threshold > 0.0f && !melt && (info.IsSustained || amount < threshold))
+        {
+            // Banked: sustained fire, or a hit too small to bite on its own.
             Bank bank = Banks.GetValue(target, _ => new Bank());
             bank.Damage += amount;
-            if (bank.Damage < stats.SustainedDamagePerCarve && info.MeltRadius <= 0.0f)
+            if (bank.Damage < threshold)
             {
                 Report(info, parts, target);
                 return;
@@ -50,7 +63,9 @@ public static class VoxelDamage
             bank.Damage = 0.0f;
         }
 
-        float radius = Mathf.Clamp(stats.CarveBase + amount * stats.CarvePerDamage, 0.0f, stats.CarveMax);
+        float radius = stats.CarveVolumePerDamage > 0.0f
+            ? Mathf.Min(Mathf.Pow(amount * stats.CarveVolumePerDamage * 3.0f / (4.0f * Mathf.Pi), 1.0f / 3.0f), stats.CarveMax)
+            : Mathf.Clamp(stats.CarveBase + amount * stats.CarvePerDamage, 0.0f, stats.CarveMax);
         if (info.MeltRadius > 0.0f)
         {
             radius = Mathf.Max(radius, info.MeltRadius);

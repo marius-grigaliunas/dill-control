@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="MechGunStats" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="MechGunStats" format=3 uid="uid://hw8e5jvunvj2"]
 
-[ext_resource type="Script" path="res://scripts/vehicles/MechGunStats.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://8fc3ekh73j65" path="res://scripts/vehicles/MechGunStats.cs" id="1_script"]
 [ext_resource type="Resource" path="res://resources/vehicles/mch_quadruped_tank_shell.tres" id="2_shell"]
+[ext_resource type="Resource" path="res://resources/vehicles/mch_field_fighter_flamer.tres" id="3_flamer"]
 
 [resource]
 resource_name = "FieldFighterGuns"
@@ -10,6 +11,8 @@ TurretFireInterval = 0.09
 CannonShell = ExtResource("2_shell")
 CannonFireInterval = 1.0
 CannonTraverseDegrees = 25.0
+Flamer = ExtResource("3_flamer")
+FlamerAutoRange = 14.0
 AutoRange = 65.0
 AutoAimToleranceDegrees = 12.0
 AutoCannonConeDegrees = 15.0

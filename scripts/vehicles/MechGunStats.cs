@@ -62,6 +62,26 @@ public partial class MechGunStats : Resource
     [Export(PropertyHint.Range, "0,90,1,suffix:°")]
     public float CannonTraverseDegrees { get; set; } = 35.0f;
 
+    [ExportGroup("Flamer")]
+    /// <summary>A flamethrower on the gun arm, chosen with 2 when ridden; null
+    /// for a mech without one. The same stats the hand flamethrower reads:
+    /// range, cone, damage per second, falloff, fuel.</summary>
+    [Export]
+    public FlamethrowerStats Flamer { get; set; }
+
+    /// <summary>On its own, it flames a pickle this close instead of shooting
+    /// it: the crowd chewing its legs is cleared with fire, not rounds.</summary>
+    [Export(PropertyHint.Range, "0,60,0.5,suffix:m")]
+    public float FlamerAutoRange { get; set; } = 12.0f;
+
+    /// <summary>Seconds of burning ground the jet leaves where it lands, laid
+    /// every <see cref="FlamerIgniteInterval"/>. 0 lights nothing.</summary>
+    [Export(PropertyHint.Range, "0,30,0.5,suffix:s")]
+    public float FlamerFireSeconds { get; set; } = 6.0f;
+
+    [Export(PropertyHint.Range, "0.1,5,0.05,suffix:s")]
+    public float FlamerIgniteInterval { get; set; } = 0.6f;
+
     [ExportGroup("Targeting")]
     /// <summary>How far it looks for pickles on its own.</summary>
     [Export(PropertyHint.Range, "5,200,1,suffix:m")]

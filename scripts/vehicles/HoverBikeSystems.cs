@@ -200,6 +200,19 @@ public partial class HoverBikeSystems : Node
 
         BuildBeamVisual();
 
+        if (Stats.LaserTrailSeconds > 0.0f)
+        {
+            _scorch = new ScorchTrail
+            {
+                Name = "ScorchTrail",
+                Width = Stats.LaserTrailWidth,
+                Lifetime = Stats.LaserTrailSeconds,
+                EmberSeconds = Stats.LaserTrailEmberSeconds,
+                Capacity = Stats.LaserTrailMarks,
+            };
+            AddChild(_scorch);
+        }
+
         if (Level != null)
         {
             Level.PlayerSpawned += OnPlayerSpawned;
@@ -738,6 +751,7 @@ public partial class HoverBikeSystems : Node
         {
             _beamTimer = 0.0f;
             _meltTimer = 0.0f;
+            _scorch?.Break();
             SetBeamVisible(false);
             return;
         }
@@ -805,7 +819,19 @@ public partial class HoverBikeSystems : Node
         if (!hit)
         {
             _meltTimer = 0.0f;
+            _scorch?.Break();
             return;
+        }
+
+        // Char on the ground only: a building's face is melted away under the
+        // beam, and a mark there would hang in the hole.
+        if (result["collider"].AsGodotObject() is StaticBody3D and not Voxel.VoxelCollider)
+        {
+            _scorch?.Mark(point, normal);
+        }
+        else
+        {
+            _scorch?.Break();
         }
 
         if (!Vaporize(point, normal))
@@ -875,6 +901,9 @@ public partial class HoverBikeSystems : Node
     }
 
     private ulong _lastLaserBurstMs;
+
+    /// <summary>The burned path the beam leaves on the ground.</summary>
+    private ScorchTrail _scorch;
 
     /// <summary>
     /// The laser burns and melts what it holds on. Asked for outright: the
