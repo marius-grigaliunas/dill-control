@@ -13,9 +13,11 @@ namespace DillControl.Vehicles;
 /// at the seat, so anything chasing them chases the mech, and the mech's own
 /// camera takes over. Riding, WASD walks relative to the camera in any
 /// direction, the body turns to the camera while walking, the turret follows
-/// the camera all the way round, jump jumps and held jump is the jets.
-/// <c>view_toggle</c> swaps the chase camera for the seat; <c>interact</c>
-/// climbs off.
+/// the camera all the way round, jump jumps and held jump is the jets, fire is
+/// the turret gun and alt fire the hull cannon (<see cref="MechGunner"/>).
+/// Riding starts in first person from the seat; <c>view_toggle</c> swaps to a
+/// chase camera and back; <c>interact</c> climbs off. On its own, its guns
+/// pick their own targets.
 ///
 /// The player arrives through <see cref="LevelRoot.PlayerSpawned"/>, because
 /// <see cref="LevelRoot"/> instances it at runtime and nothing authored in a
@@ -44,6 +46,14 @@ public partial class MechCompanion : Node
     [Export]
     public Camera3D Camera { get; set; }
 
+    /// <summary>The guns. On its own it picks targets; ridden, the rider fires.</summary>
+    [Export]
+    public MechGunner Gunner { get; set; }
+
+    /// <summary>The key reminder shown while riding.</summary>
+    [Export]
+    public CanvasLayer RideHint { get; set; }
+
     /// <summary>Shown over the mech while the player is close enough to climb on.</summary>
     [Export]
     public Label3D Prompt { get; set; }
@@ -61,7 +71,6 @@ public partial class MechCompanion : Node
     private float _yaw;
     private float _pitch = -0.25f;
     private bool _seatView;
-    private Transform3D _seatInTurret;
 
     private MechTuning Tuning => Walker?.Tuning;
 
@@ -84,11 +93,6 @@ public partial class MechCompanion : Node
             }
         }
 
-        if (Seat != null && Walker.Turret != null)
-        {
-            _seatInTurret = Walker.Turret.Transform.AffineInverse() * Seat.Transform;
-        }
-
         if (CameraPivot != null)
         {
             CameraPivot.TopLevel = true;
@@ -98,11 +102,23 @@ public partial class MechCompanion : Node
         {
             Prompt.Visible = false;
         }
+        if (RideHint != null)
+        {
+            RideHint.Visible = false;
+        }
+        if (Gunner != null)
+        {
+            Gunner.AimCamera = Camera;
+        }
     }
 
     private void OnPlayerSpawned(Node3D player)
     {
         _player = player as PlayerController;
+        if (Gunner != null)
+        {
+            Gunner.Friendly = _player;
+        }
     }
 
     public override void _PhysicsProcess(double delta)
@@ -121,18 +137,6 @@ public partial class MechCompanion : Node
         else
         {
             Follow();
-        }
-
-        if (Input.IsActionJustPressed("interact"))
-        {
-            if (IsRidden)
-            {
-                Dismount();
-            }
-            else if (InRange())
-            {
-                Mount();
-            }
         }
 
         if (IsRidden && Input.IsActionJustPressed("view_toggle"))
@@ -161,6 +165,23 @@ public partial class MechCompanion : Node
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        // On the event and marked handled, as the hoverbike does, so one press
+        // of interact boards one vehicle even standing between two.
+        if (@event.IsActionPressed("interact") && _player != null)
+        {
+            if (IsRidden)
+            {
+                Dismount();
+                GetViewport().SetInputAsHandled();
+            }
+            else if (InRange())
+            {
+                Mount();
+                GetViewport().SetInputAsHandled();
+            }
+            return;
+        }
+
         if (!IsRidden || @event is not InputEventMouseMotion motion || Input.MouseMode != Input.MouseModeEnum.Captured)
         {
             return;
@@ -187,10 +208,20 @@ public partial class MechCompanion : Node
         Vector3 desire = distance > 1e-3f ? toSpot / distance * drive : Vector3.Zero;
         Walker.MoveIntent = AroundPlayer(desire, up);
 
-        // Walking, it faces where it is going; arrived, the way the player looks.
-        Walker.FaceDirection = drive > 0.3f ? toSpot : -back;
-        Walker.TurretAim = -back;
+        // Walking, it faces where it is going. Arrived, it turns its hull gun
+        // on whatever it is shooting, or else looks the way the player looks.
+        // The turret is on the target whenever there is one.
+        Vector3? target = Gunner?.Target;
+        Vector3 toTarget = target is Vector3 t ? (t - Walker.GlobalPosition).Slide(up) : Vector3.Zero;
+        Walker.FaceDirection = drive > 0.3f ? toSpot : (target != null ? toTarget : -back);
+        Walker.TurretAim = target != null ? toTarget : -back;
         Walker.JumpHeld = false;
+        if (Gunner != null)
+        {
+            Gunner.Manual = false;
+            Gunner.TurretTrigger = false;
+            Gunner.CannonTrigger = false;
+        }
     }
 
     /// <summary>
@@ -234,7 +265,9 @@ public partial class MechCompanion : Node
     private void Mount()
     {
         IsRidden = true;
-        _seatView = false;
+        // First person from the seat: you climb up into it, not out of your
+        // own head into a chase camera. V swaps to the chase view.
+        _seatView = true;
 
         // Start the camera behind the player's own view.
         Vector3 forward = -_player.GlobalBasis.Z.Slide(Walker.Up);
@@ -244,6 +277,10 @@ public partial class MechCompanion : Node
         _player.SetStowed(true);
         Camera?.MakeCurrent();
         PlaceCamera(1.0f);
+        if (RideHint != null)
+        {
+            RideHint.Visible = true;
+        }
     }
 
     private void Dismount()
@@ -251,6 +288,10 @@ public partial class MechCompanion : Node
         IsRidden = false;
         Walker.MoveIntent = Vector3.Zero;
         Walker.JumpHeld = false;
+        if (RideHint != null)
+        {
+            RideHint.Visible = false;
+        }
 
         // Down beside it, looking where the camera looked.
         Vector3 up = Walker.Up;
@@ -278,6 +319,14 @@ public partial class MechCompanion : Node
             Walker.RequestJump();
         }
         Walker.JumpHeld = Input.IsActionPressed("jump");
+
+        if (Gunner != null)
+        {
+            bool captured = Input.MouseMode == Input.MouseModeEnum.Captured;
+            Gunner.Manual = true;
+            Gunner.TurretTrigger = captured && Input.IsActionPressed("fire");
+            Gunner.CannonTrigger = captured && Input.IsActionPressed("alt_fire");
+        }
     }
 
     private void PlaceCamera(float dt)
@@ -289,9 +338,10 @@ public partial class MechCompanion : Node
 
         Basis view = new Basis(Walker.Up, _yaw) * new Basis(Vector3.Right, _pitch);
         Vector3 anchor;
-        if (_seatView && Seat != null && Walker.Turret != null)
+        if (_seatView && Seat != null)
         {
-            anchor = (Walker.Turret.GlobalTransform * _seatInTurret).Origin;
+            // The seat rides on the turret (MechWalker.TurretMounted).
+            anchor = Seat.GlobalPosition;
             CameraArm.SpringLength = 0.0f;
         }
         else

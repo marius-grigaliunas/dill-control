@@ -151,7 +151,7 @@ public partial class MechTuning : Resource
 
     /// <summary>How close the player has to be to climb on.</summary>
     [Export(PropertyHint.Range, "1,20,0.5,suffix:m")]
-    public float MountRange { get; set; } = 6.5f;
+    public float MountRange { get; set; } = 9.0f;
 
     [ExportGroup("Ride camera")]
     [Export(PropertyHint.Range, "2,40,0.5,suffix:m")]

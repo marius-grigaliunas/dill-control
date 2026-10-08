@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="RocketStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/RocketStats.cs" id="1_pod"]
+
+[resource]
+resource_name = "QuadrupedTankShell"
+script = ExtResource("1_pod")
+DisplayName = "Tank Shell"
+MagazineSize = 1
+MuzzleSpeed = 110.0
+CruiseSpeed = 150.0
+Acceleration = 60.0
+GravityScale = 0.05
+MaxLifetime = 6.0
+SpawnOffset = 0.0
+DirectHitDamage = 90.0
+Damage = 320.0
+InnerRadius = 5.0
+BlastRadius = 14.0
+MinMultiplier = 0.35
+Impulse = 24.0
+ImpulseUpBias = 0.4
+SelfImpulseScale = 0.0
+DebrisImpulseScale = 3.0
+CraterRadius = 0.0
+CraterDepth = 0.0

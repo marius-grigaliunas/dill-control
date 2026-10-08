@@ -123,8 +123,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, 60)
 [node name="Companion" parent="Props/QuadrupedTank" node_paths=PackedStringArray("Level")]
 Level = NodePath("../../..")
 
+[node name="Gunner" parent="Props/QuadrupedTank" node_paths=PackedStringArray("Horde")]
+Horde = NodePath("../../../Spawns/Horde")
+
 [node name="HoverBike" parent="Props" instance=ExtResource("11_bike")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.3, 64)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.3, 74)
 
 [node name="Systems" parent="Props/HoverBike" node_paths=PackedStringArray("Level")]
 Level = NodePath("../../..")

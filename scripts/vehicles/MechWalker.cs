@@ -51,6 +51,12 @@ public partial class MechWalker : CharacterBody3D
     [Export]
     public Godot.Collections.Array<Node3D> Feet { get; set; } = new();
 
+    /// <summary>Markers that ride on the turret: its muzzle, the seat. The
+    /// importer puts every marker beside the parts, so they are moved under
+    /// the turret here, keeping where they are.</summary>
+    [Export]
+    public Godot.Collections.Array<Node3D> TurretMounted { get; set; } = new();
+
     /// <summary>Where to walk, world space, length up to 1 for full speed.</summary>
     public Vector3 MoveIntent { get; set; }
 
@@ -70,6 +76,18 @@ public partial class MechWalker : CharacterBody3D
     public float JetFuel01 => Tuning == null || Tuning.JetFuelSeconds <= 0.0f ? 0.0f : _fuel / Tuning.JetFuelSeconds;
 
     public Vector3 Up { get; private set; } = Vector3.Up;
+
+    /// <summary>Which way the turret points, world space.</summary>
+    public Vector3 TurretForward => Turret != null ? Turret.GlobalBasis.Z : GlobalBasis.Z;
+
+    /// <summary>A shove to the body's spring, world space: a gun's recoil
+    /// rocks it back and down.</summary>
+    public void Kick(Vector3 push)
+    {
+        Vector3 local = GlobalBasis.Inverse() * push;
+        _tiltVelocity += new Vector2(local.Z, local.X) * 0.8f;
+        _sinkVelocity -= push.Length() * 0.15f;
+    }
 
     private readonly List<MechLeg> _legs = new();
     private Transform3D _modelRest;
@@ -104,6 +122,10 @@ public partial class MechWalker : CharacterBody3D
         if (Turret != null)
         {
             _turretRest = Turret.Transform;
+            foreach (Node3D mounted in TurretMounted)
+            {
+                mounted?.Reparent(Turret, true);
+            }
         }
 
         int count = Mathf.Min(Thighs.Count, Mathf.Min(Shins.Count, Feet.Count));

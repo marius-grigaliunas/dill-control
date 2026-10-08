@@ -1,15 +1,22 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene format=3 uid="uid://ctd2f5fevifgy"]
 
 [ext_resource type="PackedScene" uid="uid://c7b2pe5a0rfq7" path="res://art/voxels/mch_quadruped_tank.vox" id="1_model"]
-[ext_resource type="Script" path="res://scripts/vehicles/MechWalker.cs" id="2_walker"]
-[ext_resource type="Script" path="res://scripts/vehicles/MechCompanion.cs" id="3_companion"]
+[ext_resource type="Script" uid="uid://d3761xciwvqeq" path="res://scripts/vehicles/MechWalker.cs" id="2_walker"]
+[ext_resource type="Script" uid="uid://y2arq2sdad0e" path="res://scripts/vehicles/MechCompanion.cs" id="3_companion"]
 [ext_resource type="Resource" path="res://resources/vehicles/mch_quadruped_tank_tuning.tres" id="4_tuning"]
-[ext_resource type="Script" path="res://scripts/player/ToonPass.cs" id="5_toon"]
+[ext_resource type="Script" uid="uid://cpnhd5rjl1c43" path="res://scripts/player/ToonPass.cs" id="5_toon"]
+[ext_resource type="Script" uid="uid://cikoe6ufr6iuv" path="res://scripts/vehicles/MechGunner.cs" id="6_gunner"]
+[ext_resource type="Resource" path="res://resources/vehicles/mch_quadruped_tank_guns.tres" id="7_guns"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_tracer.tscn" id="8_tracer"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_impact.tscn" id="9_impact"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_explosion.tscn" id="10_expl"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_rocket.tscn" id="11_shell"]
 
 [sub_resource type="BoxShape3D" id="HullShape"]
 size = Vector3(3.6, 4.4, 4.4)
 
-[node name="MchQuadrupedTank" type="CharacterBody3D" node_paths=PackedStringArray("Model", "Turret", "Thighs", "Shins", "Feet")]
+[node name="MchQuadrupedTank" type="CharacterBody3D" unique_id=115492337 node_paths=PackedStringArray("Model", "Turret", "Thighs", "Shins", "Feet", "TurretMounted")]
+transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, 0, 0, 0)
 script = ExtResource("2_walker")
 Tuning = ExtResource("4_tuning")
 Model = NodePath("Model")
@@ -17,40 +24,69 @@ Turret = NodePath("Model/Turret")
 Thighs = [NodePath("Model/ThighFL"), NodePath("Model/ThighFR"), NodePath("Model/ThighBL"), NodePath("Model/ThighBR")]
 Shins = [NodePath("Model/ShinFL"), NodePath("Model/ShinFR"), NodePath("Model/ShinBL"), NodePath("Model/ShinBR")]
 Feet = [NodePath("Model/FootFL"), NodePath("Model/FootFR"), NodePath("Model/FootBL"), NodePath("Model/FootBR")]
+TurretMounted = [NodePath("Model/Seat"), NodePath("Model/TurretMuzzle")]
 
-[node name="Model" parent="." instance=ExtResource("1_model")]
+[node name="Model" parent="." unique_id=97900134 instance=ExtResource("1_model")]
 
-[node name="Hull" type="CollisionShape3D" parent="."]
+[node name="Hull" type="CollisionShape3D" parent="." unique_id=1305142044]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
 shape = SubResource("HullShape")
 
-[node name="Prompt" type="Label3D" parent="."]
+[node name="Prompt" type="Label3D" parent="." unique_id=1021880915]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.8, 0)
 pixel_size = 0.006
 billboard = 1
 no_depth_test = true
 text = "F  ride"
 font_size = 48
-outline_size = 12
 
-[node name="CameraPivot" type="Node3D" parent="."]
+[node name="CameraPivot" type="Node3D" parent="." unique_id=840151327]
 top_level = true
 
-[node name="Arm" type="SpringArm3D" parent="CameraPivot"]
+[node name="Arm" type="SpringArm3D" parent="CameraPivot" unique_id=159934999]
 spring_length = 11.0
 margin = 0.3
 
-[node name="Camera" type="Camera3D" parent="CameraPivot/Arm"]
-fov = 75.0
+[node name="Camera" type="Camera3D" parent="CameraPivot/Arm" unique_id=1388212166]
 
-[node name="ToonPass" type="MeshInstance3D" parent="CameraPivot/Arm/Camera"]
+[node name="ToonPass" type="MeshInstance3D" parent="CameraPivot/Arm/Camera" unique_id=379591433]
 script = ExtResource("5_toon")
 
-[node name="Companion" type="Node" parent="." node_paths=PackedStringArray("Walker", "Seat", "CameraPivot", "CameraArm", "Camera", "Prompt")]
+[node name="RideHint" type="CanvasLayer" parent="." unique_id=687357474]
+
+[node name="Keys" type="Label" parent="RideHint" unique_id=615483309]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -150.0
+offset_right = 600.0
+offset_bottom = -24.0
+theme_override_colors/font_outline_color = Color(0.08, 0.1, 0.06, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 20
+text = "WASD  walk        Space  jump, hold for jets
+LMB  turret gun    RMB  hull cannon
+V  seat / chase view        F  climb off"
+
+[node name="Gunner" type="Node" parent="." unique_id=384979010 node_paths=PackedStringArray("Walker", "TurretMuzzle", "CannonMuzzle")]
+script = ExtResource("6_gunner")
+Stats = ExtResource("7_guns")
+Walker = NodePath("..")
+TurretMuzzle = NodePath("../Model/TurretMuzzle")
+CannonMuzzle = NodePath("../Model/Muzzle")
+TracerScene = ExtResource("8_tracer")
+ImpactScene = ExtResource("9_impact")
+ExplosionScene = ExtResource("10_expl")
+ShellScene = ExtResource("11_shell")
+
+[node name="Companion" type="Node" parent="." unique_id=774524943 node_paths=PackedStringArray("Walker", "Seat", "CameraPivot", "CameraArm", "Camera", "Gunner", "RideHint", "Prompt")]
 script = ExtResource("3_companion")
 Walker = NodePath("..")
 Seat = NodePath("../Model/Seat")
 CameraPivot = NodePath("../CameraPivot")
 CameraArm = NodePath("../CameraPivot/Arm")
 Camera = NodePath("../CameraPivot/Arm/Camera")
+Gunner = NodePath("../Gunner")
+RideHint = NodePath("../RideHint")
 Prompt = NodePath("../Prompt")
