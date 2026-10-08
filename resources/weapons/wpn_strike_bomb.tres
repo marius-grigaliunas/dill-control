@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="RocketStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/RocketStats.cs" id="1_bomb"]
+
+[resource]
+resource_name = "StrikeBomb"
+script = ExtResource("1_bomb")
+DisplayName = "500lb"
+MuzzleSpeed = 34.0
+CruiseSpeed = 105.0
+Acceleration = 42.0
+GravityScale = 1.0
+MaxLifetime = 14.0
+DirectHitDamage = 0.0
+Damage = 420.0
+InnerRadius = 10.0
+BlastRadius = 26.0
+MinMultiplier = 0.35
+Impulse = 40.0
+ImpulseUpBias = 0.55
+DebrisImpulseScale = 4.0

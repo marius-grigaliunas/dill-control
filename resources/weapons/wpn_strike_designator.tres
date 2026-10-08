@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AirstrikeStats" format=3 uid="uid://cbbdbhi3lroyb"]
+
+[ext_resource type="Script" uid="uid://blkxsttd1afk3" path="res://scripts/weapons/AirstrikeStats.cs" id="1_dstat"]
+[ext_resource type="Resource" path="res://resources/weapons/wpn_strike_bomb.tres" id="2_bomb"]
+
+[resource]
+resource_name = "StrikeDesignator"
+script = ExtResource("1_dstat")
+Charges = 5
+MaxRange = 420.0
+BombCount = 9
+SpreadRadius = 18.0
+Ordnance = ExtResource("2_bomb")

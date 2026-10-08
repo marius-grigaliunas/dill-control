@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RocketStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/RocketStats.cs" id="1_rocket"]
+
+[resource]
+resource_name = "ClusterWarhead"
+script = ExtResource("1_rocket")
+DisplayName = "Cluster"
+DirectHitDamage = 0.0
+Damage = 70.0
+InnerRadius = 3.0
+BlastRadius = 11.0
+MinMultiplier = 0.7
+Impulse = 8.0
+ImpulseUpBias = 0.35
+DebrisImpulseScale = 1.4

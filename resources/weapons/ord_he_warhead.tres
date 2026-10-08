@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RocketStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/RocketStats.cs" id="1_rocket"]
+
+[resource]
+resource_name = "HighExplosiveWarhead"
+script = ExtResource("1_rocket")
+DisplayName = "1000lb HE"
+DirectHitDamage = 0.0
+Damage = 520.0
+InnerRadius = 8.0
+BlastRadius = 26.0
+MinMultiplier = 0.35
+Impulse = 44.0
+ImpulseUpBias = 0.6
+DebrisImpulseScale = 5.0
+CraterRadius = 11.0
+CraterDepth = 3.2

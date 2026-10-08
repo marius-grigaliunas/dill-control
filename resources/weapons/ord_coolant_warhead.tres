@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RocketStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/RocketStats.cs" id="1_rocket"]
+
+[resource]
+resource_name = "CoolantDumpWarhead"
+script = ExtResource("1_rocket")
+DisplayName = "Coolant"
+DirectHitDamage = 0.0
+Damage = 0.0
+InnerRadius = 4.0
+BlastRadius = 14.0
+MinMultiplier = 1.0
+Impulse = 0.0
+ImpulseUpBias = 0.0
+DebrisImpulseScale = 0.0
+CoolantAmount = 0.9

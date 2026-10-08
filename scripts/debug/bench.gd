@@ -161,6 +161,27 @@ const MECHSAB_TIMELINE := [
 	["all shown, last", ["!show:FieldFighter", "!show:MobileStorage", "!show:HoverBike", "!show:QuadrupedTank"], [], 5.0],
 ]
 
+# The four weapons ported with the bike, into an arriving crowd: the strike
+# designator (fires on the press, so tapped), the burner and the manipulator
+# held, the lance tapped. Kills and the frame per weapon.
+static func _arsenal_timeline() -> Array:
+	return [
+		["seed", ["@status", "!set:Horde:Stats:HuntSeedMinRadius=30.0",
+			"!set:Horde:Stats:HuntSeedRadius=120.0"], [], 2.0],
+		["reseed", ["!call:Horde:BenchReseed"], [], 10.0],
+		["face the crowd", ["@aim:Horde:0.5"], [], 2.0],
+		["gravity manipulator", ["slot_8", "@aim:Horde:0.5"], ["alt_fire"], 4.0],
+		["manipulator shot", ["#arsenal_manipulator"], ["alt_fire"], 0.3],
+		["let go", [], [], 2.0],
+		["manipulator, fire", [], ["fire"], 3.0],
+		["strike designator", ["slot_4"], ["~fire"], 9.0],
+		["strike shot", ["#arsenal_strike"], [], 0.3],
+		["brine burner", ["slot_6", "@aim:Horde:0.5"], ["fire"], 5.0],
+		["burner shot", ["#arsenal_burner"], ["fire"], 0.3],
+		["vinegar lance", ["slot_7", "@aim:Horde:0.5"], ["~fire"], 5.0],
+		["lance shot", ["#arsenal_lance"], ["~fire"], 0.3],
+	]
+
 # The hoverbike in lvl_horde_flats: boarded, flown out in both modes, every
 # weapon fired toward the crowd, landed and left. Its state comes from the
 # player's line (stowed, so it reads where they boarded) and screenshots.
@@ -296,6 +317,7 @@ func _initialize() -> void:
 		"bike": _timeline = BIKE_TIMELINE
 		"mechs": _timeline = MECHS_TIMELINE
 		"mechsab": _timeline = MECHSAB_TIMELINE
+		"arsenal": _timeline = _arsenal_timeline()
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
 		_: _timeline = IDLE_TIMELINE

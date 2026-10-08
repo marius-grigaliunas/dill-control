@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="GrenadeStats" format=3]
 
-[ext_resource type="Script" path="res://scripts/weapons/GrenadeStats.cs" id="1_bomb"]
+[ext_resource type="Script" uid="uid://jhamuacsgt4w" path="res://scripts/weapons/GrenadeStats.cs" id="1_bomb"]
 
 [resource]
 resource_name = "JarBomblet"

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="FlamethrowerStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/FlamethrowerStats.cs" id="1_torch"]
+
+[resource]
+resource_name = "BrineBurner"
+script = ExtResource("1_torch")
+DisplayName = "Brine Burner"
+DamagePerSecond = 220.0
+Range = 18.0
+ConeDegrees = 22.0
+FalloffStart = 12.0
+FalloffMinMultiplier = 0.6
+HordeWashSpheres = 3
+FuelSeconds = 10.0
+FuelRefillPerSecond = 3.5
+RefillDelay = 0.5
+KickPitchPerTick = 0.04

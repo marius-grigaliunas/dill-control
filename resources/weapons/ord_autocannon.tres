@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="OrdnanceEntry" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/OrdnanceEntry.cs" id="1_entry"]
+[ext_resource type="Resource" path="res://resources/weapons/ord_autocannon_profile.tres" id="2_profile"]
+[ext_resource type="Resource" path="res://resources/weapons/ord_autocannon_warhead.tres" id="3_head"]
+
+[resource]
+resource_name = "Autocannon"
+script = ExtResource("1_entry")
+DisplayName = "AUTOCANNON"
+Cost = 70.0
+Profile = ExtResource("2_profile")
+Warhead = ExtResource("3_head")

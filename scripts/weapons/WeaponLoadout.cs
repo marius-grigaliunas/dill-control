@@ -8,10 +8,10 @@ namespace DillControl.Weapons;
 /// <summary>
 /// The single owner of "what is in my hands right now".
 ///
-/// Fixed slots, no inventory: the slice's arsenal (docs/plan.md) is a rifle,
-/// the machete, a launcher and a shotgun, with grenades thrown from a hand of
-/// their own. Pickups, ammo types, dropping and a fifth slot are deliberately
-/// not built. The slots are fixed [Export]s rather than a list the player can
+/// Fixed slots, no inventory: the lab's whole arsenal. A rifle, the machete,
+/// a launcher, the strike designator, a shotgun, the flamethrower, the lance
+/// and the gravity manipulator, with grenades thrown from a hand of their own.
+/// Pickups, ammo types and dropping are deliberately not built. The slots are fixed [Export]s rather than a list the player can
 /// add to: the set of weapons is decided in the editor and never at runtime.
 /// An empty slot is skipped, so slot keys number whatever is filled.
 ///
@@ -35,9 +35,25 @@ public partial class WeaponLoadout : Node3D
     [Export]
     public WeaponBase Launcher { get; set; }
 
+    /// <summary>Calls in strikes: the strike designator. Slot 4.</summary>
+    [Export]
+    public WeaponBase Support { get; set; }
+
     /// <summary>The close-range gun: the Dill Hammer shotgun.</summary>
     [Export]
     public WeaponBase Sidearm { get; set; }
+
+    /// <summary>Sustained fire: the Brine Burner. Slot 6.</summary>
+    [Export]
+    public WeaponBase Sustained { get; set; }
+
+    /// <summary>The piercing lance: the Vinegar Lance. Slot 7.</summary>
+    [Export]
+    public WeaponBase Precision { get; set; }
+
+    /// <summary>The gravity manipulator. Slot 8.</summary>
+    [Export]
+    public WeaponBase Utility { get; set; }
 
     /// <summary>
     /// The hand that throws. Not a slot: it borrows the hands and gives them
@@ -125,9 +141,25 @@ public partial class WeaponLoadout : Node3D
         {
             _slots.Add(Launcher);
         }
+        if (Support != null)
+        {
+            _slots.Add(Support);
+        }
         if (Sidearm != null)
         {
             _slots.Add(Sidearm);
+        }
+        if (Sustained != null)
+        {
+            _slots.Add(Sustained);
+        }
+        if (Precision != null)
+        {
+            _slots.Add(Precision);
+        }
+        if (Utility != null)
+        {
+            _slots.Add(Utility);
         }
 
         if (_slots.Count == 0)
@@ -235,7 +267,7 @@ public partial class WeaponLoadout : Node3D
     /// unknown action name makes IsActionJustPressed push an engine error.</summary>
     private static readonly StringName[] SlotActions =
     {
-        "slot_1", "slot_2", "slot_3", "slot_4", "slot_5",
+        "slot_1", "slot_2", "slot_3", "slot_4", "slot_5", "slot_6", "slot_7", "slot_8",
     };
 
     private void TickSwitch(float dt)

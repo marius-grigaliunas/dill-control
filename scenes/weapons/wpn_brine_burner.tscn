@@ -1,0 +1,79 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/FlameWeapon.cs" id="1_script"]
+[ext_resource type="Resource" path="res://resources/weapons/wpn_brine_burner.tres" id="2_stats"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_body"]
+albedo_color = Color(0.24, 0.2, 0.16, 1)
+metallic = 0.3
+roughness = 0.65
+
+[sub_resource type="BoxMesh" id="Box_body"]
+size = Vector3(0.09, 0.1, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="Mat_tank"]
+albedo_color = Color(0.3, 0.26, 0.14, 1)
+metallic = 0.45
+roughness = 0.5
+
+[sub_resource type="CylinderMesh" id="Cyl_tank"]
+top_radius = 0.055
+bottom_radius = 0.055
+height = 0.26
+
+[sub_resource type="StandardMaterial3D" id="Mat_nozzle"]
+albedo_color = Color(0.14, 0.13, 0.13, 1)
+metallic = 0.5
+roughness = 0.45
+
+[sub_resource type="BoxMesh" id="Box_nozzle"]
+size = Vector3(0.04, 0.04, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="Mat_grip"]
+albedo_color = Color(0.18, 0.15, 0.12, 1)
+metallic = 0.2
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="Box_grip"]
+size = Vector3(0.05, 0.15, 0.07)
+
+[node name="BrineBurner" type="Node3D" node_paths=PackedStringArray("MuzzlePoint", "ViewModel", "FlameVisual")]
+script = ExtResource("1_script")
+Stats = ExtResource("2_stats")
+MuzzlePoint = NodePath("ViewModel/MuzzlePoint")
+ViewModel = NodePath("ViewModel")
+FlameVisual = NodePath("ViewModel/MuzzlePoint/Flame")
+
+[node name="ViewModel" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.17, -0.15, -0.62)
+
+[node name="Body" type="MeshInstance3D" parent="ViewModel"]
+material_override = SubResource("Mat_body")
+cast_shadow = 0
+mesh = SubResource("Box_body")
+
+[node name="Tank" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, 0.22)
+material_override = SubResource("Mat_tank")
+cast_shadow = 0
+mesh = SubResource("Cyl_tank")
+
+[node name="Nozzle" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.28)
+material_override = SubResource("Mat_nozzle")
+cast_shadow = 0
+mesh = SubResource("Box_nozzle")
+
+[node name="Grip" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0.08)
+material_override = SubResource("Mat_grip")
+cast_shadow = 0
+mesh = SubResource("Box_grip")
+
+[node name="MuzzlePoint" type="Node3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.44)
+
+[node name="Flame" type="GPUParticles3D" parent="ViewModel/MuzzlePoint"]
+cast_shadow = 0
+emitting = false
+

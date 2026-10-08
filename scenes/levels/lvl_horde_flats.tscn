@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" path="res://scenes/vehicles/shp_hoverbike.tscn" id="11_bike"]
 [ext_resource type="PackedScene" path="res://scenes/vehicles/mch_field_fighter.tscn" id="12_fighter"]
 [ext_resource type="PackedScene" path="res://scenes/vehicles/mch_mobile_storage.tscn" id="13_storage"]
+[ext_resource type="Script" path="res://scripts/levels/ManipulatorBinding.cs" id="14_binding"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
 sky_top_color = Color(0.3, 0.52, 0.84, 1)
@@ -175,5 +176,10 @@ script = ExtResource("7_horde")
 Stats = ExtResource("8_stats")
 Composition = ExtResource("9_comp")
 Level = NodePath("../..")
+
+[node name="ManipulatorBinding" type="Node" parent="Spawns/Horde" node_paths=PackedStringArray("Horde", "Level")]
+script = ExtResource("14_binding")
+Horde = NodePath("..")
+Level = NodePath("../../..")
 
 [node name="Navigation" type="Node3D" parent="."]

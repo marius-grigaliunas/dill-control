@@ -1,0 +1,89 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/AirstrikeDesignator.cs" id="1_desig"]
+[ext_resource type="Resource" path="res://resources/weapons/wpn_strike_designator.tres" id="2_dstat"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_rocket.tscn" id="3_bomb0"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(0.2, 0.22, 0.2, 1)
+metallic = 0.3
+roughness = 0.65
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+size = Vector3(0.14, 0.12, 0.26)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_optic"]
+albedo_color = Color(0.12, 0.13, 0.14, 1)
+metallic = 0.5
+roughness = 0.35
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_optic"]
+top_radius = 0.045
+bottom_radius = 0.045
+height = 0.2
+radial_segments = 10
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lens"]
+shading_mode = 0
+albedo_color = Color(0.3, 0.85, 0.7, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_lens"]
+top_radius = 0.038
+bottom_radius = 0.038
+height = 0.012
+radial_segments = 10
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_grip"]
+albedo_color = Color(0.16, 0.15, 0.13, 1)
+metallic = 0.2
+roughness = 0.85
+
+[sub_resource type="BoxMesh" id="BoxMesh_grip"]
+size = Vector3(0.05, 0.16, 0.07)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_panel"]
+shading_mode = 0
+albedo_color = Color(0.95, 0.5, 0.2, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_panel"]
+size = Vector3(0.002, 0.05, 0.09)
+
+[node name="StrikeDesignator" type="Node3D" node_paths=PackedStringArray("ViewModel")]
+script = ExtResource("1_desig")
+Stats = ExtResource("2_dstat")
+ViewModel = NodePath("ViewModel")
+BombScene = ExtResource("3_bomb0")
+
+[node name="ViewModel" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.19, -0.16, -0.52)
+
+[node name="Body" type="MeshInstance3D" parent="ViewModel"]
+material_override = SubResource("StandardMaterial3D_body")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_body")
+
+[node name="Optic" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0.055, -0.2)
+material_override = SubResource("StandardMaterial3D_optic")
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_optic")
+
+[node name="Lens" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0.055, -0.302)
+material_override = SubResource("StandardMaterial3D_lens")
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_lens")
+
+[node name="Grip" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.13, 0.04)
+material_override = SubResource("StandardMaterial3D_grip")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_grip")
+
+[node name="Panel" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.071, 0.01, 0.03)
+material_override = SubResource("StandardMaterial3D_panel")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_panel")

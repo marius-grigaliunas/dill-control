@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RocketStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/RocketStats.cs" id="1_rocket"]
+
+[resource]
+resource_name = "AutocannonWarhead"
+script = ExtResource("1_rocket")
+DisplayName = "30mm"
+DirectHitDamage = 0.0
+Damage = 95.0
+InnerRadius = 1.6
+BlastRadius = 5.0
+MinMultiplier = 0.4
+Impulse = 6.0
+ImpulseUpBias = 0.3
+DebrisImpulseScale = 1.2

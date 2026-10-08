@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="WeaponStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/WeaponStats.cs" id="1_lance"]
+
+[resource]
+resource_name = "VinegarLance"
+script = ExtResource("1_lance")
+DisplayName = "Vinegar Lance"
+FireMode = 0
+Damage = 120.0
+PenetrationCount = 40
+PenetrationDamageRetention = 0.97
+PenetratesWorld = true
+LineRadius = 1.4
+MaxRange = 600.0
+FalloffStart = 600.0
+FalloffEnd = 601.0
+FalloffMinMultiplier = 1.0
+RoundsPerMinute = 150.0
+MagazineSize = 8
+ReserveAmmo = 96
+ReloadTime = 0.8
+TacticalReloadTime = 0.6
+BaseSpreadDegrees = 0.0
+MaxSpreadDegrees = 0.0
+SpreadPerShotDegrees = 0.0
+AimFovScale = 0.45
+RecoilPitchPerShot = 2.2
+RecoilYawPerShot = 0.35
+RecoilRecoverSpeed = 6.0
+RecoilSnappiness = 34.0
+ViewmodelKickBack = 0.1
+ViewmodelKickPitch = 5.0
+ViewmodelRecoverSpeed = 14.0
+TracerSpeed = 3000.0
+TracerEveryNShots = 1
+FireSfx = 3
+RecoilThrust = 4.0
+SplashRadius = 2.6
+SplashInnerRadius = 1.3
+SplashDamage = 40.0
+SplashImpulse = 6.0
+SplashEffectRadius = 2.2
+SplashEffectInterval = 0.04
+SplashScorchSeconds = 1.0
+SplashMaxPerShot = 12
+FirePitch = 0.72
+FireVolumeDb = 3.0

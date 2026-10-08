@@ -1,0 +1,138 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/GravityGun.cs" id="1_ggun"]
+[ext_resource type="Resource" path="res://resources/weapons/wpn_gravity_manipulator.tres" id="2_gstat"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(0.2, 0.22, 0.26, 1)
+metallic = 0.55
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trim"]
+albedo_color = Color(0.72, 0.52, 0.12, 1)
+metallic = 0.3
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_core"]
+shading_mode = 0
+albedo_color = Color(0.45, 0.85, 1, 1)
+emission_enabled = true
+emission = Color(0.35, 0.8, 1, 1)
+emission_energy_multiplier = 1.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_beam"]
+transparency = 1
+blend_mode = 1
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(0.4, 0.85, 1, 0.55)
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+size = Vector3(0.24, 0.22, 0.62)
+
+[sub_resource type="BoxMesh" id="BoxMesh_housing"]
+size = Vector3(0.3, 0.12, 0.26)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_emitter"]
+top_radius = 0.12
+bottom_radius = 0.09
+height = 0.16
+radial_segments = 12
+rings = 1
+
+[sub_resource type="BoxMesh" id="BoxMesh_prong"]
+size = Vector3(0.04, 0.04, 0.26)
+
+[sub_resource type="SphereMesh" id="SphereMesh_core"]
+radius = 0.065
+height = 0.13
+radial_segments = 12
+rings = 6
+
+[sub_resource type="BoxMesh" id="BoxMesh_grip"]
+size = Vector3(0.06, 0.17, 0.08)
+
+[sub_resource type="BoxMesh" id="BoxMesh_canister"]
+size = Vector3(0.1, 0.1, 0.22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_beam"]
+size = Vector3(1, 1, 1)
+
+[node name="GravityManipulator" type="Node3D" node_paths=PackedStringArray("MuzzlePoint", "ViewModel", "Beam", "Core")]
+script = ExtResource("1_ggun")
+Stats = ExtResource("2_gstat")
+MuzzlePoint = NodePath("ViewModel/MuzzlePoint")
+ViewModel = NodePath("ViewModel")
+Beam = NodePath("ViewModel/Beam")
+Core = NodePath("ViewModel/Core")
+
+[node name="ViewModel" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22, -0.23, -0.46)
+
+[node name="Body" type="MeshInstance3D" parent="ViewModel"]
+material_override = SubResource("StandardMaterial3D_body")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_body")
+
+[node name="Housing" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, -0.08)
+material_override = SubResource("StandardMaterial3D_body")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_housing")
+
+[node name="Canister" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.17, 0.02, 0.06)
+material_override = SubResource("StandardMaterial3D_trim")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_canister")
+
+[node name="Emitter" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, -0.38)
+material_override = SubResource("StandardMaterial3D_trim")
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_emitter")
+
+[node name="ProngTop" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -0.52)
+material_override = SubResource("StandardMaterial3D_body")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_prong")
+
+[node name="ProngLeft" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.09, -0.06, -0.52)
+material_override = SubResource("StandardMaterial3D_body")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_prong")
+
+[node name="ProngRight" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.09, -0.06, -0.52)
+material_override = SubResource("StandardMaterial3D_body")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_prong")
+
+[node name="Core" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
+material_override = SubResource("StandardMaterial3D_core")
+cast_shadow = 0
+mesh = SubResource("SphereMesh_core")
+
+[node name="Grip" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.18, 0.14)
+material_override = SubResource("StandardMaterial3D_body")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_grip")
+
+[node name="ForeGrip" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.17, -0.2)
+material_override = SubResource("StandardMaterial3D_body")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_grip")
+
+[node name="MuzzlePoint" type="Node3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.58)
+
+[node name="Beam" type="MeshInstance3D" parent="ViewModel"]
+visible = false
+material_override = SubResource("StandardMaterial3D_beam")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_beam")

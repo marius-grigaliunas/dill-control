@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="FireStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/FireStats.cs" id="1_script"]
+
+[resource]
+resource_name = "FireStatsDefault"
+script = ExtResource("1_script")

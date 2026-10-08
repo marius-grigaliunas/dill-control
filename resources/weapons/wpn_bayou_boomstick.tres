@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="WeaponStats" format=3 uid="uid://daujkdysmkbda"]
+
+[ext_resource type="Script" uid="uid://q2m33kfgg87q" path="res://scripts/weapons/WeaponStats.cs" id="1_boom"]
+
+[resource]
+resource_name = "BayouBoomstick"
+script = ExtResource("1_boom")
+DisplayName = "Bayou Boomstick"
+FireMode = 0
+Damage = 16.0
+PelletsPerShot = 10
+MaxRange = 60.0
+FalloffStart = 6.0
+FalloffEnd = 26.0
+FalloffMinMultiplier = 0.25
+RoundsPerMinute = 75.0
+MagazineSize = 6
+ReserveAmmo = 48
+ReloadTime = 3.0
+TacticalReloadTime = 2.6
+BaseSpreadDegrees = 3.2
+MaxSpreadDegrees = 7.5
+SpreadPerShotDegrees = 0.8
+SpreadRecoveryPerSecond = 6.0
+AimFovScale = 0.82
+AimSpreadMultiplier = 0.55
+RecoilPitchPerShot = 2.4
+RecoilYawPerShot = 0.6
+RecoilRecoverSpeed = 4.0
+ViewmodelKickBack = 0.1
+ViewmodelKickPitch = 8.0
+FireSfx = 2
+RecoilThrust = 9.0

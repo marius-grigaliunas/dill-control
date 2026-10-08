@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OrdnanceSet" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/OrdnanceSet.cs" id="1_set"]
+[ext_resource type="Resource" path="res://resources/weapons/ord_he.tres" id="2_he"]
+[ext_resource type="Resource" path="res://resources/weapons/ord_autocannon.tres" id="3_ac"]
+[ext_resource type="Resource" path="res://resources/weapons/ord_cluster.tres" id="4_cl"]
+[ext_resource type="Resource" path="res://resources/weapons/ord_incendiary.tres" id="5_in"]
+[ext_resource type="Resource" path="res://resources/weapons/ord_coolant.tres" id="6_co"]
+
+[resource]
+resource_name = "OrdnanceSetDefault"
+script = ExtResource("1_set")
+HighExplosive = ExtResource("2_he")
+Autocannon = ExtResource("3_ac")
+Cluster = ExtResource("4_cl")
+Incendiary = ExtResource("5_in")
+CoolantDump = ExtResource("6_co")

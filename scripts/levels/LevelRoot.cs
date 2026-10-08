@@ -50,6 +50,7 @@ public partial class LevelRoot : Node3D
     public override void _Ready()
     {
         AddChild(new PerfDriver { Name = "PerfDriver" });
+        AddChild(new FireField { Name = "FireField" });
         SpawnPlayer();
     }
 

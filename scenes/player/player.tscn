@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.cs" id="1_ctrl"]
 [ext_resource type="Resource" path="res://resources/player/movement_tuning_default.tres" id="2_move"]
@@ -15,6 +15,11 @@
 [ext_resource type="PackedScene" path="res://scenes/weapons/wpn_grenade_thrower.tscn" id="13_grenades"]
 [ext_resource type="Script" path="res://scripts/player/HitStop.cs" id="14_hitstop"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/wpn_bayou_machete.tscn" id="15_machete"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/wpn_strike_designator.tscn" id="40_designator"]
+[ext_resource type="Resource" path="res://resources/weapons/ord_set_default.tres" id="41_ordnance"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/wpn_brine_burner.tscn" id="42_burner"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/wpn_vinegar_lance.tscn" id="43_lance"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/wpn_gravity_manipulator.tscn" id="44_manipulator"]
 
 [sub_resource type="CapsuleShape3D" id="BodyShape"]
 radius = 0.35
@@ -60,12 +65,16 @@ far = 4000.0
 [node name="ToonPass" type="MeshInstance3D" parent="CameraPivot/CameraOffset/Camera3D"]
 script = ExtResource("7_toon")
 
-[node name="WeaponMount" type="Node3D" parent="CameraPivot/CameraOffset/Camera3D" node_paths=PackedStringArray("Primary", "Melee", "Launcher", "Sidearm", "Thrower")]
+[node name="WeaponMount" type="Node3D" parent="CameraPivot/CameraOffset/Camera3D" node_paths=PackedStringArray("Primary", "Melee", "Launcher", "Support", "Sidearm", "Sustained", "Precision", "Utility", "Thrower")]
 script = ExtResource("9_loadout")
 Primary = NodePath("BrineRipper")
 Melee = NodePath("BayouMachete")
 Launcher = NodePath("GherkinVolley")
+Support = NodePath("StrikeDesignator")
 Sidearm = NodePath("DillHammer")
+Sustained = NodePath("BrineBurner")
+Precision = NodePath("VinegarLance")
+Utility = NodePath("GravityManipulator")
 Thrower = NodePath("Grenades")
 
 [node name="BrineRipper" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("10_ripper")]
@@ -78,6 +87,19 @@ AimCamera = NodePath("../..")
 AimCamera = NodePath("../..")
 
 [node name="DillHammer" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("12_hammer")]
+AimCamera = NodePath("../..")
+
+[node name="StrikeDesignator" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("40_designator")]
+AimCamera = NodePath("../..")
+Ordnance = ExtResource("41_ordnance")
+
+[node name="BrineBurner" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("42_burner")]
+AimCamera = NodePath("../..")
+
+[node name="VinegarLance" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("43_lance")]
+AimCamera = NodePath("../..")
+
+[node name="GravityManipulator" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("44_manipulator")]
 AimCamera = NodePath("../..")
 
 [node name="Grenades" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("13_grenades")]

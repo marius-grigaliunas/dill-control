@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AirstrikeStats" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/AirstrikeStats.cs" id="1_strike"]
+[ext_resource type="Resource" path="res://resources/weapons/ord_he_warhead.tres" id="2_head"]
+
+[resource]
+resource_name = "HighExplosiveProfile"
+script = ExtResource("1_strike")
+LeadTime = 2.5
+BombCount = 5
+BombInterval = 0.5
+SpreadRadius = 6.0
+DropHeight = 160.0
+Ordnance = ExtResource("2_head")
