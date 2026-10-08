@@ -12,9 +12,10 @@ namespace DillControl.Vehicles;
 /// <c>interact</c> climbs on: the player is stowed (as on the bike) and carried
 /// at the seat, so anything chasing them chases the mech, and the mech's own
 /// camera takes over. Riding, WASD walks relative to the camera in any
-/// direction, the body turns to the camera while walking, the turret follows
-/// the camera all the way round, jump jumps and held jump is the jets, fire is
-/// the turret gun and alt fire the hull cannon (<see cref="MechGunner"/>).
+/// direction, Shift sprints, the body turns to the camera while walking, the
+/// turret follows the camera all the way round, jump jumps and held jump is
+/// the jets, fire is the arm gun, the flamer or the slash (slots 1/2/3) and
+/// alt fire the hull cannon (<see cref="MechGunner"/>, <see cref="MechSlasher"/>).
 /// Riding starts in first person from the seat; <c>view_toggle</c> swaps to a
 /// chase camera and back; <c>interact</c> climbs off. On its own, its guns
 /// pick their own targets.
@@ -50,6 +51,10 @@ public partial class MechCompanion : Node
     [Export]
     public MechGunner Gunner { get; set; }
 
+    /// <summary>The arm slash, if this mech has one. Slot 3 selects it.</summary>
+    [Export]
+    public MechSlasher Slasher { get; set; }
+
     /// <summary>The key reminder shown while riding.</summary>
     [Export]
     public CanvasLayer RideHint { get; set; }
@@ -71,6 +76,14 @@ public partial class MechCompanion : Node
     private float _yaw;
     private float _pitch = -0.25f;
     private bool _seatView;
+    private ArmTool _armTool;
+
+    private enum ArmTool
+    {
+        Gun,
+        Flamer,
+        Slash,
+    }
 
     private MechTuning Tuning => Walker?.Tuning;
 
@@ -84,6 +97,10 @@ public partial class MechCompanion : Node
             return;
         }
 
+        // Wired in the level scene normally. If the override is missing, walk
+        // up for the LevelRoot the way the bike does: an editor re-save once
+        // dropped it, and the mech then never learned who the player was.
+        Level ??= FindLevel();
         if (Level != null)
         {
             Level.PlayerSpawned += OnPlayerSpawned;
@@ -146,12 +163,33 @@ public partial class MechCompanion : Node
         }
     }
 
+    public override void _ExitTree()
+    {
+        if (Level != null)
+        {
+            Level.PlayerSpawned -= OnPlayerSpawned;
+        }
+    }
+
+    private LevelRoot FindLevel()
+    {
+        for (Node node = GetParent(); node != null; node = node.GetParent())
+        {
+            if (node is LevelRoot level)
+            {
+                return level;
+            }
+        }
+        return null;
+    }
+
     public override void _PhysicsProcess(double delta)
     {
         if (_player == null)
         {
             Walker.MoveIntent = Vector3.Zero;
             Walker.FaceDirection = Vector3.Zero;
+            Walker.Sprint = false;
             return;
         }
 
@@ -200,7 +238,7 @@ public partial class MechCompanion : Node
                 Dismount();
                 GetViewport().SetInputAsHandled();
             }
-            else if (InRange())
+            else if (InRange() && !CloserAlly())
             {
                 Mount();
                 GetViewport().SetInputAsHandled();
@@ -260,6 +298,7 @@ public partial class MechCompanion : Node
         float drive = Mathf.Clamp((distance - Tuning.FollowArriveRadius) / Mathf.Max(Tuning.FollowSlowRadius, 0.01f), 0.0f, 1.0f);
         Vector3 desire = distance > 1e-3f ? toSpot / distance * drive : Vector3.Zero;
         Walker.MoveIntent = AroundPlayer(desire, up);
+        Walker.Sprint = Tuning.FollowSprintDistance > 0.0f && distance > Tuning.FollowSprintDistance;
 
         // Walking, it faces where it is going. Arrived, it turns its hull gun
         // on whatever it is shooting, or else looks the way the player looks.
@@ -274,6 +313,11 @@ public partial class MechCompanion : Node
             Gunner.Manual = false;
             Gunner.TurretTrigger = false;
             Gunner.CannonTrigger = false;
+        }
+        if (Slasher != null)
+        {
+            Slasher.Manual = false;
+            Slasher.Trigger = false;
         }
     }
 
@@ -309,9 +353,40 @@ public partial class MechCompanion : Node
         return desire.LimitLength(1.0f);
     }
 
-    private bool InRange() =>
-        _player != null && !_player.IsStowed && Tuning.MountRange > 0.0f && Camera != null
-        && (_player.GlobalPosition - Walker.GlobalPosition).Slide(Walker.Up).Length() <= Tuning.MountRange;
+    private bool InRange()
+    {
+        if (_player == null || _player.IsStowed || Tuning.MountRange <= 0.0f || Camera == null)
+        {
+            return false;
+        }
+        return (_player.GlobalPosition - Walker.GlobalPosition).Slide(Walker.Up).Length() <= Tuning.MountRange;
+    }
+
+    /// <summary>True when another climbable ally is nearer than this one.
+    /// Interact climbs the closest, not whichever companion node sees the
+    /// event first.</summary>
+    private bool CloserAlly()
+    {
+        float mine = (_player.GlobalPosition - Walker.GlobalPosition).Slide(Walker.Up).Length();
+        Vector3 up = Walker.Up;
+        foreach (Node node in GetTree().GetNodesInGroup(MechWalker.AllyGroup))
+        {
+            if (node == Walker || node is not MechWalker ally || ally.IsDestroyed || ally.Tuning == null)
+            {
+                continue;
+            }
+            if (ally.Tuning.MountRange <= 0.0f)
+            {
+                continue;
+            }
+            float d = (ally.GlobalPosition - _player.GlobalPosition).Slide(up).Length();
+            if (d <= ally.Tuning.MountRange && d < mine)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     // ---------------- Riding ----------------
 
@@ -341,6 +416,7 @@ public partial class MechCompanion : Node
         IsRidden = false;
         Walker.MoveIntent = Vector3.Zero;
         Walker.JumpHeld = false;
+        Walker.Sprint = false;
         if (RideHint != null)
         {
             RideHint.Visible = false;
@@ -364,6 +440,7 @@ public partial class MechCompanion : Node
         Vector2 input = Input.GetVector("move_left", "move_right", "move_forward", "move_back");
         Vector3 move = right * input.X - forward * input.Y;
         Walker.MoveIntent = move;
+        Walker.Sprint = Input.IsActionPressed("sprint") && move.LengthSquared() > 0.01f;
         Walker.FaceDirection = move.LengthSquared() > 0.01f || Tuning.FaceCameraWhenIdle ? forward : Vector3.Zero;
         Walker.TurretAim = forward;
 
@@ -376,9 +453,35 @@ public partial class MechCompanion : Node
         if (Gunner != null)
         {
             bool captured = Input.MouseMode == Input.MouseModeEnum.Captured;
+            // 1 the arm gun, 2 the flamer, 3 the slash, on the same trigger.
+            if (Input.IsActionJustPressed("slot_1"))
+            {
+                _armTool = ArmTool.Gun;
+            }
+            else if (Gunner.HasFlamer && Input.IsActionJustPressed("slot_2"))
+            {
+                _armTool = ArmTool.Flamer;
+            }
+            else if (Slasher != null && Input.IsActionJustPressed("slot_3"))
+            {
+                _armTool = ArmTool.Slash;
+            }
+
+            bool slash = _armTool == ArmTool.Slash && Slasher != null;
             Gunner.Manual = true;
-            Gunner.TurretTrigger = captured && Input.IsActionPressed("fire");
+            Gunner.FlamerSelected = _armTool == ArmTool.Flamer;
+            Gunner.TurretTrigger = captured && Input.IsActionPressed("fire") && !slash;
             Gunner.CannonTrigger = captured && Input.IsActionPressed("alt_fire");
+            if (Slasher != null)
+            {
+                Slasher.Manual = true;
+                Slasher.Trigger = captured && Input.IsActionPressed("fire") && slash;
+            }
+        }
+        else if (Slasher != null)
+        {
+            Slasher.Manual = true;
+            Slasher.Trigger = false;
         }
     }
 

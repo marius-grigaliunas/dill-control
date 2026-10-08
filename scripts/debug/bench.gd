@@ -137,19 +137,26 @@ const MECH_TIMELINE := [
 ]
 
 # The three ally mechs side by side for scale, then the fighter walking,
-# ridden from its cockpit and firing, and the storage bot keeping up.
+# sprinting, ridden from its cockpit, firing with arms raised, slashing,
+# and the storage bot keeping up.
 const MECHS_TIMELINE := [
 	["line-up", ["@aim:MobileStorage:0.5", "@status"], [], 0.6],
 	["line-up shot", ["#mechs_lineup"], [], 0.3],
 	["walk forward, they follow", [], ["move_forward"], 3.0],
 	["turn round", ["@aim:FieldFighter:3"], [], 0.4],
 	["following shot", ["#mechs_follow"], [], 0.3],
-	["board the fighter", [], ["move_forward"], 1.2],
+	["board the fighter", ["@aim:FieldFighter:3"], ["move_forward"], 2.5],
 	["climb in", ["interact", "!call:Companion:PrintBenchStatus"], [], 1.0],
 	["cockpit shot", ["#fighter_cockpit"], [], 0.3],
 	["walk", [], ["move_forward"], 2.5],
+	["sprint", [], ["move_forward", "sprint"], 2.0],
+	["sprint shot", ["#fighter_sprint"], ["move_forward", "sprint"], 0.3],
 	["fire", [], ["fire", "alt_fire"], 2.5],
 	["firing shot", ["#fighter_fire"], ["fire"], 0.3],
+	["slash selected", ["slot_3"], [], 0.2],
+	["slash", [], ["fire"], 2.0],
+	["slash shot", ["#fighter_slash"], ["fire"], 0.3],
+	["gun again", ["slot_1"], [], 0.2],
 	["chase view", ["view_toggle"], ["move_forward"], 1.5],
 	["chase shot", ["#fighter_chase"], ["move_forward"], 0.3],
 	["off", ["interact"], [], 1.0],

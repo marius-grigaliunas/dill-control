@@ -63,6 +63,31 @@ public partial class MechTuning : Resource
     [Export(PropertyHint.Range, "0,1,0.05")]
     public float AirControl { get; set; } = 0.35f;
 
+    [ExportGroup("Sprint")]
+    /// <summary>Top speed while sprinting. 0, or no higher than MaxSpeed, means
+    /// this mech cannot sprint (the tank, the storage bot).</summary>
+    [Export(PropertyHint.Range, "0,40,0.1,suffix:m/s")]
+    public float SprintSpeed { get; set; }
+
+    /// <summary>How long one step takes at sprint speed. Unused when it cannot
+    /// sprint.</summary>
+    [Export(PropertyHint.Range, "0.05,1,0.01,suffix:s")]
+    public float SprintStepSeconds { get; set; } = 0.14f;
+
+    /// <summary>How far the body sinks at sprint, on top of the walk crouch
+    /// curve, so the longer strides still reach.</summary>
+    [Export(PropertyHint.Range, "0,1.5,0.01,suffix:m")]
+    public float SprintCrouch { get; set; } = 0.35f;
+
+    /// <summary>Steady nose-down pitch at full sprint, on top of the accel lean.</summary>
+    [Export(PropertyHint.Range, "0,30,0.5,suffix:°")]
+    public float SprintLeanDegrees { get; set; } = 12.0f;
+
+    /// <summary>On its own, it sprints while further than this from its follow
+    /// spot. 0 never sprints of its own accord.</summary>
+    [Export(PropertyHint.Range, "0,80,0.5,suffix:m")]
+    public float FollowSprintDistance { get; set; }
+
     [ExportGroup("Gait")]
     /// <summary>How far a planted foot may fall behind where it ought to be
     /// before it steps. Smaller steps more often.</summary>
@@ -97,6 +122,7 @@ public partial class MechTuning : Resource
     [Export]
     public Vector3 KneeBias { get; set; } = Vector3.Zero;
 
+    [ExportGroup("Arms")]
     /// <summary>How far an arm swings, in degrees per metre its opposite foot
     /// is ahead of or behind where it rests.</summary>
     [Export(PropertyHint.Range, "0,90,0.5")]
@@ -104,6 +130,26 @@ public partial class MechTuning : Resource
 
     [Export(PropertyHint.Range, "0,90,1,suffix:°")]
     public float MaxArmSwingDegrees { get; set; } = 30.0f;
+
+    /// <summary>How long an arm takes to raise toward a target, and to drop
+    /// once the hold runs out.</summary>
+    [Export(PropertyHint.Range, "0.02,1,0.01,suffix:s")]
+    public float ArmRaiseSeconds { get; set; } = 0.15f;
+
+    /// <summary>How long an arm stays up after the last AimArm, before it
+    /// starts to drop.</summary>
+    [Export(PropertyHint.Range, "0,3,0.05,suffix:s")]
+    public float ArmAimHoldSeconds { get; set; } = 0.6f;
+
+    /// <summary>Share of the raise blend at which a gun on this arm may fire.
+    /// Below it the arm is still coming up.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float ArmReadyFraction { get; set; } = 0.8f;
+
+    /// <summary>How far an aiming arm may yaw off the body's nose. Stops a
+    /// shoulder from twisting the gun behind its back.</summary>
+    [Export(PropertyHint.Range, "0,180,1,suffix:°")]
+    public float ArmAimMaxYawDegrees { get; set; } = 70.0f;
 
     [ExportGroup("Damage")]
     /// <summary>The mech is destroyed when its body is down to this share of

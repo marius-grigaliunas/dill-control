@@ -42,3 +42,39 @@ to a slope beyond what its spring does.
 
 `bench.gd ... lvl_horde_flats.tscn mech`, with the horde arriving: 9.4-12.1 ms
 mean through following, riding, strafing, turning, jumping and the seat view.
+
+## Addendum: sprint, raised arms, slash
+
+*8 October 2026*
+
+The Field Fighter is a biped with arms, not a turret. Three things it needed
+that the tank did not:
+
+**Sprint is a second top speed, not a new gait.** `MechWalker.Sprint` swaps
+`MaxSpeed` for `SprintSpeed` when that is higher. Step time, crouch and a
+steady forward lean lerp on from the walk values by how far past `MaxSpeed`
+it is actually going. Default `SprintSpeed` is 0, so the tank and the storage
+bot are unchanged. The companion sprints on Shift while ridden, and on its
+own while further than `FollowSprintDistance` from its spot. Unlimited.
+
+**Arms aim, then slash, on top of the gait swing.** `AimArm` holds a world
+point and raises over `ArmRaiseSeconds`; a gun fires once `ArmReady` (the
+raise blend past `ArmReadyFraction`). `StrokeArm` is a per-frame override
+that wins while a slash is in the air. A mount that is not an arm (the
+tank's turret) is always ready and ignores both. No clips: the aim is the
+shortest-arc rotation from the rest pointing direction (shoulder to muzzle)
+onto the target, yaw-clamped so a shoulder cannot twist behind the back.
+
+**The slash is `Blast`, like every other hit.** `MechSlasher` poses a
+horizontal sweep and, in three slices, lays spheres along the arm through
+`Blast.ApplyDamage`, `SourceRid` the walker, `NoCrater`. The horde hears it
+on the bus; voxel props and buildings take it the same way. Slot 3 selects
+it, then LMB swings; holding chains, alternating arms. On its own it slashes
+when the gunner's target is inside `AutoRange` and `AutoConeDegrees`.
+
+Numbers live in `mch_field_fighter_tuning.tres` and
+`mch_field_fighter_slash.tres`. `bench.gd ... mechs` on the target machine,
+quiet phases (no screenshot): sprint 14.3 ms mean, 3/141 over 16.7 ms; both
+arms firing 16.7 ms mean, 22/150 over (the explosions); slash 16.1 ms mean,
+10/125 over. Screenshot phases are ignored for worst-frame. The tank
+(`mech`) still boards and fires.

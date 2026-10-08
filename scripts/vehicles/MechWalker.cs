@@ -23,719 +23,914 @@ namespace DillControl.Vehicles;
 ///   landing.
 ///
 /// What it does is not decided here. Something else sets <see cref="MoveIntent"/>,
-/// <see cref="FaceDirection"/>, <see cref="TurretAim"/> and the jump each
-/// frame: <see cref="MechCompanion"/> for the player's ally.
+/// <see cref="FaceDirection"/>, <see cref="TurretAim"/>, <see cref="Sprint"/>
+/// and the jump each frame: <see cref="MechCompanion"/> for the player's ally.
 ///
 /// The model's front is +Z, as every imported model's is.
 /// </summary>
 public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, IHordeTarget
 {
-    [ExportGroup("Data")]
-    [Export]
-    public MechTuning Tuning { get; set; }
+	[ExportGroup("Data")]
+	[Export]
+	public MechTuning Tuning { get; set; }
 
-    [ExportGroup("Scene Wiring")]
-    /// <summary>The imported model's root. The body's bob and tilt move it;
-    /// the parts below it are posed one by one.</summary>
-    [Export]
-    public Node3D Model { get; set; }
+	[ExportGroup("Scene Wiring")]
+	/// <summary>The imported model's root. The body's bob and tilt move it;
+	/// the parts below it are posed one by one.</summary>
+	[Export]
+	public Node3D Model { get; set; }
 
-    [Export]
-    public Node3D Turret { get; set; }
+	[Export]
+	public Node3D Turret { get; set; }
 
-    /// <summary>What it is made of: hits break it (docs/decisions/0011).</summary>
-    [Export]
-    public VoxelBody Voxels { get; set; }
+	/// <summary>What it is made of: hits break it (docs/decisions/0011).</summary>
+	[Export]
+	public VoxelBody Voxels { get; set; }
 
-    /// <summary>The part whose loss kills it.</summary>
-    [Export]
-    public Node3D Core { get; set; }
+	/// <summary>The part whose loss kills it.</summary>
+	[Export]
+	public Node3D Core { get; set; }
 
-    /// <summary>Front left, front right, back left, back right.</summary>
-    [Export]
-    public Godot.Collections.Array<Node3D> Thighs { get; set; } = new();
-
-    [Export]
-    public Godot.Collections.Array<Node3D> Shins { get; set; } = new();
-
-    [Export]
-    public Godot.Collections.Array<Node3D> Feet { get; set; } = new();
-
-    /// <summary>Arms, if it has them: each swings against the leg on the
-    /// other side. Right, left, matching the legs' order.</summary>
-    [Export]
-    public Godot.Collections.Array<Node3D> Arms { get; set; } = new();
-
-    /// <summary>Markers that ride on a moving part (a muzzle on a turret or
-    /// an arm, the seat on the turret). The importer puts every marker beside
-    /// the parts, so each is moved under the part at the same index of
-    /// <see cref="MountedOn"/> here, keeping where it is.</summary>
-    [Export]
-    public Godot.Collections.Array<Node3D> Mounted { get; set; } = new();
-
-    [Export]
-    public Godot.Collections.Array<Node3D> MountedOn { get; set; } = new();
-
-    /// <summary>Where to walk, world space, length up to 1 for full speed.</summary>
-    public Vector3 MoveIntent { get; set; }
-
-    /// <summary>Which way the body should turn to face, world space; zero
-    /// leaves it where it is.</summary>
-    public Vector3 FaceDirection { get; set; }
-
-    /// <summary>Which way the turret should point, world space; zero brings
-    /// it back to the front.</summary>
-    public Vector3 TurretAim { get; set; }
-
-    /// <summary>Held jump: the jets, once in the air.</summary>
-    public bool JumpHeld { get; set; }
-
-    public bool IsGrounded { get; private set; } = true;
-
-    public float JetFuel01 => Tuning == null || Tuning.JetFuelSeconds <= 0.0f ? 0.0f : _fuel / Tuning.JetFuelSeconds;
-
-    public Vector3 Up { get; private set; } = Vector3.Up;
-
-    /// <summary>Every walker on the player's side. Guns hold fire on targets
-    /// near any of them: they break like everything else.</summary>
-    public const string AllyGroup = "dill_allies";
-
-    /// <summary>Raised once, as it falls apart.</summary>
-    public event Action Destroyed;
-
-    public bool IsDestroyed { get; private set; }
-
-    public bool IsAlive => !IsDestroyed;
-
-    /// <summary>Whether the turret still has anything on it.</summary>
-    public bool TurretAlive => Turret != null && (Voxels?.PartOf(Turret) is not VoxelPart part || !part.IsEmpty);
-
-    /// <summary>Whether a part (an arm, the turret) still exists.</summary>
-    public bool PartAlive(Node3D node) => Voxels?.PartOf(node) is not VoxelPart part || !part.IsEmpty;
-
-    /// <summary>Which way the turret points, world space.</summary>
-    public Vector3 TurretForward => Turret != null ? Turret.GlobalBasis.Z : GlobalBasis.Z;
-
-    /// <summary>A shove to the body's spring, world space: a gun's recoil
-    /// rocks it back and down.</summary>
-    public void Kick(Vector3 push)
-    {
-        Vector3 local = GlobalBasis.Inverse() * push;
-        _tiltVelocity += new Vector2(local.Z, local.X) * 0.8f;
-        _sinkVelocity -= push.Length() * 0.15f;
-    }
-
-    private readonly List<MechLeg> _legs = new();
-    private readonly List<Transform3D> _armRest = new();
-    private Transform3D _modelRest;
-    private Transform3D _turretRest;
-    private float _turretYaw;
-
-    private float _fuel;
-    private float _windup = -1.0f;
-    private bool _jumpQueued;
-    private float _yawRate;
-    private Vector3 _lastHorizontal;
-    private Vector3 _acceleration;
-
-    // The body's spring: a height offset and a tilt, each with a velocity.
-    private float _sink;
-    private float _sinkVelocity;
-    private Vector2 _tilt;
-    private Vector2 _tiltVelocity;
-
-    private float _pivotHeight;
-
-    public override void _Ready()
-    {
-        if (Tuning == null || Model == null)
-        {
-            GD.PushError($"MechWalker '{Name}' needs Tuning and Model.");
-            SetPhysicsProcess(false);
-            return;
-        }
-
-        _modelRest = Model.Transform;
-        if (Turret != null)
-        {
-            _turretRest = Turret.Transform;
-        }
-        for (int i = 0; i < Mathf.Min(Mounted.Count, MountedOn.Count); i++)
-        {
-            Mounted[i]?.Reparent(MountedOn[i], true);
-        }
-        foreach (Node3D arm in Arms)
-        {
-            _armRest.Add(arm.Transform);
-        }
-
-        int count = Mathf.Min(Thighs.Count, Mathf.Min(Shins.Count, Feet.Count));
-        for (int i = 0; i < count; i++)
-        {
-            // FL and BR step together, FR and BL together.
-            // Two legs alternate: a walk.
-            int group = i == 0 || i == 3 ? 0 : 1;
-            _legs.Add(new MechLeg(Thighs[i], Shins[i], Feet[i], group, _modelRest, Tuning.KneeBias));
-        }
-
-        // The body tilts about its hips, not about the feet.
-        _pivotHeight = _legs.Count > 0 ? (_modelRest * Thighs[0].Transform.Origin).Y : 0.0f;
-
-        HookVoxels();
-        AddToGroup(AllyGroup);
-        AddToGroup(IHordeTarget.GroupName);
-        MeasureHull();
-        _fuel = Tuning.JetFuelSeconds;
-        CollisionLayer = GameLayers.Mask(GameLayers.Prop);
-        // The player too, so a step that does come too close is blocked
-        // rather than walking through them. Stowed on board, they collide
-        // with nothing.
-        CollisionMask = GameLayers.Mask(GameLayers.World, GameLayers.Prop, GameLayers.Player);
-        FloorSnapLength = 0.4f;
-
-        // Planted where they stand; the first steps correct anything off.
-        // The space cannot be queried outside a physics frame.
-        Transform3D self = GlobalTransform;
-        foreach (MechLeg leg in _legs)
-        {
-            leg.Planted = self * leg.RestFoot;
-        }
-    }
-
-    // ---------------- The horde ----------------
-
-    private float _hullRadius = 1.5f;
-    private float _hullHeight = 3.0f;
-
-    public bool IsTargetable => !IsDestroyed;
-
-    public Vector3 TargetBase => GlobalPosition;
-
-    public float TargetRadius => _hullRadius;
-
-    public float TargetHeight => _hullHeight;
-
-    /// <summary>What the horde aims at is its hull's box, measured once.</summary>
-    private void MeasureHull()
-    {
-        foreach (Node child in GetChildren())
-        {
-            if (child is CollisionShape3D { Shape: BoxShape3D box } shape)
-            {
-                _hullRadius = Mathf.Max(box.Size.X, box.Size.Z) * 0.5f;
-                _hullHeight = shape.Position.Y + box.Size.Y * 0.5f;
-                return;
-            }
-        }
-    }
-
-    /// <summary>
-    /// A pickle bit, struck or spat at it. The bite goes into the voxels like
-    /// any other hit, along the line from the pickle's mouth to the body, so
-    /// a crowd round its legs chews the legs.
-    /// </summary>
-    public void TakeHordeHit(Vector3 from, float damage, Vector3 impulse)
-    {
-        if (IsDestroyed || Voxels == null)
-        {
-            return;
-        }
-        Vector3 chest = GlobalPosition + Up * (_hullHeight * 0.5f);
-        var info = new DamageInfo
-        {
-            Amount = damage * Tuning.HordeDamageScale,
-            BaseAmount = damage,
-            Position = from,
-            Direction = (chest - from).Normalized(),
-            Distance = 0.0f,
-            IsSplash = false,
-        };
-        Voxels.ApplyDamage(info, this);
-        Velocity += impulse * Tuning.HordeShove;
-    }
-
-    /// <summary>A foot came down: the pickles under it take a stamp, over
-    /// the bus, so only the horde hears it.</summary>
-    private void Stomp(Vector3 at)
-    {
-        if (Tuning.StompDamage <= 0.0f || Tuning.StompRadius <= 0.0f)
-        {
-            return;
-        }
-        EventBus.EmitAreaBlast(new BlastInfo
-        {
-            Centre = at,
-            InnerRadius = Tuning.StompRadius * 0.6f,
-            Radius = Tuning.StompRadius,
-            Damage = Tuning.StompDamage,
-            MinMultiplier = 0.5f,
-            Up = Up,
-            Source = this,
-            SourceRid = GetRid(),
-            NoCrater = true,
-        });
-    }
-
-    // ---------------- Damage ----------------
-
-    private void HookVoxels()
-    {
-        if (Voxels == null)
-        {
-            return;
-        }
-
-        Voxels.Velocity = () => Velocity;
-        Voxels.PartEmptied += OnPartEmptied;
-        if (Voxels.PartOf(Core) is VoxelPart core)
-        {
-            core.Carved += (part, _) =>
-            {
-                if (part.Health01 < Tuning.BodyDeathFraction)
-                {
-                    Destroy();
-                }
-            };
-        }
-    }
-
-    public void ApplyDamage(DamageInfo info)
-    {
-        if (!IsDestroyed)
-        {
-            Voxels?.ApplyDamage(info, this);
-        }
-    }
-
-    public Vector3 NearestBlastPoint(Vector3 from) => Voxels?.NearestBlastPoint(from) ?? GlobalPosition;
-
-    /// <summary>
-    /// A part has nothing left, or nothing holds it. A leg segment takes the
-    /// rest of its leg with it; too few legs, or the body, and the mech is
-    /// destroyed.
-    /// </summary>
-    private void OnPartEmptied(Node3D node, VoxelPart part)
-    {
-        if (IsDestroyed)
-        {
-            return;
-        }
-        if (node == Core)
-        {
-            Destroy();
-            return;
-        }
-
-        foreach (MechLeg leg in _legs)
-        {
-            if (!leg.Alive || (node != leg.Thigh && node != leg.Shin && node != leg.Foot))
-            {
-                continue;
-            }
-            leg.Alive = false;
-            leg.Stepping = false;
-            foreach (Node3D segment in new[] { leg.Thigh, leg.Shin, leg.Foot })
-            {
-                Voxels.PartOf(segment)?.BreakAway(Vector3.Zero);
-            }
-        }
-
-        int alive = 0;
-        foreach (MechLeg leg in _legs)
-        {
-            alive += leg.Alive ? 1 : 0;
-        }
-        if (_legs.Count > 0 && alive < _legs.Count - Tuning.SpareLegs)
-        {
-            Destroy();
-        }
-    }
-
-    /// <summary>Falls apart: every part left becomes loose chunks, thrown a
-    /// little up and out, and the walker is gone.</summary>
-    public void Destroy()
-    {
-        if (IsDestroyed)
-        {
-            return;
-        }
-        IsDestroyed = true;
-        Destroyed?.Invoke();
-        Voxels?.BreakAll(Up * 3.0f);
-        SetPhysicsProcess(false);
-        CollisionLayer = 0;
-        CollisionMask = 0;
-        GetTree().CreateTimer(0.5).Timeout += QueueFree;
-    }
-
-    /// <summary>Jumps from the ground, after the wind-up. Ignored in the air.</summary>
-    public void RequestJump()
-    {
-        _jumpQueued = true;
-    }
-
-    public override void _PhysicsProcess(double delta)
-    {
-        float dt = (float)delta;
-        Vector3 gravity = GetGravity() * Tuning.GravityScale;
-        Up = gravity.LengthSquared() > 1e-6f ? -gravity.Normalized() : Vector3.Up;
-        UpDirection = Up;
-
-        bool wasGrounded = IsGrounded;
-        float fallSpeed = -Velocity.Dot(Up);
-
-        Move(dt, gravity);
-        Turn(dt);
-
-        IsGrounded = IsOnFloor();
-        if (IsGrounded && !wasGrounded)
-        {
-            Land(fallSpeed);
-        }
-
-        UpdateGait(dt);
-        UpdateBody(dt);
-        PoseLegs();
-        AimTurret(dt);
-    }
-
-    // ---------------- Body motion ----------------
-
-    private void Move(float dt, Vector3 gravity)
-    {
-        Vector3 velocity = Velocity;
-        float vertical = velocity.Dot(Up);
-        Vector3 horizontal = velocity - Up * vertical;
-
-        Vector3 intent = MoveIntent.Slide(Up).LimitLength(1.0f);
-        Vector3 target = intent * Tuning.MaxSpeed;
-        if (_windup >= 0.0f)
-        {
-            // Planted while it loads.
-            target = Vector3.Zero;
-        }
-
-        float rate = target.Length() > horizontal.Length() ? Tuning.Acceleration : Tuning.Deceleration;
-        if (!IsGrounded)
-        {
-            rate *= Tuning.AirControl;
-        }
-        horizontal = horizontal.MoveToward(target, rate * dt);
-
-        if (_jumpQueued && IsGrounded && _windup < 0.0f)
-        {
-            _windup = Tuning.JumpWindupSeconds;
-        }
-        _jumpQueued = false;
-
-        if (_windup >= 0.0f)
-        {
-            _windup -= dt;
-            if (_windup < 0.0f)
-            {
-                vertical = Tuning.JumpSpeed;
-                IsGrounded = false;
-                foreach (MechLeg leg in _legs)
-                {
-                    leg.Stepping = false;
-                }
-            }
-        }
-
-        if (!IsOnFloor() || vertical > 0.0f)
-        {
-            vertical -= gravity.Length() * dt;
-            if (JumpHeld && _fuel > 0.0f && !IsOnFloor())
-            {
-                vertical += gravity.Length() * Tuning.JetThrustOfGravity * dt;
-                _fuel -= dt;
-            }
-        }
-        if (IsOnFloor())
-        {
-            _fuel = Mathf.Min(Tuning.JetFuelSeconds, _fuel + Tuning.JetRefillPerSecond * dt);
-        }
-
-        _acceleration = _acceleration.Lerp((horizontal - _lastHorizontal) / Mathf.Max(dt, 1e-4f), 1.0f - Mathf.Exp(-10.0f * dt));
-        _lastHorizontal = horizontal;
-
-        Velocity = horizontal + Up * vertical;
-        MoveAndSlide();
-    }
-
-    private void Turn(float dt)
-    {
-        _yawRate = 0.0f;
-        Vector3 face = FaceDirection.Slide(Up);
-        if (face.LengthSquared() < 1e-4f)
-        {
-            return;
-        }
-
-        Vector3 forward = GlobalBasis.Z.Slide(Up).Normalized();
-        float angle = forward.SignedAngleTo(face.Normalized(), Up);
-        float step = Mathf.Clamp(angle, -Mathf.DegToRad(Tuning.TurnRateDegrees) * dt, Mathf.DegToRad(Tuning.TurnRateDegrees) * dt);
-        GlobalRotate(Up, step);
-        _yawRate = step / Mathf.Max(dt, 1e-4f);
-    }
-
-    private void Land(float fallSpeed)
-    {
-        _sinkVelocity -= Mathf.Max(0.0f, fallSpeed) * Tuning.LandingKick;
-        Transform3D self = GlobalTransform;
-        foreach (MechLeg leg in _legs)
-        {
-            leg.Stepping = false;
-            leg.Planted = Ground(self * leg.RestFoot);
-        }
-    }
-
-    // ---------------- Gait ----------------
-
-    private void UpdateGait(float dt)
-    {
-        Transform3D self = GlobalTransform;
-        Vector3 horizontal = Velocity.Slide(Up);
-
-        if (!IsGrounded)
-        {
-            // Legs hang toward rest in the air, a little extended.
-            float follow = 1.0f - Mathf.Exp(-12.0f * dt);
-            foreach (MechLeg leg in _legs)
-            {
-                if (!leg.Alive)
-                {
-                    continue;
-                }
-                leg.Planted = leg.Planted.Lerp(self * leg.RestFoot - Up * 0.25f, follow);
-            }
-            return;
-        }
-
-        float speed01 = Mathf.Clamp(horizontal.Length() / Mathf.Max(Tuning.MaxSpeed, 0.01f), 0.0f, 1.0f);
-        float stepSeconds = Mathf.Lerp(Tuning.StepSeconds, Tuning.StepSecondsFast, speed01);
-        float lead = Tuning.StepLeadSeconds + stepSeconds * 0.5f;
-        bool moving = horizontal.Length() > 0.2f || Mathf.Abs(_yawRate) > 0.3f;
-        float threshold = moving ? Tuning.StepThreshold : Tuning.IdleTidyThreshold;
-
-        // Where each foot would like to land: its rest spot carried forward by
-        // the body's motion over the lead time, turn included.
-        foreach (MechLeg leg in _legs)
-        {
-            if (!leg.Alive || !leg.Stepping)
-            {
-                continue;
-            }
-
-            leg.StepTo = Ground(Predict(self, leg.RestFoot, horizontal, lead - leg.StepT * stepSeconds));
-            leg.StepT += dt / stepSeconds;
-            if (leg.StepT >= 1.0f)
-            {
-                leg.Stepping = false;
-                leg.Planted = leg.StepTo;
-                Stomp(leg.Planted);
-            }
-        }
-
-        bool anyStepping = false;
-        foreach (MechLeg leg in _legs)
-        {
-            anyStepping |= leg.Stepping;
-        }
-        if (anyStepping)
-        {
-            return;
-        }
-
-        // Neither pair in the air: the pair that has fallen furthest behind goes.
-        float[] worst = new float[2];
-        foreach (MechLeg leg in _legs)
-        {
-            if (!leg.Alive)
-            {
-                continue;
-            }
-            float error = (leg.Planted - self * leg.RestFoot).Slide(Up).Length();
-            worst[leg.Group] = Mathf.Max(worst[leg.Group], error);
-        }
-        int group = worst[0] >= worst[1] ? 0 : 1;
-        if (worst[group] < threshold)
-        {
-            return;
-        }
-
-        foreach (MechLeg leg in _legs)
-        {
-            if (leg.Group != group || !leg.Alive)
-            {
-                continue;
-            }
-            leg.Stepping = true;
-            leg.StepT = 0.0f;
-            leg.StepFrom = leg.Planted;
-            leg.StepTo = Ground(Predict(self, leg.RestFoot, horizontal, lead));
-        }
-    }
-
-    /// <summary>A rest foot spot, moved on by the body's velocity and turn
-    /// over <paramref name="seconds"/>.</summary>
-    private Vector3 Predict(Transform3D self, Vector3 restFoot, Vector3 horizontal, float seconds)
-    {
-        seconds = Mathf.Max(seconds, 0.0f);
-        Vector3 offset = self.Basis * restFoot;
-        offset = offset.Rotated(Up, _yawRate * seconds);
-        return self.Origin + offset + horizontal * seconds;
-    }
-
-    /// <summary>The ground under a point, or the point on the walker's own
-    /// ground plane when there is nothing to hit.</summary>
-    private Vector3 Ground(Vector3 point)
-    {
-        PhysicsDirectSpaceState3D space = GetWorld3D().DirectSpaceState;
-        var query = PhysicsRayQueryParameters3D.Create(point + Up * 2.5f, point - Up * 3.0f,
-            GameLayers.Mask(GameLayers.World, GameLayers.Prop), new Godot.Collections.Array<Rid> { GetRid() });
-        Godot.Collections.Dictionary hit = space.IntersectRay(query);
-        if (hit.Count > 0)
-        {
-            return (Vector3)hit["position"];
-        }
-        return point - Up * (point - GlobalPosition).Dot(Up);
-    }
-
-    // ---------------- Body pose ----------------
-
-    private void UpdateBody(float dt)
-    {
-        Vector3 horizontal = Velocity.Slide(Up);
-        float speed01 = Mathf.Clamp(horizontal.Length() / Mathf.Max(Tuning.MaxSpeed, 0.01f), 0.0f, 1.0f);
-
-        float target = -Tuning.WalkCrouch * speed01;
-        foreach (MechLeg leg in _legs)
-        {
-            if (leg.Stepping)
-            {
-                target -= Tuning.StepBob * Mathf.Sin(Mathf.Pi * leg.StepT);
-            }
-        }
-        if (_windup >= 0.0f && Tuning.JumpWindupSeconds > 0.0f)
-        {
-            target -= Tuning.JumpCrouch * (1.0f - _windup / Tuning.JumpWindupSeconds);
-        }
-
-        // Lean back against acceleration and out of a turn, in the body's own
-        // frame: x is pitch, y is roll.
-        Basis self = GlobalBasis;
-        float forwardAccel = _acceleration.Dot(self.Z);
-        float sideAccel = _acceleration.Dot(self.X);
-        float maxLean = Mathf.DegToRad(Tuning.MaxLeanDegrees);
-        var tiltTarget = new Vector2(
-            Mathf.Clamp(-forwardAccel * Mathf.DegToRad(Tuning.LeanPerAcceleration), -maxLean, maxLean),
-            Mathf.Clamp(sideAccel * Mathf.DegToRad(Tuning.LeanPerAcceleration), -maxLean, maxLean));
-
-        float k = Tuning.BodySpring;
-        float c = 2.0f * Tuning.BodyDamping * Mathf.Sqrt(k);
-        _sinkVelocity += ((target - _sink) * k - _sinkVelocity * c) * dt;
-        _sink += _sinkVelocity * dt;
-        _tiltVelocity += ((tiltTarget - _tilt) * k - _tiltVelocity * c) * dt;
-        _tilt += _tiltVelocity * dt;
-
-        var pivot = new Vector3(0.0f, _pivotHeight, 0.0f);
-        Basis tilt = new Basis(Vector3.Right, _tilt.X) * new Basis(Vector3.Back, _tilt.Y);
-        Transform3D sway = new Transform3D(Basis.Identity, pivot + Vector3.Up * _sink)
-                           * new Transform3D(tilt, Vector3.Zero)
-                           * new Transform3D(Basis.Identity, -pivot);
-        Model.Transform = sway * _modelRest;
-    }
-
-    private void PoseLegs()
-    {
-        Transform3D model = Model.GlobalTransform;
-        Basis level = GlobalBasis * _modelRest.Basis;
-        float stepHeight = Tuning.StepHeight;
-        foreach (MechLeg leg in _legs)
-        {
-            if (!leg.Alive)
-            {
-                continue;
-            }
-            Vector3 sole = leg.Planted;
-            float toe = 0.0f;
-            if (leg.Stepping)
-            {
-                float t = Mathf.Clamp(leg.StepT, 0.0f, 1.0f);
-                float eased = t * t * (3.0f - 2.0f * t);
-                float arc = Mathf.Sin(Mathf.Pi * t);
-                // Short shuffles lift less than strides.
-                float lift = stepHeight * Mathf.Clamp(leg.StepFrom.DistanceTo(leg.StepTo) / Mathf.Max(Tuning.StepThreshold, 0.01f), 0.3f, 1.0f);
-                sole = leg.StepFrom.Lerp(leg.StepTo, eased) + Up * (arc * lift);
-                toe = arc * 0.35f;
-            }
-            leg.Pose(model, level, Up, sole, toe);
-        }
-
-        SwingArms();
-    }
-
-    /// <summary>Each arm swings against the leg on the other side: forward as
-    /// that foot goes back. Pitch about the shoulder, nothing else.</summary>
-    private void SwingArms()
-    {
-        if (_armRest.Count == 0 || _legs.Count == 0)
-        {
-            return;
-        }
-
-        Transform3D self = GlobalTransform;
-        Vector3 forward = self.Basis.Z.Normalized();
-        float max = Mathf.DegToRad(Tuning.MaxArmSwingDegrees);
-        for (int i = 0; i < _armRest.Count; i++)
-        {
-            MechLeg opposite = _legs[_legs.Count - 1 - Mathf.Min(i, _legs.Count - 1)];
-            float ahead = (opposite.Sole - self * opposite.RestFoot).Dot(forward);
-            float angle = Mathf.Clamp(-ahead * Mathf.DegToRad(Tuning.ArmSwingDegreesPerMetre), -max, max);
-            Transform3D rest = _armRest[i];
-            Arms[i].Transform = new Transform3D(new Basis(Vector3.Right, angle) * rest.Basis, rest.Origin);
-        }
-    }
-
-    // ---------------- Turret ----------------
-
-    private void AimTurret(float dt)
-    {
-        if (Turret == null)
-        {
-            return;
-        }
-
-        float target = 0.0f;
-        if (TurretAim.LengthSquared() > 1e-4f)
-        {
-            Vector3 local = Model.GlobalBasis.Inverse() * TurretAim;
-            target = Mathf.Atan2(local.X, local.Z);
-        }
-
-        float difference = Mathf.Wrap(target - _turretYaw, -Mathf.Pi, Mathf.Pi);
-        float step = Mathf.DegToRad(Tuning.TurretTurnRateDegrees) * dt;
-        _turretYaw = Mathf.Wrap(_turretYaw + Mathf.Clamp(difference, -step, step), -Mathf.Pi, Mathf.Pi);
-        Turret.Transform = new Transform3D(new Basis(Vector3.Up, _turretYaw) * _turretRest.Basis, _turretRest.Origin);
-    }
-
-    /// <summary>One line of state, for <c>bench.gd</c>.</summary>
-    public string BenchStatus()
-    {
-        int stepping = 0;
-        foreach (MechLeg leg in _legs)
-        {
-            stepping += leg.Stepping ? 1 : 0;
-        }
-        Vector3 p = GlobalPosition;
-        float health = Voxels?.PartOf(Core)?.Health01 ?? 1.0f;
-        int legs = 0;
-        foreach (MechLeg leg in _legs)
-        {
-            legs += leg.Alive ? 1 : 0;
-        }
-        return System.FormattableString.Invariant(
-            $"{Name} body={health * 100.0f:F0}% legs={legs}/{_legs.Count} destroyed={IsDestroyed} pos=({p.X:F1},{p.Y:F1},{p.Z:F1}) speed={Velocity.Slide(Up).Length():F1} up={Velocity.Dot(Up):F1} grounded={IsGrounded} stepping={stepping} fuel={JetFuel01:F2} turret={Mathf.RadToDeg(_turretYaw):F0}");
-    }
+	/// <summary>Front left, front right, back left, back right.</summary>
+	[Export]
+	public Godot.Collections.Array<Node3D> Thighs { get; set; } = new();
+
+	[Export]
+	public Godot.Collections.Array<Node3D> Shins { get; set; } = new();
+
+	[Export]
+	public Godot.Collections.Array<Node3D> Feet { get; set; } = new();
+
+	/// <summary>Arms, if it has them: each swings against the leg on the
+	/// other side. Right, left, matching the legs' order.</summary>
+	[Export]
+	public Godot.Collections.Array<Node3D> Arms { get; set; } = new();
+
+	/// <summary>Markers that ride on a moving part (a muzzle on a turret or
+	/// an arm, the seat on the turret). The importer puts every marker beside
+	/// the parts, so each is moved under the part at the same index of
+	/// <see cref="MountedOn"/> here, keeping where it is.</summary>
+	[Export]
+	public Godot.Collections.Array<Node3D> Mounted { get; set; } = new();
+
+	[Export]
+	public Godot.Collections.Array<Node3D> MountedOn { get; set; } = new();
+
+	/// <summary>Where to walk, world space, length up to 1 for full speed.</summary>
+	public Vector3 MoveIntent { get; set; }
+
+	/// <summary>Which way the body should turn to face, world space; zero
+	/// leaves it where it is.</summary>
+	public Vector3 FaceDirection { get; set; }
+
+	/// <summary>Which way the turret should point, world space; zero brings
+	/// it back to the front.</summary>
+	public Vector3 TurretAim { get; set; }
+
+	/// <summary>Held jump: the jets, once in the air.</summary>
+	public bool JumpHeld { get; set; }
+
+	/// <summary>Held sprint: uses <see cref="MechTuning.SprintSpeed"/> when
+	/// that is higher than <see cref="MechTuning.MaxSpeed"/>.</summary>
+	public bool Sprint { get; set; }
+
+	public bool IsGrounded { get; private set; } = true;
+
+	public float JetFuel01 => Tuning == null || Tuning.JetFuelSeconds <= 0.0f ? 0.0f : _fuel / Tuning.JetFuelSeconds;
+
+	public Vector3 Up { get; private set; } = Vector3.Up;
+
+	/// <summary>Every walker on the player's side. Guns hold fire on targets
+	/// near any of them: they break like everything else.</summary>
+	public const string AllyGroup = "dill_allies";
+
+	/// <summary>Raised once, as it falls apart.</summary>
+	public event Action Destroyed;
+
+	public bool IsDestroyed { get; private set; }
+
+	public bool IsAlive => !IsDestroyed;
+
+	/// <summary>Whether the turret still has anything on it.</summary>
+	public bool TurretAlive => Turret != null && (Voxels?.PartOf(Turret) is not VoxelPart part || !part.IsEmpty);
+
+	/// <summary>Whether a part (an arm, the turret) still exists.</summary>
+	public bool PartAlive(Node3D node) => Voxels?.PartOf(node) is not VoxelPart part || !part.IsEmpty;
+
+	/// <summary>Which way the turret points, world space.</summary>
+	public Vector3 TurretForward => Turret != null ? Turret.GlobalBasis.Z : GlobalBasis.Z;
+
+	/// <summary>A shove to the body's spring, world space: a gun's recoil
+	/// rocks it back and down.</summary>
+	public void Kick(Vector3 push)
+	{
+		Vector3 local = GlobalBasis.Inverse() * push;
+		_tiltVelocity += new Vector2(local.Z, local.X) * 0.8f;
+		_sinkVelocity -= push.Length() * 0.15f;
+	}
+
+	private readonly List<MechLeg> _legs = new();
+	private readonly List<Transform3D> _armRest = new();
+	private readonly List<ArmPose> _arms = new();
+	private Transform3D _modelRest;
+	private Transform3D _turretRest;
+	private float _turretYaw;
+
+	private float _fuel;
+	private float _windup = -1.0f;
+	private bool _jumpQueued;
+	private float _yawRate;
+	private Vector3 _lastHorizontal;
+	private Vector3 _acceleration;
+
+	// The body's spring: a height offset and a tilt, each with a velocity.
+	private float _sink;
+	private float _sinkVelocity;
+	private Vector2 _tilt;
+	private Vector2 _tiltVelocity;
+
+	private float _pivotHeight;
+
+	public override void _Ready()
+	{
+		if (Tuning == null || Model == null)
+		{
+			GD.PushError($"MechWalker '{Name}' needs Tuning and Model.");
+			SetPhysicsProcess(false);
+			return;
+		}
+
+		_modelRest = Model.Transform;
+		if (Turret != null)
+		{
+			_turretRest = Turret.Transform;
+		}
+		for (int i = 0; i < Mathf.Min(Mounted.Count, MountedOn.Count); i++)
+		{
+			Mounted[i]?.Reparent(MountedOn[i], true);
+		}
+		foreach (Node3D arm in Arms)
+		{
+			_armRest.Add(arm.Transform);
+			_arms.Add(new ArmPose { Pointing = RestPointing(arm) });
+		}
+
+		int count = Mathf.Min(Thighs.Count, Mathf.Min(Shins.Count, Feet.Count));
+		for (int i = 0; i < count; i++)
+		{
+			// FL and BR step together, FR and BL together.
+			// Two legs alternate: a walk.
+			int group = i == 0 || i == 3 ? 0 : 1;
+			_legs.Add(new MechLeg(Thighs[i], Shins[i], Feet[i], group, _modelRest, Tuning.KneeBias));
+		}
+
+		// The body tilts about its hips, not about the feet.
+		_pivotHeight = _legs.Count > 0 ? (_modelRest * Thighs[0].Transform.Origin).Y : 0.0f;
+
+		HookVoxels();
+		AddToGroup(AllyGroup);
+		AddToGroup(IHordeTarget.GroupName);
+		MeasureHull();
+		_fuel = Tuning.JetFuelSeconds;
+		CollisionLayer = GameLayers.Mask(GameLayers.Prop);
+		// The player too, so a step that does come too close is blocked
+		// rather than walking through them. Stowed on board, they collide
+		// with nothing.
+		CollisionMask = GameLayers.Mask(GameLayers.World, GameLayers.Prop, GameLayers.Player);
+		FloorSnapLength = 0.4f;
+
+		// Planted where they stand; the first steps correct anything off.
+		// The space cannot be queried outside a physics frame.
+		Transform3D self = GlobalTransform;
+		foreach (MechLeg leg in _legs)
+		{
+			leg.Planted = self * leg.RestFoot;
+		}
+	}
+
+	// ---------------- The horde ----------------
+
+	private float _hullRadius = 1.5f;
+	private float _hullHeight = 3.0f;
+
+	public bool IsTargetable => !IsDestroyed;
+
+	public Vector3 TargetBase => GlobalPosition;
+
+	public float TargetRadius => _hullRadius;
+
+	public float TargetHeight => _hullHeight;
+
+	/// <summary>What the horde aims at is its hull's box, measured once.</summary>
+	private void MeasureHull()
+	{
+		foreach (Node child in GetChildren())
+		{
+			if (child is CollisionShape3D { Shape: BoxShape3D box } shape)
+			{
+				_hullRadius = Mathf.Max(box.Size.X, box.Size.Z) * 0.5f;
+				_hullHeight = shape.Position.Y + box.Size.Y * 0.5f;
+				return;
+			}
+		}
+	}
+
+	/// <summary>
+	/// A pickle bit, struck or spat at it. The bite goes into the voxels like
+	/// any other hit, along the line from the pickle's mouth to the body, so
+	/// a crowd round its legs chews the legs.
+	/// </summary>
+	public void TakeHordeHit(Vector3 from, float damage, Vector3 impulse)
+	{
+		if (IsDestroyed || Voxels == null)
+		{
+			return;
+		}
+		Vector3 chest = GlobalPosition + Up * (_hullHeight * 0.5f);
+		var info = new DamageInfo
+		{
+			Amount = damage * Tuning.HordeDamageScale,
+			BaseAmount = damage,
+			Position = from,
+			Direction = (chest - from).Normalized(),
+			Distance = 0.0f,
+			IsSplash = false,
+			// A crowd chewing is a rate, not single hits: banked, and not
+			// stopped by armour that stops rifle rounds.
+			IsSustained = true,
+		};
+		Voxels.ApplyDamage(info, this);
+		Velocity += impulse * Tuning.HordeShove;
+	}
+
+	/// <summary>A foot came down: the pickles under it take a stamp, over
+	/// the bus, so only the horde hears it.</summary>
+	private void Stomp(Vector3 at)
+	{
+		if (Tuning.StompDamage <= 0.0f || Tuning.StompRadius <= 0.0f)
+		{
+			return;
+		}
+		EventBus.EmitAreaBlast(new BlastInfo
+		{
+			Centre = at,
+			InnerRadius = Tuning.StompRadius * 0.6f,
+			Radius = Tuning.StompRadius,
+			Damage = Tuning.StompDamage,
+			MinMultiplier = 0.5f,
+			Up = Up,
+			Source = this,
+			SourceRid = GetRid(),
+			NoCrater = true,
+		});
+	}
+
+	// ---------------- Damage ----------------
+
+	private void HookVoxels()
+	{
+		if (Voxels == null)
+		{
+			return;
+		}
+
+		Voxels.Velocity = () => Velocity;
+		Voxels.PartEmptied += OnPartEmptied;
+		if (Voxels.PartOf(Core) is VoxelPart core)
+		{
+			core.Carved += (part, _) =>
+			{
+				if (part.Health01 < Tuning.BodyDeathFraction)
+				{
+					Destroy();
+				}
+			};
+		}
+	}
+
+	public void ApplyDamage(DamageInfo info)
+	{
+		if (!IsDestroyed)
+		{
+			Voxels?.ApplyDamage(info, this);
+		}
+	}
+
+	public Vector3 NearestBlastPoint(Vector3 from) => Voxels?.NearestBlastPoint(from) ?? GlobalPosition;
+
+	/// <summary>
+	/// A part has nothing left, or nothing holds it. A leg segment takes the
+	/// rest of its leg with it; too few legs, or the body, and the mech is
+	/// destroyed.
+	/// </summary>
+	private void OnPartEmptied(Node3D node, VoxelPart part)
+	{
+		if (IsDestroyed)
+		{
+			return;
+		}
+		if (node == Core)
+		{
+			Destroy();
+			return;
+		}
+
+		foreach (MechLeg leg in _legs)
+		{
+			if (!leg.Alive || (node != leg.Thigh && node != leg.Shin && node != leg.Foot))
+			{
+				continue;
+			}
+			leg.Alive = false;
+			leg.Stepping = false;
+			foreach (Node3D segment in new[] { leg.Thigh, leg.Shin, leg.Foot })
+			{
+				Voxels.PartOf(segment)?.BreakAway(Vector3.Zero);
+			}
+		}
+
+		int alive = 0;
+		foreach (MechLeg leg in _legs)
+		{
+			alive += leg.Alive ? 1 : 0;
+		}
+		if (_legs.Count > 0 && alive < _legs.Count - Tuning.SpareLegs)
+		{
+			Destroy();
+		}
+	}
+
+	/// <summary>Falls apart: every part left becomes loose chunks, thrown a
+	/// little up and out, and the walker is gone.</summary>
+	public void Destroy()
+	{
+		if (IsDestroyed)
+		{
+			return;
+		}
+		IsDestroyed = true;
+		Destroyed?.Invoke();
+		Voxels?.BreakAll(Up * 3.0f);
+		SetPhysicsProcess(false);
+		CollisionLayer = 0;
+		CollisionMask = 0;
+		GetTree().CreateTimer(0.5).Timeout += QueueFree;
+	}
+
+	/// <summary>Jumps from the ground, after the wind-up. Ignored in the air.</summary>
+	public void RequestJump()
+	{
+		_jumpQueued = true;
+	}
+
+	public override void _PhysicsProcess(double delta)
+	{
+		float dt = (float)delta;
+		Vector3 gravity = GetGravity() * Tuning.GravityScale;
+		Up = gravity.LengthSquared() > 1e-6f ? -gravity.Normalized() : Vector3.Up;
+		UpDirection = Up;
+
+		bool wasGrounded = IsGrounded;
+		float fallSpeed = -Velocity.Dot(Up);
+
+		Move(dt, gravity);
+		Turn(dt);
+
+		IsGrounded = IsOnFloor();
+		if (IsGrounded && !wasGrounded)
+		{
+			Land(fallSpeed);
+		}
+
+		UpdateGait(dt);
+		UpdateBody(dt);
+		UpdateArms(dt);
+		PoseLegs();
+		AimTurret(dt);
+	}
+
+	// ---------------- Body motion ----------------
+
+	private void Move(float dt, Vector3 gravity)
+	{
+		Vector3 velocity = Velocity;
+		float vertical = velocity.Dot(Up);
+		Vector3 horizontal = velocity - Up * vertical;
+
+		Vector3 intent = MoveIntent.Slide(Up).LimitLength(1.0f);
+		float top = Tuning.MaxSpeed;
+		if (Sprint && Tuning.SprintSpeed > Tuning.MaxSpeed)
+		{
+			top = Tuning.SprintSpeed;
+		}
+		Vector3 target = intent * top;
+		if (_windup >= 0.0f)
+		{
+			// Planted while it loads.
+			target = Vector3.Zero;
+		}
+
+		float rate = target.Length() > horizontal.Length() ? Tuning.Acceleration : Tuning.Deceleration;
+		if (!IsGrounded)
+		{
+			rate *= Tuning.AirControl;
+		}
+		horizontal = horizontal.MoveToward(target, rate * dt);
+
+		if (_jumpQueued && IsGrounded && _windup < 0.0f)
+		{
+			_windup = Tuning.JumpWindupSeconds;
+		}
+		_jumpQueued = false;
+
+		if (_windup >= 0.0f)
+		{
+			_windup -= dt;
+			if (_windup < 0.0f)
+			{
+				vertical = Tuning.JumpSpeed;
+				IsGrounded = false;
+				foreach (MechLeg leg in _legs)
+				{
+					leg.Stepping = false;
+				}
+			}
+		}
+
+		if (!IsOnFloor() || vertical > 0.0f)
+		{
+			vertical -= gravity.Length() * dt;
+			if (JumpHeld && _fuel > 0.0f && !IsOnFloor())
+			{
+				vertical += gravity.Length() * Tuning.JetThrustOfGravity * dt;
+				_fuel -= dt;
+			}
+		}
+		if (IsOnFloor())
+		{
+			_fuel = Mathf.Min(Tuning.JetFuelSeconds, _fuel + Tuning.JetRefillPerSecond * dt);
+		}
+
+		_acceleration = _acceleration.Lerp((horizontal - _lastHorizontal) / Mathf.Max(dt, 1e-4f), 1.0f - Mathf.Exp(-10.0f * dt));
+		_lastHorizontal = horizontal;
+
+		Velocity = horizontal + Up * vertical;
+		MoveAndSlide();
+	}
+
+	private void Turn(float dt)
+	{
+		_yawRate = 0.0f;
+		Vector3 face = FaceDirection.Slide(Up);
+		if (face.LengthSquared() < 1e-4f)
+		{
+			return;
+		}
+
+		Vector3 forward = GlobalBasis.Z.Slide(Up).Normalized();
+		float angle = forward.SignedAngleTo(face.Normalized(), Up);
+		float step = Mathf.Clamp(angle, -Mathf.DegToRad(Tuning.TurnRateDegrees) * dt, Mathf.DegToRad(Tuning.TurnRateDegrees) * dt);
+		GlobalRotate(Up, step);
+		_yawRate = step / Mathf.Max(dt, 1e-4f);
+	}
+
+	private void Land(float fallSpeed)
+	{
+		_sinkVelocity -= Mathf.Max(0.0f, fallSpeed) * Tuning.LandingKick;
+		Transform3D self = GlobalTransform;
+		foreach (MechLeg leg in _legs)
+		{
+			leg.Stepping = false;
+			leg.Planted = Ground(self * leg.RestFoot);
+		}
+	}
+
+	// ---------------- Gait ----------------
+
+	private void UpdateGait(float dt)
+	{
+		Transform3D self = GlobalTransform;
+		Vector3 horizontal = Velocity.Slide(Up);
+
+		if (!IsGrounded)
+		{
+			// Legs hang toward rest in the air, a little extended.
+			float follow = 1.0f - Mathf.Exp(-12.0f * dt);
+			foreach (MechLeg leg in _legs)
+			{
+				if (!leg.Alive)
+				{
+					continue;
+				}
+				leg.Planted = leg.Planted.Lerp(self * leg.RestFoot - Up * 0.25f, follow);
+			}
+			return;
+		}
+
+		GaitSpeeds(horizontal.Length(), out float speed01, out float sprint01);
+		float stepSeconds = Mathf.Lerp(Tuning.StepSeconds, Tuning.StepSecondsFast, speed01);
+		if (sprint01 > 0.0f)
+		{
+			stepSeconds = Mathf.Lerp(Tuning.StepSecondsFast, Tuning.SprintStepSeconds, sprint01);
+		}
+		float lead = Tuning.StepLeadSeconds + stepSeconds * 0.5f;
+		bool moving = horizontal.Length() > 0.2f || Mathf.Abs(_yawRate) > 0.3f;
+		float threshold = moving ? Tuning.StepThreshold : Tuning.IdleTidyThreshold;
+
+		// Where each foot would like to land: its rest spot carried forward by
+		// the body's motion over the lead time, turn included.
+		foreach (MechLeg leg in _legs)
+		{
+			if (!leg.Alive || !leg.Stepping)
+			{
+				continue;
+			}
+
+			leg.StepTo = Ground(Predict(self, leg.RestFoot, horizontal, lead - leg.StepT * stepSeconds));
+			leg.StepT += dt / stepSeconds;
+			if (leg.StepT >= 1.0f)
+			{
+				leg.Stepping = false;
+				leg.Planted = leg.StepTo;
+				Stomp(leg.Planted);
+			}
+		}
+
+		bool anyStepping = false;
+		foreach (MechLeg leg in _legs)
+		{
+			anyStepping |= leg.Stepping;
+		}
+		if (anyStepping)
+		{
+			return;
+		}
+
+		// Neither pair in the air: the pair that has fallen furthest behind goes.
+		float[] worst = new float[2];
+		foreach (MechLeg leg in _legs)
+		{
+			if (!leg.Alive)
+			{
+				continue;
+			}
+			float error = (leg.Planted - self * leg.RestFoot).Slide(Up).Length();
+			worst[leg.Group] = Mathf.Max(worst[leg.Group], error);
+		}
+		int group = worst[0] >= worst[1] ? 0 : 1;
+		if (worst[group] < threshold)
+		{
+			return;
+		}
+
+		foreach (MechLeg leg in _legs)
+		{
+			if (leg.Group != group || !leg.Alive)
+			{
+				continue;
+			}
+			leg.Stepping = true;
+			leg.StepT = 0.0f;
+			leg.StepFrom = leg.Planted;
+			leg.StepTo = Ground(Predict(self, leg.RestFoot, horizontal, lead));
+		}
+	}
+
+	/// <summary>A rest foot spot, moved on by the body's velocity and turn
+	/// over <paramref name="seconds"/>.</summary>
+	private Vector3 Predict(Transform3D self, Vector3 restFoot, Vector3 horizontal, float seconds)
+	{
+		seconds = Mathf.Max(seconds, 0.0f);
+		Vector3 offset = self.Basis * restFoot;
+		offset = offset.Rotated(Up, _yawRate * seconds);
+		return self.Origin + offset + horizontal * seconds;
+	}
+
+	/// <summary>The ground under a point, or the point on the walker's own
+	/// ground plane when there is nothing to hit.</summary>
+	private Vector3 Ground(Vector3 point)
+	{
+		PhysicsDirectSpaceState3D space = GetWorld3D().DirectSpaceState;
+		var query = PhysicsRayQueryParameters3D.Create(point + Up * 2.5f, point - Up * 3.0f,
+			GameLayers.Mask(GameLayers.World, GameLayers.Prop), new Godot.Collections.Array<Rid> { GetRid() });
+		Godot.Collections.Dictionary hit = space.IntersectRay(query);
+		if (hit.Count > 0)
+		{
+			return (Vector3)hit["position"];
+		}
+		return point - Up * (point - GlobalPosition).Dot(Up);
+	}
+
+	// ---------------- Body pose ----------------
+
+	private void UpdateBody(float dt)
+	{
+		Vector3 horizontal = Velocity.Slide(Up);
+		GaitSpeeds(horizontal.Length(), out float speed01, out float sprint01);
+
+		float target = -Tuning.WalkCrouch * speed01;
+		if (sprint01 > 0.0f)
+		{
+			target = -Mathf.Lerp(Tuning.WalkCrouch, Tuning.SprintCrouch, sprint01);
+		}
+		foreach (MechLeg leg in _legs)
+		{
+			if (leg.Stepping)
+			{
+				target -= Tuning.StepBob * Mathf.Sin(Mathf.Pi * leg.StepT);
+			}
+		}
+		if (_windup >= 0.0f && Tuning.JumpWindupSeconds > 0.0f)
+		{
+			target -= Tuning.JumpCrouch * (1.0f - _windup / Tuning.JumpWindupSeconds);
+		}
+
+		// Lean back against acceleration and out of a turn, in the body's own
+		// frame: x is pitch, y is roll.
+		Basis self = GlobalBasis;
+		float forwardAccel = _acceleration.Dot(self.Z);
+		float sideAccel = _acceleration.Dot(self.X);
+		float maxLean = Mathf.DegToRad(Tuning.MaxLeanDegrees);
+		var tiltTarget = new Vector2(
+			Mathf.Clamp(-forwardAccel * Mathf.DegToRad(Tuning.LeanPerAcceleration), -maxLean, maxLean),
+			Mathf.Clamp(sideAccel * Mathf.DegToRad(Tuning.LeanPerAcceleration), -maxLean, maxLean));
+		tiltTarget.X += Mathf.DegToRad(Tuning.SprintLeanDegrees) * sprint01;
+
+		float k = Tuning.BodySpring;
+		float c = 2.0f * Tuning.BodyDamping * Mathf.Sqrt(k);
+		_sinkVelocity += ((target - _sink) * k - _sinkVelocity * c) * dt;
+		_sink += _sinkVelocity * dt;
+		_tiltVelocity += ((tiltTarget - _tilt) * k - _tiltVelocity * c) * dt;
+		_tilt += _tiltVelocity * dt;
+
+		var pivot = new Vector3(0.0f, _pivotHeight, 0.0f);
+		Basis tilt = new Basis(Vector3.Right, _tilt.X) * new Basis(Vector3.Back, _tilt.Y);
+		Transform3D sway = new Transform3D(Basis.Identity, pivot + Vector3.Up * _sink)
+						   * new Transform3D(tilt, Vector3.Zero)
+						   * new Transform3D(Basis.Identity, -pivot);
+		Model.Transform = sway * _modelRest;
+	}
+
+	private void PoseLegs()
+	{
+		Transform3D model = Model.GlobalTransform;
+		Basis level = GlobalBasis * _modelRest.Basis;
+		float stepHeight = Tuning.StepHeight;
+		foreach (MechLeg leg in _legs)
+		{
+			if (!leg.Alive)
+			{
+				continue;
+			}
+			Vector3 sole = leg.Planted;
+			float toe = 0.0f;
+			if (leg.Stepping)
+			{
+				float t = Mathf.Clamp(leg.StepT, 0.0f, 1.0f);
+				float eased = t * t * (3.0f - 2.0f * t);
+				float arc = Mathf.Sin(Mathf.Pi * t);
+				// Short shuffles lift less than strides.
+				float lift = stepHeight * Mathf.Clamp(leg.StepFrom.DistanceTo(leg.StepTo) / Mathf.Max(Tuning.StepThreshold, 0.01f), 0.3f, 1.0f);
+				sole = leg.StepFrom.Lerp(leg.StepTo, eased) + Up * (arc * lift);
+				toe = arc * 0.35f;
+			}
+			leg.Pose(model, level, Up, sole, toe);
+		}
+
+		PoseArms();
+	}
+
+	// ---------------- Arms ----------------
+
+	/// <summary>Raises <paramref name="arm"/> toward a world point and holds
+	/// it there. A node that is not one of this walker's arms is ignored, so
+	/// a gun on a turret can call it without a branch.</summary>
+	public void AimArm(Node3D arm, Vector3 worldTarget)
+	{
+		int i = ArmIndex(arm);
+		if (i < 0)
+		{
+			return;
+		}
+		_arms[i].Aim = worldTarget;
+		_arms[i].Hold = Tuning.ArmAimHoldSeconds;
+	}
+
+	/// <summary>Whether a gun on this node may fire: the arm is raised far
+	/// enough, or the node is not an arm (a turret mount is always ready).</summary>
+	public bool ArmReady(Node3D node)
+	{
+		int i = ArmIndex(node);
+		return i < 0 || _arms[i].Raise >= Tuning.ArmReadyFraction;
+	}
+
+	/// <summary>This frame's slash override for one arm. Wins over aim while
+	/// <paramref name="weight"/> is above zero. World direction the arm
+	/// should point.</summary>
+	public void StrokeArm(int arm, Vector3 worldDirection, float weight)
+	{
+		if ((uint)arm >= (uint)_arms.Count)
+		{
+			return;
+		}
+		_arms[arm].Stroke = worldDirection;
+		_arms[arm].StrokeWeight = Mathf.Clamp(weight, 0.0f, 1.0f);
+	}
+
+	/// <summary>Whether this arm is mid-slash, so a gun on it should hold.</summary>
+	public bool ArmStroking(Node3D arm)
+	{
+		int i = ArmIndex(arm);
+		return i >= 0 && _arms[i].StrokeWeight > 0.02f;
+	}
+
+	private int ArmIndex(Node3D node)
+	{
+		if (node == null)
+		{
+			return -1;
+		}
+		for (int i = 0; i < Arms.Count; i++)
+		{
+			if (Arms[i] == node)
+			{
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	/// <summary>Where this arm points at rest: toward its mounted marker, or
+	/// down its own -Y when it has none.</summary>
+	private Vector3 RestPointing(Node3D arm)
+	{
+		int mounted = Mathf.Min(Mounted.Count, MountedOn.Count);
+		for (int i = 0; i < mounted; i++)
+		{
+			if (MountedOn[i] != arm || Mounted[i] == null)
+			{
+				continue;
+			}
+			Vector3 local = Mounted[i].Position;
+			if (local.LengthSquared() > 1e-6f)
+			{
+				return local.Normalized();
+			}
+		}
+		return Vector3.Down;
+	}
+
+	private void GaitSpeeds(float speed, out float speed01, out float sprint01)
+	{
+		float walk = Mathf.Max(Tuning.MaxSpeed, 0.01f);
+		speed01 = Mathf.Clamp(speed / walk, 0.0f, 1.0f);
+		sprint01 = 0.0f;
+		if (Tuning.SprintSpeed > Tuning.MaxSpeed)
+		{
+			sprint01 = Mathf.Clamp((speed - Tuning.MaxSpeed) / (Tuning.SprintSpeed - Tuning.MaxSpeed), 0.0f, 1.0f);
+		}
+	}
+
+	private void UpdateArms(float dt)
+	{
+		float raiseRate = 1.0f / Mathf.Max(Tuning.ArmRaiseSeconds, 1e-3f);
+		for (int i = 0; i < _arms.Count; i++)
+		{
+			ArmPose pose = _arms[i];
+			if (pose.Hold > 0.0f)
+			{
+				pose.Hold -= dt;
+				pose.Raise = Mathf.MoveToward(pose.Raise, 1.0f, raiseRate * dt);
+			}
+			else
+			{
+				pose.Raise = Mathf.MoveToward(pose.Raise, 0.0f, raiseRate * dt);
+			}
+		}
+	}
+
+	/// <summary>Each arm starts as a gait swing against the opposite leg,
+	/// then blends toward its aim, then toward a slash stroke. Stroke wins.</summary>
+	private void PoseArms()
+	{
+		if (_armRest.Count == 0)
+		{
+			return;
+		}
+
+		Transform3D self = GlobalTransform;
+		Vector3 forward = self.Basis.Z.Normalized();
+		float max = Mathf.DegToRad(Tuning.MaxArmSwingDegrees);
+		for (int i = 0; i < _armRest.Count; i++)
+		{
+			Transform3D rest = _armRest[i];
+			float angle = 0.0f;
+			if (_legs.Count > 0)
+			{
+				MechLeg opposite = _legs[_legs.Count - 1 - Mathf.Min(i, _legs.Count - 1)];
+				float ahead = (opposite.Sole - self * opposite.RestFoot).Dot(forward);
+				angle = Mathf.Clamp(-ahead * Mathf.DegToRad(Tuning.ArmSwingDegreesPerMetre), -max, max);
+			}
+			Transform3D posed = new Transform3D(new Basis(Vector3.Right, angle) * rest.Basis, rest.Origin);
+
+			ArmPose pose = _arms[i];
+			if (pose.Raise > 1e-4f)
+			{
+				float t = pose.Raise * pose.Raise * (3.0f - 2.0f * pose.Raise);
+				posed = posed.InterpolateWith(AimPose(i, rest), t);
+			}
+			if (pose.StrokeWeight > 1e-4f)
+			{
+				posed = posed.InterpolateWith(PointPose(i, rest, pose.Stroke), pose.StrokeWeight);
+			}
+			Arms[i].Transform = posed;
+		}
+	}
+
+	private Transform3D AimPose(int i, Transform3D rest)
+	{
+		Vector3 shoulder = Model.GlobalTransform * rest.Origin;
+		Vector3 desired = _arms[i].Aim - shoulder;
+		if (desired.LengthSquared() < 1e-6f)
+		{
+			return rest;
+		}
+		Vector3 local = (Model.GlobalBasis.Inverse() * desired).Normalized();
+		float maxYaw = Mathf.DegToRad(Tuning.ArmAimMaxYawDegrees);
+		float yaw = Mathf.Clamp(Mathf.Atan2(local.X, local.Z), -maxYaw, maxYaw);
+		float horiz = Mathf.Sqrt(local.X * local.X + local.Z * local.Z);
+		float pitch = Mathf.Atan2(local.Y, horiz);
+		float cp = Mathf.Cos(pitch);
+		Vector3 clamped = new Vector3(Mathf.Sin(yaw) * cp, Mathf.Sin(pitch), Mathf.Cos(yaw) * cp);
+		return PointPose(i, rest, Model.GlobalBasis * clamped);
+	}
+
+	/// <summary>Rest pose rotated so the arm's rest pointing direction now
+	/// faces <paramref name="worldDirection"/>.</summary>
+	private Transform3D PointPose(int i, Transform3D rest, Vector3 worldDirection)
+	{
+		if (worldDirection.LengthSquared() < 1e-6f)
+		{
+			return rest;
+		}
+		Vector3 from = (rest.Basis * _arms[i].Pointing).Normalized();
+		Vector3 to = (Model.GlobalBasis.Inverse() * worldDirection.Normalized()).Normalized();
+		if (from.LengthSquared() < 1e-6f || to.LengthSquared() < 1e-6f)
+		{
+			return rest;
+		}
+		var turn = new Quaternion(from, to);
+		return new Transform3D(new Basis(turn) * rest.Basis, rest.Origin);
+	}
+
+	private sealed class ArmPose
+	{
+		public Vector3 Pointing;
+		public Vector3 Aim;
+		public float Hold;
+		public float Raise;
+		public Vector3 Stroke;
+		public float StrokeWeight;
+	}
+
+	// ---------------- Turret ----------------
+
+	private void AimTurret(float dt)
+	{
+		if (Turret == null)
+		{
+			return;
+		}
+
+		float target = 0.0f;
+		if (TurretAim.LengthSquared() > 1e-4f)
+		{
+			Vector3 local = Model.GlobalBasis.Inverse() * TurretAim;
+			target = Mathf.Atan2(local.X, local.Z);
+		}
+
+		float difference = Mathf.Wrap(target - _turretYaw, -Mathf.Pi, Mathf.Pi);
+		float step = Mathf.DegToRad(Tuning.TurretTurnRateDegrees) * dt;
+		_turretYaw = Mathf.Wrap(_turretYaw + Mathf.Clamp(difference, -step, step), -Mathf.Pi, Mathf.Pi);
+		Turret.Transform = new Transform3D(new Basis(Vector3.Up, _turretYaw) * _turretRest.Basis, _turretRest.Origin);
+	}
+
+	/// <summary>One line of state, for <c>bench.gd</c>.</summary>
+	public string BenchStatus()
+	{
+		int stepping = 0;
+		foreach (MechLeg leg in _legs)
+		{
+			stepping += leg.Stepping ? 1 : 0;
+		}
+		Vector3 p = GlobalPosition;
+		float health = Voxels?.PartOf(Core)?.Health01 ?? 1.0f;
+		int legs = 0;
+		foreach (MechLeg leg in _legs)
+		{
+			legs += leg.Alive ? 1 : 0;
+		}
+		return System.FormattableString.Invariant(
+			$"{Name} body={health * 100.0f:F0}% legs={legs}/{_legs.Count} destroyed={IsDestroyed} pos=({p.X:F1},{p.Y:F1},{p.Z:F1}) speed={Velocity.Slide(Up).Length():F1} up={Velocity.Dot(Up):F1} grounded={IsGrounded} stepping={stepping} sprint={Sprint} fuel={JetFuel01:F2} turret={Mathf.RadToDeg(_turretYaw):F0}");
+	}
 }

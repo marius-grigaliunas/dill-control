@@ -1,34 +1,45 @@
-[gd_resource type="Resource" script_class="MechTuning" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="MechTuning" format=3 uid="uid://6cqdocdsom14"]
 
-[ext_resource type="Script" path="res://scripts/vehicles/MechTuning.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://dc67nxnrmvgfb" path="res://scripts/vehicles/MechTuning.cs" id="1_script"]
 
 [resource]
 resource_name = "MchFieldFighterTuning"
 script = ExtResource("1_script")
-MaxSpeed = 6.5
+MaxSpeed = 9.0
+Acceleration = 18.0
+Deceleration = 22.0
 TurnRateDegrees = 220.0
 JumpSpeed = 12.0
 JumpWindupSeconds = 0.22
-StepThreshold = 1.0
+SprintSpeed = 16.0
+SprintStepSeconds = 0.2
+SprintCrouch = 0.55
+SprintLeanDegrees = 14.0
+FollowSprintDistance = 10.0
+StepThreshold = 1.3
 IdleTidyThreshold = 0.25
-StepSeconds = 0.42
-StepSecondsFast = 0.3
+StepSeconds = 0.34
+StepSecondsFast = 0.24
 StepHeight = 0.7
 StepLeadSeconds = 0.25
 KneeBias = Vector3(0, 0, 3)
 ArmSwingDegreesPerMetre = 14.0
 MaxArmSwingDegrees = 22.0
+ArmRaiseSeconds = 0.15
+ArmAimHoldSeconds = 0.6
+ArmReadyFraction = 0.8
+ArmAimMaxYawDegrees = 70.0
+HordeDamageScale = 0.2
+StompDamage = 90.0
+StompRadius = 1.2
+SpareLegs = 0
 WalkCrouch = 0.45
 StepBob = 0.14
 JumpCrouch = 0.6
 FollowBehind = 9.0
 FollowSide = -7.0
 PersonalSpace = 7.0
-MountRange = 9.0
+MountRange = 16.0
 FaceCameraWhenIdle = true
-SpareLegs = 0
-HordeDamageScale = 0.2
-StompDamage = 90.0
-StompRadius = 1.2
 CameraDistance = 15.0
 CameraHeight = 6.5

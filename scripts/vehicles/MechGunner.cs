@@ -63,6 +63,14 @@ public partial class MechGunner : Node
     public bool TurretTrigger { get; set; }
     public bool CannonTrigger { get; set; }
 
+    /// <summary>Ridden: the turret trigger works the flamer instead of the gun.</summary>
+    public bool FlamerSelected { get; set; }
+
+    public bool HasFlamer => Stats?.Flamer != null;
+
+    /// <summary>The flamer's fuel left, 0 to 1.</summary>
+    public float FlamerFuel01 => HasFlamer ? _fuel / Mathf.Max(Stats.Flamer.FuelSeconds, 0.01f) : 0.0f;
+
     /// <summary>Where it means to shoot on its own, if it has found anything.</summary>
     public Vector3? Target { get; private set; }
 
@@ -76,13 +84,37 @@ public partial class MechGunner : Node
     private long _targetHandle;
     private ulong _lastExplosionMs;
 
+    // The flamer: fuel, the damage tick, the ignite timer, the jet drawn.
+    private float _fuel;
+    private float _flameTick;
+    private float _igniteTimer;
+    private float _flameQuiet;
+    private bool _flaming;
+    private GpuParticles3D _jet;
+    private ParticleProcessMaterial _jetProcess;
+    private SoundLoop _flameLoop;
+
     public override void _Ready()
     {
         if (Stats == null || Walker == null)
         {
             GD.PushError($"MechGunner '{Name}' needs Stats and Walker.");
             SetPhysicsProcess(false);
+            return;
         }
+        if (HasFlamer && TurretMuzzle != null)
+        {
+            _fuel = Stats.Flamer.FuelSeconds;
+            _jet = new GpuParticles3D { Name = "FlamerJet" };
+            TurretMuzzle.AddChild(_jet);
+            _jetProcess = FlameWeapon.BuildJet(_jet, Stats.Flamer.Range * Stats.Flamer.FlameVisualScale, Stats.Flamer.ConeDegrees);
+        }
+    }
+
+    public override void _ExitTree()
+    {
+        _flameLoop?.Stop();
+        _flameLoop = null;
     }
 
     public override void _PhysicsProcess(double delta)
@@ -90,12 +122,17 @@ public partial class MechGunner : Node
         float dt = (float)delta;
         _turretCooldown -= dt;
         _cannonCooldown -= dt;
+        bool flamed = false;
 
         if (Manual)
         {
             Target = null;
             _targetHandle = 0;
-            if (TurretTrigger && _turretCooldown <= 0.0f)
+            if (TurretTrigger && FlamerSelected && HasFlamer)
+            {
+                flamed = Flame(AimPoint(Stats.Flamer.Range), dt);
+            }
+            else if (TurretTrigger && _turretCooldown <= 0.0f)
             {
                 FireTurret(AimPoint(Stats.TurretRange));
             }
@@ -103,26 +140,156 @@ public partial class MechGunner : Node
             {
                 FireCannon(AimPoint(Stats.TurretRange * 2.0f));
             }
+            FlamerRest(flamed, dt);
             return;
         }
 
         Track(dt);
-        if (Target is not Vector3 target)
+        if (Target is Vector3 target)
+        {
+            bool close = HasFlamer && TurretMuzzle != null
+                && TurretMuzzle.GlobalPosition.DistanceTo(target) < Stats.FlamerAutoRange;
+            bool aligned = TurretMuzzle != null
+                && Aligned(Walker.TurretForward, target - TurretMuzzle.GlobalPosition, Stats.AutoAimToleranceDegrees);
+            if (close && aligned)
+            {
+                flamed = Flame(target, dt);
+            }
+            else if (_turretCooldown <= 0.0f && aligned)
+            {
+                FireTurret(target);
+            }
+
+            if (_cannonCooldown <= 0.0f && CannonMuzzle != null
+                && CannonMuzzle.GlobalPosition.DistanceTo(target) > Stats.CannonMinRange
+                && Aligned(Walker.GlobalBasis.Z, target - CannonMuzzle.GlobalPosition, Stats.AutoCannonConeDegrees))
+            {
+                FireCannon(target);
+            }
+        }
+        FlamerRest(flamed, dt);
+    }
+
+    // ---------------- Flamer ----------------
+
+    /// <summary>
+    /// One frame of flame toward <paramref name="target"/>. The damage is the
+    /// hand flamethrower's horde half (<see cref="FlameWeapon"/>'s wash):
+    /// spheres down the cone, sized to its width, as sustained blasts on the
+    /// bus, so the whole crowd in the cone burns and nothing on this side of
+    /// the fight does. Every so often it lights the ground where the jet
+    /// lands, through the same blast field the incendiary round uses. False
+    /// when it could not fire (no fuel, the arm shot off).
+    /// </summary>
+    private bool Flame(Vector3 target, float dt)
+    {
+        FlamethrowerStats flamer = Stats.Flamer;
+        RaiseMount(TurretMuzzle, target);
+        if (!CanFireFrom(TurretMuzzle) || _fuel <= 0.0f)
+        {
+            return false;
+        }
+
+        Vector3 from = TurretMuzzle.GlobalPosition;
+        Vector3 forward = (target - from).Normalized();
+        if (forward.LengthSquared() < 1e-6f)
+        {
+            return false;
+        }
+
+        _fuel = Mathf.Max(0.0f, _fuel - dt);
+        if (_jet != null)
+        {
+            // The jet runs down its local -Z: point it where the flame goes.
+            Vector3 up = Mathf.Abs(forward.Dot(Walker.Up)) > 0.99f ? Walker.GlobalBasis.Z : Walker.Up;
+            _jet.GlobalTransform = new Transform3D(Basis.LookingAt(forward, up), from);
+            _jetProcess.Gravity = Walker.Up * FlameWeapon.FlameLift;
+        }
+
+        _flameTick += dt;
+        _igniteTimer -= dt;
+        if (_flameTick < flamer.TickInterval)
+        {
+            return true;
+        }
+        float slice = _flameTick;
+        _flameTick = 0.0f;
+
+        int count = Mathf.Max(1, flamer.HordeWashSpheres);
+        float tangent = Mathf.Tan(Mathf.DegToRad(flamer.ConeDegrees));
+        for (int i = 0; i < count; i++)
+        {
+            float along = flamer.Range * (i + 0.6f) / count;
+            float radius = Mathf.Max(1.0f, along * tangent);
+            EventBus.EmitAreaBlast(BlastInfo.From(new Blast.Settings
+            {
+                Centre = from + forward * along,
+                InnerRadius = radius,
+                Radius = radius,
+                Damage = flamer.DamagePerSecond * slice * flamer.FalloffMultiplierAt(along),
+                MinMultiplier = 1.0f,
+                Up = Walker.Up,
+                Source = Walker,
+                SourceRid = Walker.GetRid(),
+                SelfImpulseScale = 0.0f,
+                Sustained = true,
+                NoCrater = true,
+            }));
+        }
+
+        if (Stats.FlamerFireSeconds > 0.0f && _igniteTimer <= 0.0f)
+        {
+            _igniteTimer = Stats.FlamerIgniteInterval;
+            var query = PhysicsRayQueryParameters3D.Create(from, from + forward * flamer.Range,
+                GameLayers.Mask(GameLayers.World), new Godot.Collections.Array<Rid> { Walker.GetRid() });
+            Godot.Collections.Dictionary hit = Walker.GetWorld3D().DirectSpaceState.IntersectRay(query);
+            Vector3 lands = hit.Count > 0 ? (Vector3)hit["position"] : from + forward * flamer.Range;
+            EventBus.EmitAreaBlast(new BlastInfo
+            {
+                Centre = lands,
+                Radius = 0.1f,
+                Damage = 0.0f,
+                Up = Walker.Up,
+                Source = Walker,
+                Sustained = true,
+                NoCrater = true,
+                FireSeconds = Stats.FlamerFireSeconds,
+            });
+        }
+        return true;
+    }
+
+    /// <summary>Every frame: the jet and its sound on while it flamed, and
+    /// fuel coming back after a rest, as the hand flamethrower's does.</summary>
+    private void FlamerRest(bool flamed, float dt)
+    {
+        if (!HasFlamer)
         {
             return;
         }
-
-        if (_turretCooldown <= 0.0f && TurretMuzzle != null
-            && Aligned(Walker.TurretForward, target - TurretMuzzle.GlobalPosition, Stats.AutoAimToleranceDegrees))
+        if (flamed != _flaming)
         {
-            FireTurret(target);
+            _flaming = flamed;
+            if (_jet != null)
+            {
+                _jet.Emitting = flamed;
+            }
+            if (flamed)
+            {
+                _flameLoop ??= AudioDirector.Loop(Sfx.FlameLoop, TurretMuzzle);
+            }
+            else
+            {
+                _flameLoop?.Stop();
+                _flameLoop = null;
+                _flameTick = 0.0f;
+            }
         }
 
-        if (_cannonCooldown <= 0.0f && CannonMuzzle != null
-            && CannonMuzzle.GlobalPosition.DistanceTo(target) > Stats.CannonMinRange
-            && Aligned(Walker.GlobalBasis.Z, target - CannonMuzzle.GlobalPosition, Stats.AutoCannonConeDegrees))
+        _flameQuiet = flamed ? 0.0f : _flameQuiet + dt;
+        if (_flameQuiet >= Stats.Flamer.RefillDelay)
         {
-            FireCannon(target);
+            _fuel = Mathf.Min(Stats.Flamer.FuelSeconds, _fuel + Stats.Flamer.FuelRefillPerSecond * dt);
         }
     }
 
@@ -216,7 +383,8 @@ public partial class MechGunner : Node
 
     private void FireTurret(Vector3 target)
     {
-        if (TurretMuzzle == null || !MountAlive(TurretMuzzle))
+        RaiseMount(TurretMuzzle, target);
+        if (!CanFireFrom(TurretMuzzle))
         {
             return;
         }
@@ -312,7 +480,8 @@ public partial class MechGunner : Node
 
     private void FireCannon(Vector3 target)
     {
-        if (CannonMuzzle == null || ShellScene == null || Stats.CannonShell == null || !MountAlive(CannonMuzzle))
+        RaiseMount(CannonMuzzle, target);
+        if (CannonMuzzle == null || ShellScene == null || Stats.CannonShell == null || !CanFireFrom(CannonMuzzle))
         {
             return;
         }
@@ -338,4 +507,28 @@ public partial class MechGunner : Node
     /// <summary>A gun on a part that has been shot off does not fire.</summary>
     private bool MountAlive(Node3D muzzle) =>
         !Walker.IsDestroyed && (muzzle.GetParent() is not Node3D mount || Walker.PartAlive(mount));
+
+    /// <summary>The part a muzzle rides on, if it rides on one.</summary>
+    private static Node3D MountOf(Node3D muzzle) => muzzle?.GetParent() as Node3D;
+
+    /// <summary>Raises the arm that carries this muzzle, if it is an arm.</summary>
+    private void RaiseMount(Node3D muzzle, Vector3 target)
+    {
+        Node3D mount = MountOf(muzzle);
+        if (mount != null)
+        {
+            Walker.AimArm(mount, target);
+        }
+    }
+
+    /// <summary>Alive, raised if it is an arm, and not mid-slash.</summary>
+    private bool CanFireFrom(Node3D muzzle)
+    {
+        if (muzzle == null || !MountAlive(muzzle))
+        {
+            return false;
+        }
+        Node3D mount = MountOf(muzzle);
+        return !Walker.ArmStroking(mount) && Walker.ArmReady(mount);
+    }
 }
