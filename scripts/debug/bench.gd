@@ -64,6 +64,20 @@ const LOOK_TIMELINE := [
 	["ink back", ["!show:ToonPass"], [], 0.5],
 ]
 
+# Where the GPU's time goes in the level's own view: each part switched off
+# in turn, with a baseline phase between, so drift shows as drift.
+const GPUAB_TIMELINE := [
+	["base", [], [], 4.0],
+	["no sun shadows", ["!set:Sun:shadow_enabled=false"], [], 4.0],
+	["base again", ["!set:Sun:shadow_enabled=true"], [], 4.0],
+	["horde not drawn", ["!hide:Horde"], [], 4.0],
+	["base again 2", ["!show:Horde"], [], 4.0],
+	["no downtown", ["!hide:Downtown"], [], 4.0],
+	["base again 3", ["!show:Downtown"], [], 4.0],
+	["no fog", ["!set:WorldEnvironment:environment:fog_enabled=false"], [], 4.0],
+	["base again 4", ["!set:WorldEnvironment:environment:fog_enabled=true"], [], 4.0],
+]
+
 const INK_TIMELINE := [
 	["ink on", [], [], 5.0],
 	["ink off", ["!hide:ToonPass"], [], 5.0],
@@ -436,6 +450,7 @@ func _initialize() -> void:
 	match mode:
 		"look": _timeline = LOOK_TIMELINE
 		"ink": _timeline = INK_TIMELINE
+		"gpuab": _timeline = GPUAB_TIMELINE
 		"grapple": _timeline = GRAPPLE_TIMELINE
 		"machete": _timeline = MACHETE_TIMELINE
 		"mech": _timeline = MECH_TIMELINE

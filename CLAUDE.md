@@ -187,6 +187,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut       # a tower cut through: drops whole, crushes down
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cutside   # cut on one side: leans, tears, topples
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet # the same, every frame recorded
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn gpuab     # what each part of the view costs the GPU
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn siege 25000  # crowd vs player and allies
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn horde 25000
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn hordeab 25000
@@ -212,6 +213,10 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
   every section's time in the CSV beside each one.
 - A section registered after a recording starts has no column in it:
   register `FrameProfiler` sections in a class that exists at load.
+- Measure plugged in. On battery Windows holds the frame to the display's
+  60 Hz and the GPU clocks down: every phase reads 16.6 ms and the GPU about
+  twice its plugged-in time, whatever is on screen. `gpuab` switches the sun's
+  shadows, the horde's draws, downtown and the fog off in turn.
 - The game raises itself above normal priority on Windows
   (`ProcessPriority`). Cool the laptop 40-60 s between runs: back-to-back
   runs throttle it and the level alone goes 20-30 % over.
