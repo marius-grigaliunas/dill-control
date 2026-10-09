@@ -274,7 +274,7 @@ public partial class VoxelDestructionStats : Resource
     /// it lies: drawn with the heap's sections instead of on its own, and no
     /// body. A collapse leaves a hundred pieces, and a hundred more draws.</summary>
     [Export(PropertyHint.Range, "0.5,60,0.5,suffix:s")]
-    public float BakeAfterSeconds { get; set; } = 2.0f;
+    public float BakeAfterSeconds { get; set; } = 1.0f;
 
     /// <summary>Only pieces up to this many voxels are baked into a heap;
     /// bigger ones (a tower's segments) stay pieces you can blow apart.</summary>

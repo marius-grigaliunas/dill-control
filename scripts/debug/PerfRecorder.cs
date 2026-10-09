@@ -61,6 +61,7 @@ public sealed partial class PerfRecorder : Node
     private int _gc2Frames;
     private double _physicsWorst;
     private double _physicsOnHitches;
+    private long _allocated;
 
     public bool IsRecording => _writer != null;
 
@@ -145,6 +146,7 @@ public sealed partial class PerfRecorder : Node
         _gc1 = GC.CollectionCount(1);
         _gc2 = GC.CollectionCount(2);
         _gc2Frames = 0;
+        _allocated = GC.GetTotalAllocatedBytes(false);
         _startUsec = Time.GetTicksUsec();
         _lastSampleUsec = 0;
 
@@ -168,7 +170,7 @@ public sealed partial class PerfRecorder : Node
         // gc columns are collections that happened this frame, by generation.
         // A gen-2 collection is a full, blocking one, and a frame over budget
         // with nothing profiled in it is very often exactly that.
-        _row.Append("frame,t_ms,frame_ms,fps,render_cpu_ms,render_gpu_ms,physics_ms,draws,primitives,gc0,gc1,gc2,managed_mb");
+        _row.Append("frame,t_ms,frame_ms,fps,render_cpu_ms,render_gpu_ms,physics_ms,draws,primitives,gc0,gc1,gc2,managed_mb,alloc_kb");
         for (int i = 0; i < FrameProfiler.Count; i++)
         {
             _row.Append(',').Append(ColumnSafe(FrameProfiler.NameOf(i)));
@@ -233,6 +235,10 @@ public sealed partial class PerfRecorder : Node
         _gc1 = gc1;
         _gc2 = gc2;
         AppendNumber(GC.GetTotalMemory(false) / (1024.0 * 1024.0), "F1");
+        // Bytes allocated this frame, every thread: what feeds the collector.
+        long allocated = GC.GetTotalAllocatedBytes(false);
+        AppendNumber((allocated - _allocated) / 1024.0, "F0");
+        _allocated = allocated;
 
         for (int i = 0; i < FrameProfiler.Count; i++)
         {

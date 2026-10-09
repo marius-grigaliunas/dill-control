@@ -107,6 +107,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
             Velocity = () => LinearVelocity,
             // Made mid-game: its sections are built on worker threads.
             BuildAtOnce = false,
+            CastShadows = _grid.SolidCount > 2000,
         };
         if (_meshes is (MeshInstance3D[] meshes, Vector3 offset))
         {

@@ -127,6 +127,11 @@ public partial class VoxelPart : Node3D
     /// on worker threads like any re-mesh. Its collision is built at once
     /// either way: a body that starts without any falls into what it stood on.</summary>
     public bool BuildAtOnce { get; set; } = true;
+
+    /// <summary>Whether its sections cast shadows. Off for small loose pieces:
+    /// their shadows cannot be seen at this scale, and each shadow is another
+    /// draw of the piece.</summary>
+    public bool CastShadows { get; set; } = true;
     private bool _anyDirty;
     private float _integrityTimer = -1.0f;
     private bool _emptied;
@@ -1092,7 +1097,11 @@ public partial class VoxelPart : Node3D
         mesh.SurfaceSetMaterial(0, Material);
         if (instance == null)
         {
-            instance = new MeshInstance3D { Name = $"Section{s}" };
+            instance = new MeshInstance3D
+            {
+                Name = $"Section{s}",
+                CastShadow = CastShadows ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off,
+            };
             AddChild(instance);
             _meshes[s] = instance;
         }

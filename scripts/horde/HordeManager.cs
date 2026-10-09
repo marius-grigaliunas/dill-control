@@ -2395,7 +2395,7 @@ public partial class HordeManager : Node3D
             return;
         }
 
-        Parallel.For(0, partitions, partition =>
+        Jobs.For(partitions, partition =>
         {
             int from = _listStart[partition];
             int to = from + _listCount[partition];
@@ -2992,7 +2992,7 @@ public partial class HordeManager : Node3D
         }
 
         int perPartition = (count + partitions - 1) / partitions;
-        Parallel.For(0, partitions, partition =>
+        Jobs.For(partitions, partition =>
         {
             int start = partition * perPartition;
             int end = Mathf.Min(start + perPartition, count);

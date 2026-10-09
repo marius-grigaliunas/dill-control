@@ -205,7 +205,7 @@ public partial class VoxelDebris : Node3D
         }
         _bakeTimer = 0.25f;
         int baked = 0;
-        for (int k = _chunks.Count - 1; k >= 0 && baked < 4; k--)
+        for (int k = _chunks.Count - 1; k >= 0 && baked < 8; k--)
         {
             VoxelChunk chunk = _chunks[k];
             if (chunk.StillFor < Stats.BakeAfterSeconds || chunk.IsHinged || chunk.VoxelCount > Stats.BakeMaxVoxels
