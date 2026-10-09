@@ -11,6 +11,11 @@ namespace DillControl.Core;
 public interface IDamageRelay
 {
     IDamageable Receiver { get; }
+
+    /// <summary>Adds the bodies of every collider relaying to the same
+    /// receiver: an area query that has found one need not find the rest
+    /// (a tower is a dozen section bodies, a heap a hundred tiles).</summary>
+    void AddSiblings(Godot.Collections.Array<Rid> into) { }
 }
 
 /// <summary>What a collider's damage goes to: the one rule every weapon uses,

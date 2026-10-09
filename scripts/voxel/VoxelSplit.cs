@@ -188,7 +188,9 @@ internal sealed class VoxelSplit
             }
             // What comes loose of a building falls whole, unspun, and breaks
             // where it lands; anything else is thrown off with a spin.
-            Release(plan, islands[k], VoxelBreakup.Intact, Anchor == VoxelAnchor.Ground ? VoxelSpin.Still : VoxelSpin.Own);
+            // A copy: the flood's lists are reused (VoxelGrid.Islands).
+            Release(plan, new List<int>(islands[k]), VoxelBreakup.Intact,
+                Anchor == VoxelAnchor.Ground ? VoxelSpin.Still : VoxelSpin.Own);
             plan.Changed = true;
         }
 
@@ -224,7 +226,7 @@ internal sealed class VoxelSplit
         }
         foreach (List<int> island in islands)
         {
-            Release(plan, island, breakup, VoxelSpin.Own);
+            Release(plan, new List<int>(island), breakup, VoxelSpin.Own);
         }
         return plan;
     }
@@ -266,6 +268,7 @@ internal sealed class VoxelSplit
         {
             return;
         }
+        Grid.Changed();
 
         // A change alters its neighbours' faces too: one cell of margin.
         Vector3I lo = (min - Vector3I.One).Clamp(Vector3I.Zero, Grid.Size - Vector3I.One) / Edge;

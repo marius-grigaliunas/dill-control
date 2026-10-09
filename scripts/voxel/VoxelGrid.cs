@@ -210,12 +210,25 @@ public sealed class VoxelGrid
     }
 
     /// <summary>Box of the solid cells, in node space, or false when empty.</summary>
+    /// <summary>For code that writes <see cref="Cells"/> directly.</summary>
+    public void Changed() => Version++;
+
+    private Aabb _bounds;
+    private int _boundsVersion = -1;
+
     public bool SolidBounds(out Aabb bounds)
     {
         bounds = default;
         if (SolidCount <= 0)
         {
             return false;
+        }
+        // Asked by every blast, landing and nearest-point lookup; the cells
+        // change far less often than that.
+        if (_boundsVersion == Version)
+        {
+            bounds = _bounds;
+            return true;
         }
         // Row by row, each searched from both ends with vector instructions:
         // a crushing tower asks every time it lands.
@@ -237,6 +250,8 @@ public sealed class VoxelGrid
         Vector3 a = VoxSpace.ToGodot(new Vector3(min.X, min.Y, min.Z) - Origin) * VoxelSize;
         Vector3 b = VoxSpace.ToGodot(new Vector3(max.X + 1, max.Y + 1, max.Z + 1) - Origin) * VoxelSize;
         bounds = new Aabb(a.Min(b), (a - b).Abs());
+        _bounds = bounds;
+        _boundsVersion = Version;
         return true;
     }
 
@@ -245,6 +260,8 @@ public sealed class VoxelGrid
     // A flood's working arrays, one set per thread and kept: they were made
     // per check, three 800 KB arrays for a tower, and drove the collector.
     [ThreadStatic] private static int[] _label;
+    [ThreadStatic] private static List<List<int>> _islands;
+    [ThreadStatic] private static List<List<int>> _islandPool;
     [ThreadStatic] private static int[] _queue;
 
     /// <summary>
@@ -261,7 +278,13 @@ public sealed class VoxelGrid
             _queue = new int[n];
         }
         Array.Fill(_label, -1, 0, n);
-        var islands = new List<List<int>>();
+        // The lists are this thread's, kept and reused: a tower's main island
+        // is forty thousand cells, made and thrown away after every burst of
+        // hits. They are good until the next call on the same thread; a
+        // caller that keeps one copies it.
+        List<List<int>> islands = _islands ??= new List<List<int>>();
+        _islandPool ??= new List<List<int>>();
+        islands.Clear();
         anchored.Clear();
         int sx = Size.X, sxy = Size.X * Size.Y;
 
@@ -272,7 +295,12 @@ public sealed class VoxelGrid
                 continue;
             }
             int id = islands.Count;
-            var members = new List<int>();
+            if (_islandPool.Count <= id)
+            {
+                _islandPool.Add(new List<int>());
+            }
+            List<int> members = _islandPool[id];
+            members.Clear();
             bool anchor = false;
             int head = 0, tail = 0;
             _queue[tail++] = start;

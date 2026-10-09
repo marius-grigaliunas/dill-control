@@ -204,6 +204,14 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "0,4,0.05")]
     public float CoverDust { get; set; } = 1.6f;
 
+    /// <summary>Biggest loose piece the gravity gun can lift, in voxels.</summary>
+    [Export(PropertyHint.Range, "1,20000,1")]
+    public int MaxGrabVoxels { get; set; } = 600;
+
+    /// <summary>Radius of the lump the gravity gun tears off a rubble heap.</summary>
+    [Export(PropertyHint.Range, "0.3,4,0.1,suffix:m")]
+    public float PluckRadius { get; set; } = 1.2f;
+
     /// <summary>Smallest block a landing piece crumbles into.</summary>
     [Export(PropertyHint.Range, "0.2,10,0.1,suffix:m")]
     public float MinCrumbleSize { get; set; } = 1.5f;

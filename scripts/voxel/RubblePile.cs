@@ -20,12 +20,17 @@ namespace DillControl.Voxel;
 /// Made and found by <see cref="VoxelDebris"/>, one per collapse site and
 /// palette (docs/decisions/0016).
 /// </summary>
-public partial class RubblePile : Node3D
+public partial class RubblePile : Node3D, IDamageable, IBlastSurface
 {
     public Color[] Palette { get; private set; }
     public float Reach { get; private set; }
 
     private VoxelPart _part;
+    private VoxelDestructionStats _stats;
+    private float[] _emission;
+    private Material _material;
+    private readonly List<VoxelPart> _parts = new();
+    private float _reheight = -1.0f;
     private VoxelGrid _grid;
     private int[] _height;
     private bool[] _blocked;
@@ -47,8 +52,14 @@ public partial class RubblePile : Node3D
         _height = new int[across * across];
         _blocked = new bool[across * across];
         _part = new VoxelPart { Name = "Voxels", BuildAtOnce = true };
-        _part.Setup(_grid, VoxelAnchor.Largest, palette, emission, material, stats);
+        // Anchored to the ground like a building: what is shot loose of it
+        // falls as pieces (with nothing built in it, it never fails under load).
+        _part.Setup(_grid, VoxelAnchor.Ground, palette, emission, material, stats);
+        _emission = emission;
+        _material = material;
         AddChild(_part);
+        _parts.Add(_part);
+        _stats = stats;
 
         // DECISION -- heightfields, not boxes, in 4 m tiles. A heap's ragged
         // top boxed voxel by voxel came to thousands of boxes a section,
@@ -72,8 +83,127 @@ public partial class RubblePile : Node3D
     private bool _mapDirty;
     private float _mapTimer;
 
+    // ---------------- Damage ----------------
+
+    public bool IsAlive => !_part.IsEmpty;
+
+    /// <summary>
+    /// A heap is rubble you can still blow apart: hits carve it the way they
+    /// carve anything voxel (VoxelDamage), and what is cut loose falls. Its
+    /// collision follows a moment later.
+    /// </summary>
+    public void ApplyDamage(DamageInfo info)
+    {
+        VoxelDamage.Apply(info, _parts, _stats, this);
+        // Twice: once the carve is in, and once whatever it cut loose has gone.
+        _reheight = 0.2f;
+        _reheightAgain = true;
+    }
+
+    public Vector3 NearestBlastPoint(Vector3 from) => VoxelDamage.NearestPoint(_parts, from, GlobalPosition);
+
+    /// <summary>
+    /// Tears a lump out of the heap where the gravity gun took hold, as a
+    /// loose piece made this frame, so it is in the gun's grip at once.
+    /// </summary>
+    public RigidBody3D Pluck(Vector3 point)
+    {
+        if (VoxelDebris.Current == null || _part.IsEmpty)
+        {
+            return null;
+        }
+        float voxel = _grid.VoxelSize;
+        // Just inside the surface the gun's ray met.
+        Vector3 at = _grid.ToVox(_part.ToLocal(point + Vector3.Down * voxel * 0.5f));
+        float r = _stats.PluckRadius / voxel;
+        var cells = new List<int>();
+        var min = new Vector3I(int.MaxValue, int.MaxValue, int.MaxValue);
+        var max = new Vector3I(int.MinValue, int.MinValue, int.MinValue);
+        int reach = Mathf.CeilToInt(r) + 1;
+        for (int z = Math.Max(0, (int)at.Z - reach); z <= Math.Min(_size.Z - 1, (int)at.Z + reach); z++)
+            for (int y = Math.Max(0, (int)at.Y - reach); y <= Math.Min(_size.Y - 1, (int)at.Y + reach); y++)
+                for (int x = Math.Max(0, (int)at.X - reach); x <= Math.Min(_size.X - 1, (int)at.X + reach); x++)
+                {
+                    int i = _grid.Index(x, y, z);
+                    if (_grid.Cells[i] == 0 || new Vector3(x + 0.5f, y + 0.5f, z + 0.5f).DistanceSquaredTo(at) > r * r)
+                    {
+                        continue;
+                    }
+                    cells.Add(i);
+                    var c = new Vector3I(x, y, z);
+                    min = min.Min(c);
+                    max = max.Max(c);
+                }
+        if (cells.Count < 2)
+        {
+            return null;
+        }
+        VoxelGrid lump = _grid.Copy(cells, out Vector3 offset, 1, clear: false);
+        _part.Take(cells, min, max);
+        _reheight = 0.0f;
+        Transform3D placed = _part.GlobalTransform * new Transform3D(Basis.Identity, offset);
+        return VoxelDebris.Current.MakeNow(lump, Palette, _emission, _material, placed);
+    }
+
+    /// <summary>Adds every collision tile's RID.</summary>
+    public void AddBodies(Godot.Collections.Array<Rid> into)
+    {
+        foreach (Node child in GetChildren())
+        {
+            if (child is RubbleCollider tile)
+            {
+                into.Add(tile.GetRid());
+            }
+        }
+    }
+
+    /// <summary>Rubble landing on rubble does not dig it.</summary>
+    public bool Ignores(Node3D source) => source is VoxelChunk;
+
+    private bool _reheightAgain;
+
+    /// <summary>Every column's height again from its cells, for the
+    /// collision: after hits, which take cells from anywhere in a column.</summary>
+    private void Reheight()
+    {
+        int n = _size.X, layers = _size.Z;
+        byte[] cells = _grid.Cells;
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                int column = x + n * y;
+                int top = 0;
+                for (int z = layers - 1; z >= 0; z--)
+                {
+                    if (cells[x + n * (y + n * z)] != 0)
+                    {
+                        top = z + 1;
+                        break;
+                    }
+                }
+                if (top != _height[column])
+                {
+                    _height[column] = top;
+                    Touch(x, y);
+                }
+            }
+    }
+
     public override void _PhysicsProcess(double delta)
     {
+        if (_reheight >= 0.0f)
+        {
+            _reheight -= (float)delta;
+            if (_reheight < 0.0f)
+            {
+                Reheight();
+                if (_reheightAgain)
+                {
+                    _reheightAgain = false;
+                    _reheight = 1.0f;
+                }
+            }
+        }
         _mapTimer -= (float)delta;
         if (!_mapDirty || _mapTimer > 0.0f)
         {
@@ -112,8 +242,9 @@ public partial class RubblePile : Node3D
                 if (_tiles[t] == null)
                 {
                     _tiles[t] = new HeightMapShape3D { MapWidth = Tile + 1, MapDepth = Tile + 1 };
-                    var body = new StaticBody3D
+                    var body = new RubbleCollider
                     {
+                        Pile = this,
                         Name = $"Collision{t}",
                         CollisionLayer = GameLayers.Mask(GameLayers.World, GameLayers.Prop),
                         CollisionMask = 0,
@@ -151,14 +282,14 @@ public partial class RubblePile : Node3D
         _mapDirty = true;
     }
 
-    /// <summary>A colour for a cell from a few of the crushed ones, the same
+    /// <summary>A colour for a cell from the crushed ones, the same
     /// over little patches: a heap reads as rubble, and patches of one colour
     /// mesh into far fewer faces than voxels of every colour.</summary>
     private static byte Patch(IReadOnlyList<byte> colours, int x, int y, int z)
     {
         uint h = (uint)((x >> 1) * 73856093) ^ (uint)((y >> 1) * 19349663) ^ (uint)((z >> 1) * 83492791);
         h ^= h >> 13;
-        return colours[(int)(h % (uint)Math.Min(colours.Count, 4))];
+        return colours[(int)(h % (uint)colours.Count)];
     }
 
     /// <summary>
@@ -289,4 +420,26 @@ public partial class RubblePile : Node3D
         double u = 1.0 - _random.NextDouble(), v = _random.NextDouble();
         return (float)(Math.Sqrt(-2.0 * Math.Log(u)) * Math.Cos(Math.Tau * v));
     }
+}
+
+/// <summary>
+/// One tile of a heap's collision, and what weapons hit: it relays damage to
+/// its <see cref="RubblePile"/>, which takes it once however many tiles an
+/// area hit reaches.
+/// </summary>
+public partial class RubbleCollider : StaticBody3D, IDamageable, IBlastSurface, IDamageRelay, IPluckable
+{
+    public RigidBody3D Pluck(Vector3 point) => Pile?.Pluck(point);
+
+    public void AddSiblings(Godot.Collections.Array<Rid> into) => Pile?.AddBodies(into);
+
+    public RubblePile Pile { get; set; }
+
+    public IDamageable Receiver => Pile;
+
+    public bool IsAlive => Pile != null && Pile.IsAlive;
+
+    public void ApplyDamage(DamageInfo info) => Pile?.ApplyDamage(info);
+
+    public Vector3 NearestBlastPoint(Vector3 from) => Pile?.NearestBlastPoint(from) ?? GlobalPosition;
 }

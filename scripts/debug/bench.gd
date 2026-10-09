@@ -303,7 +303,29 @@ static func _cut_timeline(method: String, shot: String, quiet: bool) -> Array:
 			timeline.append(["%s %d" % [shot, i], ["#%s_%02d" % [shot, i]], [], 0.3])
 	timeline.append(["settling", [status], [], 5.0])
 	timeline.append(["settled shot", ["#%s_settled" % shot, status], [], 0.3])
+	# The rubble is still voxels: rockets into the heap.
+	timeline.append(["rockets at the rubble", ["slot_3", "@aim:Tower11:0", status], ["~fire"], 4.0])
+	timeline.append(["dust clears", [], [], 2.0])
+	timeline.append(["rubble shot", ["#%s_rubble_shot" % shot, status], [], 0.3])
+	# And it is still loose: the gravity gun tears a lump off the heap,
+	# holds it, and throws it.
+	timeline.append(["walk up to the rubble", ["@goto:-60, 0.2, -98", "@aim:Tower11:0", "slot_8"], [], 1.5])
+	timeline.append(["grab the rubble", ["@aim:Tower11:0"], ["fire"], 1.2])
+	timeline.append(["holding shot", ["#%s_grab" % shot, status], ["fire"], 0.3])
+	timeline.append(["throw", [], [], 1.2])
+	timeline.append(["thrown shot", ["#%s_thrown" % shot, status], [], 0.3])
 	return timeline
+
+# Airstrikes called on a tower as fast as the designator will take them, every
+# frame recorded and nothing printed meanwhile: the hitches of a strike spam.
+const STRIKE_TIMELINE := [
+	["hold the horde off", ["!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
+		"@goto:-60, 0.2, -60"], [], 2.0],
+	["aim", ["@aim:Tower11:20", "slot_4", "!call:PerfRecorder:Start", "!silent"], [], 2.0],
+	["strikes", ["@aim:Tower11:20"], ["~fire"], 10.0],
+	["after", ["@aim:Tower11:20"], [], 6.0],
+	["stop", ["!call:PerfRecorder:Stop", "!loud", "!call:VoxelDebris:PrintBenchStatus"], [], 0.3],
+]
 
 # The crowd brought onto the player and the three allies: the allies guard,
 # fire and stomp, the pickles bite, strike and spit at them. Every ally's body
@@ -451,6 +473,7 @@ func _initialize() -> void:
 		"look": _timeline = LOOK_TIMELINE
 		"ink": _timeline = INK_TIMELINE
 		"gpuab": _timeline = GPUAB_TIMELINE
+		"strike": _timeline = STRIKE_TIMELINE
 		"grapple": _timeline = GRAPPLE_TIMELINE
 		"machete": _timeline = MACHETE_TIMELINE
 		"mech": _timeline = MECH_TIMELINE

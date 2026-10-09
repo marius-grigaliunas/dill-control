@@ -406,6 +406,9 @@ public static class Blast
                 {
                     exclude.Add(rid.AsRid());
                 }
+                // The rest of a building or a heap answers for itself through
+                // this one: none of it need come back in the next pass.
+                (obj as IDamageRelay)?.AddSiblings(exclude);
 
                 if (found.Count >= maxColliders)
                 {

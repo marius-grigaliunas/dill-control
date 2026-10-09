@@ -21,7 +21,7 @@ namespace DillControl.Voxel;
 /// Made only by <see cref="VoxelDebris"/>, which counts them and keeps the
 /// spent ones to use again: making one costs 0.7 ms (see VoxelDebris).
 /// </summary>
-public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
+public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrabbable
 {
     private VoxelPart _part;
     private VoxelDestructionStats _stats;
@@ -47,6 +47,25 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
     public bool IsSettled { get; private set; }
 
     public bool IsHinged => _hinge != null;
+
+    // ---------------- Gravity gun ----------------
+
+    public bool CanGrab => _part != null && !_breaking && _grid.SolidCount <= _stats.MaxGrabVoxels && _hinge == null;
+
+    public bool IsHeld { get; private set; }
+
+    /// <summary>Held, it is awake and stays so: it does not settle, freeze,
+    /// join a heap or go for the cap.</summary>
+    public void SetHeld(bool held)
+    {
+        IsHeld = held;
+        if (held)
+        {
+            IsSettled = false;
+            Freeze = false;
+            _still = 0.0f;
+        }
+    }
 
     /// <summary>Seconds it has lain still.</summary>
     public float StillFor => _still;
@@ -105,8 +124,10 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
             CollisionOwner = this,
             CollisionStep = _build?.Step ?? VoxelSplit.CollisionStepFor(_grid, _stats.MaxChunkBoxes),
             Velocity = () => LinearVelocity,
-            // Made mid-game: its sections are built on worker threads.
-            BuildAtOnce = false,
+            // Made mid-game: its sections are built on worker threads, unless
+            // it is small enough to build in the moment (a piece torn off a
+            // heap is seen at once, in the gravity gun's grip).
+            BuildAtOnce = _build == null && _grid.SolidCount <= 800,
             CastShadows = _grid.SolidCount > 2000,
         };
         if (_meshes is (MeshInstance3D[] meshes, Vector3 offset))
@@ -168,7 +189,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         _lastVelocity = velocity;
         _lastSpin = AngularVelocity;
 
-        _still = Sleeping || velocity.LengthSquared() < 0.01f ? _still + dt : 0.0f;
+        _still = !IsHeld && (Sleeping || velocity.LengthSquared() < 0.01f) ? _still + dt : 0.0f;
         if (!IsSettled && _still > _stats.SettleSeconds)
         {
             // Rubble now: no simulation, still breakable.
@@ -525,6 +546,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         _hingeAge = 0.0f;
         _hingeDust = 0.0f;
         IsSettled = false;
+        IsHeld = false;
         Freeze = false;
         LinearVelocity = Vector3.Zero;
         AngularVelocity = Vector3.Zero;

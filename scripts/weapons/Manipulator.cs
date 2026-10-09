@@ -57,7 +57,8 @@ public partial class Manipulator : Node
     /// <see cref="ThrownImpact"/>.</summary>
     public ThrownImpact.Tuning Impact { get; set; } = new(2.0f, 8.0f, 20.0f, 4, 3.0f);
 
-    public bool IsHolding => (_held != null && IsInstanceValid(_held)) || _heldAgent != 0;
+    public bool IsHolding => (_held != null && IsInstanceValid(_held) && _held.IsInsideTree()
+                               && (_held is not IGrabbable grabbable || grabbable.IsHeld)) || _heldAgent != 0;
 
     public string HeldName => _heldAgent != 0
         ? "agent"
@@ -143,9 +144,11 @@ public partial class Manipulator : Node
             return false;
         }
 
-        if (body.Mass > MaxGrabMass)
+        // Rubble says for itself what can be lifted: it is concrete, far past
+        // the mass limit for crates.
+        if (body is IGrabbable grabbable ? !grabbable.CanGrab : body.Mass > MaxGrabMass)
         {
-            LastRefusal = $"too heavy ({body.Mass:F0} > {MaxGrabMass:F0})";
+            LastRefusal = body is IGrabbable ? "too big" : $"too heavy ({body.Mass:F0} > {MaxGrabMass:F0})";
             return false;
         }
 
@@ -158,6 +161,7 @@ public partial class Manipulator : Node
         body.Sleeping = false;
         body.GravityScale = 0.0f;
         body.AngularDamp = 2.0f;
+        (body as IGrabbable)?.SetHeld(true);
         return true;
     }
 
@@ -216,9 +220,17 @@ public partial class Manipulator : Node
         query.CollideWithBodies = true;
 
         Godot.Collections.Dictionary result = space.IntersectRay(query);
-        return result.Count > 0 && result.TryGetValue("collider", out Variant collider)
-            ? collider.AsGodotObject() as RigidBody3D
-            : null;
+        if (result.Count == 0 || !result.TryGetValue("collider", out Variant collider))
+        {
+            return null;
+        }
+        // A heap is not a body: a piece of it is torn off where it was hit.
+        return collider.AsGodotObject() switch
+        {
+            RigidBody3D body => body,
+            IPluckable pluckable => pluckable.Pluck(result["position"].AsVector3()),
+            _ => null,
+        };
     }
 
     /// <summary>
@@ -311,6 +323,7 @@ public partial class Manipulator : Node
 
         _held.GravityScale = _heldGravityScale;
         _held.AngularDamp = 0.35f;
+        (_held as IGrabbable)?.SetHeld(false);
 
         if (launch && camera != null)
         {
@@ -360,6 +373,11 @@ public partial class Manipulator : Node
 
             if (hit is RigidBody3D body)
             {
+                // Rubble at rest is frozen; a shove wakes it.
+                if (body is IGrabbable)
+                {
+                    body.Freeze = false;
+                }
                 body.Sleeping = false;
                 body.ApplyCentralImpulse(forward * PuntImpulse * body.Mass);
                 ThrownImpact.Track(body, Owner3D, Impact);

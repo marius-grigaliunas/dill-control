@@ -58,6 +58,8 @@ public partial class VoxelPart : Node3D
     // does: a recording's columns are fixed when it starts.
     internal static readonly int SectionChunkReady = FrameProfiler.Section("chunk ready");
     internal static readonly int SectionDamage = FrameProfiler.Section("voxel damage");
+    internal static readonly int SectionCarve = FrameProfiler.Section("voxel carve");
+    internal static readonly int SectionReport = FrameProfiler.Section("voxel report");
     internal static readonly int SectionRubble = FrameProfiler.Section("rubble deposit");
     internal static readonly int SectionRubbleMap = FrameProfiler.Section("rubble map");
     internal static readonly int SectionChunkAdd = FrameProfiler.Section("chunk add");
@@ -347,6 +349,7 @@ public partial class VoxelPart : Node3D
     /// </summary>
     public int Carve(Vector3 worldCentre, float radius)
     {
+        using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionCarve);
         if (IsEmpty)
         {
             return 0;
@@ -895,6 +898,19 @@ public partial class VoxelPart : Node3D
     public int CrushSlab(Vector3 worldPoint, Vector3 direction, float depth, float radius) =>
         CrushSlab(worldPoint, direction, depth, radius, out _, null);
 
+    /// <summary>Takes cells out whole, to become a piece of their own (a lump
+    /// torn off a heap): no dust, re-meshed like any change.</summary>
+    public void Take(List<int> cells, Vector3I min, Vector3I max)
+    {
+        if (cells.Count == 0 || _meshDirty == null)
+        {
+            return;
+        }
+        Grid.Remove(cells, null);
+        MarkDirty(min, max);
+        _integrityTimer = _stats.IntegrityDelay;
+    }
+
     /// <summary>Fills cells (a rubble pile growing): re-meshed and re-boxed on
     /// the workers like any change.</summary>
     public void Fill(List<(int index, byte colour)> cells, Vector3I min, Vector3I max)
@@ -1193,6 +1209,22 @@ public partial class VoxelPart : Node3D
             _sectionBodies[s] = body;
         }
         return _sectionBodies[s];
+    }
+
+    /// <summary>Adds every section body's RID.</summary>
+    public void AddBodies(Godot.Collections.Array<Rid> into)
+    {
+        if (_sectionBodies == null)
+        {
+            return;
+        }
+        foreach (CollisionObject3D body in _sectionBodies)
+        {
+            if (body != null)
+            {
+                into.Add(body.GetRid());
+            }
+        }
     }
 
     /// <summary>The collision body of the section a cell is in.</summary>

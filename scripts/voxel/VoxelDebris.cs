@@ -209,7 +209,7 @@ public partial class VoxelDebris : Node3D
         {
             VoxelChunk chunk = _chunks[k];
             if (chunk.StillFor < Stats.BakeAfterSeconds || chunk.IsHinged || chunk.VoxelCount > Stats.BakeMaxVoxels
-                || chunk.Grid == null)
+                || chunk.Grid == null || chunk.IsHeld)
             {
                 continue;
             }
@@ -384,9 +384,16 @@ public partial class VoxelDebris : Node3D
         return true;
     }
 
+    /// <summary>Makes a chunk at once, not on the next tick: a piece torn
+    /// off a heap by the gravity gun is held this frame.</summary>
+    public VoxelChunk MakeNow(VoxelGrid grid, Color[] palette, float[] emission, Material material, Transform3D at)
+    {
+        return Make(new Pending(grid, palette, emission, material, at, Vector3.Zero, Vector3.Zero, null, null, null, null), 0.0f);
+    }
+
     /// <summary>Makes a chunk that was asked for <paramref name="late"/>
     /// seconds ago, where it would be now had it been made then.</summary>
-    private void Make(in Pending p, float late)
+    private VoxelChunk Make(in Pending p, float late)
     {
         using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionSpawn);
         Transform3D at = p.At;
@@ -430,6 +437,10 @@ public partial class VoxelDebris : Node3D
         {
             // Out of the count now: it is only freed at the end of the frame.
             VoxelChunk expendable = Expendable();
+            if (expendable == null)
+            {
+                break;
+            }
             _chunks.Remove(expendable);
             // Lying still, it joins the heap where it lies and stays on the
             // screen; only one still moving goes to dust.
@@ -444,6 +455,7 @@ public partial class VoxelDebris : Node3D
                 expendable.Dissolve();
             }
         }
+        return chunk;
     }
 
     /// <summary>Hangs a chunk on a hinge: a joint about the hinge's axis to
@@ -621,6 +633,10 @@ public partial class VoxelDebris : Node3D
         VoxelChunk settled = null, sleeping = null, any = null;
         foreach (VoxelChunk chunk in _chunks)
         {
+            if (chunk.IsHeld)
+            {
+                continue;
+            }
             int n = chunk.VoxelCount;
             if (chunk.IsSettled && (settled == null || n < settled.VoxelCount))
             {
@@ -641,10 +657,11 @@ public partial class VoxelDebris : Node3D
     /// <summary>One line of state, for <c>bench.gd</c>.</summary>
     public void PrintBenchStatus()
     {
-        int settled = 0, sleeping = 0;
+        int settled = 0, sleeping = 0, held = 0;
         VoxelChunk biggest = null;
         foreach (VoxelChunk chunk in _chunks)
         {
+            held += chunk.IsHeld ? 1 : 0;
             settled += chunk.IsSettled ? 1 : 0;
             sleeping += chunk.Sleeping ? 1 : 0;
             if (biggest == null || chunk.VoxelCount > biggest.VoxelCount)
@@ -654,7 +671,7 @@ public partial class VoxelDebris : Node3D
         }
         string big = biggest == null ? "" :
             $" biggest={biggest.VoxelCount} at y={biggest.GlobalPosition.Y:F1} tilt={Mathf.RadToDeg(biggest.GlobalBasis.Y.AngleTo(Vector3.Up)):F1}° speed={biggest.LinearVelocity.Length():F1} hinged={biggest.IsHinged}";
-        GD.Print($"[bench]   debris chunks={_chunks.Count} sleeping={sleeping} settled={settled} queued={_pending.Count}{big}");
+        GD.Print($"[bench]   debris chunks={_chunks.Count} sleeping={sleeping} settled={settled} queued={_pending.Count} held={held} heaps={_piles.Count}{big}");
     }
 
     public static Color AverageColour(VoxelGrid grid, Color[] palette)

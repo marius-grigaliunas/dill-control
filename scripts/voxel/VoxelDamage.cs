@@ -149,6 +149,7 @@ public static class VoxelDamage
     /// wall reports like shooting a pickle.</summary>
     private static void Report(DamageInfo info, IReadOnlyList<VoxelPart> parts, Node3D target)
     {
+        using FrameProfiler.Scope scope = FrameProfiler.Begin(VoxelPart.SectionReport);
         int solid = 0, initial = 0;
         foreach (VoxelPart part in parts)
         {

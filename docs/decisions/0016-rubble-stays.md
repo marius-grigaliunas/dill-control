@@ -42,6 +42,13 @@ heap voxel for voxel where it lies and lingers 0.3 s until the heap has drawn
 it. Rubble no longer vanishes at the cap, and a hundred pieces stop being a
 hundred bodies and a hundred draws. Bigger pieces stay bodies you can shoot.
 
+**A heap is still voxels.** Its tiles relay damage to it like a building's
+sections (`RubbleCollider`): shots and blasts carve it, what is cut loose
+falls, and the collision follows. The gravity gun tears a lump off it where it
+is aimed (`IPluckable`, `PluckRadius`) and lifts loose rubble up to
+`MaxGrabVoxels` (`IGrabbable`: held rubble does not settle, freeze, join a heap
+or go for the cap). Rubble landing on a heap does not dig it.
+
 **A heap collides as heightfields, in 4 m tiles,** made only where there is
 rubble, refreshed five times a second, four tiles a tick. Boxed voxel by voxel
 a heap came to thousands of boxes a section (20-36 ms to re-box); one
@@ -66,7 +73,8 @@ taken hot or busy came out at 36 % over **before** the cut); read them paired.
 
 ## Costs
 
-- A heap cannot be shot apart: rubble is scenery that can be stood on.
+- A heap's collision is its surface only: what is under an overhang is not
+  solid to walk under.
 - Pieces linger, frozen, for up to half a second while their batch is made,
   and a baked piece for 0.3 s, overlapping their replacements under dust.
 - More dust on screen: 24 clouds in the pool, not 12.

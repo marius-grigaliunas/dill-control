@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Godot;
@@ -89,7 +90,16 @@ public static class FrameProfiler
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Scope Begin(int section) =>
-        new(section, Enabled ? Stopwatch.GetTimestamp() : 0L);
+        new(section, Enabled ? Stopwatch.GetTimestamp() : 0L, Enabled ? GC.GetAllocatedBytesForCurrentThread() : 0L);
+
+    // Bytes each section allocated, on whichever thread ran it: what feeds the
+    // collector, named. Nested sections count in their parents too.
+    private static readonly long[] AllocAccumulating = new long[MaxSections];
+    private static readonly long[] AllocReported = new long[MaxSections];
+
+    /// <summary>Bytes this section allocated during the last completed frame.</summary>
+    public static long Allocated(int section) =>
+        section >= 0 && section < _count ? AllocReported[section] : 0L;
 
     /// <summary>
     /// Publishes this frame's accumulated times and starts the next frame.
@@ -101,6 +111,8 @@ public static class FrameProfiler
         {
             Reported[i] = Accumulating[i];
             Accumulating[i] = 0.0;
+            AllocReported[i] = AllocAccumulating[i];
+            AllocAccumulating[i] = 0L;
         }
     }
 
@@ -126,11 +138,13 @@ public static class FrameProfiler
     {
         private readonly int _section;
         private readonly long _start;
+        private readonly long _allocated;
 
-        internal Scope(int section, long start)
+        internal Scope(int section, long start, long allocated)
         {
             _section = section;
             _start = start;
+            _allocated = allocated;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -141,6 +155,7 @@ public static class FrameProfiler
                 return;
             }
             Accumulating[_section] += (Stopwatch.GetTimestamp() - _start) * MsPerTick;
+            AllocAccumulating[_section] += GC.GetAllocatedBytesForCurrentThread() - _allocated;
         }
     }
 }

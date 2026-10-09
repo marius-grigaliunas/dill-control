@@ -55,6 +55,7 @@ public sealed partial class PerfRecorder : Node
     private double[] _sectionWorst = Array.Empty<double>();
     private double[] _sectionTotal = Array.Empty<double>();
     private double[] _sectionOnHitches = Array.Empty<double>();
+    private long[] _sectionAllocated = Array.Empty<long>();
     private int _gc0;
     private int _gc1;
     private int _gc2;
@@ -141,6 +142,7 @@ public sealed partial class PerfRecorder : Node
         _sectionWorst = new double[FrameProfiler.MaxSections];
         _sectionTotal = new double[FrameProfiler.MaxSections];
         _sectionOnHitches = new double[FrameProfiler.MaxSections];
+        _sectionAllocated = new long[FrameProfiler.MaxSections];
         _events.Clear();
         _gc0 = GC.CollectionCount(0);
         _gc1 = GC.CollectionCount(1);
@@ -251,6 +253,7 @@ public sealed partial class PerfRecorder : Node
             {
                 _sectionOnHitches[i] += ms;
             }
+            _sectionAllocated[i] += FrameProfiler.Allocated(i);
         }
 
         foreach (Func<double> source in _columnSources)
@@ -327,7 +330,7 @@ public sealed partial class PerfRecorder : Node
             Inv($"worst frame #{_worstFrame}  {_worstMs:F2} ms  events: {(_worstEvents.Length > 0 ? _worstEvents : "none")}"),
             Inv($"full (gen-2) garbage collections during the recording: {_gc2Frames}"),
             Inv($"physics [engine]  worst {_physicsWorst:F2} ms  on hitches {(_overBudget > 0 ? _physicsOnHitches / _overBudget : 0.0):F2} ms avg"),
-            "section               mean ms   worst ms   avg on hitches",
+            "section               mean ms   worst ms   avg on hitches   KB/frame allocated",
         };
 
         for (int i = 0; i < FrameProfiler.Count; i++)
@@ -340,7 +343,8 @@ public sealed partial class PerfRecorder : Node
             string name = FrameProfiler.NameOf(i);
             double mean = _frames > 0 ? _sectionTotal[i] / _frames : 0.0;
             double onHitch = _overBudget > 0 ? _sectionOnHitches[i] / _overBudget : 0.0;
-            lines.Add(Inv($"{name,-20}{mean,9:F3}{_sectionWorst[i],11:F3}{onHitch,13:F3}"));
+            double kb = _frames > 0 ? _sectionAllocated[i] / 1024.0 / _frames : 0.0;
+            lines.Add(Inv($"{name,-20}{mean,9:F3}{_sectionWorst[i],11:F3}{onHitch,13:F3}{kb,16:F1}"));
         }
 
         return lines;

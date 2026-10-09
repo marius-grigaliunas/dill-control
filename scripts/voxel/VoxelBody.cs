@@ -189,6 +189,18 @@ public partial class VoxelCollider : StaticBody3D, IDamageable, IBlastSurface, I
 
     public IDamageable Receiver => Body;
 
+    public void AddSiblings(Godot.Collections.Array<Rid> into)
+    {
+        if (Body == null)
+        {
+            return;
+        }
+        foreach (VoxelPart part in Body.Parts)
+        {
+            part.AddBodies(into);
+        }
+    }
+
     public bool IsAlive => Body != null && Body.IsAlive;
 
     public void ApplyDamage(DamageInfo info) => Body?.ApplyDamage(info);
