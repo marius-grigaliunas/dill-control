@@ -1,3 +1,5 @@
+using System;
+using System.Buffers;
 using System.Collections.Generic;
 using Godot;
 
@@ -41,10 +43,28 @@ public static class VoxMesher
     public static Godot.Collections.Array Build(
         byte[] cells, Vector3I size, Vector3I regionMin, Vector3I regionMax,
         Color[] palette, float[] emission, Vector3 origin, float voxelSize, int skip) =>
-        BuildArrays(cells, size, regionMin, regionMax, palette, emission, origin, voxelSize, skip)?.ToGodot();
+        Hand(BuildArrays(cells, size, regionMin, regionMax, palette, emission, origin, voxelSize, skip));
+
+    private static Godot.Collections.Array Hand(Arrays arrays)
+    {
+        if (arrays == null)
+        {
+            return null;
+        }
+        Godot.Collections.Array godot = arrays.ToGodot();
+        arrays.Release();
+        return godot;
+    }
 
     /// <summary>A mesh's arrays as plain C# arrays: what a worker thread can
     /// build without touching Godot, for the main thread to hand over.</summary>
+    ///
+    /// The arrays are rented from the shared pools and longer than they need
+    /// be: <see cref="VertexCount"/> and <see cref="IndexCount"/> say how much
+    /// is used. Hand them back with <see cref="Release"/> once Godot has its
+    /// copy. A collapse re-meshes sections by the dozen, and new arrays (and
+    /// the lists grown to fill them) for each kept the collector running
+    /// twice a crush.
     public sealed class Arrays
     {
         public Vector3[] Vertices;
@@ -52,18 +72,54 @@ public static class VoxMesher
         public Color[] Colours;
         public Vector2[] Uvs;
         public int[] Indices;
+        public int VertexCount;
+        public int IndexCount;
 
+        /// <summary>Godot's surface arrays, copied out of the rented ones.</summary>
         public Godot.Collections.Array ToGodot()
         {
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Mesh.ArrayType.Max);
-            arrays[(int)Mesh.ArrayType.Vertex] = Vertices;
-            arrays[(int)Mesh.ArrayType.Normal] = Normals;
-            arrays[(int)Mesh.ArrayType.Color] = Colours;
-            arrays[(int)Mesh.ArrayType.TexUV] = Uvs;
-            arrays[(int)Mesh.ArrayType.Index] = Indices;
+            arrays[(int)Mesh.ArrayType.Vertex] = Variant.CreateFrom(new Span<Vector3>(Vertices, 0, VertexCount));
+            arrays[(int)Mesh.ArrayType.Normal] = Variant.CreateFrom(new Span<Vector3>(Normals, 0, VertexCount));
+            arrays[(int)Mesh.ArrayType.Color] = Variant.CreateFrom(new Span<Color>(Colours, 0, VertexCount));
+            arrays[(int)Mesh.ArrayType.TexUV] = Variant.CreateFrom(new Span<Vector2>(Uvs, 0, VertexCount));
+            arrays[(int)Mesh.ArrayType.Index] = Variant.CreateFrom(new Span<int>(Indices, 0, IndexCount));
             return arrays;
         }
+
+        /// <summary>Back to the pools. Not used again after.</summary>
+        public void Release()
+        {
+            if (Vertices == null)
+            {
+                return;
+            }
+            ArrayPool<Vector3>.Shared.Return(Vertices);
+            ArrayPool<Vector3>.Shared.Return(Normals);
+            ArrayPool<Color>.Shared.Return(Colours);
+            ArrayPool<Vector2>.Shared.Return(Uvs);
+            ArrayPool<int>.Shared.Return(Indices);
+            Vertices = null;
+            Normals = null;
+            Colours = null;
+            Uvs = null;
+            Indices = null;
+        }
+    }
+
+    // Each thread's working lists, kept and cleared rather than made per build.
+    [ThreadStatic] private static List<Vector3> _vertices;
+    [ThreadStatic] private static List<Vector3> _normals;
+    [ThreadStatic] private static List<Color> _colours;
+    [ThreadStatic] private static List<Vector2> _uvs;
+    [ThreadStatic] private static List<int> _indices;
+
+    private static T[] Rent<T>(List<T> from)
+    {
+        T[] array = ArrayPool<T>.Shared.Rent(Math.Max(1, from.Count));
+        from.CopyTo(array);
+        return array;
     }
 
     /// <summary>The same as <see cref="Build(byte[], Vector3I, Vector3I, Vector3I, Color[], float[], Vector3, float, int)"/>,
@@ -72,11 +128,16 @@ public static class VoxMesher
         byte[] cells, Vector3I size, Vector3I regionMin, Vector3I regionMax,
         Color[] palette, float[] emission, Vector3 origin, float voxelSize, int skip)
     {
-        var vertices = new List<Vector3>();
-        var normals = new List<Vector3>();
-        var colours = new List<Color>();
-        var uvs = new List<Vector2>();
-        var indices = new List<int>();
+        List<Vector3> vertices = _vertices ??= new List<Vector3>();
+        List<Vector3> normals = _normals ??= new List<Vector3>();
+        List<Color> colours = _colours ??= new List<Color>();
+        List<Vector2> uvs = _uvs ??= new List<Vector2>();
+        List<int> indices = _indices ??= new List<int>();
+        vertices.Clear();
+        normals.Clear();
+        colours.Clear();
+        uvs.Clear();
+        indices.Clear();
 
         int[] dims = { size.X, size.Y, size.Z };
         int[] lo = { regionMin.X, regionMin.Y, regionMin.Z };
@@ -156,10 +217,13 @@ public static class VoxMesher
                             // Godot culls counter-clockwise triangles, so a
                             // front face winds clockwise seen from its normal.
                             Vector3 cross = (vertices[first + 1] - vertices[first]).Cross(vertices[first + 2] - vertices[first]);
-                            if (cross.Dot(normal) < 0.0f)
-                                indices.AddRange(new[] { first, first + 1, first + 2, first, first + 2, first + 3 });
-                            else
-                                indices.AddRange(new[] { first, first + 2, first + 1, first, first + 3, first + 2 });
+                            bool clockwise = cross.Dot(normal) < 0.0f;
+                            indices.Add(first);
+                            indices.Add(clockwise ? first + 1 : first + 2);
+                            indices.Add(clockwise ? first + 2 : first + 1);
+                            indices.Add(first);
+                            indices.Add(clockwise ? first + 2 : first + 3);
+                            indices.Add(clockwise ? first + 3 : first + 2);
                         }
                 }
             }
@@ -170,11 +234,13 @@ public static class VoxMesher
 
         return new Arrays
         {
-            Vertices = vertices.ToArray(),
-            Normals = normals.ToArray(),
-            Colours = colours.ToArray(),
-            Uvs = uvs.ToArray(),
-            Indices = indices.ToArray(),
+            Vertices = Rent(vertices),
+            Normals = Rent(normals),
+            Colours = Rent(colours),
+            Uvs = Rent(uvs),
+            Indices = Rent(indices),
+            VertexCount = vertices.Count,
+            IndexCount = indices.Count,
         };
     }
 

@@ -242,8 +242,10 @@ public sealed class VoxelGrid
 
     // ---------------- Connectivity ----------------
 
-    private int[] _label;
-    private int[] _queue;
+    // A flood's working arrays, one set per thread and kept: they were made
+    // per check, three 800 KB arrays for a tower, and drove the collector.
+    [ThreadStatic] private static int[] _label;
+    [ThreadStatic] private static int[] _queue;
 
     /// <summary>
     /// Splits the solid cells into face-connected islands. Each is a list of
@@ -253,12 +255,12 @@ public sealed class VoxelGrid
     public List<List<int>> Islands(Func<int, bool> isAnchor, List<bool> anchored)
     {
         int n = Cells.Length;
-        if (_label == null || _label.Length != n)
+        if (_label == null || _label.Length < n)
         {
             _label = new int[n];
             _queue = new int[n];
         }
-        Array.Fill(_label, -1);
+        Array.Fill(_label, -1, 0, n);
         var islands = new List<List<int>>();
         anchored.Clear();
         int sx = Size.X, sxy = Size.X * Size.Y;
@@ -310,17 +312,17 @@ public sealed class VoxelGrid
     public List<List<int>> Pieces(List<int> island, Func<int, int> key)
     {
         int n = Cells.Length;
-        if (_label == null || _label.Length != n)
+        if (_label == null || _label.Length < n)
         {
             _label = new int[n];
             _queue = new int[n];
         }
-        if (_key == null || _key.Length != n)
+        if (_key == null || _key.Length < n)
         {
             _key = new int[n];
         }
         // -1 not in the island, -2 in it and not yet reached.
-        Array.Fill(_label, -1);
+        Array.Fill(_label, -1, 0, n);
         foreach (int i in island)
         {
             _label[i] = -2;
@@ -366,7 +368,7 @@ public sealed class VoxelGrid
         return pieces;
     }
 
-    private int[] _key;
+    [ThreadStatic] private static int[] _key;
 
     /// <summary>Clears the given cells, reporting each into <paramref name="removed"/>.</summary>
     public void Remove(List<int> cells, List<Removed> removed)
@@ -394,6 +396,20 @@ public sealed class VoxelGrid
     /// the right point. The cells are cleared here. <paramref name="offset"/>
     /// is where the new grid's origin sits in this grid's node space.
     /// </summary>
+    /// <summary>Fills empty cells: a rubble pile growing.</summary>
+    public void Fill(List<(int index, byte colour)> cells)
+    {
+        foreach ((int i, byte colour) in cells)
+        {
+            if (Cells[i] == 0 && colour != 0)
+            {
+                Cells[i] = colour;
+                SolidCount++;
+            }
+        }
+        Version++;
+    }
+
     public VoxelGrid Extract(List<int> island, out Vector3 offset, int align = 1) => Copy(island, out offset, align, clear: true);
 
     /// <summary>The same, leaving its cells where they are: for working out

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DillControl.Core;
 using Godot;
@@ -86,6 +87,42 @@ public static class VoxelBudget
 }
 
 /// <summary>
+/// The pieces of one split, made over the next ticks. What they came from
+/// keeps its old look until the last of them is made (or half a second has
+/// gone, whichever is first): it must never be gone before its pieces are
+/// there, or a building blinks out for a frame and its rubble pops in after.
+/// </summary>
+public sealed class SpawnBatch
+{
+    internal int Remaining;
+    internal ulong Deadline;
+    private Action _done;
+
+    public SpawnBatch(Action done)
+    {
+        _done = done;
+        Deadline = Time.GetTicksMsec() + 500;
+    }
+
+    public bool IsOpen => _done != null;
+
+    internal void One()
+    {
+        if (--Remaining <= 0)
+        {
+            Finish();
+        }
+    }
+
+    internal void Finish()
+    {
+        Action done = _done;
+        _done = null;
+        done?.Invoke();
+    }
+}
+
+/// <summary>
 /// Where broken-off pieces go: every loose chunk in the level lives here, and
 /// so does the dust. It holds the cap on loose pieces (the oldest, preferring
 /// settled ones, turn to dust past it), so destruction has a ceiling however
@@ -151,11 +188,41 @@ public partial class VoxelDebris : Node3D
         }
     }
 
+    private float _bakeTimer;
+
     public override void _Process(double delta)
     {
         if (_spare.Count < SpareChunks)
         {
             _spare.Push(NewChunk());
+        }
+
+        // Small pieces lying still join their heap, a few at a time.
+        _bakeTimer -= (float)delta;
+        if (_bakeTimer > 0.0f)
+        {
+            return;
+        }
+        _bakeTimer = 0.25f;
+        int baked = 0;
+        for (int k = _chunks.Count - 1; k >= 0 && baked < 4; k--)
+        {
+            VoxelChunk chunk = _chunks[k];
+            if (chunk.StillFor < Stats.BakeAfterSeconds || chunk.IsHinged || chunk.VoxelCount > Stats.BakeMaxVoxels
+                || chunk.Grid == null)
+            {
+                continue;
+            }
+            _chunks.RemoveAt(k);
+            if (Bake(chunk))
+            {
+                chunk.RetireAfter(0.3f);
+                baked++;
+            }
+            else
+            {
+                _chunks.Add(chunk);
+            }
         }
     }
 
@@ -196,12 +263,15 @@ public partial class VoxelDebris : Node3D
         public readonly VoxelHinge? Hinge;
         public readonly (MeshInstance3D[] meshes, Vector3 offset)? Meshes;
         public readonly ChunkBuild Build;
+        public readonly SpawnBatch Batch;
         public readonly ulong Asked;
 
         public Pending(VoxelGrid grid, Color[] palette, float[] emission, Material material, Transform3D at,
-            Vector3 velocity, Vector3 spin, VoxelHinge? hinge, (MeshInstance3D[], Vector3)? meshes, ChunkBuild build)
+            Vector3 velocity, Vector3 spin, VoxelHinge? hinge, (MeshInstance3D[], Vector3)? meshes, ChunkBuild build,
+            SpawnBatch batch)
         {
             Build = build;
+            Batch = batch;
             Meshes = meshes;
             Grid = grid;
             Palette = palette;
@@ -236,12 +306,21 @@ public partial class VoxelDebris : Node3D
     /// build them as it is made.</param>
     public void SpawnChunk(VoxelGrid grid, Color[] palette, float[] emission, Material material,
         Transform3D at, Vector3 velocity, Vector3? spin = null, VoxelHinge? hinge = null,
-        (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null)
+        (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null, SpawnBatch batch = null)
     {
+        if (batch != null)
+        {
+            batch.Remaining++;
+            if (!_batches.Contains(batch))
+            {
+                _batches.Add(batch);
+            }
+        }
         if (grid.SolidCount < Stats.MinChunkVoxels || Stats.MaxChunks <= 0)
         {
             Dust(at.Origin, Vector3.Up, velocity, AverageColour(grid, palette),
                 Mathf.Pow(grid.SolidCount, 1.0f / 3.0f) * grid.VoxelSize);
+            batch?.One();
             return;
         }
 
@@ -254,11 +333,28 @@ public partial class VoxelDebris : Node3D
 
         // Made on the next physics tick, never in the frame that asked: that
         // frame has just split the thing it came from (VoxelPart.Apply).
-        _pending.Enqueue(new Pending(grid, palette, emission, material, at, velocity, spin.Value, hinge, meshes, build));
+        _pending.Enqueue(new Pending(grid, palette, emission, material, at, velocity, spin.Value, hinge, meshes, build, batch));
     }
+
+    private readonly List<SpawnBatch> _batches = new();
 
     public override void _PhysicsProcess(double delta)
     {
+        // A batch whose pieces are slow in coming lets go of its old look anyway.
+        ulong ms = Time.GetTicksMsec();
+        for (int k = _batches.Count - 1; k >= 0; k--)
+        {
+            if (!_batches[k].IsOpen)
+            {
+                _batches.RemoveAt(k);
+            }
+            else if (ms > _batches[k].Deadline)
+            {
+                _batches[k].Finish();
+                _batches.RemoveAt(k);
+            }
+        }
+
         ulong now = Time.GetTicksUsec();
         long start = System.Diagnostics.Stopwatch.GetTimestamp();
         double allowance = Stats.SpawnMillisecondsPerFrame * System.Diagnostics.Stopwatch.Frequency / 1000.0;
@@ -328,13 +424,25 @@ public partial class VoxelDebris : Node3D
             chunk.HangSoon(hinge);
         }
         _chunks.Add(chunk);
+        p.Batch?.One();
 
         while (_chunks.Count > Stats.MaxChunks)
         {
             // Out of the count now: it is only freed at the end of the frame.
             VoxelChunk expendable = Expendable();
             _chunks.Remove(expendable);
-            expendable.Dissolve();
+            // Lying still, it joins the heap where it lies and stays on the
+            // screen; only one still moving goes to dust.
+            if ((expendable.IsSettled || expendable.Sleeping) && Bake(expendable))
+            {
+                // Until the heap has drawn it: the heap's meshes come off the
+                // workers a few frames later.
+                expendable.RetireAfter(0.3f);
+            }
+            else
+            {
+                expendable.Dissolve();
+            }
         }
     }
 
@@ -360,6 +468,142 @@ public partial class VoxelDebris : Node3D
         joint.NodeA = joint.GetPathTo(chunk);
         joint.NodeB = joint.GetPathTo(hinge.Anchor);
         chunk.HangOn(joint, hinge.Pivot);
+    }
+
+    private readonly List<RubblePile> _piles = new();
+
+    /// <summary>
+    /// Heaps the rubble share of <paramref name="count"/> crushed voxels round
+    /// a footprint <paramref name="inner"/> metres in radius, on the ground
+    /// under <paramref name="centre"/>: on the pile already there, or a new one.
+    /// </summary>
+    public void LeaveRubble(Vector3 centre, float inner, int count, IReadOnlyList<byte> colours,
+        Color[] palette, float[] emission, Material material, float voxel)
+    {
+        using FrameProfiler.Scope scope = FrameProfiler.Begin(VoxelPart.SectionRubble);
+        int rubble = Mathf.RoundToInt(count * Stats.RubbleShare);
+        if (rubble <= 0 || colours.Count == 0)
+        {
+            return;
+        }
+        RubblePile pile = null;
+        foreach (RubblePile existing in _piles)
+        {
+            Vector3 d = existing.GlobalPosition - centre;
+            d.Y = 0.0f;
+            if (existing.Palette == palette && d.Length() + inner < existing.Reach)
+            {
+                pile = existing;
+                break;
+            }
+        }
+        if (pile == null)
+        {
+            if (!Ground(centre, out Vector3 ground))
+            {
+                return;
+            }
+            pile = new RubblePile { Name = "Rubble", Position = ToLocal(ground) };
+            pile.Setup(palette, emission, material, Stats, voxel, inner + Stats.RubbleReach, Stats.RubbleHeight);
+            AddChild(pile);
+            _piles.Add(pile);
+        }
+        pile.Deposit(centre, inner, rubble, colours);
+    }
+
+    /// <summary>A settled piece, turned into part of the static heap where
+    /// it lies: the same voxels, no body. False if there is no ground.</summary>
+    private bool Bake(VoxelChunk chunk)
+    {
+        VoxelGrid grid = chunk.Grid;
+        if (grid == null || grid.SolidCount == 0)
+        {
+            return false;
+        }
+        float size = Mathf.Max(grid.Size.X, Mathf.Max(grid.Size.Y, grid.Size.Z)) * grid.VoxelSize;
+        Vector3 at = chunk.GlobalPosition;
+        RubblePile pile = null;
+        foreach (RubblePile existing in _piles)
+        {
+            Vector3 d = existing.GlobalPosition - at;
+            d.Y = 0.0f;
+            if (existing.Palette == chunk.Palette && d.Length() + size < existing.Reach)
+            {
+                pile = existing;
+                break;
+            }
+        }
+        if (pile == null)
+        {
+            if (!Ground(at, out Vector3 ground))
+            {
+                return false;
+            }
+            pile = new RubblePile { Name = "Rubble", Position = ToLocal(ground) };
+            pile.Setup(chunk.Palette, chunk.Emission, chunk.Material, Stats, grid.VoxelSize, size + 2.0f,
+                Mathf.Max(size + 2.0f, Stats.RubbleHeight));
+            AddChild(pile);
+            _piles.Add(pile);
+        }
+        pile.Bake(grid, chunk.GlobalTransform);
+        return true;
+    }
+
+    /// <summary>The ground under a point: the first World hit straight down
+    /// that is not a building, a loose piece or a heap.</summary>
+    private bool Ground(Vector3 from, out Vector3 ground)
+    {
+        ground = default;
+        PhysicsDirectSpaceState3D space = GetWorld3D()?.DirectSpaceState;
+        if (space == null)
+        {
+            return false;
+        }
+        var exclude = new Godot.Collections.Array<Rid>();
+        for (int tries = 0; tries < 8; tries++)
+        {
+            using var query = PhysicsRayQueryParameters3D.Create(from + Vector3.Up, from + Vector3.Down * 400.0f,
+                GameLayers.Mask(GameLayers.World), exclude);
+            Godot.Collections.Dictionary hit = space.IntersectRay(query);
+            if (hit.Count == 0)
+            {
+                return false;
+            }
+            GodotObject collider = hit["collider"].AsGodotObject();
+            if (collider is VoxelCollider or VoxelChunk || (collider is Node node && node.GetParent() is RubblePile))
+            {
+                exclude.Add(hit["rid"].AsRid());
+                continue;
+            }
+            ground = hit["position"].AsVector3();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// A small piece of what was crushed, thrown out from the edge of the
+    /// crush: something for the eye to follow out of the dust.
+    /// </summary>
+    public void Spall(Vector3 at, Vector3 velocity, IReadOnlyList<byte> colours, Color[] palette, float[] emission,
+        Material material, float voxel)
+    {
+        if (colours.Count == 0 || !HasRoom(1))
+        {
+            return;
+        }
+        var random = new Random();
+        var size = new Vector3I(random.Next(2, 5), random.Next(2, 5), random.Next(2, 4));
+        var cells = new byte[size.X * size.Y * size.Z];
+        for (int i = 0; i < cells.Length; i++)
+        {
+            if (random.NextDouble() < 0.8)
+            {
+                cells[i] = colours[random.Next(colours.Count)];
+            }
+        }
+        var grid = new VoxelGrid(size, cells, new Vector3(size.X, size.Y, size.Z) * 0.5f, voxel);
+        SpawnChunk(grid, palette, emission, material, new Transform3D(Basis.Identity, at), velocity);
     }
 
     /// <summary>Room for this many more pieces under the cap, counting those

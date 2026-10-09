@@ -45,8 +45,8 @@ public sealed class ChunkBuild
     public List<(Vector3 centre, Vector3 size)>[] Boxes;
     public VoxMesher.Arrays[] Meshes;
 
-    /// <summary>Sections whose mesh was not built because the piece was to take
-    /// over its old part's; if that mesh could not be had, it builds its own.</summary>
+    /// <summary>Sections it is to take over its old part's mesh for, where
+    /// that mesh is up to date; its own is used where it is not.</summary>
     public bool[] Skipped;
 }
 
@@ -561,10 +561,10 @@ internal sealed class VoxelSplit
             Vector3I max = (min + new Vector3I(edge, edge, edge)).Min(grid.Size);
             build.Boxes[s] = new List<(Vector3, Vector3)>();
             grid.Boxes(min, max, build.Step, build.Boxes[s]);
-            if (!build.Skipped[s])
-            {
-                build.Meshes[s] = VoxMesher.BuildArrays(grid.Cells, grid.Size, min, max, Palette, Emission, grid.Origin, grid.VoxelSize, -1);
-            }
+            // Built even where it is to take over its part's mesh: that mesh
+            // may not be up to date when the plan is carried out, and a piece
+            // must never be made with a section missing.
+            build.Meshes[s] = VoxMesher.BuildArrays(grid.Cells, grid.Size, min, max, Palette, Emission, grid.Origin, grid.VoxelSize, -1);
         }
         return build;
     }

@@ -96,6 +96,12 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "0.5,20,0.5,suffix:m")]
     public float FailureDepth { get; set; } = 4.0f;
 
+    /// <summary>How long after a crush a part's structure is checked; each
+    /// crush puts it off again, so a tower crushing down is checked once it
+    /// stops.</summary>
+    [Export(PropertyHint.Range, "0,5,0.05,suffix:s")]
+    public float CrushIntegrityDelay { get; set; } = 1.0f;
+
     [ExportGroup("Collapse")]
     /// <summary>A layer that failed this far off-centre (as a fraction of the
     /// footprint's half width) still holds on the side that is left: what is
@@ -141,6 +147,29 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "1,100,0.5,suffix:m")]
     public float CrushStopHeight { get; set; } = 16.0f;
 
+    /// <summary>Share of what a crush or a failed storey removes that stays,
+    /// heaped round the base (RubblePile); the rest is dust.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float RubbleShare { get; set; } = 0.7f;
+
+    /// <summary>How far a rubble heap spreads past the footprint it came off.</summary>
+    [Export(PropertyHint.Range, "2,60,0.5,suffix:m")]
+    public float RubbleReach { get; set; } = 14.0f;
+
+    /// <summary>Highest a rubble heap grows.</summary>
+    [Export(PropertyHint.Range, "2,60,0.5,suffix:m")]
+    public float RubbleHeight { get; set; } = 20.0f;
+
+    /// <summary>Small chunks thrown out from the edge of each crush, for the
+    /// eye to follow. Within the loose-piece cap.</summary>
+    [Export(PropertyHint.Range, "0,8,1")]
+    public int SpallPerCrush { get; set; } = 3;
+
+    /// <summary>Clouds in the ring a crush raises round its footprint, each
+    /// about a storey across, rolling outwards.</summary>
+    [Export(PropertyHint.Range, "0,16,1")]
+    public int CrushDustRing { get; set; } = 6;
+
     [ExportGroup("Fracture")]
     /// <summary>A piece bigger than this is heavy: what comes loose of a
     /// building falls as one body and crushes through what it lands on
@@ -169,6 +198,11 @@ public partial class VoxelDestructionStats : Resource
     /// length into segments about this long, rather than crumbling.</summary>
     [Export(PropertyHint.Range, "4,100,1,suffix:m")]
     public float SnapLength { get; set; } = 20.0f;
+
+    /// <summary>Cloud a piece of a break-up comes out of, per metre of its
+    /// size: the cover for its old shape giving way to its pieces.</summary>
+    [Export(PropertyHint.Range, "0,4,0.05")]
+    public float CoverDust { get; set; } = 1.6f;
 
     /// <summary>Smallest block a landing piece crumbles into.</summary>
     [Export(PropertyHint.Range, "0.2,10,0.1,suffix:m")]
@@ -235,6 +269,17 @@ public partial class VoxelDestructionStats : Resource
     /// is boxed at half resolution, then a quarter, and so on.</summary>
     [Export(PropertyHint.Range, "1,64,1")]
     public int MaxChunkBoxes { get; set; } = 24;
+
+    /// <summary>A small piece lying still this long joins the rubble heap where
+    /// it lies: drawn with the heap's sections instead of on its own, and no
+    /// body. A collapse leaves a hundred pieces, and a hundred more draws.</summary>
+    [Export(PropertyHint.Range, "0.5,60,0.5,suffix:s")]
+    public float BakeAfterSeconds { get; set; } = 2.0f;
+
+    /// <summary>Only pieces up to this many voxels are baked into a heap;
+    /// bigger ones (a tower's segments) stay pieces you can blow apart.</summary>
+    [Export(PropertyHint.Range, "1,100000,1")]
+    public int BakeMaxVoxels { get; set; } = 3000;
 
     /// <summary>A piece asleep this long stops being a body and stays as
     /// scenery: no physics, still breakable.</summary>

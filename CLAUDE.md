@@ -155,6 +155,10 @@ by storey, hangs on a hinge when it went on one side, and snaps where it lands
 `VoxelWorkers` from a copy of the cells and are carried out only if the grid's
 `Version` has not moved. The main thread removes cells, re-boxes what must
 collide now and makes bodies, within the allowances in the stats resource.
+Nothing disappears before what replaces it is drawn, and crushed material
+heaps up as rubble rather than vanishing (`docs/decisions/0016`). To see a
+collapse frame by frame: `"$GODOT" --path . --write-movie <dir>/f.png
+--fixed-fps 10 --script scripts/debug/bench.gd -- <level> cut quiet`.
 
 What still needs modelling, part by part, is `docs/models.md`. After changing the importer,
 force a reimport (delete `.godot/imported/*.vox-*`): Godot skips unchanged

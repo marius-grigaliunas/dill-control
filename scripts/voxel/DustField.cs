@@ -25,7 +25,7 @@ namespace DillControl.Voxel;
 public partial class DustField : Node3D
 {
     /// <summary>Emitters in the pool: the most clouds alive at once.</summary>
-    public int PoolSize { get; set; } = 12;
+    public int PoolSize { get; set; } = 24;
 
     /// <summary>Requests closer than this in one frame become one cloud.</summary>
     public float MergeDistance { get; set; } = 4.0f;

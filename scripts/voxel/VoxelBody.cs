@@ -142,12 +142,12 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
 
     /// <summary>Something heavy has landed on it: a slab under the contact goes
     /// to dust (<see cref="VoxelPart.CrushSlab"/>). Returns the voxels removed.</summary>
-    public int Crush(Vector3 point, Vector3 direction, float depth, float radius)
+    public int Crush(Vector3 point, Vector3 direction, float depth, float radius, List<byte> colours = null)
     {
         int crushed = 0;
         foreach (VoxelPart part in _parts)
         {
-            crushed += part.CrushSlab(point, direction, depth, radius);
+            crushed += part.CrushSlab(point, direction, depth, radius, out _, colours);
         }
         return crushed;
     }

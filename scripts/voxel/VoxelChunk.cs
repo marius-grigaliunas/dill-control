@@ -35,6 +35,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
     private float _crushCooldown;
     private bool _breaking;
     private bool _heavy;
+    private float _halfLength;
     private Vector3 _lastSpin;
     private HingeJoint3D _hinge;
     private Vector3 _hingePivot;
@@ -46,6 +47,9 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
     public bool IsSettled { get; private set; }
 
     public bool IsHinged => _hinge != null;
+
+    /// <summary>Seconds it has lain still.</summary>
+    public float StillFor => _still;
 
     /// <summary>True while its landing's blast goes off in a crush-through.</summary>
     public bool CrushingThrough { get; private set; }
@@ -82,6 +86,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         Weigh();
         CanSleep = true;
         _heavy = volume >= _stats.FractureVolume;
+        _halfLength = Mathf.Max(_grid.Size.X, Mathf.Max(_grid.Size.Y, _grid.Size.Z)) * _grid.VoxelSize * 0.5f;
         if (_heavy)
         {
             // Where it lands decides what it crushes.
@@ -149,7 +154,11 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
             {
                 Crush(change);
             }
-            if (change > _stats.BreakSpeed && _grid.SolidCount >= _stats.MinBreakVoxels)
+            // A long piece swinging down lands at its far end far faster than
+            // its middle moves: count that slam too, or a toppled tower lies
+            // down whole.
+            float slam = Mathf.Max(change, (_lastSpin - AngularVelocity).Length() * _halfLength);
+            if (slam > _stats.BreakSpeed && _grid.SolidCount >= _stats.MinBreakVoxels)
             {
                 Break(_lastVelocity);
                 return;
@@ -310,13 +319,15 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
 
         // What it lands on is crushed under what of it was crushed: its own
         // footprint at the contact, with a little over.
-        int crushed = _part.CrushSlab(centre, normal, _stats.CrushDepth, radius, out float footprint);
+        _colours.Clear();
+        int crushed = _part.CrushSlab(centre, normal, _stats.CrushDepth, radius, out float footprint, _colours);
         radius = Mathf.Max(spread + _stats.CrushWidth, footprint + _grid.VoxelSize * 2.0f);
-        crushed += under?.Crush(centre, -normal, _stats.CrushDepth, radius) ?? 0;
+        crushed += under?.Crush(centre, -normal, _stats.CrushDepth, radius, _colours) ?? 0;
         if (crushed == 0)
         {
             return false;
         }
+        Aftermath(centre, normal, footprint, crushed);
         // The building it lands on has had its slab: the blast is for what
         // is under it (VoxelBody.Ignores).
         CrushingThrough = true;
@@ -326,6 +337,42 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         LinearVelocity = _lastVelocity * _stats.CrushKeep;
         AngularVelocity = _lastSpin * _stats.CrushKeep;
         return true;
+    }
+
+    private readonly List<byte> _colours = new();
+
+    /// <summary>
+    /// What a crush leaves: its rubble share on the heap round the base, a
+    /// ring of storey-sized clouds rolling out from the footprint, and a few
+    /// small pieces thrown clear. What was crushed does not just go.
+    /// </summary>
+    private void Aftermath(Vector3 centre, Vector3 normal, float footprint, int crushed)
+    {
+        VoxelDebris debris = VoxelDebris.Current;
+        if (debris == null || _colours.Count == 0)
+        {
+            return;
+        }
+        debris.LeaveRubble(centre, footprint + _grid.VoxelSize, crushed, _colours, _palette, _emission, _material,
+            _grid.VoxelSize);
+
+        Vector3 side = normal.Cross(Mathf.Abs(normal.Y) < 0.9f ? Vector3.Up : Vector3.Right).Normalized();
+        Color colour = VoxelDebris.AverageColour(_grid, _palette);
+        float edge = footprint + 1.0f;
+        int ring = _stats.CrushDustRing;
+        float turn = (float)GD.RandRange(0.0, Mathf.Tau);
+        for (int k = 0; k < ring; k++)
+        {
+            Vector3 out_ = side.Rotated(normal, turn + Mathf.Tau * k / ring);
+            debris.Dust(centre + out_ * edge, normal, out_ * 4.0f + LinearVelocity * 0.3f, colour, _stats.CrushDepth * 1.4f);
+        }
+        for (int k = 0; k < _stats.SpallPerCrush; k++)
+        {
+            Vector3 out_ = side.Rotated(normal, (float)GD.RandRange(0.0, Mathf.Tau));
+            Vector3 velocity = out_ * (float)GD.RandRange(5.0, 11.0) + normal * (float)GD.RandRange(2.0, 6.0);
+            debris.Spall(centre + out_ * edge + normal * 1.0f, velocity, _colours, _palette, _emission, _material,
+                _grid.VoxelSize);
+        }
     }
 
     /// <summary>Voxels in it: how much it matters, when the cap needs room.</summary>
@@ -410,9 +457,24 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         Callable.From(Retire).CallDeferred();
     }
 
+    public VoxelGrid Grid => _grid;
+    public Color[] Palette => _palette;
+    public float[] Emission => _emission;
+    public Material Material => _material;
+
+    /// <summary>Stays drawn, still and without collision, for
+    /// <paramref name="seconds"/>, then retires.</summary>
+    internal void RetireAfter(float seconds)
+    {
+        CollisionLayer = 0;
+        CollisionMask = 0;
+        Freeze = true;
+        GetTree().CreateTimer(seconds).Timeout += Retire;
+    }
+
     /// <summary>Done with: back to <see cref="VoxelDebris"/> to be used again,
     /// or freed if there is none.</summary>
-    private void Retire()
+    internal void Retire()
     {
         if (_retired)
         {

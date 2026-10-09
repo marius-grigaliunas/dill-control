@@ -58,6 +58,8 @@ public partial class VoxelPart : Node3D
     // does: a recording's columns are fixed when it starts.
     internal static readonly int SectionChunkReady = FrameProfiler.Section("chunk ready");
     internal static readonly int SectionDamage = FrameProfiler.Section("voxel damage");
+    internal static readonly int SectionRubble = FrameProfiler.Section("rubble deposit");
+    internal static readonly int SectionRubbleMap = FrameProfiler.Section("rubble map");
     internal static readonly int SectionChunkAdd = FrameProfiler.Section("chunk add");
     internal static readonly int SectionChunkLand = FrameProfiler.Section("chunk land");
     internal static readonly int SectionChunkBlast = FrameProfiler.Section("chunk blast");
@@ -202,6 +204,11 @@ public partial class VoxelPart : Node3D
         for (int s = 0; s < sections; s++)
         {
             _shapeOwners[s] = new List<uint>();
+            if (Grid.SolidCount == 0)
+            {
+                // Nothing yet (a rubble heap starts empty): nothing to build.
+                continue;
+            }
             bool adopted = _adopt != null && s < _adopt.Length && IsInstanceValid(_adopt[s]);
             if (adopted)
             {
@@ -220,13 +227,9 @@ public partial class VoxelPart : Node3D
                 SetBoxes(s, _build.Boxes[s]);
                 if (!adopted && _build.Meshes[s] != null)
                 {
-                    _jobs.Add(new SectionJob { Section = s, Version = _version[s], WithMesh = true, Mesh = _build.Meshes[s], Done = true });
-                    _inFlight[s] = true;
-                }
-                else if (!adopted && _build.Skipped[s])
-                {
-                    _meshDirty[s] = true;
-                    _anyDirty = true;
+                    // Drawn the moment it is made: what it came from is
+                    // waiting on it (SpawnBatch). Within the spawn allowance.
+                    SetMesh(s, _build.Meshes[s]);
                 }
             }
             else if (adopted)
@@ -283,7 +286,9 @@ public partial class VoxelPart : Node3D
         Vector3I lo = (min - Vector3I.One).Max(Vector3I.Zero);
         Vector3I hi = (max + Vector3I.One).Min(Grid.Size);
         Vector3I size = hi - lo;
-        byte[] cells = new byte[size.X * size.Y * size.Z];
+        // Pooled: a collapse re-meshes sections by the dozen, and a fresh copy
+        // each time kept the collector running twice a crush.
+        byte[] cells = System.Buffers.ArrayPool<byte>.Shared.Rent(size.X * size.Y * size.Z);
         for (int z = 0; z < size.Z; z++)
             for (int y = 0; y < size.Y; y++)
             {
@@ -320,6 +325,7 @@ public partial class VoxelPart : Node3D
             }
             finally
             {
+                System.Buffers.ArrayPool<byte>.Shared.Return(cells);
                 job.Done = true;
                 VoxelBudget.ReleaseWorker();
             }
@@ -496,6 +502,12 @@ public partial class VoxelPart : Node3D
         {
             CollisionOwner.CollisionLayer = 0;
             CollisionOwner.CollisionMask = 0;
+            // It stays drawn until its pieces are there; with no collision it
+            // must not fall through the ground meanwhile.
+            if (CollisionOwner is RigidBody3D body)
+            {
+                body.Freeze = true;
+            }
         }
         if (_sectionBodies == null)
         {
@@ -556,6 +568,7 @@ public partial class VoxelPart : Node3D
             _inFlight[job.Section] = false;
             if (job.Version != _version[job.Section])
             {
+                job.Mesh?.Release();
                 continue;
             }
             long start = Stopwatch.GetTimestamp();
@@ -598,6 +611,7 @@ public partial class VoxelPart : Node3D
     // ---------------- Structure ----------------
 
     private Task<SplitPlan> _plan;
+    private byte[] _snapshot;
     private VoxelBreakup? _planBreakup;
     private Vector3 _planPush;
 
@@ -634,7 +648,13 @@ public partial class VoxelPart : Node3D
     private void Schedule(VoxelBreakup? breakup, Vector3 push)
     {
         using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionIntegrity);
-        byte[] cells = (byte[])Grid.Cells.Clone();
+        // One copy per part, kept: only one plan is ever in flight.
+        if (_snapshot == null || _snapshot.Length != Grid.Cells.Length)
+        {
+            _snapshot = new byte[Grid.Cells.Length];
+        }
+        Array.Copy(Grid.Cells, _snapshot, Grid.Cells.Length);
+        byte[] cells = _snapshot;
         int version = Grid.Version;
         Vector3I size = Grid.Size;
         Vector3 origin = Grid.Origin;
@@ -725,6 +745,7 @@ public partial class VoxelPart : Node3D
             _removed.Clear();
             Grid.Remove(plan.Crushed, _removed);
             CollapseDust(_removed);
+            LeaveRubble(_removed);
             pivot = ToGlobal(VoxSpace.ToGodot(new Vector3(plan.Support.X, plan.Support.Y, plan.Top) - Grid.Origin) * Grid.VoxelSize);
             Vector3 up = Up();
             Vector3 lean = GlobalBasis * VoxSpace.ToGodot(new Vector3(plan.Lean.X, plan.Lean.Y, 0.0f));
@@ -739,6 +760,35 @@ public partial class VoxelPart : Node3D
                 hinge = new VoxelHinge(anchor, pivot, axis);
             }
         }
+
+        // Its old look stays until its pieces are there (SpawnBatch): the
+        // sections it keeps get their new meshes then, and a thing breaking up
+        // altogether stays drawn, still, until then.
+        var held = new List<(int section, int version, VoxMesher.Arrays mesh)>();
+        bool breakingUp = plan.BreakingUp, emptied = plan.Emptied;
+        var batch = new SpawnBatch(() =>
+        {
+            if (!IsInstanceValid(this))
+            {
+                return;
+            }
+            foreach ((int s, int version, VoxMesher.Arrays mesh) in held)
+            {
+                if (_version[s] == version)
+                {
+                    SetMesh(s, mesh);
+                    _inFlight[s] = false;
+                }
+            }
+            if (breakingUp)
+            {
+                MarkAllDirty();
+            }
+            if (emptied || Grid.SolidCount <= 0)
+            {
+                RaiseEmptied();
+            }
+        });
 
         foreach (SplitPiece piece in plan.Pieces)
         {
@@ -765,11 +815,18 @@ public partial class VoxelPart : Node3D
                 velocity += w.Cross(at.Origin - pivot);
             }
             VoxelDebris.Current.SpawnChunk(piece.Grid, Palette, Emission, Material, at, velocity, turning,
-                piece.Hinge ? hinge : null, given == null ? null : (given, piece.Offset), piece.Build);
+                piece.Hinge ? hinge : null, given == null ? null : (given, piece.Offset), piece.Build, batch);
+            if (breakingUp)
+            {
+                // Cover: each piece comes out of a cloud its own size, so the
+                // moment the old shape gives way to its pieces is in dust.
+                VoxelDebris.Current.Dust(at.Origin, Up(), velocity * 0.2f, VoxelDebris.AverageColour(piece.Grid, Palette),
+                    Mathf.Pow(piece.Grid.SolidCount, 1.0f / 3.0f) * Grid.VoxelSize * _stats.CoverDust);
+            }
         }
 
         // What is left: its new collision now, so nothing that fell is still
-        // standing on it; its new meshes as the frame's allowance has room.
+        // standing on it; its new meshes once its pieces are there.
         foreach ((int s, VoxMesher.Arrays mesh, List<(Vector3, Vector3)> boxes) in plan.Sections)
         {
             _version[s]++;
@@ -778,22 +835,21 @@ public partial class VoxelPart : Node3D
             {
                 SetBoxes(s, boxes);
             }
-            _jobs.Add(new SectionJob { Section = s, Version = _version[s], WithMesh = true, Mesh = mesh, Done = true });
+            held.Add((s, _version[s], mesh));
             _inFlight[s] = true;
         }
 
         if (plan.BreakingUp)
         {
             ClearCollision();
-            MarkAllDirty();
         }
         if (plan.Collapsed)
         {
             AudioDirector.PlayAt(Sfx.VoxelCollapse, pivot);
         }
-        if (plan.Emptied || Grid.SolidCount <= 0)
+        if (batch.Remaining <= 0)
         {
-            RaiseEmptied();
+            batch.Finish();
         }
     }
 
@@ -832,11 +888,26 @@ public partial class VoxelPart : Node3D
     /// usual. Returns the voxels removed.
     /// </summary>
     public int CrushSlab(Vector3 worldPoint, Vector3 direction, float depth, float radius) =>
-        CrushSlab(worldPoint, direction, depth, radius, out _);
+        CrushSlab(worldPoint, direction, depth, radius, out _, null);
+
+    /// <summary>Fills cells (a rubble pile growing): re-meshed and re-boxed on
+    /// the workers like any change.</summary>
+    public void Fill(List<(int index, byte colour)> cells, Vector3I min, Vector3I max)
+    {
+        if (cells.Count == 0 || _meshDirty == null)
+        {
+            return;
+        }
+        Grid.Fill(cells);
+        MarkDirty(min, max);
+    }
 
     /// <param name="reach">How far from the line through the point the
     /// crushed cells reached, in metres: the footprint of what was crushed.</param>
-    public int CrushSlab(Vector3 worldPoint, Vector3 direction, float depth, float radius, out float reach)
+    /// <param name="colours">Gets a sample of the crushed cells' colours, for
+    /// the rubble they leave; null for none.</param>
+    public int CrushSlab(Vector3 worldPoint, Vector3 direction, float depth, float radius, out float reach,
+        List<byte> colours)
     {
         reach = 0.0f;
         using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionCrush);
@@ -906,9 +977,19 @@ public partial class VoxelPart : Node3D
         _removed.Clear();
         Grid.Remove(cells, _removed);
         CollapseDust(_removed);
+        if (colours != null)
+        {
+            for (int k = 0; k < _removed.Count; k += Math.Max(1, _removed.Count / 48))
+            {
+                colours.Add(_removed[k].Colour);
+            }
+        }
         MarkDirty(min, max);
         RebuildCollisionNow(min, max);
-        _integrityTimer = _stats.IntegrityDelay;
+        // A crush checks the structure once the crushing has stopped: a slab off
+        // the bottom of a falling tower all but never parts it, and a check
+        // per crush copied and flooded the whole grid each time.
+        _integrityTimer = Mathf.Max(_integrityTimer, _stats.CrushIntegrityDelay);
         Carved?.Invoke(this, cells.Count);
         if (Grid.SolidCount <= 0)
         {
@@ -997,7 +1078,7 @@ public partial class VoxelPart : Node3D
     private void SetMesh(int s, VoxMesher.Arrays arrays)
     {
         MeshInstance3D instance = _meshes[s];
-        if (arrays == null)
+        if (arrays?.Vertices == null)
         {
             if (instance != null)
             {
@@ -1007,6 +1088,7 @@ public partial class VoxelPart : Node3D
         }
         var mesh = new ArrayMesh();
         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays.ToGodot());
+        arrays.Release();
         mesh.SurfaceSetMaterial(0, Material);
         if (instance == null)
         {
@@ -1135,6 +1217,34 @@ public partial class VoxelPart : Node3D
         colour /= removed.Count;
         float edge = Mathf.Pow(removed.Count, 1.0f / 3.0f) * Grid.VoxelSize;
         VoxelDebris.Current.Dust(ToGlobal(centre), Up(), Velocity(), colour.LinearToSrgb(), edge);
+    }
+
+    /// <summary>What a failed storey was goes on the heap round its base,
+    /// the share of it that is not dust.</summary>
+    private void LeaveRubble(List<VoxelGrid.Removed> removed)
+    {
+        if (removed.Count == 0 || VoxelDebris.Current == null)
+        {
+            return;
+        }
+        Vector3 sum = Vector3.Zero;
+        var colours = new List<byte>();
+        for (int k = 0; k < removed.Count; k++)
+        {
+            sum += removed[k].Position;
+            if (k % Math.Max(1, removed.Count / 48) == 0)
+            {
+                colours.Add(removed[k].Colour);
+            }
+        }
+        Vector3 centre = sum / removed.Count;
+        float inner = 0.0f;
+        foreach (VoxelGrid.Removed r in removed)
+        {
+            inner = Mathf.Max(inner, new Vector2(r.Position.X - centre.X, r.Position.Z - centre.Z).Length());
+        }
+        VoxelDebris.Current.LeaveRubble(ToGlobal(centre), inner + Grid.VoxelSize, removed.Count, colours,
+            Palette, Emission, Material, Grid.VoxelSize);
     }
 
     /// <summary>A failed layer goes up as big clouds all round its footprint,
