@@ -360,7 +360,7 @@ public partial class FlameWeapon : WeaponBase
             }
 
             Hitbox box = node as Hitbox;
-            IDamageable receiver = box != null ? box.Receiver : node as IDamageable;
+            IDamageable receiver = DamageReceiver.Of(node);
             if (receiver == null)
             {
                 continue;
@@ -390,7 +390,7 @@ public partial class FlameWeapon : WeaponBase
             }
 
             Rid ignore = node is CollisionObject3D body ? body.GetRid() : default;
-            if (!Blast.HasLineOfSight(space, origin, point, ignore))
+            if (!Blast.HasLineOfSight(space, origin, point, ignore, default, receiver))
             {
                 continue;
             }

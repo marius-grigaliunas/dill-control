@@ -16,4 +16,9 @@ public interface IDamageable
 
     /// <summary>Applies one damage event. Implementers own their own death logic.</summary>
     void ApplyDamage(DamageInfo info);
+
+    /// <summary>True for a source whose damage this would ignore anyway, so an
+    /// area hit can pass it over before weighing it (rubble ignores rubble:
+    /// a landing amid eighty pieces cast eighty rays for nothing).</summary>
+    bool Ignores(Godot.Node3D source) => false;
 }

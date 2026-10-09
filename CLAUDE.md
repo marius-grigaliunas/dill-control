@@ -150,6 +150,12 @@ voxel thing gets damage code of its own; its numbers are in
 by storey, hangs on a hinge when it went on one side, and snaps where it lands
 (`docs/decisions/0014`).
 
+**Nothing that scales with a model's voxels runs in the frame**
+(`docs/decisions/0015`): re-meshing, structural checks and splits go to
+`VoxelWorkers` from a copy of the cells and are carried out only if the grid's
+`Version` has not moved. The main thread removes cells, re-boxes what must
+collide now and makes bodies, within the allowances in the stats resource.
+
 What still needs modelling, part by part, is `docs/models.md`. After changing the importer,
 force a reimport (delete `.godot/imported/*.vox-*`): Godot skips unchanged
 sources.
@@ -176,6 +182,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn collapse  # a skyscraper brought down
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut       # a tower cut through: drops whole, crushes down
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cutside   # cut on one side: leans, tears, topples
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet # the same, every frame recorded
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn siege 25000  # crowd vs player and allies
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn horde 25000
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn hordeab 25000
@@ -195,6 +202,15 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
   runs reach the player (`@status` shows `fire=`). Hands off, and nothing else
   running -- a stuck game in the background halves the frame rate.
 - `U` in any level records every frame to `perflogs/` and prints a summary.
+  `cut quiet` / `cutside quiet` record the run that way, with no screenshots
+  and nothing printed while recording: a console line costs the frame it is
+  printed in 15-40 ms on the target machine. Read hitches from these, with
+  every section's time in the CSV beside each one.
+- A section registered after a recording starts has no column in it:
+  register `FrameProfiler` sections in a class that exists at load.
+- The game raises itself above normal priority on Windows
+  (`ProcessPriority`). Cool the laptop 40-60 s between runs: back-to-back
+  runs throttle it and the level alone goes 20-30 % over.
 - After a fresh clone or new asset: `"$GODOT" --headless --path . --editor --quit`
   imports everything.
 - The board: open `tools/project-board/index.html`, connect the project folder,

@@ -18,7 +18,8 @@ namespace DillControl.Voxel;
 /// that came loose on one side first hangs on a hinge to what is left, leans
 /// over and tears free (docs/decisions/0014).
 ///
-/// Made only by <see cref="VoxelDebris"/>, which counts them.
+/// Made only by <see cref="VoxelDebris"/>, which counts them and keeps the
+/// spent ones to use again: making one costs 0.7 ms (see VoxelDebris).
 /// </summary>
 public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
 {
@@ -40,17 +41,31 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
     private Quaternion _hingeStart;
     private float _hingeDust;
     private float _hingeAge;
+    private VoxelHinge? _hangSoon;
 
     public bool IsSettled { get; private set; }
 
     public bool IsHinged => _hinge != null;
 
+    /// <summary>True while its landing's blast goes off in a crush-through.</summary>
+    public bool CrushingThrough { get; private set; }
+
     public bool IsAlive => _part != null && !_part.IsEmpty;
 
     private readonly List<VoxelPart> _parts = new();
 
-    public void Setup(VoxelGrid grid, Color[] palette, float[] emission, Material material, VoxelDestructionStats stats)
+    private (MeshInstance3D[] meshes, Vector3 offset)? _meshes;
+
+    private ChunkBuild _build;
+
+    private bool _retired;
+
+    public void Setup(VoxelGrid grid, Color[] palette, float[] emission, Material material, VoxelDestructionStats stats,
+        (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null)
     {
+        _retired = false;
+        _build = build;
+        _meshes = meshes;
         _grid = grid;
         _palette = palette;
         _emission = emission;
@@ -60,6 +75,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
 
     public override void _Ready()
     {
+        using FrameProfiler.Scope scope = FrameProfiler.Begin(VoxelPart.SectionChunkReady);
         CollisionLayer = GameLayers.Mask(GameLayers.Prop);
         CollisionMask = GameLayers.Mask(GameLayers.World, GameLayers.Prop);
         float volume = _grid.SolidCount * _grid.VoxelSize * _grid.VoxelSize * _grid.VoxelSize;
@@ -82,11 +98,23 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         {
             Name = "Voxels",
             CollisionOwner = this,
-            CollisionStep = CollisionStepFor(_grid, _stats.MaxChunkBoxes),
+            CollisionStep = _build?.Step ?? VoxelSplit.CollisionStepFor(_grid, _stats.MaxChunkBoxes),
             Velocity = () => LinearVelocity,
+            // Made mid-game: its sections are built on worker threads.
+            BuildAtOnce = false,
         };
+        if (_meshes is (MeshInstance3D[] meshes, Vector3 offset))
+        {
+            _part.Adopt(meshes, offset);
+        }
+        if (_build != null)
+        {
+            _part.Prebuilt(_build);
+        }
+        _meshes = null;
+        _build = null;
         _part.Setup(_grid, VoxelAnchor.Largest, _palette, _emission, _material, _stats);
-        _part.Emptied += _ => CallDeferred(Node.MethodName.QueueFree);
+        _part.Emptied += _ => Callable.From(Retire).CallDeferred();
         AddChild(_part);
         _parts.Add(_part);
     }
@@ -97,6 +125,12 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         _age += dt;
         _crushCooldown -= dt;
 
+        if (_hangSoon is VoxelHinge soon && _age > dt)
+        {
+            _hangSoon = null;
+            VoxelDebris.Current?.Hang(this, soon);
+        }
+
         Vector3 velocity = LinearVelocity;
         float change = (_lastVelocity - velocity).Length();
         if (_hinge != null)
@@ -105,7 +139,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         }
         if (_age > 0.15f && !_breaking)
         {
-            if (_heavy && _hinge == null && change > _stats.CrushThroughSpeed && CrushThrough(change))
+            if (_heavy && _hinge == null && _hangSoon == null && change > _stats.CrushThroughSpeed && CrushThrough(change))
             {
                 _lastVelocity = LinearVelocity;
                 _lastSpin = AngularVelocity;
@@ -148,6 +182,9 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
         float volume = _grid.SolidCount * _grid.VoxelSize * _grid.VoxelSize * _grid.VoxelSize;
         Mass = Mathf.Clamp(volume * _stats.Density, 1.0f, 2_000_000.0f);
     }
+
+    /// <summary>Hangs on <paramref name="hinge"/> from its next physics tick.</summary>
+    public void HangSoon(VoxelHinge hinge) => _hangSoon = hinge;
 
     /// <summary>Hangs on a joint to what is left of the building it fell
     /// from, until it leans <see cref="VoxelDestructionStats.HingeBreakAngle"/>.</summary>
@@ -204,6 +241,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
     /// </summary>
     private bool CrushThrough(float speed)
     {
+        using FrameProfiler.Scope scope = FrameProfiler.Begin(VoxelPart.SectionChunkLand);
         PhysicsDirectBodyState3D state = PhysicsServer3D.BodyGetDirectState(GetRid());
         int contacts = state?.GetContactCount() ?? 0;
         if (contacts == 0)
@@ -244,19 +282,25 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
             spread = Mathf.Max(spread, (q - normal * q.Dot(normal)).Length());
         }
         centre += normal * (plane - centre.Dot(normal));
-        float radius = spread + _stats.CrushWidth;
 
         if (!_grid.SolidBounds(out Aabb box))
         {
             return false;
         }
-        float lo = float.MaxValue, hi = float.MinValue;
+        // Its own slab reaches as wide as it is: a flat landing reports a
+        // few contacts at its corners, and a slab only round those left the
+        // rest of its footprint standing on what was not crushed. The plane
+        // keeps a tilted landing's slab to the corner that struck.
+        float lo = float.MaxValue, hi = float.MinValue, across = 0.0f;
         for (int k = 0; k < 8; k++)
         {
-            float d = ToGlobal(box.GetEndpoint(k)).Dot(normal);
+            Vector3 corner = ToGlobal(box.GetEndpoint(k)) - centre;
+            float d = corner.Dot(normal) + centre.Dot(normal);
             lo = Mathf.Min(lo, d);
             hi = Mathf.Max(hi, d);
+            across = Mathf.Max(across, (corner - normal * corner.Dot(normal)).Length());
         }
+        float radius = Mathf.Max(spread + _stats.CrushWidth, across);
         // End on, and tall enough to have weight above the contact. A tower
         // that comes down on its side snaps instead (Break).
         if (hi - lo < _stats.CrushStopHeight || hi - lo < 0.5f * box.Size[(int)box.Size.MaxAxisIndex()])
@@ -264,38 +308,24 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
             return false;
         }
 
-        int crushed = _part.CrushSlab(centre, normal, _stats.CrushDepth, radius);
+        // What it lands on is crushed under what of it was crushed: its own
+        // footprint at the contact, with a little over.
+        int crushed = _part.CrushSlab(centre, normal, _stats.CrushDepth, radius, out float footprint);
+        radius = Mathf.Max(spread + _stats.CrushWidth, footprint + _grid.VoxelSize * 2.0f);
         crushed += under?.Crush(centre, -normal, _stats.CrushDepth, radius) ?? 0;
         if (crushed == 0)
         {
             return false;
         }
+        // The building it lands on has had its slab: the blast is for what
+        // is under it (VoxelBody.Ignores).
+        CrushingThrough = true;
         Crush(speed, centre, radius);
+        CrushingThrough = false;
         Weigh();
         LinearVelocity = _lastVelocity * _stats.CrushKeep;
         AngularVelocity = _lastSpin * _stats.CrushKeep;
         return true;
-    }
-
-    /// <summary>
-    /// The finest collision that stays within <paramref name="maxBoxes"/>:
-    /// exact voxels if it can, so pieces of one fracture start touching rather
-    /// than overlapping (coarse boxes overhang and would throw them apart).
-    /// </summary>
-    private static int CollisionStepFor(VoxelGrid grid, int maxBoxes)
-    {
-        var boxes = new List<(Vector3, Vector3)>();
-        int step = grid.SolidCount > 4000 ? 2 : 1;
-        for (; step < 8; step *= 2)
-        {
-            boxes.Clear();
-            grid.Boxes(Vector3I.Zero, grid.Size, step, boxes);
-            if (boxes.Count <= maxBoxes)
-            {
-                break;
-            }
-        }
-        return step;
     }
 
     /// <summary>Voxels in it: how much it matters, when the cap needs room.</summary>
@@ -309,6 +339,11 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
     /// Other loose pieces ignore it (<see cref="ApplyDamage"/>).</summary>
     private void Crush(float speed)
     {
+        if (!VoxelBudget.TakeLandingBlast(_stats))
+        {
+            _crushCooldown = 0.4f;
+            return;
+        }
         // From its centre of mass to past its farthest corner.
         float reach = (new Vector3(_grid.Size.X, _grid.Size.Y, _grid.Size.Z) * _grid.VoxelSize).Length() * 0.5f;
         Crush(speed, GlobalPosition, reach);
@@ -318,6 +353,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
     /// through lands only on what is under the crush.</summary>
     private void Crush(float speed, Vector3 centre, float reach)
     {
+        using FrameProfiler.Scope scope = FrameProfiler.Begin(VoxelPart.SectionChunkBlast);
         _crushCooldown = 0.4f;
         float damage = Mathf.Min(Mass * speed * _stats.CrushDamagePerMomentum, _stats.CrushDamageMax);
         if (damage < 1.0f)
@@ -371,8 +407,70 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface
             VoxelDebris.Current.Dust(GlobalPosition, Vector3.Up, LinearVelocity,
                 VoxelDebris.AverageColour(_grid, _palette), Mathf.Pow(_grid.SolidCount, 1.0f / 3.0f) * _grid.VoxelSize);
         }
-        QueueFree();
+        Callable.From(Retire).CallDeferred();
     }
+
+    /// <summary>Done with: back to <see cref="VoxelDebris"/> to be used again,
+    /// or freed if there is none.</summary>
+    private void Retire()
+    {
+        if (_retired)
+        {
+            return;
+        }
+        _retired = true;
+        if (VoxelDebris.Current != null && GetParent() == VoxelDebris.Current)
+        {
+            VoxelDebris.Current.Recycle(this);
+        }
+        else
+        {
+            QueueFree();
+        }
+    }
+
+    /// <summary>Out of the tree and ready to be set up as a new piece: its
+    /// voxels and collision gone, every trace of the last piece reset.</summary>
+    internal void Clear()
+    {
+        if (_part != null)
+        {
+            RemoveChild(_part);
+            _part.QueueFree();
+        }
+        foreach (int owner in GetShapeOwners())
+        {
+            RemoveShapeOwner((uint)owner);
+        }
+        _part = null;
+        _parts.Clear();
+        _grid = null;
+        _palette = null;
+        _emission = null;
+        _material = null;
+        _meshes = null;
+        _build = null;
+        _lastVelocity = Vector3.Zero;
+        _lastSpin = Vector3.Zero;
+        _age = 0.0f;
+        _still = 0.0f;
+        _crushCooldown = 0.0f;
+        _breaking = false;
+        _heavy = false;
+        _hinge = null;
+        _hangSoon = null;
+        _hingeAge = 0.0f;
+        _hingeDust = 0.0f;
+        IsSettled = false;
+        Freeze = false;
+        LinearVelocity = Vector3.Zero;
+        AngularVelocity = Vector3.Zero;
+        ContactMonitor = false;
+        MaxContactsReported = 0;
+        RequestReady();
+    }
+
+    public bool Ignores(Node3D source) => source is VoxelChunk;
 
     public void ApplyDamage(DamageInfo info)
     {

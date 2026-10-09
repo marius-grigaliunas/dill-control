@@ -1,19 +1,24 @@
 using System.Collections.Generic;
+using DillControl.Core;
 using Godot;
 
 namespace DillControl.Voxel;
 
 /// <summary>
 /// The per-frame allowance every voxel piece in the world shares: how many
-/// sections may be re-meshed and how many structural checks run this frame.
-/// Past it, work waits a frame. Static, like ImpactEffect's live budget, so a
-/// piece needs no path to anything to ask.
+/// sections may be re-meshing on worker threads, how much main-thread time a
+/// frame may spend handing finished ones over, and how many structural checks
+/// run this frame. Past it, work waits. Static, like ImpactEffect's live
+/// budget, so a piece needs no path to anything to ask.
 /// </summary>
 public static class VoxelBudget
 {
     private static ulong _frame = ulong.MaxValue;
-    private static int _sections;
     private static int _checks;
+    private static int _blasts;
+    private static double _applied;
+    private static bool _appliedAny;
+    private static int _workers;
 
     private static void Roll()
     {
@@ -21,19 +26,50 @@ public static class VoxelBudget
         if (frame != _frame)
         {
             _frame = frame;
-            _sections = 0;
             _checks = 0;
+            _blasts = 0;
+            _applied = 0.0;
+            _appliedAny = false;
         }
     }
 
-    public static bool TakeSection(VoxelDestructionStats stats)
+    /// <summary>A worker for one section's re-mesh, if one is free. Give it
+    /// back with <see cref="ReleaseWorker"/>, from any thread.</summary>
+    public static bool TakeWorker(VoxelDestructionStats stats)
     {
-        Roll();
-        if (_sections >= stats.SectionsPerFrame)
+        if (System.Threading.Volatile.Read(ref _workers) >= stats.MeshWorkers)
         {
             return false;
         }
-        _sections++;
+        System.Threading.Interlocked.Increment(ref _workers);
+        return true;
+    }
+
+    public static void ReleaseWorker() => System.Threading.Interlocked.Decrement(ref _workers);
+
+    /// <summary>Whether a finished section may be handed over this frame.
+    /// Report what it took with <see cref="Spent"/>.</summary>
+    public static bool TakeApply(VoxelDestructionStats stats)
+    {
+        Roll();
+        if (_appliedAny && _applied >= stats.ApplyMillisecondsPerFrame)
+        {
+            return false;
+        }
+        _appliedAny = true;
+        return true;
+    }
+
+    public static void Spent(double milliseconds) => _applied += milliseconds;
+
+    public static bool TakeLandingBlast(VoxelDestructionStats stats)
+    {
+        Roll();
+        if (_blasts >= stats.LandingBlastsPerFrame)
+        {
+            return false;
+        }
+        _blasts++;
         return true;
     }
 
@@ -61,6 +97,8 @@ public static class VoxelBudget
 /// </summary>
 public partial class VoxelDebris : Node3D
 {
+    private static readonly int SectionSpawn = FrameProfiler.Section("chunk spawn");
+
     public static VoxelDebris Current { get; private set; }
 
     [Export]
@@ -68,6 +106,19 @@ public partial class VoxelDebris : Node3D
 
     private DustField _dust;
     private readonly List<VoxelChunk> _chunks = new();
+
+    /// <summary>
+    /// Chunks ready to be used, out of the tree.
+    ///
+    /// DECISION -- kept and used again rather than made and freed. Making a
+    /// <see cref="VoxelChunk"/> costs 0.7 ms on the target machine (a plain
+    /// RigidBody3D costs nothing: it is setting up the script on one), and a
+    /// collapse makes a hundred. These are made while the level loads, one a
+    /// frame after that when the spare runs low, and every spent chunk comes
+    /// back here.
+    /// </summary>
+    private readonly Stack<VoxelChunk> _spare = new();
+    private const int SpareChunks = 32;
 
     public int ChunkCount => _chunks.Count;
 
@@ -78,6 +129,10 @@ public partial class VoxelDebris : Node3D
 
     public override void _ExitTree()
     {
+        while (_spare.Count > 0)
+        {
+            _spare.Pop().Free();
+        }
         if (Current == this)
         {
             Current = null;
@@ -89,6 +144,41 @@ public partial class VoxelDebris : Node3D
         Stats ??= GD.Load<VoxelDestructionStats>(VoxelDestructionStats.DefaultPath);
         _dust = new DustField { Name = "Dust" };
         AddChild(_dust);
+        VoxelRehearsal.Run(this, Stats);
+        while (_spare.Count < SpareChunks)
+        {
+            _spare.Push(NewChunk());
+        }
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_spare.Count < SpareChunks)
+        {
+            _spare.Push(NewChunk());
+        }
+    }
+
+    private VoxelChunk NewChunk()
+    {
+        var chunk = new VoxelChunk { Name = "Chunk" };
+        chunk.TreeExiting += () => _chunks.Remove(chunk);
+        return chunk;
+    }
+
+    /// <summary>A spent chunk, back for use again.</summary>
+    internal void Recycle(VoxelChunk chunk)
+    {
+        RemoveChild(chunk);
+        chunk.Clear();
+        if (_spare.Count < Stats.MaxChunks)
+        {
+            _spare.Push(chunk);
+        }
+        else
+        {
+            chunk.QueueFree();
+        }
     }
 
     public void Dust(Vector3 position, Vector3 up, Vector3 velocity, Color colour, float edge) =>
@@ -104,11 +194,15 @@ public partial class VoxelDebris : Node3D
         public readonly Vector3 Velocity;
         public readonly Vector3 Spin;
         public readonly VoxelHinge? Hinge;
+        public readonly (MeshInstance3D[] meshes, Vector3 offset)? Meshes;
+        public readonly ChunkBuild Build;
         public readonly ulong Asked;
 
         public Pending(VoxelGrid grid, Color[] palette, float[] emission, Material material, Transform3D at,
-            Vector3 velocity, Vector3 spin, VoxelHinge? hinge)
+            Vector3 velocity, Vector3 spin, VoxelHinge? hinge, (MeshInstance3D[], Vector3)? meshes, ChunkBuild build)
         {
+            Build = build;
+            Meshes = meshes;
             Grid = grid;
             Palette = palette;
             Emission = emission;
@@ -135,8 +229,14 @@ public partial class VoxelDebris : Node3D
     /// slower the bigger it is.</param>
     /// <param name="hinge">What it hangs on until it leans far enough to tear
     /// free; null for none.</param>
+    /// <param name="meshes">Meshes to take over from the part it broke off,
+    /// by section, and where that part's origin is in its space
+    /// (<see cref="VoxelPart.Adopt"/>).</param>
+    /// <param name="build">Its collision and meshes, built already; null to
+    /// build them as it is made.</param>
     public void SpawnChunk(VoxelGrid grid, Color[] palette, float[] emission, Material material,
-        Transform3D at, Vector3 velocity, Vector3? spin = null, VoxelHinge? hinge = null)
+        Transform3D at, Vector3 velocity, Vector3? spin = null, VoxelHinge? hinge = null,
+        (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null)
     {
         if (grid.SolidCount < Stats.MinChunkVoxels || Stats.MaxChunks <= 0)
         {
@@ -152,20 +252,21 @@ public partial class VoxelDebris : Node3D
             spin = new Vector3((float)GD.RandRange(-s, s), (float)GD.RandRange(-s, s), (float)GD.RandRange(-s, s));
         }
 
-        var pending = new Pending(grid, palette, emission, material, at, velocity, spin.Value, hinge);
-        if (_pending.Count == 0 && TakeSpawn())
-        {
-            Make(pending, 0.0f);
-            return;
-        }
-        _pending.Enqueue(pending);
+        // Made on the next physics tick, never in the frame that asked: that
+        // frame has just split the thing it came from (VoxelPart.Apply).
+        _pending.Enqueue(new Pending(grid, palette, emission, material, at, velocity, spin.Value, hinge, meshes, build));
     }
 
     public override void _PhysicsProcess(double delta)
     {
         ulong now = Time.GetTicksUsec();
-        while (_pending.Count > 0 && TakeSpawn())
+        long start = System.Diagnostics.Stopwatch.GetTimestamp();
+        double allowance = Stats.SpawnMillisecondsPerFrame * System.Diagnostics.Stopwatch.Frequency / 1000.0;
+        bool first = true;
+        while (_pending.Count > 0 && TakeSpawn()
+               && (first || System.Diagnostics.Stopwatch.GetTimestamp() - start < allowance))
         {
+            first = false;
             Pending p = _pending.Dequeue();
             Make(p, (now - p.Asked) / 1_000_000.0f);
         }
@@ -191,9 +292,13 @@ public partial class VoxelDebris : Node3D
     /// seconds ago, where it would be now had it been made then.</summary>
     private void Make(in Pending p, float late)
     {
+        using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionSpawn);
         Transform3D at = p.At;
         Vector3 velocity = p.Velocity;
-        // A hinged piece has not fallen while it waited: it hangs.
+        // A hinged piece has not fallen while it waited: it hangs. Nor is a
+        // long wait projected in full: free fall over a crowded queue's wait
+        // would put a piece into whatever it would really have landed on.
+        late = Mathf.Min(late, 0.1f);
         if (late > 0.0f && p.Hinge == null)
         {
             Vector3 gravity = ProjectSettings.GetSetting("physics/3d/default_gravity_vector").AsVector3()
@@ -206,18 +311,23 @@ public partial class VoxelDebris : Node3D
             }
         }
 
-        var chunk = new VoxelChunk { Name = "Chunk" };
-        chunk.Setup(p.Grid, p.Palette, p.Emission, p.Material, Stats);
-        AddChild(chunk);
-        chunk.GlobalTransform = at;
+        // Placed before it is added: added first, it would enter the world at
+        // the origin, inside whatever is there, and be moved after.
+        VoxelChunk chunk = _spare.Count > 0 ? _spare.Pop() : NewChunk();
+        chunk.Transform = GlobalTransform.AffineInverse() * at;
+        chunk.Setup(p.Grid, p.Palette, p.Emission, p.Material, Stats, p.Meshes, p.Build);
+        using (FrameProfiler.Begin(VoxelPart.SectionChunkAdd))
+        {
+            AddChild(chunk);
+        }
         chunk.LinearVelocity = velocity;
         chunk.AngularVelocity = p.Spin;
-        if (p.Hinge is VoxelHinge hinge && IsInstanceValid(hinge.Anchor) && hinge.Anchor.IsInsideTree())
+        if (p.Hinge is VoxelHinge hinge)
         {
-            Hang(chunk, hinge);
+            // Hung on its next tick: the joint costs a frame of its own.
+            chunk.HangSoon(hinge);
         }
         _chunks.Add(chunk);
-        chunk.TreeExiting += () => _chunks.Remove(chunk);
 
         while (_chunks.Count > Stats.MaxChunks)
         {
@@ -231,8 +341,12 @@ public partial class VoxelDebris : Node3D
     /// <summary>Hangs a chunk on a hinge: a joint about the hinge's axis to
     /// what is left of the building. The joint is not the chunk's child, so it
     /// keeps where it was made; the chunk tears it off (VoxelChunk).</summary>
-    private void Hang(VoxelChunk chunk, VoxelHinge hinge)
+    internal void Hang(VoxelChunk chunk, VoxelHinge hinge)
     {
+        if (!IsInstanceValid(hinge.Anchor) || !hinge.Anchor.IsInsideTree())
+        {
+            return;
+        }
         Vector3 z = hinge.Axis.Normalized();
         Vector3 x = z.Cross(Mathf.Abs(z.Y) < 0.9f ? Vector3.Up : Vector3.Right).Normalized();
         var joint = new HingeJoint3D

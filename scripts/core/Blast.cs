@@ -156,6 +156,8 @@ public static class Blast
     /// <returns>How many separate receivers were hurt.</returns>
     private static readonly int SectionEmit = FrameProfiler.Section("blast listeners");
     private static readonly int SectionOverlap = FrameProfiler.Section("blast overlap");
+    private static readonly int SectionWeigh = FrameProfiler.Section("blast weigh");
+    private static readonly int SectionHit = FrameProfiler.Section("blast hit");
 
     public static int ApplyDamage(PhysicsDirectSpaceState3D space, in Settings blast)
     {
@@ -180,16 +182,20 @@ public static class Blast
             overlaps = Overlaps(space, blast, GameLayers.ExplosionMask, true);
         }
 
+        FrameProfiler.Scope weigh = FrameProfiler.Begin(SectionWeigh);
         foreach (GodotObject collider in overlaps)
         {
-            IDamageable receiver = collider switch
-            {
-                Hitbox box => box.Receiver,
-                IDamageable direct => direct,
-                _ => null,
-            };
+            IDamageable receiver = DamageReceiver.Of(collider);
 
-            if (receiver == null || receiver is ISplashExempt || collider is not Node3D node)
+            if (receiver == null || receiver is ISplashExempt || collider is not Node3D node
+                || receiver.Ignores(blast.Source))
+            {
+                continue;
+            }
+
+            // A relay's receiver is the same whichever of its colliders was
+            // found, and so is where it is nearest: weigh it once.
+            if (collider is IDamageRelay && best.ContainsKey(receiver))
             {
                 continue;
             }
@@ -219,7 +225,7 @@ public static class Blast
             // A destructible building is on World, so it occluded itself and
             // could never be damaged by a blast at all.
             Rid ignore = node is CollisionObject3D body ? body.GetRid() : default;
-            if (!HasLineOfSight(space, blast.Centre, point, ignore, blast.SourceRid))
+            if (!HasLineOfSight(space, blast.Centre, point, ignore, blast.SourceRid, receiver))
             {
                 continue;
             }
@@ -231,9 +237,14 @@ public static class Blast
             }
         }
 
-        foreach (KeyValuePair<IDamageable, Candidate> pair in best)
+        weigh.Dispose();
+
+        using (FrameProfiler.Begin(SectionHit))
         {
-            Apply(pair.Key, pair.Value, blast);
+            foreach (KeyValuePair<IDamageable, Candidate> pair in best)
+            {
+                Apply(pair.Key, pair.Value, blast);
+            }
         }
 
         return best.Count;
@@ -422,8 +433,11 @@ public static class Blast
     /// collider to be found by its overlap query -- still respects cover rather
     /// than re-deriving this ray by hand.
     /// </summary>
+    /// <param name="receiver">What is being aimed at: a collider of its own
+    /// (another of a building's sections) is not its cover.</param>
     public static bool HasLineOfSight(
-        PhysicsDirectSpaceState3D space, Vector3 centre, Vector3 target, Rid ignore = default, Rid alsoIgnore = default)
+        PhysicsDirectSpaceState3D space, Vector3 centre, Vector3 target, Rid ignore = default, Rid alsoIgnore = default,
+        IDamageable receiver = null)
     {
         Vector3 toTarget = target - centre;
         float distance = toTarget.Length();
@@ -457,7 +471,9 @@ public static class Blast
             query.Exclude = exclude;
         }
 
-        return space.IntersectRay(query).Count == 0;
+        Godot.Collections.Dictionary hit = space.IntersectRay(query);
+        return hit.Count == 0
+               || (receiver != null && DamageReceiver.Of(hit["collider"].AsGodotObject()) == receiver);
     }
 
     /// <summary>One receiver's best hit, before anything is applied.</summary>

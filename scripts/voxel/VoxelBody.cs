@@ -12,14 +12,14 @@ namespace DillControl.Voxel;
 /// every voxel model in the game breaks (docs/decisions/0011).
 ///
 /// - <see cref="Static"/>: a building or a prop. Its parts hang from the
-///   ground and get box collision of their own, on World and Prop, that
-///   follows every hole; the root needs no collision of its own.
+///   ground and get box collision of their own, a body per section, on World
+///   and Prop, that follows every hole; the root needs no collision of its own.
 /// - Otherwise: something that moves on a body of its own (a mech on its
 ///   hull). Parts listed in <see cref="Hinged"/> hang from their hinge, the
 ///   rest hold together as their biggest piece. Hits reach it through the
 ///   owner, which forwards <see cref="IDamageable"/> here.
 /// </summary>
-public partial class VoxelBody : Node
+public partial class VoxelBody : Node, IDamageable, IBlastSurface
 {
     [Export]
     public Node3D Model { get; set; }
@@ -97,15 +97,12 @@ public partial class VoxelBody : Node
 
             if (Static)
             {
-                var collider = new VoxelCollider
+                part.SectionBody = () => new VoxelCollider
                 {
-                    Name = "Collision",
                     Body = this,
                     CollisionLayer = GameLayers.Mask(GameLayers.World, GameLayers.Prop),
                     CollisionMask = 0,
                 };
-                host.AddChild(collider);
-                part.CollisionOwner = collider;
             }
 
             host.AddChild(part);
@@ -131,6 +128,14 @@ public partial class VoxelBody : Node
     }
 
     public void ApplyDamage(DamageInfo info, Node3D target) => VoxelDamage.Apply(info, _parts, Stats, target);
+
+    /// <summary>A building's damage, from any of its sections' colliders:
+    /// taken once, as the building.</summary>
+    public void ApplyDamage(DamageInfo info) => ApplyDamage(info, Model);
+
+    /// <summary>A piece crushing through has already taken its slab out of
+    /// whatever building it landed on.</summary>
+    public bool Ignores(Node3D source) => source is VoxelChunk { CrushingThrough: true };
 
     public Vector3 NearestBlastPoint(Vector3 from) =>
         VoxelDamage.NearestPoint(_parts, from, Model?.GlobalPosition ?? Vector3.Zero);
@@ -174,16 +179,19 @@ public partial class VoxelBody : Node
 }
 
 /// <summary>
-/// The collision a static voxel body's part gets, and what weapons hit: it
-/// forwards damage to its <see cref="VoxelBody"/>.
+/// The collision of one section of a static voxel body's part, and what
+/// weapons hit: it relays damage to its <see cref="VoxelBody"/>, which takes
+/// it once however many of its sections a blast reaches.
 /// </summary>
-public partial class VoxelCollider : StaticBody3D, IDamageable, IBlastSurface
+public partial class VoxelCollider : StaticBody3D, IDamageable, IBlastSurface, IDamageRelay
 {
     public VoxelBody Body { get; set; }
 
+    public IDamageable Receiver => Body;
+
     public bool IsAlive => Body != null && Body.IsAlive;
 
-    public void ApplyDamage(DamageInfo info) => Body?.ApplyDamage(info, this);
+    public void ApplyDamage(DamageInfo info) => Body?.ApplyDamage(info);
 
     public Vector3 NearestBlastPoint(Vector3 from) => Body?.NearestBlastPoint(from) ?? GlobalPosition;
 }

@@ -50,6 +50,9 @@ public partial class LevelRoot : Node3D
 
     public override void _Ready()
     {
+        Core.ProcessPriority.Raise();
+        Core.JitWarmup.Start();
+        Core.JitWarmup.WarmGodotClasses();
         AddChild(new PerfDriver { Name = "PerfDriver" });
         AddChild(new FireField { Name = "FireField" });
         AddChild(new VoxelDebris { Name = "VoxelDebris" });

@@ -28,6 +28,10 @@ public sealed class VoxelGrid
 
     public int SolidCount { get; private set; }
 
+    /// <summary>Goes up with every change to the cells: a plan worked out from
+    /// a copy of them still holds while it has not moved.</summary>
+    public int Version { get; private set; }
+
     /// <summary>The solid count it was built with: health is what is left of this.</summary>
     public readonly int InitialCount;
 
@@ -119,6 +123,10 @@ public sealed class VoxelGrid
                 }
 
         SolidCount -= count;
+        if (count > 0)
+        {
+            Version++;
+        }
         return count;
     }
 
@@ -209,18 +217,23 @@ public sealed class VoxelGrid
         {
             return false;
         }
+        // Row by row, each searched from both ends with vector instructions:
+        // a crushing tower asks every time it lands.
         var min = new Vector3I(int.MaxValue, int.MaxValue, int.MaxValue);
         var max = new Vector3I(int.MinValue, int.MinValue, int.MinValue);
-        for (int i = 0; i < Cells.Length; i++)
-        {
-            if (Cells[i] == 0)
+        for (int z = 0; z < Size.Z; z++)
+            for (int y = 0; y < Size.Y; y++)
             {
-                continue;
+                ReadOnlySpan<byte> row = Cells.AsSpan(Index(0, y, z), Size.X);
+                int first = row.IndexOfAnyExcept((byte)0);
+                if (first < 0)
+                {
+                    continue;
+                }
+                int last = row.LastIndexOfAnyExcept((byte)0);
+                min = new Vector3I(Math.Min(min.X, first), Math.Min(min.Y, y), Math.Min(min.Z, z));
+                max = new Vector3I(Math.Max(max.X, last), Math.Max(max.Y, y), Math.Max(max.Z, z));
             }
-            Vector3I c = CellOf(i);
-            min = new Vector3I(Math.Min(min.X, c.X), Math.Min(min.Y, c.Y), Math.Min(min.Z, c.Z));
-            max = new Vector3I(Math.Max(max.X, c.X), Math.Max(max.Y, c.Y), Math.Max(max.Z, c.Z));
-        }
         Vector3 a = VoxSpace.ToGodot(new Vector3(min.X, min.Y, min.Z) - Origin) * VoxelSize;
         Vector3 b = VoxSpace.ToGodot(new Vector3(max.X + 1, max.Y + 1, max.Z + 1) - Origin) * VoxelSize;
         bounds = new Aabb(a.Min(b), (a - b).Abs());
@@ -364,11 +377,15 @@ public sealed class VoxelGrid
             {
                 continue;
             }
-            Vector3I c = CellOf(i);
-            removed?.Add(new Removed(CellCentre(c.X, c.Y, c.Z), Cells[i]));
+            if (removed != null)
+            {
+                Vector3I c = CellOf(i);
+                removed.Add(new Removed(CellCentre(c.X, c.Y, c.Z), Cells[i]));
+            }
             Cells[i] = 0;
             SolidCount--;
         }
+        Version++;
     }
 
     /// <summary>
@@ -377,7 +394,11 @@ public sealed class VoxelGrid
     /// the right point. The cells are cleared here. <paramref name="offset"/>
     /// is where the new grid's origin sits in this grid's node space.
     /// </summary>
-    public VoxelGrid Extract(List<int> island, out Vector3 offset)
+    public VoxelGrid Extract(List<int> island, out Vector3 offset, int align = 1) => Copy(island, out offset, align, clear: true);
+
+    /// <summary>The same, leaving its cells where they are: for working out
+    /// a split from a copy of a grid.</summary>
+    public VoxelGrid Copy(List<int> island, out Vector3 offset, int align, bool clear)
     {
         var min = new Vector3I(int.MaxValue, int.MaxValue, int.MaxValue);
         var max = new Vector3I(int.MinValue, int.MinValue, int.MinValue);
@@ -390,15 +411,25 @@ public sealed class VoxelGrid
             sum += new Vector3(c.X + 0.5f, c.Y + 0.5f, c.Z + 0.5f);
         }
         Vector3 centre = sum / island.Count;
+        // Started on a multiple of align, so the new grid's sections line up
+        // with this one's.
+        min = min / align * align;
         Vector3I size = max - min + Vector3I.One;
         byte[] cells = new byte[size.X * size.Y * size.Z];
         foreach (int i in island)
         {
             Vector3I c = CellOf(i) - min;
             cells[c.X + size.X * (c.Y + size.Y * c.Z)] = Cells[i];
-            Cells[i] = 0;
+            if (clear)
+            {
+                Cells[i] = 0;
+            }
         }
-        SolidCount -= island.Count;
+        if (clear)
+        {
+            SolidCount -= island.Count;
+            Version++;
+        }
         offset = VoxSpace.ToGodot(centre - Origin) * VoxelSize;
         return new VoxelGrid(size, cells, centre - new Vector3(min.X, min.Y, min.Z), VoxelSize);
     }
@@ -460,15 +491,46 @@ public sealed class VoxelGrid
                             for (int dx = 0; dx < w; dx++)
                                 used[I(x + dx, y + dy, z + dz)] = true;
 
-                    Vector3 lo = new(regionMin.X + x * step, regionMin.Y + y * step, regionMin.Z + z * step);
-                    Vector3 hi = new(
+                    var lo = new Vector3I(regionMin.X + x * step, regionMin.Y + y * step, regionMin.Z + z * step);
+                    var hi = new Vector3I(
                         Math.Min(regionMin.X + (x + w) * step, regionMax.X),
                         Math.Min(regionMin.Y + (y + h) * step, regionMax.Y),
                         Math.Min(regionMin.Z + (z + d) * step, regionMax.Z));
+                    if (step > 1)
+                    {
+                        // A coarse box shrinks to the voxels in it: otherwise
+                        // it overhangs them by up to a step, and a piece rests
+                        // on air or comes up inside what is under it.
+                        Tighten(ref lo, ref hi);
+                    }
                     Vector3 a = VoxSpace.ToGodot(lo - Origin) * VoxelSize;
                     Vector3 b = VoxSpace.ToGodot(hi - Origin) * VoxelSize;
                     into.Add(((a + b) * 0.5f, (a - b).Abs()));
                 }
+
+        void Tighten(ref Vector3I lo, ref Vector3I hi)
+        {
+            var min = hi;
+            var max = lo - Vector3I.One;
+            for (int gz = lo.Z; gz < hi.Z; gz++)
+                for (int gy = lo.Y; gy < hi.Y; gy++)
+                {
+                    int row = Index(0, gy, gz);
+                    for (int gx = lo.X; gx < hi.X; gx++)
+                    {
+                        if (Cells[row + gx] != 0)
+                        {
+                            min = min.Min(new Vector3I(gx, gy, gz));
+                            max = max.Max(new Vector3I(gx, gy, gz));
+                        }
+                    }
+                }
+            if (max.X >= min.X)
+            {
+                lo = min;
+                hi = max + Vector3I.One;
+            }
+        }
 
         bool RowFree(int x, int y, int z, int w)
         {

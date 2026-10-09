@@ -40,6 +40,36 @@ public static class VoxMesher
     /// </summary>
     public static Godot.Collections.Array Build(
         byte[] cells, Vector3I size, Vector3I regionMin, Vector3I regionMax,
+        Color[] palette, float[] emission, Vector3 origin, float voxelSize, int skip) =>
+        BuildArrays(cells, size, regionMin, regionMax, palette, emission, origin, voxelSize, skip)?.ToGodot();
+
+    /// <summary>A mesh's arrays as plain C# arrays: what a worker thread can
+    /// build without touching Godot, for the main thread to hand over.</summary>
+    public sealed class Arrays
+    {
+        public Vector3[] Vertices;
+        public Vector3[] Normals;
+        public Color[] Colours;
+        public Vector2[] Uvs;
+        public int[] Indices;
+
+        public Godot.Collections.Array ToGodot()
+        {
+            var arrays = new Godot.Collections.Array();
+            arrays.Resize((int)Mesh.ArrayType.Max);
+            arrays[(int)Mesh.ArrayType.Vertex] = Vertices;
+            arrays[(int)Mesh.ArrayType.Normal] = Normals;
+            arrays[(int)Mesh.ArrayType.Color] = Colours;
+            arrays[(int)Mesh.ArrayType.TexUV] = Uvs;
+            arrays[(int)Mesh.ArrayType.Index] = Indices;
+            return arrays;
+        }
+    }
+
+    /// <summary>The same as <see cref="Build(byte[], Vector3I, Vector3I, Vector3I, Color[], float[], Vector3, float, int)"/>,
+    /// touching nothing of Godot's: safe on any thread.</summary>
+    public static Arrays BuildArrays(
+        byte[] cells, Vector3I size, Vector3I regionMin, Vector3I regionMax,
         Color[] palette, float[] emission, Vector3 origin, float voxelSize, int skip)
     {
         var vertices = new List<Vector3>();
@@ -138,14 +168,14 @@ public static class VoxMesher
         if (indices.Count == 0)
             return null;
 
-        var arrays = new Godot.Collections.Array();
-        arrays.Resize((int)Mesh.ArrayType.Max);
-        arrays[(int)Mesh.ArrayType.Vertex] = vertices.ToArray();
-        arrays[(int)Mesh.ArrayType.Normal] = normals.ToArray();
-        arrays[(int)Mesh.ArrayType.Color] = colours.ToArray();
-        arrays[(int)Mesh.ArrayType.TexUV] = uvs.ToArray();
-        arrays[(int)Mesh.ArrayType.Index] = indices.ToArray();
-        return arrays;
+        return new Arrays
+        {
+            Vertices = vertices.ToArray(),
+            Normals = normals.ToArray(),
+            Colours = colours.ToArray(),
+            Uvs = uvs.ToArray(),
+            Indices = indices.ToArray(),
+        };
     }
 
     private static bool RowMatches(byte[] mask, int su, int pu, int pv, int w, byte c)

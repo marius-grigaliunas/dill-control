@@ -413,7 +413,7 @@ public partial class HitscanWeapon : WeaponBase
             // carrying both: a line of pickles is a line of blasts.
             // One blast per thing hit, not per collider: a pickle's body and
             // head are two hitboxes the round passes through back to back.
-            IDamageable receiver = (collider as Hitbox)?.Receiver ?? collider as IDamageable;
+            IDamageable receiver = DamageReceiver.Of(collider);
             bool sameTarget = receiver != null && receiver == lastReceiver;
             lastReceiver = receiver;
             if (splashes && !sameTarget && splashesLeft > 0)

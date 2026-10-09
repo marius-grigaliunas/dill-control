@@ -266,14 +266,23 @@ const COLLAPSE_TIMELINE := [
 # (cut), it drops whole and crushes down storey by storey; through 60% of
 # one side (cutside), it hangs on what is left, leans over and tears free.
 # Watched from 85 m off with the biggest falling piece printed every phase.
-static func _cut_timeline(method: String, shot: String) -> Array:
+# With "quiet" there are no screenshots and no status lines, and every frame
+# from before the cut to the end is recorded to perflogs/ (PerfRecorder): the
+# run to read worst frames and the cause of each from.
+static func _cut_timeline(method: String, shot: String, quiet: bool) -> Array:
 	var status := "!call:VoxelDebris:PrintBenchStatus"
 	var timeline := [
-		["hold the horde off", ["@status", "!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
-			"@goto:-60, 0.2, -40"], [], 2.0],
-		["look", ["@aim:Tower11:40"], [], 2.0],
+		["hold the horde off", ([] if quiet else ["@status"]) + ["!set:Horde:Stats:HuntSeedMinRadius=400.0",
+			"!call:Horde:BenchReseed", "@goto:-60, 0.2, -40"], [], 2.0],
+		["look", ["@aim:Tower11:40"] + (["!call:PerfRecorder:Start", "!silent"] if quiet else []), [], 2.0],
 		["cut", ["!call:Tower11/Voxels:%s" % method], [], 0.5],
 	]
+	if quiet:
+		# One silent phase: a console line costs the frame it is printed in
+		# 15-40 ms on Windows, which is the very hitch being looked for.
+		timeline.append(["falling", [], [], 13.0])
+		timeline.append(["stop", ["!call:PerfRecorder:Stop", "!loud", status], [], 0.3])
+		return timeline
 	for i in 16:
 		timeline.append(["t+%.1f" % (0.5 + i * 0.5), [status], [], 0.5])
 		if i % 2 == 1:
@@ -437,8 +446,8 @@ func _initialize() -> void:
 		"wreck": _timeline = WRECK_TIMELINE
 		"mechwreck": _timeline = MECHWRECK_TIMELINE
 		"collapse": _timeline = COLLAPSE_TIMELINE
-		"cut": _timeline = _cut_timeline("BenchCutThrough", "cut")
-		"cutside": _timeline = _cut_timeline("BenchCutSide", "cutside")
+		"cut": _timeline = _cut_timeline("BenchCutThrough", "cut", args.size() > 2 and args[2] == "quiet")
+		"cutside": _timeline = _cut_timeline("BenchCutSide", "cutside", args.size() > 2 and args[2] == "quiet")
 		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
@@ -505,7 +514,7 @@ func _tap(action: String) -> void:
 		return
 	if action.begins_with("@aim:"):
 		var parts := action.substr(5).split(":")
-		var target := root.find_child(parts[0], true, false) as Node3D
+		var target := _find(parts[0]) as Node3D
 		var player := _player()
 		if target == null or player == null:
 			print("[bench] cannot ", action)
@@ -516,17 +525,23 @@ func _tap(action: String) -> void:
 	if action.begins_with("!set:"):
 		var parts := action.substr(5).split(":", true, 1)
 		var pair := parts[1].split("=") if parts.size() == 2 else PackedStringArray()
-		var node := root.find_child(parts[0], true, false)
+		var node := _find(parts[0])
 		if node != null and pair.size() == 2:
 			node.set_indexed(pair[0], str_to_var(pair[1]))
 		else:
 			print("[bench] cannot ", action)
 		return
+	if action == "!silent":
+		_silent = true
+		return
+	if action == "!loud":
+		_silent = false
+		return
 	if action.begins_with("!call:"):
 		var call_parts := action.substr(6).split(":")
 		# "Node/Child" names a child of the first node of that name.
 		var path := call_parts[0].split("/", true, 1)
-		var callee := root.find_child(path[0], true, false)
+		var callee := _find(path[0])
 		if callee != null and path.size() == 2:
 			callee = callee.get_node_or_null(path[1])
 		if callee != null and call_parts.size() == 2:
@@ -536,6 +551,18 @@ func _tap(action: String) -> void:
 		return
 	_send(action, true)
 	_send(action, false)
+
+# A node by name, searched for once. A search walks the whole tree, and with a
+# level, a horde and a collapse's debris in it that took 30-45 ms: done at
+# every phase boundary, it showed up as a hitch in the very run measuring one.
+var _found := {}
+
+func _find(node_name: String) -> Node:
+	var node: Node = _found.get(node_name)
+	if node == null or not is_instance_valid(node) or not node.is_inside_tree():
+		node = root.find_child(node_name, true, false)
+		_found[node_name] = node
+	return node
 
 # The level's spawned player, through LevelRoot.Player.
 func _player() -> Node:
@@ -555,7 +582,12 @@ func _send(action: String, pressed: bool) -> void:
 	else:
 		Input.action_release(action)
 
+# "!silent" holds back the phase reports until "!loud": printing is not free.
+var _silent := false
+
 func _report(label: String) -> void:
+	if _silent:
+		return
 	var size := DisplayServer.window_get_size()
 	if _frames == 0:
 		print("[bench] %-24s no frames" % label)
@@ -570,7 +602,7 @@ func _report(label: String) -> void:
 	# physics step, every script's physics and process callbacks, and the rest
 	# (render and wait). Godot's TIME_PROCESS monitor is not used: read from
 	# here it reported 114-381 ms a frame against 9-11 ms frames.
-	var driver := root.find_child("PerfDriver", true, false)
+	var driver := _find("PerfDriver")
 	if driver != null:
 		print("[bench]   ", driver.call("TakeBenchReport"))
 	_worst = 0.0
@@ -599,7 +631,7 @@ func _process(delta: float) -> bool:
 		var player := _player()
 		if player != null:
 			print("[bench]   @ %-26s %s" % [label, player.call("BenchStatus")])
-		var horde := root.find_child("Horde", true, false)
+		var horde := _find("Horde")
 		if horde != null and horde.has_method("BenchStatus"):
 			print("[bench]   @ %-26s %s" % [label, horde.call("BenchStatus")])
 

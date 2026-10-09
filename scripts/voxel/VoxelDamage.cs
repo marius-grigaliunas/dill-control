@@ -29,8 +29,10 @@ public static class VoxelDamage
         public float Damage;
     }
 
+
     public static void Apply(DamageInfo info, IReadOnlyList<VoxelPart> parts, VoxelDestructionStats stats, Node3D target)
     {
+        using FrameProfiler.Scope scope = FrameProfiler.Begin(VoxelPart.SectionDamage);
         if (info == null || parts.Count == 0)
         {
             return;

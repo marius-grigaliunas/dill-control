@@ -247,10 +247,24 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "8,64,1")]
     public int SectionEdge { get; set; } = 32;
 
-    /// <summary>Most sections re-meshed in one frame, for everything in the
-    /// world together. The rest wait a frame.</summary>
-    [Export(PropertyHint.Range, "1,64,1")]
-    public int SectionsPerFrame { get; set; } = 6;
+    /// <summary>Most sections being re-meshed on worker threads at once, for
+    /// everything in the world together. The rest wait their turn. Kept below
+    /// the cores: the horde's flow field has a worker of its own.</summary>
+    [Export(PropertyHint.Range, "1,16,1")]
+    public int MeshWorkers { get; set; } = 2;
+
+    /// <summary>Main-thread time a frame may spend handing re-meshed sections
+    /// to the renderer and the physics, for everything in the world together.
+    /// One section always goes, however long it takes.</summary>
+    [Export(PropertyHint.Range, "0.1,10,0.1,suffix:ms")]
+    public float ApplyMillisecondsPerFrame { get; set; } = 1.5f;
+
+    /// <summary>Most landing blasts in one frame, world-wide. A crumbling
+    /// block's pieces land together and each one's blast weighs everything
+    /// in reach; past this, a piece lands without one. Crushing through
+    /// always has its blast.</summary>
+    [Export(PropertyHint.Range, "1,32,1")]
+    public int LandingBlastsPerFrame { get; set; } = 3;
 
     /// <summary>Most structural checks in one frame, world-wide.</summary>
     [Export(PropertyHint.Range, "1,32,1")]
@@ -261,4 +275,10 @@ public partial class VoxelDestructionStats : Resource
     /// would have got to by then.</summary>
     [Export(PropertyHint.Range, "1,64,1")]
     public int ChunksPerFrame { get; set; } = 8;
+
+    /// <summary>Main-thread time a frame may spend making loose pieces. One is
+    /// always made, however long it takes; a tower's upper part takes about
+    /// 3 ms, a crumbled block's pieces a tenth of that each.</summary>
+    [Export(PropertyHint.Range, "0.1,10,0.1,suffix:ms")]
+    public float SpawnMillisecondsPerFrame { get; set; } = 2.0f;
 }

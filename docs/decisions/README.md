@@ -25,3 +25,4 @@ Number them in order, `NNNN-short-title.md`.
 | [0012](0012-horde-attacks-allies.md) | The horde attacks the allies: targets by group, bites into voxels, guard and stomp |
 | [0013](0013-buildings-carry-weight.md) | Buildings carry their own weight: load check, storey fracture, heavy rubble that crushes; armour as data |
 | [0014](0014-buildings-fall-whole.md) | Buildings fall whole and break where they land: crush-through, a hinge that tears, snapping on landing |
+| [0015](0015-destruction-off-the-frame.md) | Destruction off the frame: voxel work on low-priority workers, a body per section, pooled chunks, first times at load, the game above normal priority |

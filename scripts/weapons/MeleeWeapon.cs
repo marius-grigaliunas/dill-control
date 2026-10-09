@@ -305,12 +305,7 @@ public partial class MeleeWeapon : WeaponBase
             Vector3 normal = (Vector3)result["normal"];
             GodotObject collider = (GodotObject)result["collider"];
 
-            IDamageable receiver = collider switch
-            {
-                Hitbox box => box.Receiver,
-                IDamageable direct => direct,
-                _ => null,
-            };
+            IDamageable receiver = DamageReceiver.Of(collider);
 
             if (receiver == null)
             {

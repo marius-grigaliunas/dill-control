@@ -250,7 +250,7 @@ public partial class ThrownImpact : Node
             }
 
             Hitbox box = node as Hitbox;
-            IDamageable receiver = box != null ? box.Receiver : node as IDamageable;
+            IDamageable receiver = DamageReceiver.Of(node);
             if (receiver == null || !receiver.IsAlive || !_struck.Add(receiver))
             {
                 continue;
