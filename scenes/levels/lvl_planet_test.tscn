@@ -21,6 +21,10 @@
 [ext_resource type="Resource" path="res://resources/planet/planet_spec_test.tres" id="22_spec"]
 [ext_resource type="Resource" path="res://resources/planet/planet_streaming_default.tres" id="23_stream"]
 [ext_resource type="Material" path="res://art/materials/mat_planet_terrain.tres" id="24_terrain"]
+[ext_resource type="Resource" path="res://resources/planet/planet_archetype_rock.tres" id="25_arch"]
+[ext_resource type="Resource" path="res://resources/planet/biomes/biome_brine_flats.tres" id="26_brine"]
+[ext_resource type="Resource" path="res://resources/planet/biomes/biome_rust_dunes.tres" id="27_rust"]
+[ext_resource type="Resource" path="res://resources/planet/biomes/biome_vinegar_frost.tres" id="28_frost"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
 sky_top_color = Color(0.3, 0.52, 0.84, 1)
@@ -53,12 +57,17 @@ PlayerSpawn = NodePath("Spawns/PlayerSpawn")
 
 [node name="Geometry" type="Node3D" parent="."]
 
-[node name="Planet" type="Node3D" parent="Geometry" node_paths=PackedStringArray("Sites")]
+[node name="Planet" type="Node3D" parent="Geometry" node_paths=PackedStringArray("Sites", "Environment", "Sun")]
 script = ExtResource("20_planet")
 Spec = ExtResource("22_spec")
+Archetype = ExtResource("25_arch")
+Biomes = [ExtResource("26_brine"), ExtResource("27_rust"), ExtResource("28_frost")]
+Seed = 1
 Stats = ExtResource("23_stream")
 TerrainMaterial = ExtResource("24_terrain")
 Sites = [NodePath("../../Props/Site"), NodePath("../../Spawns/PlayerSpawn")]
+Environment = NodePath("../../Lighting/WorldEnvironment")
+Sun = NodePath("../../Lighting/Sun")
 
 [node name="Water" type="Node3D" parent="."]
 

@@ -407,13 +407,8 @@ static func _planet_timeline(count: int) -> Array:
 	return [
 		["surface", [], [], 6.0],
 		["surface shot", ["#planet_surface"], [], 0.5],
-		["300 m up", ["@goto:0, 1530, 120", "@aim:Site:0"], [], 3.0],
-		["300 m shot", ["#planet_300m"], [], 0.5],
-		["1 km up", ["@goto:0, 2230, 400", "@aim:Site:0"], [], 3.0],
-		["1 km shot", ["#planet_1km"], [], 0.5],
-		["orbit 2.4 km", ["@goto:0, 3600, 600", "@aim:Site:0"], [], 4.0],
-		["orbit shot", ["#planet_orbit"], [], 0.5],
-		["back down", ["@goto:0, 1225, 70"], [], 6.0],
+	] + _planet_heights("planet") + [
+		["back down", ["@lift:25:70"], [], 6.0],
 		["seed %d" % count, ["!set:Horde:Stats:HuntSeedMinRadius=30.0",
 			"!set:Horde:Stats:HuntSeedRadius=150.0", "!set:Horde:Stats:AgentCount=%d" % count], [], 3.0],
 		["reseed", ["!call:Horde:BenchReseed"], [], 12.0],
@@ -424,26 +419,55 @@ static func _planet_timeline(count: int) -> Array:
 		["after", [], [], 5.0],
 	]
 
+# Lifted off the planet in three steps to where the whole of it is in view,
+# aimed back at the site each time. Heights are over the real ground under the
+# site, so they hold on any radius.
+static func _planet_heights(shot: String) -> Array:
+	return [
+		["300 m up", ["@lift:300:120", "@aim:Site:0"], [], 3.0],
+		["300 m shot", ["#%s_300m" % shot], [], 0.5],
+		["1 km up", ["@lift:1000:400", "@aim:Site:0"], [], 3.0],
+		["1 km shot", ["#%s_1km" % shot], [], 0.5],
+		["orbit 2.4 km", ["@lift:2400:600", "@aim:Site:0"], [], 4.0],
+		["orbit shot", ["#%s_orbit" % shot], [], 0.5],
+	]
+
+# A sweep of n seeds through lvl_planet_test: each one rebuilt, stood on,
+# lifted to orbit. Every planet a contract can roll must hold the budget, so
+# this is what the archetype's ranges are widened against. The planet prints
+# each seed's shape, biome and build time as it builds.
+static func _planets_timeline(count: int, first: int) -> Array:
+	var timeline := []
+	for i in count:
+		var seed := first + i
+		timeline.append_array([
+			["seed %d build" % seed, ["!reload:%d" % seed], [], 7.0],
+			["seed %d surface" % seed, ["@lift:2:70", "@aim:Site:10", "#seed%d_surface" % seed], [], 4.0],
+		])
+		for phase in _planet_heights("seed%d" % seed):
+			timeline.append(["seed %d %s" % [seed, phase[0]], phase[1], phase[2], phase[3]])
+	return timeline
+
 # What the planet costs the GPU, on the ground and 300 m up: the whole planet
 # hidden, the far shell hidden, and the terrain shader's grid and hatching off,
 # each between baselines.
 static func _planetab_timeline() -> Array:
 	var timeline := []
-	for spot in [["ground", "0, 1225, 70", "Horde:20"], ["300 m", "0, 1530, 120", "Site:0"]]:
+	for spot in [["ground", "25:70", "Horde:20"], ["300 m", "300:120", "Site:0"]]:
 		timeline.append_array([
-			["%s base" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:" + spot[2]], [], 4.0],
-			["%s no planet" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!hide:Planet"], [], 4.0],
-			["%s base 2" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!show:Planet"], [], 4.0],
-			["%s no far shell" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!hide:FarShell"], [], 4.0],
-			["%s base 3" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!show:FarShell"], [], 4.0],
-			["%s plain shader" % spot[0], ["@goto:" + spot[1],
+			["%s base" % spot[0], ["@lift:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:" + spot[2]], [], 4.0],
+			["%s no planet" % spot[0], ["@lift:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!hide:Planet"], [], 4.0],
+			["%s base 2" % spot[0], ["@lift:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!show:Planet"], [], 4.0],
+			["%s no far shell" % spot[0], ["@lift:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!hide:FarShell"], [], 4.0],
+			["%s base 3" % spot[0], ["@lift:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!show:FarShell"], [], 4.0],
+			["%s plain shader" % spot[0], ["@lift:" + spot[1],
 				"!set:Planet:TerrainMaterial:shader_parameter/grid_strength=0.0",
 				"!set:Planet:TerrainMaterial:shader_parameter/hatch_strength=0.0"], [], 4.0],
-			["%s base 4" % spot[0], ["@goto:" + spot[1],
+			["%s base 4" % spot[0], ["@lift:" + spot[1],
 				"!set:Planet:TerrainMaterial:shader_parameter/grid_strength=0.7",
 				"!set:Planet:TerrainMaterial:shader_parameter/hatch_strength=0.85"], [], 4.0],
-			["%s no buildings" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!hide:Site"], [], 4.0],
-			["%s base 5" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!show:Site"], [], 4.0],
+			["%s no buildings" % spot[0], ["@lift:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!hide:Site"], [], 4.0],
+			["%s base 5" % spot[0], ["@lift:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!show:Site"], [], 4.0],
 		])
 	return timeline
 
@@ -492,6 +516,7 @@ var _phase := -1
 var _phase_started := 0.0
 var _vp: RID
 var _timeline: Array = []
+var _path := ""
 var _held: Array[String] = []
 
 var _settled := false
@@ -541,11 +566,13 @@ func _initialize() -> void:
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
 		"planet": _timeline = _planet_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"planetab": _timeline = _planetab_timeline()
+		"planets": _timeline = _planets_timeline(int(args[2]) if args.size() > 2 else 10, int(args[3]) if args.size() > 3 else 1)
 		_: _timeline = IDLE_TIMELINE
 
 	print("=== bench: ", path, "  mode=", mode, "  window ", DisplayServer.window_get_size(),
 		"  vsync=", DisplayServer.window_get_vsync_mode(), " (0=disabled) ===")
 
+	_path = path
 	var level: Node = load(path).instantiate()
 	root.add_child(level)
 	current_scene = level
@@ -593,6 +620,34 @@ func _tap(action: String) -> void:
 		return
 	if action == "@status":
 		_status = not _status
+		return
+	if action.begins_with("!reload:"):
+		# The level rebuilt from scratch with another planet seed.
+		root.set_meta("bench_planet_seed", int(action.substr(8)))
+		# Queued, not freed: freed here, mid-frame, the level's bodies could
+		# still be referenced. The two overlap for a frame, which the planet
+		# allows for (WorldUp counts planets).
+		if current_scene != null:
+			current_scene.queue_free()
+		_found.clear()
+		var level: Node = load(_path).instantiate()
+		root.add_child(level)
+		current_scene = level
+		return
+	if action.begins_with("@lift:"):
+		# Over the real ground under the site: altitude, then metres back.
+		var lift := action.substr(6).split(":")
+		var planet := _find("Planet")
+		var site := _find("Site") as Node3D
+		var lifted := _player() as Node3D
+		if planet == null or site == null or lifted == null:
+			print("[bench] cannot ", action)
+			return
+		var up := site.global_position.normalized()
+		var back := float(lift[1]) if lift.size() > 1 else 0.0
+		lifted.global_position = planet.call("PointAbove", up, float(lift[0])) + site.global_basis.z * back
+		if "velocity" in lifted:
+			lifted.velocity = Vector3.ZERO
 		return
 	if action.begins_with("@goto:"):
 		var player := _player() as Node3D

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="PlanetBiome" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/planet/PlanetBiome.cs" id="1_biome"]
+
+[resource]
+script = ExtResource("1_biome")
+DisplayName = "Rust Dunes"
+LowColor = Color(0.45, 0.22, 0.12, 1)
+HighColor = Color(0.78, 0.52, 0.32, 1)
+RockColor = Color(0.35, 0.2, 0.16, 1)
+ScreeColor = Color(0.6, 0.35, 0.18, 1)
+BaseColor = Color(0.62, 0.42, 0.28, 1)
+SnowColor = Color(0.9, 0.82, 0.72, 1)
+PatchStrength = 0.7
+SnowAmount = 0.0
+SnowAltitude = 0.9
+SkyTopColor = Color(0.55, 0.45, 0.42, 1)
+SkyHorizonColor = Color(0.86, 0.7, 0.55, 1)
+FogColor = Color(0.86, 0.7, 0.55, 1)
+SunColor = Color(1, 0.85, 0.7, 1)
+SunEnergy = 1.1
+SunElevationMin = 20.0
+SunElevationMax = 45.0
+HueJitter = 0.02
+ValueJitter = 0.1

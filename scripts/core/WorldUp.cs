@@ -14,7 +14,11 @@ namespace DillControl.Core;
 /// </summary>
 public static class WorldUp
 {
-    private static bool _radial;
+    // A count rather than a flag: a level reloaded in place has its new
+    // planet arrive before the old one leaves.
+    private static int _planets;
+
+    private static bool _radial => _planets > 0;
 
     /// <summary>True while a planet centred on the world origin is present.</summary>
     public static bool Radial => _radial;
@@ -50,9 +54,9 @@ public static class WorldUp
         return new Transform3D(new Basis(side, up, side.Cross(up)), point);
     }
 
-    /// <summary>Called by the planet: up is away from the origin until <see cref="SetFlat"/>.</summary>
-    public static void SetRadial() => _radial = true;
+    /// <summary>Called by a planet as it builds: up is away from the origin until it calls <see cref="SetFlat"/>.</summary>
+    public static void SetRadial() => _planets++;
 
-    /// <summary>Back to straight up.</summary>
-    public static void SetFlat() => _radial = false;
+    /// <summary>Called by a planet as it leaves. Straight up again once no planet is left.</summary>
+    public static void SetFlat() => _planets = System.Math.Max(0, _planets - 1);
 }

@@ -36,9 +36,28 @@ namespace DillControl.Planet;
 public partial class PlanetTerrain : Node3D, IHordeGroundProvider
 {
     [ExportGroup("Data")]
-    /// <summary>The planet's shape. A contract replaces it before building; a test level authors one.</summary>
+    /// <summary>
+    /// The planet's shape, when it is authored. Ignored when an
+    /// <see cref="Archetype"/> is set: the seed rolls the shape instead.
+    /// </summary>
     [Export]
     public PlanetSpec Spec { get; set; }
+
+    /// <summary>A kind of planet to roll from <see cref="Seed"/>. Empty builds <see cref="Spec"/> as authored.</summary>
+    [Export]
+    public PlanetArchetype Archetype { get; set; }
+
+    /// <summary>Looks the seed picks between. Empty leaves the material, sky and sun as authored.</summary>
+    [Export]
+    public Godot.Collections.Array<PlanetBiome> Biomes { get; set; } = new();
+
+    /// <summary>
+    /// The seed that rolls the shape and picks and shifts the biome. A bench
+    /// sweep overrides it (<see cref="BenchSeedMeta"/>); a contract will set
+    /// it before building.
+    /// </summary>
+    [Export]
+    public long Seed { get; set; } = 1;
 
     [Export]
     public PlanetStreamingStats Stats { get; set; }
@@ -54,6 +73,20 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
     /// <summary>Build in <c>_Ready</c>. Off when something else (a loading stage) calls <see cref="Build"/>.</summary>
     [Export]
     public bool BuildOnReady { get; set; } = true;
+
+    /// <summary>The level's environment, for the biome's sky and fog.</summary>
+    [Export]
+    public WorldEnvironment Environment { get; set; }
+
+    /// <summary>The level's sun, for the biome's light and where it stands.</summary>
+    [Export]
+    public DirectionalLight3D Sun { get; set; }
+
+    /// <summary>A meta value on the tree's root that, when set, replaces <see cref="Seed"/>: how <c>bench.gd planets</c> sweeps seeds.</summary>
+    public const string BenchSeedMeta = "bench_planet_seed";
+
+    /// <summary>The biome this planet was painted with, or null.</summary>
+    public PlanetBiome Biome { get; private set; }
 
     /// <summary>Local signal: the planet exists, its sites are on the ground, and the ground under them collides.</summary>
     [Signal]
@@ -87,6 +120,12 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
     private PlanetChunk[] _chunks;
     private bool[] _queued;
     private bool[] _keepCollider;
+
+    /// <summary>Per chunk, the cosine of how far off the viewer it may be and still collide.</summary>
+    private float[] _collisionCosine;
+
+    /// <summary>The largest chunk's angular radius.</summary>
+    private float _widestChunk;
     private bool[] _dirtyFlag;
     private readonly List<int> _dirtyChunks = new();
     private readonly Queue<int> _buildQueue = new();
@@ -114,12 +153,20 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
 
         if (BuildOnReady)
         {
-            if (Spec == null)
+            Window root = GetTree().Root;
+            ulong seed = (ulong)(root.HasMeta(BenchSeedMeta) ? root.GetMeta(BenchSeedMeta).AsInt64() : Seed);
+            PlanetSpec spec = Archetype != null ? Archetype.Roll(seed) : Spec;
+            if (spec == null)
             {
-                GD.PushError($"PlanetTerrain '{Name}' has no PlanetSpec; no planet.");
+                GD.PushError($"PlanetTerrain '{Name}' has neither a PlanetSpec nor an archetype; no planet.");
                 return;
             }
-            Build(Spec);
+            PlanetBiome biome = null;
+            if (Biomes.Count > 0)
+            {
+                biome = Biomes[SeededRandom.Stream(seed, "biome pick").RangeInt(0, Biomes.Count - 1)];
+            }
+            Build(spec, biome, seed);
         }
     }
 
@@ -143,10 +190,11 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
     /// under them now, so whatever spawns there lands. The rest of the chunks
     /// are queued and built a few a frame.
     /// </summary>
-    public void Build(PlanetSpec spec)
+    public void Build(PlanetSpec spec, PlanetBiome biome = null, ulong seed = 0)
     {
         long started = Stopwatch.GetTimestamp();
         Spec = spec;
+        Biome = biome;
         _stats = Stats ?? new PlanetStreamingStats();
 
         if (GlobalPosition.LengthSquared() > 0.01f)
@@ -188,9 +236,17 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
         _farShell.Build(Heights, _stats.FarShellVertexEdge, _stats.FarShellSink, TerrainMaterial);
 
         EnsureGravityField(spec.SurfaceGravity);
-        WorldUp.SetRadial();
+        if (!IsBuilt)
+        {
+            WorldUp.SetRadial();
+        }
 
         PlaceSites();
+
+        // Painted after the sites stand, because the sun's elevation is
+        // measured over the first of them: the compound.
+        biome?.Apply(seed, Sites.Count > 0 && Sites[0] != null ? Sites[0].Direction : Vector3.Up,
+                     TerrainMaterial as ShaderMaterial, Environment?.Environment, Sun);
 
         if (EventBus.Instance != null)
         {
@@ -201,7 +257,7 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
         IsBuilt = true;
         LastBuildMilliseconds = (float)((Stopwatch.GetTimestamp() - started) * 1000.0 / Stopwatch.Frequency);
         GD.Print(System.FormattableString.Invariant(
-            $"[planet] built: radius {spec.Radius:F0} m, {ChunkCount} chunks of {ChunkVertexEdge}², {FaceVertexEdge} verts a face edge, {Heights.VertexSpacing:F2} m spacing, seed {spec.Seed}, {LastBuildMilliseconds:F0} ms"));
+            $"[planet] built: radius {spec.Radius:F0} m, relief {spec.Amplitude:F1} m, ridges {spec.RidgeShare:F2}, {spec.CraterCount} craters, {biome?.DisplayName ?? "authored look"}; {ChunkCount} chunks of {ChunkVertexEdge}², {Heights.VertexSpacing:F2} m spacing, noise seed {spec.Seed}, {LastBuildMilliseconds:F0} ms"));
         EmitSignal(SignalName.Built);
     }
 
@@ -379,6 +435,8 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
         _queued = new bool[_chunks.Length];
         _keepCollider = new bool[_chunks.Length];
         _dirtyFlag = new bool[_chunks.Length];
+        _collisionCosine = new float[_chunks.Length];
+        _widestChunk = 0.0f;
 
         for (int f = 0; f < CubeSphere.FaceCount; f++)
         {
@@ -393,6 +451,8 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
                     chunk.Initialise(this, f, cu, cv, TerrainMaterial);
                     _buildQueue.Enqueue(index);
                     _queued[index] = true;
+                    _collisionCosine[index] = Mathf.Cos(Mathf.Min(chunk.AngularRadius * (_stats.CollisionRingChunks + 1.0f), Mathf.Pi));
+                    _widestChunk = Mathf.Max(_widestChunk, chunk.AngularRadius);
                 }
             }
         }
@@ -465,7 +525,7 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
 
         int baseU = chunk.ChunkU * span;
         int baseV = chunk.ChunkV * span;
-        Vector3 origin = chunk.Position;
+        Vector3 origin = chunk.Centre;
 
         for (int j = -1; j <= c; j++)
         {
@@ -618,10 +678,15 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
         int ring = _stats.CollisionRingChunks;
 
         // How far over the curve a chunk centre can be and still show a
-        // corner: the viewer's own horizon plus the relief's.
+        // corner: the viewer's own horizon plus the relief's, plus the widest
+        // chunk. Compared as cosines against one dot product a chunk: this
+        // walks every chunk every frame, and two arccosines each were most of
+        // what it cost (0.6-0.9 ms at 1,176 chunks).
         float eyeHorizon = Mathf.Acos(radius / (radius + Mathf.Max(viewerHeight, 0.1f)));
         float reliefHorizon = Mathf.Acos(radius / (radius + Mathf.Max(Heights.Amplitude, 1.0f)));
-        float drawDistance = _stats.NearDrawDistance;
+        float showCosine = Mathf.Cos(Mathf.Min(eyeHorizon + reliefHorizon + _widestChunk, Mathf.Pi));
+        float draw = _stats.NearDrawDistance + (_widestChunk * radius);
+        float drawSquared = draw * draw;
 
         int resident = 0;
         int visible = 0;
@@ -629,14 +694,14 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
         for (int i = 0; i < _chunks.Length; i++)
         {
             PlanetChunk chunk = _chunks[i];
-            float angle = chunk.CentreNormal.AngleTo(viewerDirection);
+            float along = chunk.CentreNormal.Dot(viewerDirection);
 
             bool near = _keepCollider[i]
                         || (chunk.Face == viewerFace
                             && Mathf.Abs(chunk.ChunkU - viewerU) <= ring
                             && Mathf.Abs(chunk.ChunkV - viewerV) <= ring)
                         // Chunks on another face still collide near a seam.
-                        || angle < chunk.AngularRadius * (ring + 1.0f);
+                        || along > _collisionCosine[i];
 
             if (near)
             {
@@ -654,8 +719,7 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
                 chunk.ReleaseCollider();
             }
 
-            bool show = angle < eyeHorizon + reliefHorizon + chunk.AngularRadius
-                        && chunk.Position.DistanceTo(viewer) < drawDistance + (chunk.AngularRadius * radius);
+            bool show = along > showCosine && chunk.Centre.DistanceSquaredTo(viewer) < drawSquared;
             chunk.SetMeshVisible(show);
             if (show)
             {
@@ -786,6 +850,13 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
         }
         return _hordeGround.StampObstacles(space, flow, FlatGround.ObstacleMask, garrison, _stats.ObstacleStampRadius,
                                            exclude);
+    }
+
+    /// <summary>A point <paramref name="altitude"/> metres over the ground in a direction, for <c>bench.gd</c>'s <c>@lift</c>.</summary>
+    public Vector3 PointAbove(Vector3 direction, float altitude)
+    {
+        Vector3 unit = direction.Normalized();
+        return Heights.SurfacePoint(unit) + (unit * altitude);
     }
 
     /// <summary>One line of the planet's state, for <c>bench.gd</c>.</summary>

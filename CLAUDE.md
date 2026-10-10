@@ -87,6 +87,12 @@ a `PlanetSite`: placed roughly, levelled and stood on the ground at build. Code
 with no body to ask `GetGravity()` asks `WorldUp`, never `Vector3.Up`. See
 `docs/decisions/0017`.
 
+**Generation draws from authored pools and one seed.** A contract is a seed;
+every roll goes through `SeededRandom` with a named stream, never `GD.Randi`
+or `System.Random`. A planet rolls inside a `PlanetArchetype`'s ranges and
+wears a `PlanetBiome`; a range widens only after `bench.gd planets` holds at
+it. See `docs/decisions/0018`.
+
 ## Folder map
 
 ```
@@ -197,6 +203,8 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn horde 25000
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planet 25000  # ground, 300 m, 1 km, orbit, crowd
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planetab      # what the planet costs the GPU
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planets 10 1   # ten seeds from 1: build, ground, heights
+"$GODOT" --headless --path . --script scripts/debug/seedcheck.gd -- 20                                      # same seed, same planet; cube seams
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn hordeab 25000
 ```
 

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="PlanetArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/planet/PlanetArchetype.cs" id="1_arch"]
+
+[resource]
+script = ExtResource("1_arch")
+DisplayName = "Rock"
+RadiusMin = 1000.0
+RadiusMax = 1400.0
+AmplitudeMin = 14.0
+AmplitudeMax = 32.0
+FrequencyMin = 3.0
+FrequencyMax = 7.0
+OctavesMin = 4
+OctavesMax = 5
+GainMin = 0.45
+GainMax = 0.55
+RidgeShareMin = 0.0
+RidgeShareMax = 0.7
+CraterCountMin = 0
+CraterCountMax = 40
+CraterRadiusMin = 12.0
+CraterRadiusMax = 70.0
+CraterDepthRatio = 0.2
+GravityMin = 9.8
+GravityMax = 9.8
+DigFloorDepth = 25.0

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="PlanetBiome" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/planet/PlanetBiome.cs" id="1_biome"]
+
+[resource]
+script = ExtResource("1_biome")
+DisplayName = "Brine Flats"
+LowColor = Color(0.22, 0.31, 0.15, 1)
+HighColor = Color(0.58, 0.55, 0.45, 1)
+RockColor = Color(0.32, 0.3, 0.29, 1)
+ScreeColor = Color(0.44, 0.31, 0.19, 1)
+BaseColor = Color(0.46, 0.44, 0.35, 1)
+SnowColor = Color(0.86, 0.89, 0.94, 1)
+PatchStrength = 0.85
+SnowAmount = 0.6
+SnowAltitude = 0.7
+SkyTopColor = Color(0.3, 0.52, 0.84, 1)
+SkyHorizonColor = Color(0.74, 0.82, 0.9, 1)
+FogColor = Color(0.74, 0.82, 0.9, 1)
+SunColor = Color(1, 0.97, 0.9, 1)
+SunEnergy = 1.0
+SunElevationMin = 35.0
+SunElevationMax = 65.0
+HueJitter = 0.03
+ValueJitter = 0.08

@@ -44,7 +44,11 @@ public sealed class PlanetGround : IHordeGround, IFlowGraph
     {
         _heights = heights;
         float faceArc = Mathf.Pi * 0.5f * heights.Radius;
-        GridSize = Mathf.Max(4, Mathf.NearestPo2(Mathf.RoundToInt(faceArc / Mathf.Max(wantedCellSize, 1.0f))));
+        // Rounded, not to a power of two: the lab's grid was a power of two
+        // for its wetness texture, which did not come across, and NearestPo2
+        // rounds up -- a 1350 m planet got four times the cells of a 1200 m
+        // one, and four times the flow build.
+        GridSize = Mathf.Max(4, Mathf.RoundToInt(faceArc / Mathf.Max(wantedCellSize, 1.0f)));
         CellCount = CubeSphere.FaceCount * GridSize * GridSize;
         CellSize = faceArc / GridSize;
 

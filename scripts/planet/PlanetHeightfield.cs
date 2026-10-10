@@ -61,7 +61,7 @@ public sealed class PlanetHeightfield
     public int FaceVertexEdge { get; }
 
     /// <summary>How far below the generated ground a crater can dig. Zero or less is no floor.</summary>
-    public float DigFloorDepth { get; }
+    public float DigFloorDepth { get; private set; }
 
     /// <summary>Metres between neighbouring vertices, near enough everywhere.</summary>
     public float VertexSpacing => Mathf.Pi * 0.5f * Radius / Mathf.Max(FaceVertexEdge - 1, 1);
@@ -123,7 +123,37 @@ public sealed class PlanetHeightfield
             }
         });
 
+        BakeCraters(spec);
         Array.Copy(_height, _baseHeight, _height.Length);
+    }
+
+    /// <summary>
+    /// Old impacts, placed from the planet's seed. Small craters are common
+    /// and big ones rare (radius drawn toward the low end), as on any
+    /// cratered surface. Dug before the base heights are taken, so they are
+    /// ground the dig floor measures from, not damage.
+    /// </summary>
+    private void BakeCraters(PlanetSpec spec)
+    {
+        if (spec.CraterCount <= 0)
+        {
+            return;
+        }
+
+        SeededRandom random = SeededRandom.Stream((ulong)spec.Seed, "craters");
+        float minRadius = Mathf.Min(spec.CraterRadiusMin, spec.CraterRadiusMax);
+        float maxRadius = Mathf.Max(spec.CraterRadiusMin, spec.CraterRadiusMax);
+        float floorDepth = DigFloorDepth;
+        DigFloorDepth = 0.0f;
+        for (int i = 0; i < spec.CraterCount; i++)
+        {
+            Vector3 direction = random.OnSphere();
+            float t = random.NextFloat();
+            float radius = Mathf.Lerp(minRadius, maxRadius, t * t * t);
+            Vector3 centre = SurfacePoint(direction);
+            ApplyCrater(centre, radius, radius * spec.CraterDepthRatio, radius * 0.05f, 4.0f, (_, _, _) => { });
+        }
+        DigFloorDepth = floorDepth;
     }
 
     /// <summary>

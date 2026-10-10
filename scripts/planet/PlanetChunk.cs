@@ -28,8 +28,16 @@ public partial class PlanetChunk : StaticBody3D
     /// <summary>True when the height data under this chunk has changed.</summary>
     public bool GeometryDirty { get; set; }
 
-    /// <summary>True while this chunk is inside the streamed collision ring.</summary>
-    public bool HasCollision => _collision != null && !_collision.Disabled;
+    /// <summary>
+    /// True while this chunk is inside the streamed collision ring. A C#
+    /// field, like <see cref="SetMeshVisible"/>'s guard: streaming asks every
+    /// chunk every frame, and reading <c>Disabled</c> back through the engine
+    /// a thousand times a frame is time spent asking what we already know.
+    /// </summary>
+    public bool HasCollision { get; private set; }
+
+    /// <summary>The chunk's centre on the mean sphere, in the planet's space. A field, for the same reason.</summary>
+    public Vector3 Centre { get; private set; }
 
     private MeshInstance3D _meshInstance;
     private CollisionShape3D _collision;
@@ -62,7 +70,8 @@ public partial class PlanetChunk : StaticBody3D
         Vector3 corner = CubeSphere.Direction(face, centreA - (half * 2.0f), centreB - (half * 2.0f));
         AngularRadius = CentreNormal.AngleTo(corner);
 
-        Position = CentreNormal * terrain.Radius;
+        Centre = CentreNormal * terrain.Radius;
+        Position = Centre;
 
         _mesh = new ArrayMesh();
         _meshInstance = new MeshInstance3D
@@ -135,6 +144,7 @@ public partial class PlanetChunk : StaticBody3D
         shape.SetFaces(faces);
         _collision.Shape = shape;
         _collision.Disabled = false;
+        HasCollision = true;
     }
 
     /// <summary>Drops the collider, freeing its broadphase entry and its BVH.</summary>
@@ -142,6 +152,7 @@ public partial class PlanetChunk : StaticBody3D
     {
         _collision.Disabled = true;
         _collision.Shape = null;
+        HasCollision = false;
     }
 
     /// <summary>

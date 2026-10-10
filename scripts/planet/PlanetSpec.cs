@@ -49,6 +49,21 @@ public partial class PlanetSpec : Resource
     [Export(PropertyHint.Range, "0,1,0.01")]
     public float RidgeShare { get; set; } = 0.0f;
 
+    [ExportGroup("Craters")]
+    /// <summary>Old impact craters pressed into the ground at generation. They are ground, not damage: the dig floor is measured from them.</summary>
+    [Export(PropertyHint.Range, "0,400,1")]
+    public int CraterCount { get; set; }
+
+    [Export(PropertyHint.Range, "2,300,1,suffix:m")]
+    public float CraterRadiusMin { get; set; } = 15.0f;
+
+    [Export(PropertyHint.Range, "2,300,1,suffix:m")]
+    public float CraterRadiusMax { get; set; } = 60.0f;
+
+    /// <summary>A crater's depth as a share of its radius.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float CraterDepthRatio { get; set; } = 0.2f;
+
     [ExportGroup("Ground")]
     /// <summary>Pull at the surface.</summary>
     [Export(PropertyHint.Range, "1,30,0.1,suffix:m/s²")]
