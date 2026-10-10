@@ -102,6 +102,7 @@ public partial class HordeDirector : Node3D
         PerfLog.Counter("horde_agents", () => Manager?.AgentCount ?? 0);
         PerfLog.Counter("horde_drawn", () => Manager?.VisibleAgentCount ?? 0);
         PerfLog.Counter("horde_stepped", () => Manager?.SteppedCount ?? 0);
+        PerfLog.Counter("horde_hunting", () => IsHunting ? 1 : 0);
         if (EventBus.Instance != null)
         {
             EventBus.Instance.ObstaclesChanged += OnObstaclesChanged;
@@ -220,6 +221,9 @@ public partial class HordeDirector : Node3D
     {
         ulong started = Time.GetTicksUsec();
         PhysicsDirectSpaceState3D space = GetWorld3D().DirectSpaceState;
+        // A horde with an aggro range starts at home: its first field leads
+        // to the garrison, not to wherever the player arrived.
+        _hunting = Stats.AggroRange <= 0.0f;
 
         if (provider != null)
         {
@@ -267,6 +271,7 @@ public partial class HordeDirector : Node3D
         }
 
         float dt = (float)delta;
+        UpdateHunt(dt);
         PushStats();
         Restamp();
         TickFlow(dt);
@@ -363,6 +368,12 @@ public partial class HordeDirector : Node3D
         // straight at the player. Two cells is the target's own and a margin.
         horde.FinalApproachRange = hunting ? Ground.CellSize * 2.0f : 0.0f;
 
+        horde.Roaming = !hunting && Stats.RoamRadius > 0.0f;
+        horde.RoamCentre = Ground.GroundBelow(GlobalPosition, out _);
+        horde.RoamRadius = Stats.RoamRadius;
+        horde.RoamSpeedScale = Stats.RoamSpeedScale;
+        horde.RoamPeriod = Stats.RoamPeriod;
+
         Brine.Gravity = Stats.Gravity * Stats.SpitGravityScale;
         Brine.HitRadius = Stats.ThrownHitRadius;
         AgentKindStats spitter = horde.KindStats((int)AgentKind.Spitter);
@@ -405,9 +416,74 @@ public partial class HordeDirector : Node3D
     {
         // Riding something, the player is still hunted: a mech carries them
         // at its seat, so the crowd comes for the mech.
-        hunting = Stats.HuntsPlayer && PlayerExists;
+        hunting = _hunting && Stats.HuntsPlayer && PlayerExists;
         Vector3 point = hunting ? _player.GlobalPosition : GlobalPosition;
         return Ground != null ? Ground.GroundBelow(point, out _) : point;
+    }
+
+    /// <summary>One line of how the horde stands round its garrison, for <c>bench.gd</c>.</summary>
+    public void PrintBenchSpread()
+    {
+        if (!_built)
+        {
+            return;
+        }
+        float distance = PlayerExists ? _player.GlobalPosition.DistanceTo(GlobalPosition) : -1.0f;
+        GD.Print(System.FormattableString.Invariant(
+            $"[bench]   garrison hunting={IsHunting} player at {distance:F0} m  {Manager.SpreadAround(Ground.GroundBelow(GlobalPosition, out _), Mathf.Max(Stats.RoamRadius, Stats.GarrisonSeedRadius))}"));
+    }
+
+    private bool _hunting = true;
+    private float _provoked;
+    private int _lastKills;
+
+    /// <summary>True while the horde is coming for the player rather than
+    /// keeping to its garrison.</summary>
+    public bool IsHunting => _hunting && Stats.HuntsPlayer && PlayerExists;
+
+    /// <summary>
+    /// Whether the horde comes for the player this frame. With no
+    /// <see cref="HordeStats.AggroRange"/> it always does, as it always did.
+    /// With one, it keeps to its garrison until the player comes within that
+    /// range of it or kills some of it, and goes home once the player is past
+    /// <see cref="HordeStats.LeashRange"/>. Between the two it keeps on, so it
+    /// does not turn back and forth at the edge.
+    /// </summary>
+    private void UpdateHunt(float dt)
+    {
+        int kills = Manager.KillCount;
+        if (kills > _lastKills)
+        {
+            _provoked = Stats.ProvokeSeconds;
+        }
+        _lastKills = kills;
+        _provoked -= dt;
+
+        if (Stats.AggroRange <= 0.0f)
+        {
+            _hunting = true;
+            return;
+        }
+        if (!PlayerExists)
+        {
+            _hunting = false;
+            return;
+        }
+
+        float distance = _player.GlobalPosition.DistanceTo(GlobalPosition);
+        bool was = _hunting;
+        if (distance > Stats.LeashRange)
+        {
+            _hunting = false;
+        }
+        else if (distance <= Stats.AggroRange || _provoked > 0.0f)
+        {
+            _hunting = true;
+        }
+        if (_hunting != was && PerfLog.Recording)
+        {
+            PerfLog.Event(System.FormattableString.Invariant($"horde-{(_hunting ? "hunts" : "goes-home")} at {distance:F0}m"));
+        }
     }
 
     private bool PlayerAvailable => PlayerExists && !_player.IsStowed;

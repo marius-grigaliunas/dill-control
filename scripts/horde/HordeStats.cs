@@ -65,6 +65,41 @@ public partial class HordeStats : Resource
     [Export(PropertyHint.Range, "10,1000,5,suffix:m")]
     public float GarrisonSeedRadius { get; set; } = 160.0f;
 
+    /// <summary>
+    /// With <see cref="HuntsPlayer"/>: the horde comes for the player only once
+    /// they are this close to the garrison, or have killed some of it
+    /// (<see cref="ProvokeSeconds"/>), and goes home past
+    /// <see cref="LeashRange"/>. Zero: it comes wherever the player is.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,3000,10,suffix:m")]
+    public float AggroRange { get; set; } = 0.0f;
+
+    /// <summary>A hunting horde gives up and goes home once the player is this
+    /// far from the garrison. Only with an <see cref="AggroRange"/>.</summary>
+    [Export(PropertyHint.Range, "10,5000,10,suffix:m")]
+    public float LeashRange { get; set; } = 600.0f;
+
+    /// <summary>Killing any of the horde brings it out for this long, wherever
+    /// the player is inside <see cref="LeashRange"/>.</summary>
+    [Export(PropertyHint.Range, "0,120,1,suffix:s")]
+    public float ProvokeSeconds { get; set; } = 20.0f;
+
+    /// <summary>
+    /// Not hunting, agents this close to the garrison roam it: each walks to a
+    /// spot of its own, waits, and picks another. Zero: they all make for the
+    /// garrison's middle, and pile up there.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,1000,5,suffix:m")]
+    public float RoamRadius { get; set; } = 0.0f;
+
+    /// <summary>Share of its speed an agent roams at.</summary>
+    [Export(PropertyHint.Range, "0.05,1,0.05")]
+    public float RoamSpeedScale { get; set; } = 0.35f;
+
+    /// <summary>How long an agent keeps one spot before it picks another.</summary>
+    [Export(PropertyHint.Range, "1,60,0.5,suffix:s")]
+    public float RoamPeriod { get; set; } = 9.0f;
+
     /// <summary>Packs the horde is seeded into. Zero is an even scatter.</summary>
     [Export(PropertyHint.Range, "0,100,1")]
     public int PackCount { get; set; } = 20;

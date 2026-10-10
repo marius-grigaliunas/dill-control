@@ -28,4 +28,18 @@ public partial class HordeTier : Resource
     /// </summary>
     [Export]
     public bool RespawnKilledAgents { get; set; }
+
+    /// <summary>How close the player comes to the compound before the horde
+    /// comes for them (HordeStats.AggroRange). Zero: it hunts from the start.</summary>
+    [Export(PropertyHint.Range, "0,3000,10,suffix:m")]
+    public float AggroRange { get; set; } = 250.0f;
+
+    /// <summary>How far the player gets before a hunting horde goes home.</summary>
+    [Export(PropertyHint.Range, "10,5000,10,suffix:m")]
+    public float LeashRange { get; set; } = 600.0f;
+
+    /// <summary>How far round the compound's middle the horde roams while it
+    /// is at home (HordeStats.RoamRadius).</summary>
+    [Export(PropertyHint.Range, "0,1000,5,suffix:m")]
+    public float RoamRadius { get; set; } = 150.0f;
 }

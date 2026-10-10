@@ -467,6 +467,19 @@ const DESCENT_TIMELINE := [
 	["status", ["@status"], [], 1.0],
 ]
 
+# The horde at home: the player waits in orbit, past the leash, and how the
+# garrison stands round its compound is printed as it settles. With a roam
+# radius it spreads over the compound; without, it piles into one cell.
+const GARRISON_SPREAD := "!call:Spawns/Horde:PrintBenchSpread"
+const GARRISON_TIMELINE := [
+	["arrive", [GARRISON_SPREAD], [], 5.0],
+	["10 s", [GARRISON_SPREAD], [], 10.0],
+	["20 s", [GARRISON_SPREAD], [], 10.0],
+	["30 s", [GARRISON_SPREAD], [], 10.0],
+	["40 s", [GARRISON_SPREAD], [], 10.0],
+	["end", [GARRISON_SPREAD], [], 0.5],
+]
+
 # The whole way in, from lvl_ship_hub: the ship, its computer, the first
 # contract taken, the contract level loading behind its screen, and the
 # arrival in orbit. The scene changes under the bench mid-run.
@@ -604,6 +617,7 @@ func _initialize() -> void:
 		"planet": _timeline = _planet_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"planetab": _timeline = _planetab_timeline()
 		"descent": _timeline = DESCENT_TIMELINE
+		"garrison": _timeline = GARRISON_TIMELINE
 		"flow": _timeline = FLOW_TIMELINE
 		"planets": _timeline = _planets_timeline(int(args[2]) if args.size() > 2 else 10, int(args[3]) if args.size() > 3 else 1)
 		_: _timeline = IDLE_TIMELINE

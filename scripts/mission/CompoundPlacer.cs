@@ -165,6 +165,10 @@ public partial class CompoundPlacer : Node, IPlanetSiteChooser
             HordeStats stats = (HordeStats)Horde.Stats.Duplicate();
             stats.AgentCount = Tier.AgentCount;
             stats.RespawnKilledAgents = Tier.RespawnKilledAgents;
+            stats.AggroRange = Tier.AggroRange;
+            stats.LeashRange = Tier.LeashRange;
+            stats.RoamRadius = Tier.RoamRadius;
+            stats.GarrisonSeedRadius = Mathf.Max(Tier.RoamRadius, 10.0f);
             Horde.Stats = stats;
         }
         if (Tier.Composition != null)

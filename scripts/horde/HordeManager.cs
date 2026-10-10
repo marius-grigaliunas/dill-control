@@ -534,6 +534,28 @@ public partial class HordeManager : Node3D
     /// </summary>
     public float FinalApproachRange { get; set; }
 
+    /// <summary>
+    /// Not hunting: agents within <see cref="RoamRadius"/> of
+    /// <see cref="RoamCentre"/> roam it rather than follow the field to its
+    /// middle. Each walks to a spot of its own in the disc, waits there, and
+    /// every <see cref="RoamPeriod"/> seconds picks another; one whose spot or
+    /// next step is somewhere blocked stands where it is. Following the field,
+    /// a garrison of twenty-five thousand walked into one cell and stayed.
+    /// </summary>
+    public bool Roaming { get; set; }
+
+    public Vector3 RoamCentre { get; set; }
+
+    public float RoamRadius { get; set; }
+
+    public float RoamSpeedScale { get; set; } = 0.35f;
+
+    public float RoamPeriod { get; set; } = 9.0f;
+
+    private float _roamClock;
+    private Vector3 _roamAcross;
+    private Vector3 _roamAlong;
+
     /// <summary>How close a lobbed cornichon has to pass the camera to land on the player.</summary>
     public float ThrownHitRadius { get; set; } = 1.4f;
 
@@ -2088,6 +2110,15 @@ public partial class HordeManager : Node3D
 
         _frame++;
         _lastDelta = delta;
+        _roamClock += delta;
+        if (Roaming)
+        {
+            // The disc's own axes, once a tick: on a planet it lies tangent at
+            // its centre, and a radius of a few hundred metres is near enough flat.
+            Vector3 roamUp = _ground.UpAt(RoamCentre);
+            _roamAcross = roamUp.Cross(Mathf.Abs(roamUp.X) < 0.9f ? Vector3.Right : Vector3.Forward).Normalized();
+            _roamAlong = roamUp.Cross(_roamAcross);
+        }
 
         if (ReorderInterval > 0 && _frame % ReorderInterval == 0 && _frame > _orderHeldUntil)
         {
@@ -2567,6 +2598,14 @@ public partial class HordeManager : Node3D
             }
         }
 
+        float pace = 1.0f;
+        if (Roaming && (agent.Position - RoamCentre).LengthSquared() <= RoamRadius * RoamRadius)
+        {
+            desired = Roam(index, agent.Position, up);
+            stranded = 0;
+            pace = RoamSpeedScale;
+        }
+
         // Near an ally, and nearer it than the player: go for the ally.
         if (_allyCount > 0)
         {
@@ -2583,7 +2622,7 @@ public partial class HordeManager : Node3D
         // agent, so it has to be re-projected or agents drift off-surface.
         desired = desired.Slide(up);
 
-        float speed = agent.TargetSpeed;
+        float speed = agent.TargetSpeed * pace;
         AgentKindStats stats = _kindStats[agent.Kind];
 
         // Held in the beam: the manipulator places it, nothing else moves it.
@@ -2674,6 +2713,82 @@ public partial class HordeManager : Node3D
 
         agent.Velocity = velocity;
         return stranded;
+    }
+
+    /// <summary>
+    /// How the crowd stands round a point, for the bench: the share within
+    /// <paramref name="radius"/>, the mean and 90th-percentile distance, and
+    /// the most agents in any one flow cell. A garrison that piles into one
+    /// spot reads thousands there.
+    /// </summary>
+    public string SpreadAround(Vector3 centre, float radius)
+    {
+        if (_count == 0)
+        {
+            return "no agents";
+        }
+        var distances = new float[_count];
+        var perCell = new System.Collections.Generic.Dictionary<int, int>();
+        int inside = 0;
+        double sum = 0.0;
+        for (int i = 0; i < _count; i++)
+        {
+            float d = _agents[i].Position.DistanceTo(centre);
+            distances[i] = d;
+            sum += d;
+            inside += d <= radius ? 1 : 0;
+            int cell = _agents[i].Cell;
+            perCell[cell] = perCell.TryGetValue(cell, out int n) ? n + 1 : 1;
+        }
+        System.Array.Sort(distances);
+        int most = 0;
+        foreach (int n in perCell.Values)
+        {
+            most = Mathf.Max(most, n);
+        }
+        return System.FormattableString.Invariant(
+            $"within {radius:F0} m {100.0 * inside / _count:F0}%  mean {sum / _count:F0} m  p90 {distances[(int)(_count * 0.9f)]:F0} m  cells {perCell.Count}  fullest cell {most}");
+    }
+
+    /// <summary>
+    /// Where a roaming agent heads: its own spot in the garrison's disc for
+    /// this period, the periods staggered by agent so the crowd never turns
+    /// at once. Zero (stand) when it is there, when its spot or its next step
+    /// is blocked, and for one period in four, so the garrison mills rather
+    /// than marches. Arithmetic over the ground and the field's weights only:
+    /// safe from the parallel passes.
+    /// </summary>
+    private Vector3 Roam(int index, Vector3 position, Vector3 up)
+    {
+        float period = Mathf.Max(RoamPeriod, 1.0f);
+        uint slot = (uint)((_roamClock / period) + ((index * 0.6180339f) % 1.0f));
+        uint h = (uint)index * 0x9E3779B1u ^ slot * 0x85EBCA77u;
+        h ^= h >> 15;
+        h *= 0x2C1B3C6Du;
+        h ^= h >> 12;
+        if ((h & 3u) == 0u)
+        {
+            return Vector3.Zero;
+        }
+
+        float angle = ((h >> 2) & 0x3FFFu) / 16383.0f * Mathf.Tau;
+        float reach = RoamRadius * Mathf.Sqrt(((h >> 16) & 0xFFFFu) / 65535.0f);
+        Vector3 spot = RoamCentre + (((_roamAcross * Mathf.Cos(angle)) + (_roamAlong * Mathf.Sin(angle))) * reach);
+        Vector3 to = (spot - position).Slide(up);
+        if (to.LengthSquared() < 4.0f)
+        {
+            return Vector3.Zero;
+        }
+
+        Vector3 heading = to.Normalized();
+        _ground.GroundBelow(spot, out int spotCell);
+        _ground.GroundBelow(position + (heading * (_ground.CellSize * 0.75f)), out int nextCell);
+        if ((spotCell >= 0 && _flow.BaseWeightAt(spotCell) == FlowField.Blocked)
+            || (nextCell >= 0 && _flow.BaseWeightAt(nextCell) == FlowField.Blocked))
+        {
+            return Vector3.Zero;
+        }
+        return heading;
     }
 
     /// <summary>
