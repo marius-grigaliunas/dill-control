@@ -29,3 +29,4 @@ Number them in order, `NNNN-short-title.md`.
 | [0016](0016-rubble-stays.md) | Rubble stays, and nothing blinks: crushed storeys heap up, pieces replace what they came from under dust, resting rubble joins the heap |
 | [0017](0017-the-planet.md) | The planet: ported at the world origin, a far shell and chunk levels, sites where authored things meet generated ground, the horde's ground from a provider |
 | [0018](0018-seeded-planets.md) | A contract is a seed; planets roll inside an authored archetype's ranges, biomes are authored presets the seed shifts; ranges capped by the bench |
+| [0019](0019-system-and-arrival.md) | The system and the arrival: the ship waits in orbit, the bike starts ridden with its nose on the compound, zero-g past the well, other bodies as lit discs in the sky, the air and fog thin with height |

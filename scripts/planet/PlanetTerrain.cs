@@ -88,6 +88,9 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
     /// <summary>The biome this planet was painted with, or null.</summary>
     public PlanetBiome Biome { get; private set; }
 
+    /// <summary>The seed this planet was built from: what the rest of the system rolls from too.</summary>
+    public ulong BuiltSeed { get; private set; }
+
     /// <summary>Local signal: the planet exists, its sites are on the ground, and the ground under them collides.</summary>
     [Signal]
     public delegate void BuiltEventHandler();
@@ -195,6 +198,7 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
         long started = Stopwatch.GetTimestamp();
         Spec = spec;
         Biome = biome;
+        BuiltSeed = seed;
         _stats = Stats ?? new PlanetStreamingStats();
 
         if (GlobalPosition.LengthSquared() > 0.01f)

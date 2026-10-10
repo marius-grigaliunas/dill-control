@@ -1,0 +1,56 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Material" path="res://art/materials/mat_graybox_accent.tres" id="1_accent"]
+[ext_resource type="Material" path="res://art/materials/mat_graybox_grid_wall.tres" id="2_wall"]
+
+[sub_resource type="BoxMesh" id="HullMesh"]
+size = Vector3(14, 6, 36)
+
+[sub_resource type="BoxMesh" id="BridgeMesh"]
+size = Vector3(8, 4, 10)
+
+[sub_resource type="CylinderMesh" id="EngineMesh"]
+top_radius = 2.2
+bottom_radius = 2.8
+height = 7.0
+
+[sub_resource type="BoxShape3D" id="HullShape"]
+size = Vector3(14, 6, 36)
+
+[sub_resource type="BoxShape3D" id="BridgeShape"]
+size = Vector3(8, 4, 10)
+
+[node name="ContractorShip" type="Node3D"]
+
+[node name="Body" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Hull" type="MeshInstance3D" parent="Body"]
+mesh = SubResource("HullMesh")
+surface_material_override/0 = ExtResource("2_wall")
+
+[node name="Bridge" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, -9)
+mesh = SubResource("BridgeMesh")
+surface_material_override/0 = ExtResource("1_accent")
+
+[node name="EnginePort" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -5, 0, 20)
+mesh = SubResource("EngineMesh")
+surface_material_override/0 = ExtResource("1_accent")
+
+[node name="EngineStarboard" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 5, 0, 20)
+mesh = SubResource("EngineMesh")
+surface_material_override/0 = ExtResource("1_accent")
+
+[node name="HullCollision" type="CollisionShape3D" parent="Body"]
+shape = SubResource("HullShape")
+
+[node name="BridgeCollision" type="CollisionShape3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, -9)
+shape = SubResource("BridgeShape")
+
+[node name="BikeDock" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -6, -4)

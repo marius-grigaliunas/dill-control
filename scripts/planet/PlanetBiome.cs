@@ -111,6 +111,15 @@ public partial class PlanetBiome : Resource
                 sky.GroundHorizonColor = horizon;
                 sky.GroundBottomColor = Shift(LowColor.Darkened(0.4f));
             }
+            else if (environment.Sky?.SkyMaterial is ShaderMaterial planetSky)
+            {
+                // The planet sky's zenith is darker than the top colour on
+                // purpose: a thin-air sky the stars and bodies read against.
+                planetSky.SetShaderParameter("zenith_color", Shift(SkyTopColor).Darkened(0.55f));
+                planetSky.SetShaderParameter("horizon_color", horizon);
+                planetSky.SetShaderParameter("ground_color", Shift(LowColor.Darkened(0.3f)));
+                planetSky.SetShaderParameter("sun_halo_color", SunColor.Lerp(horizon, 0.3f));
+            }
             environment.FogLightColor = Shift(FogColor);
         }
 

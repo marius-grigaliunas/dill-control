@@ -439,14 +439,33 @@ static func _planet_heights(shot: String) -> Array:
 static func _planets_timeline(count: int, first: int) -> Array:
 	var timeline := []
 	for i in count:
-		var seed := first + i
+		var planet_seed := first + i
 		timeline.append_array([
-			["seed %d build" % seed, ["!reload:%d" % seed], [], 7.0],
-			["seed %d surface" % seed, ["@lift:2:70", "@aim:Site:10", "#seed%d_surface" % seed], [], 4.0],
+			["seed %d build" % planet_seed, ["!reload:%d" % planet_seed], [], 7.0],
+			["seed %d surface" % planet_seed, ["@lift:2:70", "@aim:Site:10", "#seed%d_surface" % planet_seed], [], 4.0],
 		])
-		for phase in _planet_heights("seed%d" % seed):
-			timeline.append(["seed %d %s" % [seed, phase[0]], phase[1], phase[2], phase[3]])
+		for phase in _planet_heights("seed%d" % planet_seed):
+			timeline.append(["seed %d %s" % [planet_seed, phase[0]], phase[1], phase[2], phase[3]])
 	return timeline
+
+# The arrival in lvl_contract: on the bike beside the ship in orbit, then
+# cruising flat out at the compound, nose already on it, into the air and down
+# to the ground. What it measures is the chunks streaming in under a fast
+# descent: read the worst frames from the descent phases.
+const DESCENT_TIMELINE := [
+	["at the ship", [], [], 4.0],
+	["ship shot", ["#arrival_ship"], [], 0.5],
+	["cruise", ["ship_mode_toggle"], ["move_forward", "sprint"], 6.0],
+	["descent shot 1", ["#arrival_descent_1"], ["move_forward", "sprint"], 0.5],
+	["descent", [], ["move_forward", "sprint"], 5.0],
+	["descent shot 2", ["#arrival_descent_2"], ["move_forward", "sprint"], 0.5],
+	["descent, late", [], ["move_forward"], 5.0],
+	["descent shot 3", ["#arrival_descent_3"], ["move_forward"], 0.5],
+	["coast", [], ["move_forward"], 4.0],
+	["hover", ["ship_mode_toggle"], [], 4.0],
+	["hover shot", ["#arrival_hover"], [], 0.5],
+	["status", ["@status"], [], 1.0],
+]
 
 # What the planet costs the GPU, on the ground and 300 m up: the whole planet
 # hidden, the far shell hidden, and the terrain shader's grid and hatching off,
@@ -566,6 +585,7 @@ func _initialize() -> void:
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
 		"planet": _timeline = _planet_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"planetab": _timeline = _planetab_timeline()
+		"descent": _timeline = DESCENT_TIMELINE
 		"planets": _timeline = _planets_timeline(int(args[2]) if args.size() > 2 else 10, int(args[3]) if args.size() > 3 else 1)
 		_: _timeline = IDLE_TIMELINE
 
@@ -779,6 +799,10 @@ func _process(delta: float) -> bool:
 		var horde := _find("Horde")
 		if horde != null and horde.has_method("BenchStatus"):
 			print("[bench]   @ %-26s %s" % [label, horde.call("BenchStatus")])
+		for other in ["Planet", "SolarSystem"]:
+			var node := _find(other)
+			if node != null and node.has_method("BenchStatus"):
+				print("[bench]   @ %-26s %s" % [label, node.call("BenchStatus")])
 
 	_gpu_total += RenderingServer.viewport_get_measured_render_time_gpu(_vp)
 	_worst = max(_worst, delta)
