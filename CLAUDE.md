@@ -91,7 +91,9 @@ with no body to ask `GetGravity()` asks `WorldUp`, never `Vector3.Up`. See
 every roll goes through `SeededRandom` with a named stream, never `GD.Randi`
 or `System.Random`. A planet rolls inside a `PlanetArchetype`'s ranges and
 wears a `PlanetBiome`; a range widens only after `bench.gd planets` holds at
-it. See `docs/decisions/0018`.
+it. See `docs/decisions/0018`. A compound is a seeded layout of authored
+cluster scenes from a `CompoundKit`: the seed decides where, never what
+(`docs/decisions/0020`).
 
 ## Folder map
 

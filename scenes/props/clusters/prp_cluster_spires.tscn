@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/mission/CompoundCluster.cs" id="1_cluster"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_column.tscn" id="2_column"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_pillar.tscn" id="3_pillar"]
+
+[node name="Spires" type="Node3D" node_paths=PackedStringArray("Nests")]
+script = ExtResource("1_cluster")
+Role = 0
+FootprintRadius = 30.0
+Nests = [NodePath("Nest")]
+
+[node name="Pillar1" parent="." instance=ExtResource("3_pillar")]
+transform = Transform3D(1.0000, 0, -0.0000, 0, 1, 0, 0.0000, 0, 1.0000, -14, 0, -8)
+
+[node name="Pillar2" parent="." instance=ExtResource("3_pillar")]
+transform = Transform3D(0.9848, 0, -0.1736, 0, 1, 0, 0.1736, 0, 0.9848, 13, 0, -11)
+
+[node name="Pillar3" parent="." instance=ExtResource("3_pillar")]
+transform = Transform3D(0.9063, 0, -0.4226, 0, 1, 0, 0.4226, 0, 0.9063, 2, 0, 16)
+
+[node name="Column4" parent="." instance=ExtResource("2_column")]
+transform = Transform3D(1.0000, 0, -0.0000, 0, 1, 0, 0.0000, 0, 1.0000, 0, 0, -1)
+
+[node name="Column5" parent="." instance=ExtResource("2_column")]
+transform = Transform3D(1.0000, 0, -0.0000, 0, 1, 0, 0.0000, 0, 1.0000, -18, 0, 12)
+
+[node name="Nest" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 4)

@@ -70,6 +70,15 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
     [Export]
     public Godot.Collections.Array<PlanetSite> Sites { get; set; } = new();
 
+    /// <summary>
+    /// Decides where the sites go once the ground exists, before it is
+    /// levelled: the compound placer. Must implement
+    /// <see cref="IPlanetSiteChooser"/>. Empty keeps the sites where they were
+    /// authored.
+    /// </summary>
+    [Export]
+    public Node SiteChooser { get; set; }
+
     /// <summary>Build in <c>_Ready</c>. Off when something else (a loading stage) calls <see cref="Build"/>.</summary>
     [Export]
     public bool BuildOnReady { get; set; } = true;
@@ -213,6 +222,14 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
 
         Heights = new PlanetHeightfield(spec.Radius, spec.Amplitude, (ChunksPerFaceEdge * span) + 1, spec.DigFloorDepth);
         Heights.Generate(spec);
+        if (SiteChooser is IPlanetSiteChooser chooser)
+        {
+            chooser.ChooseSites(Heights, seed);
+        }
+        else if (SiteChooser != null)
+        {
+            GD.PushError($"PlanetTerrain '{Name}': SiteChooser '{SiteChooser.Name}' is not an IPlanetSiteChooser.");
+        }
         foreach (PlanetSite site in Sites)
         {
             if (site != null && site.PadRadius > 0.0f)
@@ -246,6 +263,7 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
         }
 
         PlaceSites();
+        (SiteChooser as IPlanetSiteChooser)?.SitesPlaced();
 
         // Painted after the sites stand, because the sun's elevation is
         // measured over the first of them: the compound.
