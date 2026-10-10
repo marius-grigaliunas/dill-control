@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 EventBus="*res://scripts/core/EventBus.cs"
 AudioDirector="*res://scripts/audio/AudioDirector.cs"
+Session="*res://scripts/mission/Session.cs"
 
 [dill_control]
 

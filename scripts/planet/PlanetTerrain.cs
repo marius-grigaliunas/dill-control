@@ -204,7 +204,30 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
     /// </summary>
     public void Build(PlanetSpec spec, PlanetBiome biome = null, ulong seed = 0)
     {
-        long started = Stopwatch.GetTimestamp();
+        BeginBuild(spec, biome, seed);
+        _generation.Wait();
+        FinishBuild();
+    }
+
+    /// <summary>True while <see cref="BeginBuild"/>'s heights are still being generated.</summary>
+    public bool IsGenerating => _generation != null && !_generation.IsCompleted;
+
+    private System.Threading.Tasks.Task _generation;
+    private long _buildStarted;
+
+    /// <summary>
+    /// The first half of a build, for a loading screen: sizes the planet and
+    /// starts generating its heights on a background task, so the screen
+    /// keeps drawing. Call <see cref="FinishBuild"/> once
+    /// <see cref="IsGenerating"/> is false.
+    ///
+    /// The generation runs its rows on the job threads from that task. Nothing
+    /// else may use <c>Jobs</c> meanwhile; during a load nothing does (the
+    /// horde waits for the planet).
+    /// </summary>
+    public void BeginBuild(PlanetSpec spec, PlanetBiome biome = null, ulong seed = 0)
+    {
+        _buildStarted = Stopwatch.GetTimestamp();
         Spec = spec;
         Biome = biome;
         BuiltSeed = seed;
@@ -221,7 +244,22 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
         ChunksPerFaceEdge = Mathf.Max(1, Mathf.RoundToInt(faceArc / (Mathf.Max(_stats.VertexSpacing, 0.5f) * span)));
 
         Heights = new PlanetHeightfield(spec.Radius, spec.Amplitude, (ChunksPerFaceEdge * span) + 1, spec.DigFloorDepth);
-        Heights.Generate(spec);
+        PlanetHeightfield heights = Heights;
+        _generation = System.Threading.Tasks.Task.Run(() => heights.Generate(spec));
+    }
+
+    /// <summary>
+    /// The second half: the sites chosen and levelled, chunks and far shell
+    /// made, the sites stood on the ground and filled, the biome painted.
+    /// Main thread; a few hundred milliseconds.
+    /// </summary>
+    public void FinishBuild()
+    {
+        _generation?.Wait();
+        PlanetSpec spec = Spec;
+        PlanetBiome biome = Biome;
+        ulong seed = BuiltSeed;
+
         if (SiteChooser is IPlanetSiteChooser chooser)
         {
             chooser.ChooseSites(Heights, seed);
@@ -277,7 +315,7 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
         }
 
         IsBuilt = true;
-        LastBuildMilliseconds = (float)((Stopwatch.GetTimestamp() - started) * 1000.0 / Stopwatch.Frequency);
+        LastBuildMilliseconds = (float)((Stopwatch.GetTimestamp() - _buildStarted) * 1000.0 / Stopwatch.Frequency);
         GD.Print(System.FormattableString.Invariant(
             $"[planet] built: radius {spec.Radius:F0} m, relief {spec.Amplitude:F1} m, ridges {spec.RidgeShare:F2}, {spec.CraterCount} craters, {biome?.DisplayName ?? "authored look"}; {ChunkCount} chunks of {ChunkVertexEdge}², {Heights.VertexSpacing:F2} m spacing, noise seed {spec.Seed}, {LastBuildMilliseconds:F0} ms"));
         EmitSignal(SignalName.Built);

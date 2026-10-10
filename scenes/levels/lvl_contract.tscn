@@ -24,6 +24,10 @@
 [ext_resource type="Resource" path="res://resources/mission/kit_graybox_compound.tres" id="41_kit"]
 [ext_resource type="Resource" path="res://resources/horde/tier_infested.tres" id="42_tier"]
 
+[ext_resource type="Script" path="res://scripts/mission/SystemBuilder.cs" id="43_builder"]
+[ext_resource type="Resource" path="res://resources/mission/contract_pools_default.tres" id="44_pools"]
+[ext_resource type="PackedScene" path="res://scenes/ui/loading_overlay.tscn" id="45_overlay"]
+
 [sub_resource type="Sky" id="Sky"]
 sky_material = ExtResource("32_sky")
 process_mode = 2
@@ -44,10 +48,12 @@ fog_depth_curve = 1.6
 fog_depth_begin = 120.0
 fog_depth_end = 400.0
 
-[node name="Level" type="Node3D" node_paths=PackedStringArray("PlayerSpawn")]
+[node name="Level" type="Node3D" node_paths=PackedStringArray("PlayerSpawn", "Builder")]
 script = ExtResource("1_root")
 PlayerScene = ExtResource("2_player")
 PlayerSpawn = NodePath("Spawns/PlayerSpawn")
+Builder = NodePath("Geometry/SystemBuilder")
+LoadingOverlayScene = ExtResource("45_overlay")
 
 [node name="Geometry" type="Node3D" parent="."]
 
@@ -62,6 +68,15 @@ Sites = [NodePath("../../Props/CompoundSite")]
 SiteChooser = NodePath("../../Props/CompoundPlacer")
 Environment = NodePath("../../Lighting/WorldEnvironment")
 Sun = NodePath("../../Lighting/Sun")
+BuildOnReady = false
+
+[node name="SystemBuilder" type="Node" parent="Geometry" node_paths=PackedStringArray("Planet", "Placer", "Solar", "Horde")]
+script = ExtResource("43_builder")
+Planet = NodePath("../Planet")
+Placer = NodePath("../../Props/CompoundPlacer")
+Solar = NodePath("../../Lighting/SolarSystem")
+Horde = NodePath("../../Spawns/Horde")
+FallbackPools = ExtResource("44_pools")
 
 [node name="Water" type="Node3D" parent="."]
 

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ContractPools" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/mission/ContractPools.cs" id="1_pools"]
+[ext_resource type="Resource" path="res://resources/planet/planet_archetype_rock.tres" id="2_rock"]
+[ext_resource type="Resource" path="res://resources/planet/biomes/biome_brine_flats.tres" id="3_brine"]
+[ext_resource type="Resource" path="res://resources/planet/biomes/biome_rust_dunes.tres" id="4_rust"]
+[ext_resource type="Resource" path="res://resources/planet/biomes/biome_vinegar_frost.tres" id="5_frost"]
+[ext_resource type="Resource" path="res://resources/mission/kit_graybox_compound.tres" id="6_kit"]
+[ext_resource type="Resource" path="res://resources/horde/tier_infested.tres" id="7_infested"]
+[ext_resource type="Resource" path="res://resources/horde/tier_light.tres" id="8_light"]
+
+[resource]
+script = ExtResource("1_pools")
+Archetypes = [ExtResource("2_rock")]
+Biomes = [ExtResource("3_brine"), ExtResource("4_rust"), ExtResource("5_frost")]
+Kits = [ExtResource("6_kit")]
+Tiers = [ExtResource("7_infested"), ExtResource("8_light")]
+TierWeights = PackedFloat32Array(2, 1)
+OffersShown = 3

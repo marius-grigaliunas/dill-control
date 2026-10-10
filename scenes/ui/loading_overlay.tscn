@@ -1,0 +1,83 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/LoadingOverlay.cs" id="1_overlay"]
+
+[sub_resource type="StyleBoxFlat" id="BarBack"]
+bg_color = Color(0.07, 0.09, 0.04, 0.9)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="BarFill"]
+bg_color = Color(0.55, 0.85, 0.22, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="LoadingOverlay" type="CanvasLayer" node_paths=PackedStringArray("Root", "TitleLabel", "DetailsLabel", "Bar", "StageLabel")]
+layer = 100
+script = ExtResource("1_overlay")
+Root = NodePath("Root")
+TitleLabel = NodePath("Root/Centre/Column/Title")
+DetailsLabel = NodePath("Root/Centre/Column/Details")
+Bar = NodePath("Root/Centre/Column/Bar")
+StageLabel = NodePath("Root/Centre/Column/Stage")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Background" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03, 0.04, 0.05, 1)
+
+[node name="Centre" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Column" type="VBoxContainer" parent="Root/Centre"]
+custom_minimum_size = Vector2(900, 0)
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="Root/Centre/Column"]
+layout_mode = 2
+text = "CONTRACT"
+horizontal_alignment = 1
+
+[node name="Details" type="Label" parent="Root/Centre/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.97, 0.86, 0.85)
+theme_override_font_sizes/font_size = 24
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Bar" type="ProgressBar" parent="Root/Centre/Column"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_styles/background = SubResource("BarBack")
+theme_override_styles/fill = SubResource("BarFill")
+max_value = 1000.0
+show_percentage = false
+
+[node name="Stage" type="Label" parent="Root/Centre/Column"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1

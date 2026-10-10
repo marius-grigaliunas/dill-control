@@ -95,6 +95,12 @@ it. See `docs/decisions/0018`. A compound is a seeded layout of authored
 cluster scenes from a `CompoundKit`: the seed decides where, never what
 (`docs/decisions/0020`).
 
+**`Session` is the third autoload and carries state only**: the offers and the
+accepted contract, across scene changes. A level built after it loads names a
+`Builder` on its `LevelRoot`; a loading screen covers it and the player is
+made once the builder says the frames have settled. See
+`docs/decisions/0021`.
+
 ## Folder map
 
 ```

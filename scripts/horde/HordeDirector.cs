@@ -56,6 +56,9 @@ public partial class HordeDirector : Node3D
 
     public FlowField Flow { get; private set; }
 
+    /// <summary>True once the ground, the flow field and the crowd exist.</summary>
+    public bool IsBuilt => _built;
+
     /// <summary>Flow cells something authored stands in.</summary>
     public int BlockedCells { get; private set; }
 

@@ -77,15 +77,33 @@ public partial class SolarSystem : Node3D
     private const float BlendEpsilon = 0.01f;
     private const float DipEpsilon = 0.0025f;
 
+    /// <summary>True once the bodies, the space field and the arrival are set up.</summary>
+    public bool IsBuilt { get; private set; }
+
     public override void _Ready()
     {
-        if (Planet == null || !Planet.IsBuilt || Stats == null)
+        SetProcess(false);
+        if (Planet == null || Stats == null)
         {
-            GD.PushError($"SolarSystem '{Name}' needs a built planet and SystemStats; no system.");
-            SetProcess(false);
+            GD.PushError($"SolarSystem '{Name}' needs a planet and SystemStats; no system.");
             return;
         }
 
+        // A loading stage builds the planet after every node is ready; a test
+        // level builds it in its own ready, before this one.
+        if (Planet.IsBuilt)
+        {
+            Build();
+        }
+        else
+        {
+            Planet.Built += Build;
+        }
+    }
+
+    private void Build()
+    {
+        Planet.Built -= Build;
         Environment env = Environment?.Environment;
         _sky = env?.Sky?.SkyMaterial as ShaderMaterial;
         if (env != null)
@@ -98,6 +116,8 @@ public partial class SolarSystem : Node3D
         BuildBodies();
         BuildSpaceField();
         StageArrival();
+        IsBuilt = true;
+        SetProcess(true);
     }
 
     // ---------------- The sky's other bodies ----------------

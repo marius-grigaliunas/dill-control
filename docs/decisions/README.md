@@ -31,3 +31,4 @@ Number them in order, `NNNN-short-title.md`.
 | [0018](0018-seeded-planets.md) | A contract is a seed; planets roll inside an authored archetype's ranges, biomes are authored presets the seed shifts; ranges capped by the bench |
 | [0019](0019-system-and-arrival.md) | The system and the arrival: the ship waits in orbit, the bike starts ridden with its nose on the compound, zero-g past the well, other bodies as lit discs in the sky, the air and fog thin with height |
 | [0020](0020-compound-from-clusters.md) | The compound is a seeded layout of authored clusters: the seed picks the flattest site and where each cluster stands; the kit and its scenes decide what; the horde from a tier |
+| [0021](0021-session-and-loading.md) | `Session`, a third autoload, carries the contract (state only); the contract level builds itself in stages behind its own loading screen and lets the player in once frames settle |

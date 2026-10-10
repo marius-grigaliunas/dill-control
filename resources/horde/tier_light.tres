@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="HordeTier" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/horde/HordeTier.cs" id="1_tier"]
+[ext_resource type="Resource" path="res://resources/enemies/nme_composition_default.tres" id="2_comp"]
+
+[resource]
+script = ExtResource("1_tier")
+DisplayName = "Light infestation"
+AgentCount = 12000
+Composition = ExtResource("2_comp")
+RespawnKilledAgents = false

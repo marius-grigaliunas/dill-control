@@ -1,6 +1,7 @@
 using Godot;
 using DillControl.Debug;
 using DillControl.Player;
+using DillControl.UI;
 using DillControl.Voxel;
 using DillControl.Weapons;
 
@@ -30,6 +31,11 @@ namespace DillControl.Levels;
 /// It also adds the perf instruments, so every level can be recorded with
 /// <c>U</c> and benched with <c>bench.gd</c> without wiring anything, and
 /// fires a harmless rocket to pay for the first explosion up front.
+///
+/// A level built after it loads (the contract level: planet, compound, horde)
+/// names a <see cref="Builder"/>. Until the builder says the level is ready
+/// and its frames have settled, a loading screen covers it and the player is
+/// not made.
 /// </summary>
 [GlobalClass]
 public partial class LevelRoot : Node3D
@@ -40,6 +46,15 @@ public partial class LevelRoot : Node3D
 
     [Export]
     public Marker3D PlayerSpawn { get; set; }
+
+    [ExportGroup("Loading")]
+    /// <summary>Builds the level after it loads. Must implement <see cref="ILevelBuilder"/>. Empty spawns at once.</summary>
+    [Export]
+    public Node Builder { get; set; }
+
+    /// <summary>Shown while the builder works.</summary>
+    [Export]
+    public PackedScene LoadingOverlayScene { get; set; }
 
     /// <summary>The instanced player, for anything in the level that needs it.</summary>
     public Node3D Player { get; private set; }
@@ -56,8 +71,52 @@ public partial class LevelRoot : Node3D
         AddChild(new PerfDriver { Name = "PerfDriver" });
         AddChild(new FireField { Name = "FireField" });
         AddChild(new VoxelDebris { Name = "VoxelDebris" });
-        SpawnPlayer();
+
+        _builder = Builder as ILevelBuilder;
+        if (Builder != null && _builder == null)
+        {
+            GD.PushError($"LevelRoot '{Name}': Builder '{Builder.Name}' is not an ILevelBuilder; spawning at once.");
+        }
+        if (_builder == null)
+        {
+            SpawnPlayer();
+            SetProcess(false);
+            return;
+        }
+
+        _overlay = LoadingOverlayScene?.Instantiate<LoadingOverlay>();
+        if (_overlay != null)
+        {
+            AddChild(_overlay);
+        }
     }
+
+    private ILevelBuilder _builder;
+    private LoadingOverlay _overlay;
+
+    public override void _Process(double delta)
+    {
+        if (_builder == null)
+        {
+            SetProcess(false);
+            return;
+        }
+
+        _overlay?.Show(_builder.Title, _builder.Details, _builder.Progress, _builder.Stage, (float)delta);
+        if (!_builder.LevelReady)
+        {
+            return;
+        }
+
+        _builder = null;
+        SpawnPlayer();
+        _overlay?.FadeOut();
+        _overlay = null;
+        SetProcess(false);
+    }
+
+    /// <summary>True while a builder is still at work and the player has not been made.</summary>
+    public bool Loading => _builder != null;
 
     private void SpawnPlayer()
     {
