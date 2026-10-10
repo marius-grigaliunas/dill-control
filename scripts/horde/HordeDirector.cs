@@ -38,13 +38,21 @@ public partial class HordeDirector : Node3D
     public LevelRoot Level { get; set; }
 
     [ExportGroup("Ground")]
-    /// <summary>Side of the square of ground the horde can stand on, centred here.</summary>
+    /// <summary>
+    /// What makes the ground, when the level has one: the planet. It must
+    /// implement <see cref="IHordeGroundProvider"/>. Empty lays out a square
+    /// of flats round this node instead.
+    /// </summary>
+    [Export]
+    public Node GroundProvider { get; set; }
+
+    /// <summary>Side of the square of flats the horde can stand on, centred here, when there is no provider.</summary>
     [Export(PropertyHint.Range, "50,4000,10,suffix:m")]
     public float GroundSize { get; set; } = 1200.0f;
 
     public HordeManager Manager { get; private set; }
 
-    public FlatGround Ground { get; private set; }
+    public IHordeGround Ground { get; private set; }
 
     public FlowField Flow { get; private set; }
 
@@ -133,22 +141,44 @@ public partial class HordeDirector : Node3D
     /// </summary>
     public override void _PhysicsProcess(double delta)
     {
+        IHordeGroundProvider provider = GroundProvider as IHordeGroundProvider;
+        if (GroundProvider != null && provider == null)
+        {
+            GD.PushError($"HordeDirector '{Name}': GroundProvider '{GroundProvider.Name}' is not an IHordeGroundProvider; using flats.");
+            GroundProvider = null;
+        }
+        if (provider != null && !provider.HordeGroundReady)
+        {
+            // The planet builds behind a loading stage; wait for it.
+            return;
+        }
         if (!_built)
         {
-            Build();
+            Build(provider);
         }
         SetPhysicsProcess(false);
     }
 
-    private void Build()
+    private void Build(IHordeGroundProvider provider)
     {
         ulong started = Time.GetTicksUsec();
+        PhysicsDirectSpaceState3D space = GetWorld3D().DirectSpaceState;
 
-        Ground = new FlatGround(GlobalPosition, GroundSize, Stats.FlowCellSize);
-        Flow = new FlowField(Ground);
-        BlockedCells = Ground.StampObstacles(GetWorld3D().DirectSpaceState, Flow, FlatGround.ObstacleMask);
+        if (provider != null)
+        {
+            Ground = provider.CreateHordeGround();
+            Flow = new FlowField((IFlowGraph)Ground);
+            BlockedCells = provider.PrepareFlow(Flow, space, GlobalPosition);
+        }
+        else
+        {
+            FlatGround flats = new(GlobalPosition, GroundSize, Stats.FlowCellSize);
+            Ground = flats;
+            Flow = new FlowField(flats);
+            BlockedCells = flats.StampObstacles(space, Flow, FlatGround.ObstacleMask);
+        }
 
-        _targetCell = Ground.CellOf(HuntPoint(out _));
+        Ground.GroundBelow(HuntPoint(out _), out _targetCell);
         Flow.RequestBuild(_targetCell, false);
 
         Manager.Initialise(Ground, Flow, Composition, Stats.AgentCapacity, Stats.HitProxyCount,
@@ -169,7 +199,7 @@ public partial class HordeDirector : Node3D
 
         _built = true;
         GD.Print(System.FormattableString.Invariant(
-            $"[horde] built: {Ground.GridSize}x{Ground.GridSize} cells of {Ground.CellSize:F1} m, {BlockedCells} blocked, {(Time.GetTicksUsec() - started) / 1000.0:F1} ms"));
+            $"[horde] built: {Ground.CellCount} cells of {Ground.CellSize:F1} m, {BlockedCells} blocked, {(Time.GetTicksUsec() - started) / 1000.0:F1} ms"));
     }
 
     public override void _Process(double delta)
@@ -211,8 +241,14 @@ public partial class HordeDirector : Node3D
 
         GatherAllies();
 
+        // On a planet the crowd behind the curve is not drawn: the eye's
+        // direction from the centre and its height over the ground set the
+        // horizon. On the flats there is none and the draw distance culls.
         Vector3 eye = camera?.GlobalPosition ?? GlobalPosition;
-        Manager.Tick(dt, eye, Vector3.Up, 0.0f, false);
+        bool horizon = Ground.HorizonRadius > 0.0f;
+        Vector3 eyeUp = Ground.UpAt(eye);
+        float eyeHeight = horizon ? (eye - Ground.GroundBelow(eye, out _)).Dot(eyeUp) : 0.0f;
+        Manager.Tick(dt, eye, horizon ? eyeUp : Vector3.Up, eyeHeight, horizon);
     }
 
     /// <summary>
@@ -302,7 +338,7 @@ public partial class HordeDirector : Node3D
         }
 
         _flowTimer = 0.0f;
-        _targetCell = Ground.CellOf(HuntPoint(out _));
+        Ground.GroundBelow(HuntPoint(out _), out _targetCell);
         Flow.RequestBuild(_targetCell, Stats.FlowThreaded);
     }
 

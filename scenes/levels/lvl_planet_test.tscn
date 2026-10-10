@@ -1,0 +1,230 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://br5rfr1owyw11" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_pillar.tscn" id="4_pillar"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_column.tscn" id="5_column"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_block.tscn" id="6_block"]
+[ext_resource type="Script" uid="uid://bqbn1xwbwb346" path="res://scripts/horde/HordeDirector.cs" id="7_horde"]
+[ext_resource type="Resource" path="res://resources/horde/horde_stats_default.tres" id="8_stats"]
+[ext_resource type="Resource" path="res://resources/enemies/nme_composition_default.tres" id="9_comp"]
+[ext_resource type="PackedScene" uid="uid://ctd2f5fevifgy" path="res://scenes/vehicles/mch_quadruped_tank.tscn" id="10_tank"]
+[ext_resource type="PackedScene" path="res://scenes/vehicles/shp_hoverbike.tscn" id="11_bike"]
+[ext_resource type="PackedScene" path="res://scenes/vehicles/mch_field_fighter.tscn" id="12_fighter"]
+[ext_resource type="PackedScene" path="res://scenes/vehicles/mch_mobile_storage.tscn" id="13_storage"]
+[ext_resource type="Script" uid="uid://dmucf7smv5n8o" path="res://scripts/levels/ManipulatorBinding.cs" id="14_binding"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_tower_a.tscn" id="15_tower_a"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_tower_b.tscn" id="16_tower_b"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_tower_c.tscn" id="17_tower_c"]
+[ext_resource type="Script" path="res://scripts/planet/PlanetTerrain.cs" id="20_planet"]
+[ext_resource type="Script" path="res://scripts/planet/PlanetSite.cs" id="21_site"]
+[ext_resource type="Resource" path="res://resources/planet/planet_spec_test.tres" id="22_spec"]
+[ext_resource type="Resource" path="res://resources/planet/planet_streaming_default.tres" id="23_stream"]
+[ext_resource type="Material" path="res://art/materials/mat_planet_terrain.tres" id="24_terrain"]
+
+[sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
+sky_top_color = Color(0.3, 0.52, 0.84, 1)
+sky_horizon_color = Color(0.74, 0.82, 0.9, 1)
+ground_bottom_color = Color(0.32, 0.3, 0.26, 1)
+ground_horizon_color = Color(0.74, 0.82, 0.9, 1)
+
+[sub_resource type="Sky" id="Sky"]
+sky_material = SubResource("SkyMat")
+
+[sub_resource type="Environment" id="Env"]
+background_mode = 2
+sky = SubResource("Sky")
+ambient_light_source = 3
+tonemap_mode = 4
+tonemap_white = 2.0
+fog_enabled = true
+fog_mode = 1
+fog_light_color = Color(0.74, 0.82, 0.9, 1)
+fog_density = 1.0
+fog_sky_affect = 0.0
+fog_depth_curve = 1.6
+fog_depth_begin = 120.0
+fog_depth_end = 400.0
+
+[node name="Level" type="Node3D" node_paths=PackedStringArray("PlayerSpawn")]
+script = ExtResource("1_root")
+PlayerScene = ExtResource("2_player")
+PlayerSpawn = NodePath("Spawns/PlayerSpawn")
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="Planet" type="Node3D" parent="Geometry" node_paths=PackedStringArray("Sites")]
+script = ExtResource("20_planet")
+Spec = ExtResource("22_spec")
+Stats = ExtResource("23_stream")
+TerrainMaterial = ExtResource("24_terrain")
+Sites = [NodePath("../../Props/Site"), NodePath("../../Spawns/PlayerSpawn")]
+
+[node name="Water" type="Node3D" parent="."]
+
+[node name="Foliage" type="Node3D" parent="."]
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Site" type="Marker3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1200, 0)
+script = ExtResource("21_site")
+PadRadius = 150.0
+PadBlend = 60.0
+KeepColliderRadius = 220.0
+
+[node name="Compound" type="Node3D" parent="Props/Site"]
+
+[node name="Pillar1" parent="Props/Site/Compound" instance=ExtResource("4_pillar")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, -20)
+
+[node name="Pillar2" parent="Props/Site/Compound" instance=ExtResource("4_pillar")]
+transform = Transform3D(0.9848, 0, 0.1736, 0, 1, 0, -0.1736, 0, 0.9848, 28, 0, -34)
+
+[node name="Pillar3" parent="Props/Site/Compound" instance=ExtResource("4_pillar")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -58)
+
+[node name="Pillar4" parent="Props/Site/Compound" instance=ExtResource("4_pillar")]
+transform = Transform3D(0.9063, 0, 0.4226, 0, 1, 0, -0.4226, 0, 0.9063, 40, 0, 6)
+
+[node name="Pillar5" parent="Props/Site/Compound" instance=ExtResource("4_pillar")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42, 0, 22)
+
+[node name="Pillar6" parent="Props/Site/Compound" instance=ExtResource("4_pillar")]
+transform = Transform3D(0.9659, 0, 0.2588, 0, 1, 0, -0.2588, 0, 0.9659, 12, 0, 30)
+
+[node name="Column1" parent="Props/Site/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -20)
+
+[node name="Column2" parent="Props/Site/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0, -44)
+
+[node name="Column3" parent="Props/Site/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, -6)
+
+[node name="Column4" parent="Props/Site/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0, 8)
+
+[node name="Column5" parent="Props/Site/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 0, -24)
+
+[node name="Column6" parent="Props/Site/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -80)
+
+[node name="Column7" parent="Props/Site/Compound" instance=ExtResource("5_column")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 0, -10)
+
+[node name="Block1" parent="Props/Site/Compound" instance=ExtResource("6_block")]
+transform = Transform3D(0.9397, 0, 0.342, 0, 1, 0, -0.342, 0, 0.9397, 8, 0, -34)
+
+[node name="Block2" parent="Props/Site/Compound" instance=ExtResource("6_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 0, -2)
+
+[node name="Block3" parent="Props/Site/Compound" instance=ExtResource("6_block")]
+transform = Transform3D(0.9659, 0, -0.2588, 0, 1, 0, 0.2588, 0, 0.9659, 30, 0, 24)
+
+[node name="Block4" parent="Props/Site/Compound" instance=ExtResource("6_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, 40)
+
+[node name="Downtown" type="Node3D" parent="Props/Site"]
+
+[node name="Tower11" parent="Props/Site/Downtown" instance=ExtResource("15_tower_a")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 0, -125)
+
+[node name="Tower12" parent="Props/Site/Downtown" instance=ExtResource("17_tower_c")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -20, 0, -125)
+
+[node name="Tower13" parent="Props/Site/Downtown" instance=ExtResource("16_tower_b")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -125)
+
+[node name="Tower14" parent="Props/Site/Downtown" instance=ExtResource("15_tower_a")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 60, 0, -125)
+
+[node name="Tower21" parent="Props/Site/Downtown" instance=ExtResource("16_tower_b")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -60, 0, -165)
+
+[node name="Tower22" parent="Props/Site/Downtown" instance=ExtResource("15_tower_a")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -165)
+
+[node name="Tower23" parent="Props/Site/Downtown" instance=ExtResource("17_tower_c")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 20, 0, -165)
+
+[node name="Tower24" parent="Props/Site/Downtown" instance=ExtResource("16_tower_b")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, -165)
+
+[node name="Tower31" parent="Props/Site/Downtown" instance=ExtResource("17_tower_c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 0, -205)
+
+[node name="Tower32" parent="Props/Site/Downtown" instance=ExtResource("16_tower_b")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -20, 0, -205)
+
+[node name="Tower33" parent="Props/Site/Downtown" instance=ExtResource("15_tower_a")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -205)
+
+[node name="Tower34" parent="Props/Site/Downtown" instance=ExtResource("17_tower_c")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 60, 0, -205)
+
+[node name="TowerEast1" parent="Props/Site/Downtown" instance=ExtResource("17_tower_c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88, 0, -45)
+
+[node name="TowerEast2" parent="Props/Site/Downtown" instance=ExtResource("15_tower_a")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92, 0, 5)
+
+[node name="TowerWest1" parent="Props/Site/Downtown" instance=ExtResource("15_tower_a")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -92, 0, -45)
+
+[node name="TowerWest2" parent="Props/Site/Downtown" instance=ExtResource("16_tower_b")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -88, 0, 5)
+
+[node name="TowerSouthEast" parent="Props/Site/Downtown" instance=ExtResource("15_tower_a")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62, 0, 78)
+
+[node name="TowerSouthWest" parent="Props/Site/Downtown" instance=ExtResource("17_tower_c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 0, 80)
+
+[node name="QuadrupedTank" parent="Props/Site" instance=ExtResource("10_tank")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, 60)
+
+[node name="HoverBike" parent="Props/Site" instance=ExtResource("11_bike")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.3, 74)
+
+[node name="FieldFighter" parent="Props/Site" instance=ExtResource("12_fighter")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 58)
+
+[node name="MobileStorage" parent="Props/Site" instance=ExtResource("13_storage")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 67)
+
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="Sun" type="DirectionalLight3D" parent="Lighting"]
+transform = Transform3D(0.8192, -0.4394, 0.3687, 0, 0.6428, 0.766, -0.5736, -0.6275, 0.5265, 0, 1240, 0)
+shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_max_distance = 140.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Lighting"]
+environment = SubResource("Env")
+
+[node name="Audio" type="Node3D" parent="."]
+
+[node name="Spawns" type="Node3D" parent="."]
+
+[node name="PlayerSpawn" type="Marker3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1200, 70)
+script = ExtResource("21_site")
+Lift = 0.5
+
+[node name="Horde" type="Node3D" parent="Spawns" node_paths=PackedStringArray("Level", "GroundProvider")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1222, 0)
+script = ExtResource("7_horde")
+Stats = ExtResource("8_stats")
+Composition = ExtResource("9_comp")
+Level = NodePath("../..")
+GroundProvider = NodePath("../../Geometry/Planet")
+
+[node name="ManipulatorBinding" type="Node" parent="Spawns/Horde" node_paths=PackedStringArray("Horde", "Level")]
+script = ExtResource("14_binding")
+Horde = NodePath("..")
+Level = NodePath("../../..")
+
+[node name="Navigation" type="Node3D" parent="."]

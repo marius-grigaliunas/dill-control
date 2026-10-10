@@ -82,6 +82,11 @@ Level        (Node3D, LevelRoot.cs)
 never saved into a level.** It also adds `PerfDriver`, so every level records
 with `U` and benches with no wiring.
 
+**The planet sits at the world origin** and everything on it is placed through
+a `PlanetSite`: placed roughly, levelled and stood on the ground at build. Code
+with no body to ask `GetGravity()` asks `WorldUp`, never `Vector3.Up`. See
+`docs/decisions/0017`.
+
 ## Folder map
 
 ```
@@ -190,6 +195,8 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn gpuab     # what each part of the view costs the GPU
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn siege 25000  # crowd vs player and allies
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn horde 25000
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planet 25000  # ground, 300 m, 1 km, orbit, crowd
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planetab      # what the planet costs the GPU
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn hordeab 25000
 ```
 

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PlanetSpec" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/planet/PlanetSpec.cs" id="1_spec"]
+
+[resource]
+script = ExtResource("1_spec")
+Radius = 1200.0
+Amplitude = 22.0
+Seed = 1337
+NoiseFrequency = 4.5
+Octaves = 4
+Lacunarity = 2.0
+Gain = 0.5
+RidgeShare = 0.35
+SurfaceGravity = 9.8
+DigFloorDepth = 25.0

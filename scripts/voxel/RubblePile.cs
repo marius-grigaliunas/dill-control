@@ -114,7 +114,7 @@ public partial class RubblePile : Node3D, IDamageable, IBlastSurface
         }
         float voxel = _grid.VoxelSize;
         // Just inside the surface the gun's ray met.
-        Vector3 at = _grid.ToVox(_part.ToLocal(point + Vector3.Down * voxel * 0.5f));
+        Vector3 at = _grid.ToVox(_part.ToLocal(point - WorldUp.At(point) * voxel * 0.5f));
         float r = _stats.PluckRadius / voxel;
         var cells = new List<int>();
         var min = new Vector3I(int.MaxValue, int.MaxValue, int.MaxValue);

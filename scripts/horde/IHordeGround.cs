@@ -25,6 +25,9 @@ public interface IHordeGround
     /// <summary>How many flow cells there are. Agents are sorted by cell.</summary>
     int CellCount { get; }
 
+    /// <summary>Nominal width of a flow cell, in metres.</summary>
+    float CellSize { get; }
+
     /// <summary>
     /// The sphere radius the horizon cull measures against, or zero for ground
     /// with no horizon, where distance and fog do the culling instead.

@@ -246,7 +246,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             if (_hingeDust <= 0.0f && VoxelDebris.Current != null)
             {
                 _hingeDust = 0.35f;
-                VoxelDebris.Current.Dust(_hingePivot, Vector3.Up, Vector3.Zero, colour, 2.0f + 4.0f * angle / limit);
+                VoxelDebris.Current.Dust(_hingePivot, WorldUp.At(_hingePivot), Vector3.Zero, colour, 2.0f + 4.0f * angle / limit);
             }
             return;
         }
@@ -256,7 +256,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             _hinge.QueueFree();
         }
         _hinge = null;
-        VoxelDebris.Current?.Dust(_hingePivot, Vector3.Up, LinearVelocity * 0.3f, colour, 7.0f);
+        VoxelDebris.Current?.Dust(_hingePivot, WorldUp.At(_hingePivot), LinearVelocity * 0.3f, colour, 7.0f);
         AudioDirector.PlayAt(Sfx.VoxelCollapse, _hingePivot);
     }
 
@@ -439,7 +439,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             Radius = reach,
             Damage = damage,
             MinMultiplier = 0.5f,
-            Up = Vector3.Up,
+            Up = WorldUp.At(centre),
             Source = this,
             SourceRid = GetRid(),
             NoCrater = true,
@@ -473,7 +473,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
     {
         if (_part != null && !_part.IsEmpty && VoxelDebris.Current != null)
         {
-            VoxelDebris.Current.Dust(GlobalPosition, Vector3.Up, LinearVelocity,
+            VoxelDebris.Current.Dust(GlobalPosition, WorldUp.At(GlobalPosition), LinearVelocity,
                 VoxelDebris.AverageColour(_grid, _palette), Mathf.Pow(_grid.SolidCount, 1.0f / 3.0f) * _grid.VoxelSize);
         }
         Callable.From(Retire).CallDeferred();

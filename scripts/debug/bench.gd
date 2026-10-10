@@ -10,7 +10,8 @@
 # thrown, reeled, swung and zipped against lvl_horde_flats' compound), horde
 # [count] (the crowd seeded, arriving and on top of the player), mech (the ally
 # mech followed, ridden, jumped and left), bike (the hoverbike flown and every
-# weapon fired), both in lvl_horde_flats.
+# weapon fired), both in lvl_horde_flats; planet [count] (stood on, lifted to
+# orbit and back, then the crowd), in lvl_planet_test.
 #
 # It instances the level itself and sets current_scene, so effects that parent
 # to the scene behave as they do on a normal launch. Vsync goes off so the frame
@@ -397,6 +398,55 @@ static func _horde_timeline(count: int) -> Array:
 		["low detail on", ["!set:Horde:Stats:LodDistance=40.0"], [], 4.0],
 	]
 
+# The planet (lvl_planet_test): stood on it, lifted off it in three steps to
+# where the whole planet is in view (the far shell and the near chunks' draw
+# distance), back down, and then the crowd arriving over its ground. Positions
+# assume the test level's site at the top of a 1200 m planet; the player is
+# aimed back at the site each time so the planet is what fills the view.
+static func _planet_timeline(count: int) -> Array:
+	return [
+		["surface", [], [], 6.0],
+		["surface shot", ["#planet_surface"], [], 0.5],
+		["300 m up", ["@goto:0, 1530, 120", "@aim:Site:0"], [], 3.0],
+		["300 m shot", ["#planet_300m"], [], 0.5],
+		["1 km up", ["@goto:0, 2230, 400", "@aim:Site:0"], [], 3.0],
+		["1 km shot", ["#planet_1km"], [], 0.5],
+		["orbit 2.4 km", ["@goto:0, 3600, 600", "@aim:Site:0"], [], 4.0],
+		["orbit shot", ["#planet_orbit"], [], 0.5],
+		["back down", ["@goto:0, 1225, 70"], [], 6.0],
+		["seed %d" % count, ["!set:Horde:Stats:HuntSeedMinRadius=30.0",
+			"!set:Horde:Stats:HuntSeedRadius=150.0", "!set:Horde:Stats:AgentCount=%d" % count], [], 3.0],
+		["reseed", ["!call:Horde:BenchReseed"], [], 12.0],
+		["arriving", [], [], 12.0],
+		["crowd on you", ["!set:Horde:Stats:HuntSeedMinRadius=150.0", "!set:Horde:Stats:HuntSeedRadius=450.0"], [], 8.0],
+		["crowd shot", ["@aim:Horde:-40", "#planet_crowd"], [], 0.5],
+		["crowd, rockets", ["slot_3", "@aim:Horde:-20"], ["~fire"], 5.0],
+		["after", [], [], 5.0],
+	]
+
+# What the planet costs the GPU, on the ground and 300 m up: the whole planet
+# hidden, the far shell hidden, and the terrain shader's grid and hatching off,
+# each between baselines.
+static func _planetab_timeline() -> Array:
+	var timeline := []
+	for spot in [["ground", "0, 1225, 70", "Horde:20"], ["300 m", "0, 1530, 120", "Site:0"]]:
+		timeline.append_array([
+			["%s base" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:" + spot[2]], [], 4.0],
+			["%s no planet" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!hide:Planet"], [], 4.0],
+			["%s base 2" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!show:Planet"], [], 4.0],
+			["%s no far shell" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!hide:FarShell"], [], 4.0],
+			["%s base 3" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!show:FarShell"], [], 4.0],
+			["%s plain shader" % spot[0], ["@goto:" + spot[1],
+				"!set:Planet:TerrainMaterial:shader_parameter/grid_strength=0.0",
+				"!set:Planet:TerrainMaterial:shader_parameter/hatch_strength=0.0"], [], 4.0],
+			["%s base 4" % spot[0], ["@goto:" + spot[1],
+				"!set:Planet:TerrainMaterial:shader_parameter/grid_strength=0.7",
+				"!set:Planet:TerrainMaterial:shader_parameter/hatch_strength=0.85"], [], 4.0],
+			["%s no buildings" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!hide:Site"], [], 4.0],
+			["%s base 5" % spot[0], ["@goto:" + spot[1], "!set:Player:velocity=Vector3(0, 0, 0)", "!show:Site"], [], 4.0],
+		])
+	return timeline
+
 # The arrived crowd with candidate changes, each between two baseline phases
 # so heat drift shows up as the baselines moving rather than as a phantom
 # saving. Pairs are [label, entry actions, restore actions].
@@ -489,6 +539,8 @@ func _initialize() -> void:
 		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
+		"planet": _timeline = _planet_timeline(int(args[2]) if args.size() > 2 else 25000)
+		"planetab": _timeline = _planetab_timeline()
 		_: _timeline = IDLE_TIMELINE
 
 	print("=== bench: ", path, "  mode=", mode, "  window ", DisplayServer.window_get_size(),

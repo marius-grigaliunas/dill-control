@@ -318,7 +318,7 @@ public partial class VoxelDebris : Node3D
         }
         if (grid.SolidCount < Stats.MinChunkVoxels || Stats.MaxChunks <= 0)
         {
-            Dust(at.Origin, Vector3.Up, velocity, AverageColour(grid, palette),
+            Dust(at.Origin, WorldUp.At(at.Origin), velocity, AverageColour(grid, palette),
                 Mathf.Pow(grid.SolidCount, 1.0f / 3.0f) * grid.VoxelSize);
             batch?.One();
             return;
@@ -404,8 +404,7 @@ public partial class VoxelDebris : Node3D
         late = Mathf.Min(late, 0.1f);
         if (late > 0.0f && p.Hinge == null)
         {
-            Vector3 gravity = ProjectSettings.GetSetting("physics/3d/default_gravity_vector").AsVector3()
-                              * ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
+            Vector3 gravity = WorldUp.GravityAt(at.Origin);
             at.Origin += velocity * late + gravity * (0.5f * late * late);
             velocity += gravity * late;
             if (p.Spin.LengthSquared() > 1e-8f)
@@ -501,8 +500,7 @@ public partial class VoxelDebris : Node3D
         RubblePile pile = null;
         foreach (RubblePile existing in _piles)
         {
-            Vector3 d = existing.GlobalPosition - centre;
-            d.Y = 0.0f;
+            Vector3 d = (existing.GlobalPosition - centre).Slide(WorldUp.At(centre));
             if (existing.Palette == palette && d.Length() + inner < existing.Reach)
             {
                 pile = existing;
@@ -515,7 +513,7 @@ public partial class VoxelDebris : Node3D
             {
                 return;
             }
-            pile = new RubblePile { Name = "Rubble", Position = ToLocal(ground) };
+            pile = new RubblePile { Name = "Rubble", Transform = GlobalTransform.AffineInverse() * WorldUp.StandingAt(ground) };
             pile.Setup(palette, emission, material, Stats, voxel, inner + Stats.RubbleReach, Stats.RubbleHeight);
             AddChild(pile);
             _piles.Add(pile);
@@ -537,8 +535,7 @@ public partial class VoxelDebris : Node3D
         RubblePile pile = null;
         foreach (RubblePile existing in _piles)
         {
-            Vector3 d = existing.GlobalPosition - at;
-            d.Y = 0.0f;
+            Vector3 d = (existing.GlobalPosition - at).Slide(WorldUp.At(at));
             if (existing.Palette == chunk.Palette && d.Length() + size < existing.Reach)
             {
                 pile = existing;
@@ -551,7 +548,7 @@ public partial class VoxelDebris : Node3D
             {
                 return false;
             }
-            pile = new RubblePile { Name = "Rubble", Position = ToLocal(ground) };
+            pile = new RubblePile { Name = "Rubble", Transform = GlobalTransform.AffineInverse() * WorldUp.StandingAt(ground) };
             pile.Setup(chunk.Palette, chunk.Emission, chunk.Material, Stats, grid.VoxelSize, size + 2.0f,
                 Mathf.Max(size + 2.0f, Stats.RubbleHeight));
             AddChild(pile);
@@ -574,7 +571,8 @@ public partial class VoxelDebris : Node3D
         var exclude = new Godot.Collections.Array<Rid>();
         for (int tries = 0; tries < 8; tries++)
         {
-            using var query = PhysicsRayQueryParameters3D.Create(from + Vector3.Up, from + Vector3.Down * 400.0f,
+            Vector3 up = WorldUp.At(from);
+            using var query = PhysicsRayQueryParameters3D.Create(from + up, from - up * 400.0f,
                 GameLayers.Mask(GameLayers.World), exclude);
             Godot.Collections.Dictionary hit = space.IntersectRay(query);
             if (hit.Count == 0)
