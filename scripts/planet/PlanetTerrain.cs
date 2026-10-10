@@ -898,6 +898,12 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
     public int PrepareFlow(FlowField flow, PhysicsDirectSpaceState3D space, Vector3 garrison)
     {
         _hordeFlow = flow;
+        _hordeGround.ReleaseGraph();
+
+        // In the field's own units, metres times weight: the radius over
+        // flat ground, less up slopes. Twice the radius reached 40 % of a
+        // 1350 m planet and cost as much as no bound at all.
+        flow.MaxCost = _stats.FlowSearchRadius > 0.0f ? Mathf.RoundToInt(_stats.FlowSearchRadius) : 0;
         _hordeGround.StampSlope(flow, _stats.MaxSlopeDegrees);
 
         var exclude = new Godot.Collections.Array<Rid>();

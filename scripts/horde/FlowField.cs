@@ -105,6 +105,9 @@ public sealed class FlowField
     private readonly int[] _entryCell;
     private readonly int[] _entryNext;
 
+    /// <summary>The cells the last search reached, in order: the only ones a bounded build turns into directions.</summary>
+    private readonly int[] _reached;
+
     private int _state = Idle;
     private int _targetCell;
     private float _lastBuildMilliseconds;
@@ -134,6 +137,7 @@ public sealed class FlowField
         _weightSnapshot = new byte[grid.CellCount];
         _costFront = new int[grid.CellCount];
         _costBack = new int[grid.CellCount];
+        _reached = new int[grid.CellCount];
         _flowFront = new Vector3[grid.CellCount];
         _flowBack = new Vector3[grid.CellCount];
 
@@ -154,6 +158,20 @@ public sealed class FlowField
             _costFront[i] = Unreachable;
         }
     }
+
+    /// <summary>
+    /// The costliest route the search follows, in its own units (metres times
+    /// weight); zero searches everything. A planet's ground is hundreds of
+    /// thousands of cells and the crowd that matters is within a kilometre of
+    /// the player, so the planet bounds it; past the bound a cell is left
+    /// unreached and the horde walks straight at its hunt point there
+    /// (<see cref="IsBeyondSearch"/>). The flats search everything.
+    /// </summary>
+    public int MaxCost { get; set; }
+
+    /// <summary>True when a cell is open but was past <see cref="MaxCost"/> in the last published search.</summary>
+    public bool IsBeyondSearch(int cell) =>
+        MaxCost > 0 && _costFront[cell] == Unreachable && _weight[cell] != Blocked;
 
     public int Generation { get; private set; }
     public int TargetCell => _targetCell;
@@ -315,6 +333,7 @@ public sealed class FlowField
 
         int highest = 0;
         int reached = 0;
+        int maxCost = MaxCost > 0 ? MaxCost : int.MaxValue;
 
         // The target is seeded whatever its own weight says. Cost on the
         // destination cell is meaningless -- nothing has to leave it -- and
@@ -332,7 +351,7 @@ public sealed class FlowField
             if (entry == -1)
             {
                 // Nothing left anywhere ahead of us means the search is done.
-                if (bucket > highest)
+                if (bucket > highest || bucket > maxCost)
                 {
                     break;
                 }
@@ -351,7 +370,7 @@ public sealed class FlowField
                 // the rest are stale.
                 if (cost[cell] == bucket)
                 {
-                    reached++;
+                    _reached[reached++] = cell;
                     int first = cell * _directions;
                     for (int slot = first; slot < first + _directions; slot++)
                     {
@@ -374,7 +393,7 @@ public sealed class FlowField
                         }
 
                         int candidate = bucket + step;
-                        if (candidate >= _bucketHead.Length || candidate >= cost[neighbour])
+                        if (candidate >= _bucketHead.Length || candidate > maxCost || candidate >= cost[neighbour])
                         {
                             continue;
                         }
@@ -395,7 +414,14 @@ public sealed class FlowField
             }
         }
 
-        BuildFlowVectors(cost, flow);
+        if (MaxCost > 0)
+        {
+            BuildFlowVectorsReached(cost, flow, reached);
+        }
+        else
+        {
+            BuildFlowVectors(cost, flow);
+        }
         ReachableCells = reached;
 
         watch.Stop();
@@ -444,6 +470,44 @@ public sealed class FlowField
                 if (there < here)
                 {
                     sum += _tangent[slot] * (here - there);
+                }
+            }
+
+            flow[cell] = sum.LengthSquared() > 1e-8f ? sum.Normalized() : Vector3.Zero;
+        }
+    }
+
+    /// <summary>
+    /// The same directions for a bounded search: only the cells it reached,
+    /// and the blocked cells beside them, so the pass costs what the search
+    /// did rather than the whole planet. Everything else is cleared to zero.
+    /// </summary>
+    private void BuildFlowVectorsReached(int[] cost, Vector3[] flow, int reached)
+    {
+        System.Array.Clear(flow, 0, flow.Length);
+        for (int i = 0; i < reached; i++)
+        {
+            int cell = _reached[i];
+            int here = cost[cell];
+            int first = cell * _directions;
+
+            Vector3 sum = Vector3.Zero;
+            for (int slot = first; slot < first + _directions; slot++)
+            {
+                int neighbour = _neighbour[slot];
+                if (neighbour < 0)
+                {
+                    continue;
+                }
+
+                int there = cost[neighbour];
+                if (there < here)
+                {
+                    sum += _tangent[slot] * (here - there);
+                }
+                else if (there == Unreachable && _weightSnapshot[neighbour] == Blocked)
+                {
+                    flow[neighbour] = EscapeDirection(cost, neighbour * _directions);
                 }
             }
 

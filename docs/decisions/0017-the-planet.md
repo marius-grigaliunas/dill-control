@@ -94,11 +94,21 @@ locate per agent per step) and physics about 0.8 ms more. The lab's gap
 
 ## Costs and open ends
 
-- **The crowd presses harder on the planet.** Its flow cells are 14.7 m to the
-  flats' 6 m, so the final straight run at the player starts 29 m out and the
-  compound strands nobody: 2,800 agents near the player against 440, and the
-  allies kill accordingly. Finer cells cost the flow build (40-55 ms of worker
-  time every half second at 98k cells already). A tuning decision, not made.
+- **Flow cells, revised the same day: 8 m, searched 700 m out.** At 15 m the
+  compound stranded nobody and the crowd pressed in several times thicker
+  than on the flats. 8 m cells (421k on a 1350 m planet) match the flats'
+  routing, and the search stops at 700 m of path cost from the hunt point,
+  past the horde's draw distance and seed ring; beyond it agents walk
+  straight at the hunt point over open ground. The flow build went from
+  40-55 ms (15 m, whole planet) to 11-23 ms, the flats' 15 ms; stranded
+  agents 0 to about 180 (flats 135-290); the crowd near the player builds
+  about half as fast as at 15 m, still faster than on the flats. The horde's
+  ground takes about a second to build behind the loading screen, most of it
+  the slope stamp over every cell.
+- **The pickles were drawn a planet's radius up in the sky** until the
+  horde's multimesh instances (and the brine's) were made top-level: their
+  buffers hold world positions and their parent, the director, stands at the
+  garrison. On the flats it stood at the origin and nobody could tell.
 - Colliders exist round the camera and round sites that keep them; a body
   anywhere else falls through. The lab froze debris that left the ring; here
   nothing yet does.

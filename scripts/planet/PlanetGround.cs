@@ -33,9 +33,9 @@ public sealed class PlanetGround : IHordeGround, IFlowGraph
     private readonly PlanetHeightfield _heights;
     private readonly Vector3[] _cellDirection;
     private readonly Vector3[] _cellCentre;
-    private readonly int[] _neighbour;
-    private readonly Vector3[] _tangent;
-    private readonly float[] _arc;
+    private int[] _neighbour;
+    private Vector3[] _tangent;
+    private float[] _arc;
 
     /// <summary>Cells something authored stands in. A slope restamp leaves them blocked.</summary>
     private readonly bool[] _obstacle;
@@ -203,6 +203,19 @@ public sealed class PlanetGround : IHordeGround, IFlowGraph
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Drops the neighbour tables once the flow field has copied them (it
+    /// copies at construction and never asks again). At 8 m cells they are
+    /// tens of megabytes held for nothing. The graph half of this class
+    /// answers nothing after it.
+    /// </summary>
+    public void ReleaseGraph()
+    {
+        _neighbour = null;
+        _tangent = null;
+        _arc = null;
     }
 
     // ---------------- Stamping ----------------

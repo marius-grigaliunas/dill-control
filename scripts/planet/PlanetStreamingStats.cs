@@ -96,11 +96,24 @@ public partial class PlanetStreamingStats : Resource
 
     [ExportGroup("Horde")]
     /// <summary>
-    /// Wanted width of a horde flow cell. The grid is a power of two per face
-    /// edge, so the real width is the nearest that fits.
+    /// Wanted width of a horde flow cell; the real one is the nearest that
+    /// divides a face evenly. 8 m, near the flats' 6 m, so routing round the
+    /// compound and onto the player behaves as it does there: at 15 m the
+    /// crowd pressed in several times thicker. Affordable because the search
+    /// is bounded (<see cref="FlowSearchRadius"/>).
     /// </summary>
     [Export(PropertyHint.Range, "4,60,0.5,suffix:m")]
-    public float FlowCellSize { get; set; } = 15.0f;
+    public float FlowCellSize { get; set; } = 8.0f;
+
+    /// <summary>
+    /// How far along the ground the horde's routing reaches from where it is
+    /// going. Past it the crowd walks straight at it over open ground. Set
+    /// past the horde's draw distance (420 m) and its hunting seed ring
+    /// (450 m), so every agent anyone sees, and every one seeded, is routed.
+    /// Zero routes the whole planet.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,4000,10,suffix:m")]
+    public float FlowSearchRadius { get; set; } = 700.0f;
 
     /// <summary>Ground at least this steep is a wall to the horde; below it, the steeper the dearer.</summary>
     [Export(PropertyHint.Range, "10,89,1,suffix:°")]

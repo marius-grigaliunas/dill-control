@@ -1053,6 +1053,13 @@ public partial class HordeManager : Node3D
                 // triggers an engine-side AABB recompute over every instance.
                 // Also required on all of them, for the same reason.
                 CustomAabb = groundSized,
+
+                // The buffer holds world positions, so the instance sits at
+                // the world origin whatever its parents do. On the flats the
+                // director stood at the origin and it made no difference; on
+                // the planet the director stands at the garrison, a radius
+                // out, and every pickle was drawn a radius up in the sky.
+                TopLevel = true,
             };
 
             AddChild(_instances[drawn]);
@@ -2543,6 +2550,13 @@ public partial class HordeManager : Node3D
             Vector3 toHunt = HuntPoint - agent.Position;
             if (FinalApproachRange > 0.0f && toHunt.LengthSquared() <= FinalApproachRange * FinalApproachRange)
             {
+                desired = toHunt;
+            }
+            else if (_flow.IsBeyondSearch(agent.Cell))
+            {
+                // Past where a bounded field searched (the planet's): open
+                // ground a kilometre off, where the straight way along the
+                // surface is the route. The field takes over on arrival.
                 desired = toHunt;
             }
             else

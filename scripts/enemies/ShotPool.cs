@@ -134,6 +134,10 @@ public partial class ShotPool : Node3D
             // Shots fly anywhere over the planet, and a multimesh is only
             // ever culled whole.
             CustomAabb = new Aabb(new Vector3(-5000, -5000, -5000), new Vector3(10000, 10000, 10000)),
+
+            // World positions in the buffer: at the world origin whatever the
+            // director's own place (see HordeManager's instances).
+            TopLevel = true,
         };
         AddChild(_mesh);
         _multimeshRid = multimesh.GetRid();
