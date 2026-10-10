@@ -1,0 +1,26 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/MainMenu.cs" id="1_main"]
+[ext_resource type="Script" path="res://scripts/ui/menu/MenuSystem.cs" id="2_menu"]
+[ext_resource type="Resource" path="res://resources/ui/menu_main.tres" id="3_screen"]
+
+[node name="MainMenu" type="Node" node_paths=PackedStringArray("Menu", "Backdrop")]
+script = ExtResource("1_main")
+Menu = NodePath("Menu")
+Backdrop = NodePath("BackdropLayer/Backdrop")
+
+[node name="BackdropLayer" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="Backdrop" type="Control" parent="BackdropLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Menu" type="CanvasLayer" parent="."]
+script = ExtResource("2_menu")
+Root = ExtResource("3_screen")

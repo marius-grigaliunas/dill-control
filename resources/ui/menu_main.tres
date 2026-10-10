@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MenuScreen" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/menu/MenuScreen.cs" id="1_screen"]
+[ext_resource type="Script" path="res://scripts/ui/menu/MenuEntry.cs" id="2_entry"]
+
+[sub_resource type="Resource" id="Start"]
+script = ExtResource("2_entry")
+Label = "Clock in"
+Action = 5
+Id = "start"
+
+[sub_resource type="Resource" id="Quit"]
+script = ExtResource("2_entry")
+Label = "Quit"
+Action = 7
+
+[resource]
+script = ExtResource("1_screen")
+Title = "Dill Control"
+Entries = [SubResource("Start"), SubResource("Quit")]

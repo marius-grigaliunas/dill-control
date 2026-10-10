@@ -384,13 +384,30 @@ and the shield.
 *Done when:* `bench.gd horde 25000` holds the budget on the target machine with
 real pickle models, not capsules.
 
-### M4: The planet
+### M4: The planet, generated per contract
 
-Cube-sphere, streaming, craters and the flow field ported. The compound moves
-onto the planet as an authored scene placed at a marker.
+*Changed on 10 October 2026: planets and compounds are generated per contract
+for replayability, inside authored bounds (decisions 0017-0021). Built in six
+steps, each benched and committed:*
 
-*Done when:* both the compound and the open ground bench at 60, and a crater
-reroutes the horde.
+1. **The planet ported** on a fixed seed: heightfield, chunks with levels of
+   detail, a far shell for the whole silhouette, craters, point gravity, the
+   horde on it (0017).
+2. **Seeded planets and biomes**: a contract is a seed; an archetype's ranges,
+   three biomes (0018).
+3. **The system and the arrival**: the ship waits in orbit, the player starts
+   on the bike, other bodies in the sky, the air thinning with height (0019).
+4. **The compound from clusters**: a seeded layout of authored cluster scenes
+   on a levelled pad; the horde from a tier (0020).
+5. **Contracts and loading**: the session, the generator, the contract level
+   building itself behind its loading screen (0021).
+6. **Menu, ship and computer**: the title screen, the player's ship
+   (`lvl_ship_hub`), the contract board.
+
+*Done when:* the open ground and the compound bench at 60 on every seed a
+sweep tries, a crater reroutes the horde, and menu to ship to contract to
+orbit to the ground plays through. The flow plays through; the budget is to
+be re-measured on a rested machine.
 
 ### M5: Mother Brine
 
@@ -407,6 +424,9 @@ for, so the planet's edge is clean from space.
 
 *Done when:* a mission can start in orbit and end with you standing in the
 compound, with no load and no cut.
+
+*The arrival and the far shell were built in M4's third step. What is left
+here is the bike's model and the ship's, which are art.*
 
 ### M7: The mission
 

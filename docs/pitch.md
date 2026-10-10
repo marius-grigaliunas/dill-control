@@ -53,8 +53,10 @@ Three things, and everything else serves them:
 
 One planet per mission. The shape so far:
 
-1. **Arrive from orbit.** The mission opens in space, on the hoverbike, with
-   the whole planet in front of you. You fly down to it with no loading screen
+1. **Arrive from orbit.** You pick the contract at the computer in your own
+   ship, and after one loading screen the mission opens in space, on the
+   hoverbike beside the ship, with the whole planet in front of you. Every
+   contract is a different planet. You fly down to it with no further load
    and no cut. On the way in you read it: where the nests are, where the horde
    masses, where the rearm point is. Then you choose where to land and what to
    hit first. The prototype already gets most of the way there: you can climb

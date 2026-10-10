@@ -1,0 +1,60 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/ContractBoard.cs" id="1_board"]
+[ext_resource type="PackedScene" path="res://scenes/ui/contract_card.tscn" id="2_card"]
+
+[node name="ContractBoard" type="CanvasLayer" node_paths=PackedStringArray("Root", "Cards", "CloseButton")]
+layer = 50
+script = ExtResource("1_board")
+Root = NodePath("Root")
+Cards = NodePath("Root/Centre/Column/Cards")
+CardScene = ExtResource("2_card")
+CloseButton = NodePath("Root/Centre/Column/Close")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Scrim" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.03, 0.03, 0.85)
+
+[node name="Centre" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Column" type="VBoxContainer" parent="Root/Centre"]
+layout_mode = 2
+theme_override_constants/separation = 28
+
+[node name="Heading" type="Label" parent="Root/Centre/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.97, 0.86, 1)
+theme_override_font_sizes/font_size = 36
+text = "OPEN CONTRACTS"
+horizontal_alignment = 1
+
+[node name="Cards" type="HBoxContainer" parent="Root/Centre/Column"]
+layout_mode = 2
+theme_override_constants/separation = 32
+alignment = 1
+
+[node name="Close" type="Button" parent="Root/Centre/Column"]
+custom_minimum_size = Vector2(240, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 22
+text = "Not today"

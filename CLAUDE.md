@@ -191,7 +191,7 @@ in git proper.
 ```
 dotnet build
 GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable_mono_win64_console.exe"
-"$GODOT" --path . --script scripts/debug/bench.gd                                       # main scene, idle
+"$GODOT" --path . --script scripts/debug/bench.gd                                       # the contract level on its fallback seed, idle
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/<lvl>.tscn look  # screenshots
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/<lvl>.tscn ink   # ink A/B
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn grapple
@@ -213,6 +213,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planetab      # what the planet costs the GPU
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planets 10 1   # ten seeds from 1: build, ground, heights
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_contract.tscn descent          # from the ship in orbit down to the compound
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_ship_hub.tscn flow             # ship, computer, contract taken, loaded, in orbit
 "$GODOT" --headless --path . --script scripts/debug/seedcheck.gd -- 20                                      # same seed, same planet; cube seams
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn hordeab 25000
 ```

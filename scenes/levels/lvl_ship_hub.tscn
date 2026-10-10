@@ -1,0 +1,211 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="Material" path="res://art/materials/mat_graybox_grid_ground.tres" id="3_floor"]
+[ext_resource type="Material" path="res://art/materials/mat_graybox_grid_wall.tres" id="4_wall"]
+[ext_resource type="Material" path="res://art/materials/mat_graybox_accent.tres" id="5_accent"]
+[ext_resource type="Script" path="res://scripts/levels/ContractTerminal.cs" id="6_terminal"]
+[ext_resource type="PackedScene" path="res://scenes/ui/contract_board.tscn" id="7_board"]
+
+[sub_resource type="BoxMesh" id="FloorMesh"]
+size = Vector3(16, 0.4, 12)
+
+[sub_resource type="BoxShape3D" id="FloorShape"]
+size = Vector3(16, 0.4, 12)
+
+[sub_resource type="BoxMesh" id="SideWallMesh"]
+size = Vector3(0.4, 4.4, 12)
+
+[sub_resource type="BoxShape3D" id="SideWallShape"]
+size = Vector3(0.4, 4.4, 12)
+
+[sub_resource type="BoxMesh" id="EndWallMesh"]
+size = Vector3(16, 4.4, 0.4)
+
+[sub_resource type="BoxShape3D" id="EndWallShape"]
+size = Vector3(16, 4.4, 0.4)
+
+[sub_resource type="BoxMesh" id="SillMesh"]
+size = Vector3(16, 1.2, 0.4)
+
+[sub_resource type="BoxShape3D" id="SillShape"]
+size = Vector3(16, 1.2, 0.4)
+
+[sub_resource type="BoxMesh" id="DeskMesh"]
+size = Vector3(2.4, 1.0, 0.9)
+
+[sub_resource type="BoxShape3D" id="DeskShape"]
+size = Vector3(2.4, 1.0, 0.9)
+
+[sub_resource type="BoxMesh" id="ScreenMesh"]
+size = Vector3(1.8, 1.0, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="ScreenMat"]
+albedo_color = Color(0.1, 0.25, 0.08, 1)
+emission_enabled = true
+emission = Color(0.55, 0.85, 0.22, 1)
+emission_energy_multiplier = 1.5
+
+[sub_resource type="BoxShape3D" id="ReachShape"]
+size = Vector3(3.5, 2.5, 3.0)
+
+[sub_resource type="Environment" id="Env"]
+background_mode = 1
+background_color = Color(0, 0, 0.01, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.45, 0.5, 0.6, 1)
+ambient_light_energy = 0.6
+tonemap_mode = 4
+tonemap_white = 2.0
+
+[node name="Level" type="Node3D" node_paths=PackedStringArray("PlayerSpawn")]
+script = ExtResource("1_root")
+PlayerScene = ExtResource("2_player")
+PlayerSpawn = NodePath("Spawns/PlayerSpawn")
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="Floor" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Geometry/Floor"]
+mesh = SubResource("FloorMesh")
+surface_material_override/0 = ExtResource("3_floor")
+
+[node name="Shape" type="CollisionShape3D" parent="Geometry/Floor"]
+shape = SubResource("FloorShape")
+
+[node name="Ceiling" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Geometry/Ceiling"]
+mesh = SubResource("FloorMesh")
+surface_material_override/0 = ExtResource("4_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="Geometry/Ceiling"]
+shape = SubResource("FloorShape")
+
+[node name="WallPort" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 2, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Geometry/WallPort"]
+mesh = SubResource("SideWallMesh")
+surface_material_override/0 = ExtResource("4_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="Geometry/WallPort"]
+shape = SubResource("SideWallShape")
+
+[node name="WallStarboard" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Geometry/WallStarboard"]
+mesh = SubResource("SideWallMesh")
+surface_material_override/0 = ExtResource("4_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="Geometry/WallStarboard"]
+shape = SubResource("SideWallShape")
+
+[node name="WallAft" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 6)
+
+[node name="Mesh" type="MeshInstance3D" parent="Geometry/WallAft"]
+mesh = SubResource("EndWallMesh")
+surface_material_override/0 = ExtResource("4_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="Geometry/WallAft"]
+shape = SubResource("EndWallShape")
+
+[node name="WindowSill" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, -6)
+
+[node name="Mesh" type="MeshInstance3D" parent="Geometry/WindowSill"]
+mesh = SubResource("SillMesh")
+surface_material_override/0 = ExtResource("4_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="Geometry/WindowSill"]
+shape = SubResource("SillShape")
+
+[node name="WindowHeader" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.8, -6)
+
+[node name="Mesh" type="MeshInstance3D" parent="Geometry/WindowHeader"]
+mesh = SubResource("SillMesh")
+surface_material_override/0 = ExtResource("4_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="Geometry/WindowHeader"]
+shape = SubResource("SillShape")
+
+[node name="Water" type="Node3D" parent="."]
+
+[node name="Foliage" type="Node3D" parent="."]
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Terminal" type="Node3D" parent="Props" node_paths=PackedStringArray("Reach", "Board", "Prompt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0, -4.6)
+script = ExtResource("6_terminal")
+Reach = NodePath("Reach")
+Board = NodePath("ContractBoard")
+Prompt = NodePath("Prompt")
+
+[node name="Desk" type="StaticBody3D" parent="Props/Terminal"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Props/Terminal/Desk"]
+mesh = SubResource("DeskMesh")
+surface_material_override/0 = ExtResource("5_accent")
+
+[node name="Shape" type="CollisionShape3D" parent="Props/Terminal/Desk"]
+shape = SubResource("DeskShape")
+
+[node name="Screen" type="MeshInstance3D" parent="Props/Terminal"]
+transform = Transform3D(1, 0, 0, 0, 0.9659, 0.2588, 0, -0.2588, 0.9659, 0, 1.55, -0.2)
+mesh = SubResource("ScreenMesh")
+surface_material_override/0 = SubResource("ScreenMat")
+
+[node name="Reach" type="Area3D" parent="Props/Terminal"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 1.4)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="Shape" type="CollisionShape3D" parent="Props/Terminal/Reach"]
+shape = SubResource("ReachShape")
+
+[node name="Prompt" type="Label3D" parent="Props/Terminal"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, 0)
+billboard = 1
+modulate = Color(1, 0.97, 0.86, 1)
+outline_modulate = Color(0.07, 0.09, 0.04, 1)
+text = "F  contracts"
+font_size = 48
+outline_size = 12
+
+[node name="ContractBoard" parent="Props/Terminal" instance=ExtResource("7_board")]
+
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="CabinLight" type="OmniLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.6, 1)
+light_color = Color(1, 0.94, 0.84, 1)
+light_energy = 1.6
+omni_range = 14.0
+
+[node name="TerminalLight" type="OmniLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 2, -3.6)
+light_color = Color(0.55, 0.85, 0.22, 1)
+light_energy = 0.8
+omni_range = 5.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Lighting"]
+environment = SubResource("Env")
+
+[node name="Audio" type="Node3D" parent="."]
+
+[node name="Spawns" type="Node3D" parent="."]
+
+[node name="PlayerSpawn" type="Marker3D" parent="Spawns"]
+transform = Transform3D(0.7071, 0, 0.7071, 0, 1, 0, -0.7071, 0, 0.7071, 0, 0.1, 2)
+
+[node name="Navigation" type="Node3D" parent="."]

@@ -467,6 +467,20 @@ const DESCENT_TIMELINE := [
 	["status", ["@status"], [], 1.0],
 ]
 
+# The whole way in, from lvl_ship_hub: the ship, its computer, the first
+# contract taken, the contract level loading behind its screen, and the
+# arrival in orbit. The scene changes under the bench mid-run.
+const FLOW_TIMELINE := [
+	["in the ship", [], [], 3.0],
+	["ship shot", ["#flow_ship"], [], 0.5],
+	["the computer", ["!call:Terminal:BenchOpen"], [], 1.0],
+	["board shot", ["#flow_board"], [], 0.5],
+	["take the first", ["!call:Terminal:BenchTake"], [], 1.0],
+	["loading", [], [], 9.0],
+	["in orbit", [], [], 4.0],
+	["orbit shot", ["#flow_orbit"], [], 0.5],
+]
+
 # What the planet costs the GPU, on the ground and 300 m up: the whole planet
 # hidden, the far shell hidden, and the terrain shader's grid and hatching off,
 # each between baselines.
@@ -560,7 +574,9 @@ func _initialize() -> void:
 	_force_target_resolution()
 
 	var args := OS.get_cmdline_user_args()
-	var path: String = args[0] if args.size() > 0 else ProjectSettings.get_setting("application/run/main_scene")
+	# The main scene is the title menu, which measures nothing: with no level
+	# named, the contract level is benched, on its fallback seed.
+	var path: String = args[0] if args.size() > 0 else "res://scenes/levels/lvl_contract.tscn"
 	var mode: String = args[1] if args.size() > 1 else "idle"
 
 	match mode:
@@ -586,6 +602,7 @@ func _initialize() -> void:
 		"planet": _timeline = _planet_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"planetab": _timeline = _planetab_timeline()
 		"descent": _timeline = DESCENT_TIMELINE
+		"flow": _timeline = FLOW_TIMELINE
 		"planets": _timeline = _planets_timeline(int(args[2]) if args.size() > 2 else 10, int(args[3]) if args.size() > 3 else 1)
 		_: _timeline = IDLE_TIMELINE
 
@@ -723,8 +740,11 @@ func _tap(action: String) -> void:
 var _found := {}
 
 func _find(node_name: String) -> Node:
-	var node: Node = _found.get(node_name)
-	if node == null or not is_instance_valid(node) or not node.is_inside_tree():
+	# Untyped first: a cached node freed by a scene change cannot be assigned
+	# to a typed variable at all.
+	var cached = _found.get(node_name)
+	var node: Node = cached if is_instance_valid(cached) else null
+	if node == null or not node.is_inside_tree():
 		node = root.find_child(node_name, true, false)
 		_found[node_name] = node
 	return node
