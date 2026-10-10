@@ -5,16 +5,19 @@ using Godot;
 namespace DillControl.Vehicles;
 
 /// <summary>
-/// A mech's arm slash. Two ways to fire it:
+/// A mech's downward arm slam, for clearing the crowd at its feet. Two ways
+/// to fire it:
 ///
 /// - <b>Ridden</b> (<see cref="Manual"/> on): the rider's trigger starts a
 ///   stroke; holding it chains, alternating arms.
-/// - <b>On its own</b>: it slashes when <see cref="MechGunner.Target"/> is
+/// - <b>On its own</b>: it slams when <see cref="MechGunner.Target"/> is
 ///   inside the cone and range, the crowd chewing its legs.
 ///
-/// Each stroke is a pose on <see cref="MechWalker"/> and three slices of
-/// <see cref="Blast"/> along the arm, so it reaches the horde over the bus
-/// and breaks voxel things like any other hit. No clips.
+/// Each stroke is a shoulder arc taken from <see cref="MechSlashStats"/>:
+/// cock up and back, swing through to the follow-through, return. The four
+/// angles are degrees in that resource. <see cref="Preview"/> loops the arc.
+/// Three slices of <see cref="Blast"/> land along the club as it arrives.
+/// No clips.
 /// </summary>
 public partial class MechSlasher : Node
 {
@@ -34,6 +37,11 @@ public partial class MechSlasher : Node
 
     /// <summary>Ridden: the slash is the selected arm tool and the trigger is down.</summary>
     public bool Trigger { get; set; }
+
+    /// <summary>Loops the swing with no trigger, so the arc can be watched
+    /// and the stats edited between strokes.</summary>
+    [Export]
+    public bool Preview { get; set; }
 
     private enum Phase
     {
@@ -76,7 +84,7 @@ public partial class MechSlasher : Node
         }
 
         float dt = (float)delta;
-        bool want = Manual ? Trigger : AutoWants();
+        bool want = Preview || (Manual ? Trigger : AutoWants());
 
         if (_phase == Phase.Ready)
         {
@@ -98,12 +106,18 @@ public partial class MechSlasher : Node
 
         if (_phase == Phase.Strike)
         {
-            float t = Mathf.Clamp(_elapsed - _windup, 0.0f, _strike);
-            int slice = Mathf.Clamp(Mathf.FloorToInt(t / Mathf.Max(_strike, 1e-4f) * 3.0f), 0, 2);
-            while (_sliced <= slice)
+            // The fist is still coming down through the first half. The hits
+            // land as it arrives and while it stays down.
+            float u = Mathf.Clamp((_elapsed - _windup) / Mathf.Max(_strike, 1e-4f), 0.0f, 1.0f);
+            if (u >= 0.45f)
             {
-                Slice();
-                _sliced++;
+                float window = (u - 0.45f) / 0.55f;
+                int slice = Mathf.Clamp(Mathf.FloorToInt(window * 3.0f), 0, 2);
+                while (_sliced <= slice)
+                {
+                    Slice();
+                    _sliced++;
+                }
             }
         }
 
@@ -143,8 +157,6 @@ public partial class MechSlasher : Node
 
         Vector3 shoulder = Walker.Arms[_arm].GlobalPosition;
         AudioDirector.PlayAt(Sfx.MeleeSwingLight, shoulder);
-        float side = _arm == 0 ? 1.0f : -1.0f;
-        Walker.Kick(-Walker.GlobalBasis.X * side * 1.8f + Walker.Up * 0.4f);
         PoseStroke();
 
         if (_remaining <= 0.0f)
@@ -160,6 +172,8 @@ public partial class MechSlasher : Node
             case Phase.Windup:
                 _phase = Phase.Strike;
                 _remaining += _strike;
+                // Nose down into the blow. The sink sells the impact.
+                Walker.Kick(Walker.GlobalBasis.Z * 2.6f);
                 break;
             case Phase.Strike:
                 _phase = Phase.Recovery;
@@ -176,53 +190,48 @@ public partial class MechSlasher : Node
 
     private void PoseStroke()
     {
-        float weight;
-        float swing;
-        StrokeCurve(_elapsed, out swing, out weight);
-        Walker.StrokeArm(_arm, StrokeDirection(_arm, swing), weight);
+        ArmAngles(_elapsed, out float pitch, out float yaw);
+        Walker.StrokeArm(_arm, pitch, yaw, 1.0f);
     }
 
-    /// <summary>Swing is -1 cocked, 0 on the nose, +1 followed through.
-    /// Weight eases in through the windup and out through the recovery.</summary>
-    private void StrokeCurve(float elapsed, out float swing, out float weight)
+    /// <summary>0 is hanging. The windup lifts to the cock, the strike travels
+    /// to the follow-through, the recovery returns along the same arc.
+    /// Angles are read from <see cref="Stats"/> every frame.</summary>
+    private void ArmAngles(float elapsed, out float pitch, out float yaw)
     {
         float windup = Mathf.Max(_windup, 1e-4f);
         float strike = Mathf.Max(_strike, 1e-4f);
         float recovery = Mathf.Max(_recovery, 1e-4f);
+        // Arm 0 is the model's right, on -X. Positive yaw in the stats is
+        // out to the left; mirror it so each fist cocks to its own side.
+        float side = _arm == 0 ? -1.0f : 1.0f;
+        float cockPitch = Mathf.DegToRad(Stats.CockPitch);
+        float strikePitch = -Mathf.DegToRad(Stats.StrikePitch);
+        float cockYaw = side * Mathf.DegToRad(Stats.CockYaw);
+        float strikeYaw = -side * Mathf.DegToRad(Stats.StrikeYaw);
 
         if (elapsed < windup)
         {
-            float t = elapsed / windup;
-            t = t * t * (3.0f - 2.0f * t);
-            swing = -1.0f;
-            weight = t;
+            float t = Smooth(elapsed / windup);
+            pitch = Mathf.Lerp(0.0f, cockPitch, t);
+            yaw = Mathf.Lerp(0.0f, cockYaw, t);
             return;
         }
 
         if (elapsed < windup + strike)
         {
-            float t = (elapsed - windup) / strike;
-            t = t * t * (3.0f - 2.0f * t);
-            swing = Mathf.Lerp(-1.0f, 1.0f, t);
-            weight = 1.0f;
+            float t = Smooth((elapsed - windup) / strike);
+            pitch = Mathf.Lerp(cockPitch, strikePitch, t);
+            yaw = Mathf.Lerp(cockYaw, strikeYaw, t);
             return;
         }
 
-        float back = Mathf.Clamp((elapsed - windup - strike) / recovery, 0.0f, 1.0f);
-        back = back * back * (3.0f - 2.0f * back);
-        swing = 1.0f;
-        weight = 1.0f - back;
+        float back = Smooth(Mathf.Clamp((elapsed - windup - strike) / recovery, 0.0f, 1.0f));
+        pitch = Mathf.Lerp(strikePitch, 0.0f, back);
+        yaw = Mathf.Lerp(strikeYaw, 0.0f, back);
     }
 
-    private Vector3 StrokeDirection(int arm, float swing)
-    {
-        float side = arm == 0 ? 1.0f : -1.0f;
-        float yaw = -side * swing * Mathf.DegToRad(Stats.ArcDegrees * 0.5f);
-        const float pitch = -0.32f;
-        float cp = Mathf.Cos(pitch);
-        var local = new Vector3(Mathf.Sin(yaw) * cp, Mathf.Sin(pitch), Mathf.Cos(yaw) * cp);
-        return Walker.GlobalBasis * local;
-    }
+    private static float Smooth(float t) => t * t * (3.0f - 2.0f * t);
 
     private void Slice()
     {
@@ -233,17 +242,17 @@ public partial class MechSlasher : Node
         }
 
         Vector3 shoulder = limb.GlobalPosition;
-        StrokeCurve(_elapsed, out float swing, out _);
-        Vector3 dir = StrokeDirection(_arm, swing);
+        Vector3 tip = Walker.StrokeTip(_arm);
         int spheres = Mathf.Max(1, Stats.Spheres);
         PhysicsDirectSpaceState3D space = Walker.GetWorld3D().DirectSpaceState;
 
         for (int i = 0; i < spheres; i++)
         {
-            float along = Stats.Reach * (i + 0.7f) / spheres;
+            // Along the club, toward the fist, which is where the swing is.
+            float along = Mathf.Lerp(0.45f, 1.0f, (i + 0.5f) / spheres);
             var blast = new Blast.Settings
             {
-                Centre = shoulder + dir * along,
+                Centre = shoulder.Lerp(tip, along),
                 InnerRadius = Stats.SphereRadius * 0.45f,
                 Radius = Stats.SphereRadius,
                 Damage = Stats.Damage,
@@ -270,7 +279,7 @@ public partial class MechSlasher : Node
     {
         for (int i = 0; i < Walker.Arms.Count; i++)
         {
-            Walker.StrokeArm(i, Walker.GlobalBasis.Z, 0.0f);
+            Walker.StrokeArm(i, 0.0f, 0.0f, 0.0f);
         }
     }
 

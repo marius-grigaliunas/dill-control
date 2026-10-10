@@ -106,7 +106,7 @@ made once the builder says the frames have settled. See
 ```
 addons/         our own editor plugins only (vox_importer)
 art/
-  _source/      .blend and paint sources, packs as downloaded. .gdignore'd, LFS. Read its README.
+  _source/      .blend and paint sources, packs as downloaded. .gdignore'd, LFS.
   models/       .glb exports
   voxels/       .vox files, imported directly (they are source and export at once)
   textures/     palette.png and the few textures that are not the palette
@@ -145,7 +145,8 @@ Folders appear when their first file does.
 
 ## Art
 
-The pipeline is in `art/_source/README.md` and `docs/decisions/0005`. In short:
+The pipeline, from a model to a placed, destructible, animated thing, is
+`docs/art-to-game.md`; the reasoning is `docs/decisions/0005`. In short:
 Blender, `.glb` export, every model UV-mapped onto `art/textures/palette.png`
 and drawn with `art/materials/mat_palette_toon.tres` (toon diffuse and specular,
 nearest filtering). The outlines are `shaders/toon_ink.gdshader`, a depth-only
@@ -156,7 +157,7 @@ Voxel art is MagicaVoxel `.vox`, saved into `art/voxels/` and imported by our
 own importer: one node per MagicaVoxel object, colour per vertex on
 `art/materials/mat_voxel_toon.tres`, emission from MagicaVoxel's Emit
 materials, palette index 255 marks a part's pivot, objects named `@Name` become
-markers. See `docs/decisions/0009` and the voxel half of `art/_source/README.md`.
+markers. See `docs/decisions/0009` and `docs/art-to-game.md`.
 Everything not ours is listed in `credits.md` the day it arrives. Mechs are
 animated by code, never clips: `docs/decisions/0010`.
 
@@ -175,7 +176,10 @@ by storey, hangs on a hinge when it went on one side, and snaps where it lands
 `Version` has not moved. The main thread removes cells, re-boxes what must
 collide now and makes bodies, within the allowances in the stats resource.
 Nothing disappears before what replaces it is drawn, and crushed material
-heaps up as rubble rather than vanishing (`docs/decisions/0016`). To see a
+heaps up as rubble rather than vanishing (`docs/decisions/0016`). Past the
+loose-piece cap a piece becomes dust before it is made, only a piece on the
+ground joins a heap, a piece at rest is re-boxed finely, and a building tells
+the horde when its footprint changes (`docs/decisions/0022`). To see a
 collapse frame by frame: `"$GODOT" --path . --write-movie <dir>/f.png
 --fixed-fps 10 --script scripts/debug/bench.gd -- <level> cut quiet`.
 
@@ -206,6 +210,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut       # a tower cut through: drops whole, crushes down
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cutside   # cut on one side: leans, tears, topples
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet # the same, every frame recorded
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet 40  # recorded for 40 s: does the debris drain?
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn gpuab     # what each part of the view costs the GPU
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn siege 25000  # crowd vs player and allies
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn horde 25000
@@ -213,6 +218,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planetab      # what the planet costs the GPU
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planets 10 1   # ten seeds from 1: build, ground, heights
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_contract.tscn descent          # from the ship in orbit down to the compound
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_contract.tscn garrison         # the horde at home: spread round its nest, 40 s
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_ship_hub.tscn flow             # ship, computer, contract taken, loaded, in orbit
 "$GODOT" --headless --path . --script scripts/debug/seedcheck.gd -- 20                                      # same seed, same planet; cube seams
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn hordeab 25000
@@ -231,7 +237,13 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 - A bench window is fullscreen and captures the mouse: keys and clicks while it
   runs reach the player (`@status` shows `fire=`). Hands off, and nothing else
   running -- a stuck game in the background halves the frame rate.
-- `U` in any level records every frame to `perflogs/` and prints a summary.
+- `U` in any level records every frame to `perflogs/` (a REC label in the
+  corner while it runs) and writes `perf_<time>_summary.txt` beside the CSV:
+  the machine and its power state, the worst frames each with its sections,
+  counts and events, what the spikes were spent on, and how the counts grew.
+  The summary is the file to read first or hand on. Game code reports through
+  `PerfLog`: `PerfLog.Counter` once at load for a column, `PerfLog.Event`
+  inside `if (PerfLog.Recording)` for the events column.
   `cut quiet` / `cutside quiet` record the run that way, with no screenshots
   and nothing printed while recording: a console line costs the frame it is
   printed in 15-40 ms on the target machine. Read hitches from these, with

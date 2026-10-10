@@ -62,6 +62,7 @@ tonemap_white = 2.0
 [node name="Level" type="Node3D" node_paths=PackedStringArray("PlayerSpawn")]
 script = ExtResource("1_root")
 PlayerScene = ExtResource("2_player")
+PlayerArmed = false
 PlayerSpawn = NodePath("Spawns/PlayerSpawn")
 
 [node name="Geometry" type="Node3D" parent="."]

@@ -5,9 +5,10 @@
 [resource]
 resource_name = "GrappleTuningDefault"
 script = ExtResource("1_script")
+GrappleRange = 140.0
 GrappleHookSpeed = 500.0
-GrappleReelAcceleration = 70.0
-GrappleReelMaxSpeed = 45.0
-GrappleReelTurnRate = 6.0
+GrappleReelSpeed = 22.0
+GrappleReelAcceleration = 90.0
+GrappleReelMaxSpeed = 32.0
 GrappleReelArriveDistance = 5.0
 GrappleAttachCarry = 1.0

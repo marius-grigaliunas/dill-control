@@ -14,7 +14,7 @@ namespace DillControl.Vehicles;
 /// camera takes over. Riding, WASD walks relative to the camera in any
 /// direction, Shift sprints, the body turns to the camera while walking, the
 /// turret follows the camera all the way round, jump jumps and held jump is
-/// the jets, fire is the arm gun, the flamer or the slash (slots 1/2/3) and
+/// the jets, fire is the arm gun, the flamer or the slam (slots 1/2/3) and
 /// alt fire the hull cannon (<see cref="MechGunner"/>, <see cref="MechSlasher"/>).
 /// Riding starts in first person from the seat; <c>view_toggle</c> swaps to a
 /// chase camera and back; <c>interact</c> climbs off. On its own, its guns
@@ -51,7 +51,7 @@ public partial class MechCompanion : Node
     [Export]
     public MechGunner Gunner { get; set; }
 
-    /// <summary>The arm slash, if this mech has one. Slot 3 selects it.</summary>
+    /// <summary>The arm slam, if this mech has one. Slot 3 selects it.</summary>
     [Export]
     public MechSlasher Slasher { get; set; }
 
@@ -453,7 +453,7 @@ public partial class MechCompanion : Node
         if (Gunner != null)
         {
             bool captured = Input.MouseMode == Input.MouseModeEnum.Captured;
-            // 1 the arm gun, 2 the flamer, 3 the slash, on the same trigger.
+            // 1 the arm gun, 2 the flamer, 3 the slam, on the same trigger.
             if (Input.IsActionJustPressed("slot_1"))
             {
                 _armTool = ArmTool.Gun;

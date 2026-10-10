@@ -1286,17 +1286,12 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
                 return;
             }
 
-            // Hauling in turns existing speed toward the anchor rather than
-            // shedding the sideways part. A rope shortened under a body
-            // conserves its angular momentum, so the sideways speed grows as
-            // the length shrinks -- twenty-fold from thirty metres to one and
-            // a half, which in the first test spun the player round the
-            // anchor at 40 m/s. Correct for a stone on a string; wrong for a
-            // winch whose whole purpose is taking you to what you hooked. The
-            // turn keeps the speed's size, so a swing reeled at the bottom
-            // does not dump the speed gravity just gave it.
-            relative = TurnToward(relative, along, Line.GrappleReelTurnRate * dt);
-            velocity = Grapple.AnchorVelocity + relative;
+            // The reel is an extra speed toward the anchor. The part across
+            // the line is the swing, and holding jump does not spend it: a
+            // winch that turned the whole velocity up the rope flew you
+            // straight at the hook and threw the arc away.
+            float inward = relative.Dot(along);
+            Vector3 across = relative - (along * inward);
 
             float remaining = distance - (Line.GrappleMinLength + HangSlack);
             float inwardCap = Line.GrappleReelMaxSpeed;
@@ -1305,19 +1300,17 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
                 inwardCap *= Mathf.Sqrt(Mathf.Max(0.0f, remaining / Line.GrappleReelArriveDistance));
             }
 
-            float inward = relative.Dot(along);
             if (inward > inwardCap)
             {
-                float cut = inward - inwardCap;
-                velocity -= along * cut;
-                relative -= along * cut;
+                inward = inwardCap;
             }
-            else if (inward < inwardCap)
+            else
             {
-                float add = Mathf.Min(Line.GrappleReelAcceleration * dt, inwardCap - inward);
-                velocity += along * add;
-                relative += along * add;
+                inward += Mathf.Min(Line.GrappleReelAcceleration * dt, inwardCap - inward);
             }
+
+            relative = across + (along * inward);
+            velocity = Grapple.AnchorVelocity + relative;
         }
         else if (_crouchHeld)
         {
@@ -1333,11 +1326,40 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
             float inward = relative.Dot(along);
             if (inward < wanted)
             {
-                velocity += along * (wanted - inward);
+                float add = wanted - inward;
+                velocity += along * add;
+                relative += along * add;
             }
         }
 
-        velocity = velocity.LimitLength(Line.GrappleMaxSpeed);
+        if (reeling)
+        {
+            // Keep the swing. Only the spare room under the ceiling goes to
+            // the reel, so a fast arc is not scaled down to pay for the pull.
+            float inward = relative.Dot(along);
+            Vector3 across = relative - (along * inward);
+            float max = Line.GrappleMaxSpeed;
+            float acrossLen = across.Length();
+            if (acrossLen >= max && acrossLen > 0.0001f)
+            {
+                across *= max / acrossLen;
+                inward = Mathf.Min(inward, 0.0f);
+            }
+            else if (inward > 0.0f)
+            {
+                float room = Mathf.Sqrt((max * max) - (acrossLen * acrossLen));
+                if (inward > room)
+                {
+                    inward = room;
+                }
+            }
+
+            velocity = Grapple.AnchorVelocity + across + (along * inward);
+        }
+        else
+        {
+            velocity = velocity.LimitLength(Line.GrappleMaxSpeed);
+        }
     }
 
     /// <summary>
@@ -1389,43 +1411,6 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
         Vector3 converted = relative.Slerp(swingDir * speed, Line.GrappleAttachCarry);
         velocity += converted - relative;
         relative = converted;
-    }
-
-    /// <summary>
-    /// Rotates <paramref name="value"/> toward <paramref name="targetDir"/>
-    /// by at most <paramref name="radians"/>, keeping its size.
-    /// </summary>
-    private Vector3 TurnToward(Vector3 value, Vector3 targetDir, float radians)
-    {
-        float speed = value.Length();
-        if (speed < 0.0001f || radians <= 0.0f)
-        {
-            return value;
-        }
-
-        Vector3 from = value / speed;
-        float angle = from.AngleTo(targetDir);
-        if (angle < 0.0001f)
-        {
-            return value;
-        }
-
-        Vector3 axis = from.Cross(targetDir);
-        if (axis.LengthSquared() < 0.0001f)
-        {
-            axis = from.Cross(UpDirection);
-            if (axis.LengthSquared() < 0.0001f)
-            {
-                axis = from.Cross(Vector3.Right);
-            }
-        }
-
-        if (axis.LengthSquared() < 0.0001f)
-        {
-            return value;
-        }
-
-        return from.Rotated(axis.Normalized(), Mathf.Min(angle, radians)) * speed;
     }
 
     /// <summary>
@@ -1812,8 +1797,27 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
             // Order matters: the loadout has to be running again before it is
             // asked to put a weapon back in the hands.
             Loadout?.SetProcess(true);
-            Loadout?.SetStowed(false);
+            Loadout?.SetStowed(!_armed);
             ClaimCamera();
+        }
+    }
+
+    private bool _armed = true;
+
+    /// <summary>False before a contract is taken: empty hands, no line.</summary>
+    public bool Armed => _armed;
+
+    public void SetArmed(bool armed)
+    {
+        _armed = armed;
+        if (Grapple != null)
+        {
+            Grapple.Disarmed = !armed;
+        }
+
+        if (!_stowed)
+        {
+            Loadout?.SetStowed(!armed);
         }
     }
 

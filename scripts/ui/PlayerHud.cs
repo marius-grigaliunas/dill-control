@@ -10,7 +10,8 @@ namespace DillControl.UI;
 /// the engine's fallback font:
 ///
 ///   centre        crosshair (closes and turns green while the line would
-///                 land, a ring while attached), and a hitmarker on every hit
+///                 land, with a ring and HOOK on the surface; a ring while
+///                 attached), and a hitmarker on every hit
 ///   edges         a red flash when hurt, and a wedge pointing at what hurt you
 ///   top centre    kills, the live combo with its fuse, and the tier word
 ///   bottom centre gas (a notch per dash charge) and health, PICKLED! at empty
@@ -165,7 +166,14 @@ public partial class PlayerHud : Control
         }
 
         DrawHurt();
+        if (!Player.Armed)
+        {
+            DrawHealth();
+            return;
+        }
+
         DrawCrosshair();
+        DrawGrapplePrompt();
         DrawHitmarker();
         DrawTally();
         DrawGas();
@@ -201,6 +209,36 @@ public partial class PlayerHud : Control
         DrawLine(centre - new Vector2(gap, 0.0f), centre - new Vector2(gap + Tick, 0.0f), colour, 2.0f);
         DrawLine(centre + new Vector2(0.0f, gap), centre + new Vector2(0.0f, gap + Tick), colour, 2.0f);
         DrawLine(centre - new Vector2(0.0f, gap), centre - new Vector2(0.0f, gap + Tick), colour, 2.0f);
+    }
+
+    /// <summary>
+    /// A word under the crosshair. Green HOOK where the line can hold, white
+    /// TOO FAR past the throw, red NO HOLD on something too light to. Nothing
+    /// on empty air.
+    /// </summary>
+    private void DrawGrapplePrompt()
+    {
+        GrappleHook line = Player.Grapple;
+        if (line == null || line.Aim == GrappleAim.None)
+        {
+            return;
+        }
+
+        Color colour = line.Aim switch
+        {
+            GrappleAim.Attach => GrappleReadyColour,
+            GrappleAim.NoHold => HurtColour,
+            _ => CrosshairColour,
+        };
+        string word = line.Aim switch
+        {
+            GrappleAim.Attach => "HOOK",
+            GrappleAim.NoHold => "NO HOLD",
+            _ => "TOO FAR",
+        };
+
+        Vector2 label = (Size * 0.5f) + new Vector2(0.0f, 32.0f);
+        DrawShadowed(ThemeDB.FallbackFont, label, word, 16, colour, HorizontalAlignment.Center);
     }
 
     /// <summary>Four diagonal strokes round the crosshair: white a hit, yellow a weak point, red a kill.</summary>

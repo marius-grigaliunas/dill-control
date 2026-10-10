@@ -75,8 +75,5 @@ public partial class MainMenu : Node
         }
 
         PickleStyle.TextCentred(Backdrop, new Vector2(size.X * 0.5f, size.Y * 0.16f), "DILL CONTROL", 128, PickleStyle.Brine, -0.04f);
-        PickleStyle.TextCentred(
-            Backdrop, new Vector2(size.X * 0.5f, size.Y * 0.27f),
-            "Contract extermination. Twenty-five thousand pickles. One hoverbike.", 28, PickleStyle.Cream, -0.02f);
     }
 }

@@ -5,6 +5,22 @@ using DillControl.Core;
 
 namespace DillControl.Player;
 
+/// <summary>What the crosshair is on, while the hook is still in hand.</summary>
+public enum GrappleAim
+{
+    /// <summary>Empty air, or the line is already out.</summary>
+    None,
+
+    /// <summary>A surface the throw can hold.</summary>
+    Attach,
+
+    /// <summary>A surface, past the distance the hook will fly.</summary>
+    TooFar,
+
+    /// <summary>Something the hook hits that cannot hold a player up.</summary>
+    NoHold,
+}
+
 /// <summary>How the line is being used, once it is attached or still in the air.</summary>
 public enum GrappleLineMode
 {
@@ -139,8 +155,9 @@ public partial class GrappleHook : Node3D
     private bool _anchorFixed;
 
     private float _snapCheckTimer;
-    private float _probeTimer;
-    private bool _probeInRange;
+    private GrappleAim _aim = GrappleAim.None;
+    private Vector3 _probePoint;
+    private Vector3 _probeNormal;
     private bool _reeling;
     private SoundLoop _reelLoop;
 
@@ -185,9 +202,23 @@ public partial class GrappleHook : Node3D
     /// </summary>
     public float RopeLength { get; set; }
 
-    /// <summary>True when the crosshair is over something the hook could reach.
-    /// Sampled a few times a second, for the HUD.</summary>
-    public bool TargetInRange => _state == HookState.Idle && _probeInRange;
+    /// <summary>True when the crosshair is over something the hook could reach.</summary>
+    public bool TargetInRange => _state == HookState.Idle && _aim == GrappleAim.Attach;
+
+    /// <summary>
+    /// What the crosshair is on, for the prompt. <see cref="GrappleAim.None"/> while
+    /// the line is out or the aim is on empty air.
+    /// </summary>
+    public GrappleAim Aim => _state == HookState.Idle ? _aim : GrappleAim.None;
+
+    /// <summary>The surface the prompt is drawn on. Meaningful when <see cref="Aim"/> is not none.</summary>
+    public Vector3 AimPoint => _probePoint;
+
+    /// <summary>The surface normal at <see cref="AimPoint"/>.</summary>
+    public Vector3 AimNormal => _probeNormal;
+
+    /// <summary>The line is not carried (no contract taken yet): no throw, no aim probe.</summary>
+    public bool Disarmed { get; set; }
 
     public override void _Ready()
     {
@@ -213,7 +244,7 @@ public partial class GrappleHook : Node3D
     /// <param name="self">The owner's body, excluded from every ray.</param>
     public bool PhysicsTick(float dt, Vector3 ropeOrigin, Rid self)
     {
-        if (Tuning == null || !Tuning.GrappleEnabled)
+        if (Tuning == null || !Tuning.GrappleEnabled || Disarmed)
         {
             if (_state != HookState.Idle)
             {
@@ -236,7 +267,7 @@ public partial class GrappleHook : Node3D
                 }
                 else
                 {
-                    TickProbe(dt, self);
+                    TickProbe(self);
                 }
                 break;
 
@@ -605,26 +636,38 @@ public partial class GrappleHook : Node3D
     private static uint AnchorMask => GameLayers.Mask(GameLayers.World, GameLayers.Prop);
 
     /// <summary>
-    /// Whether the crosshair is over something in reach, a few times a second.
-    /// A throw that silently falls short is a mechanic nobody trusts; a throw
-    /// the HUD said would land is one they will try at speed.
+    /// What the crosshair would hook, and where. Every physics frame: the
+    /// marker on the surface has to follow the aim, and one ray is the whole
+    /// cost. The ray looks past <see cref="GrappleTuning.GrappleRange"/> so a
+    /// surface the throw cannot reach yet still gets a prompt, instead of
+    /// reading as empty air. A throw that silently falls short is a mechanic
+    /// nobody trusts; a throw the HUD said would land is one they will try
+    /// at speed.
     /// </summary>
-    private void TickProbe(float dt, Rid self)
+    private void TickProbe(Rid self)
     {
-        _probeTimer -= dt;
-        if (_probeTimer > 0.0f)
+        Vector3 from = AimCamera != null ? AimCamera.GlobalPosition : GlobalPosition;
+        Vector3 direction = AimDirection();
+        float reach = Tuning.GrappleRange + AimHintExtra;
+        Vector3 to = from + (direction * reach);
+        if (!CastAnchor(from, to, self, out _probePoint, out _probeNormal, out Node3D body))
         {
+            _aim = GrappleAim.None;
             return;
         }
-        _probeTimer = ProbeInterval;
 
-        Vector3 from = AimCamera != null ? AimCamera.GlobalPosition : GlobalPosition;
-        Vector3 to = from + (AimDirection() * Tuning.GrappleRange);
-        _probeInRange = CastAnchor(from, to, self, out _, out _, out Node3D body)
-                        && !(body is RigidBody3D rigid && !rigid.Freeze);
+        if (body is RigidBody3D rigid && !rigid.Freeze)
+        {
+            _aim = GrappleAim.NoHold;
+            return;
+        }
+
+        float distance = from.DistanceTo(_probePoint);
+        _aim = distance <= Tuning.GrappleRange + 0.05f ? GrappleAim.Attach : GrappleAim.TooFar;
     }
 
-    private const float ProbeInterval = 0.1f;
+    /// <summary>How far past the throw the prompt still names a surface.</summary>
+    private const float AimHintExtra = 60.0f;
 
     private Vector3 AimDirection() =>
         AimCamera != null ? -AimCamera.GlobalBasis.Z.Normalized() : -GlobalBasis.Z.Normalized();

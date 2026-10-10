@@ -172,7 +172,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		foreach (Node3D arm in Arms)
 		{
 			_armRest.Add(arm.Transform);
-			_arms.Add(new ArmPose { Pointing = RestPointing(arm) });
+			_arms.Add(new ArmPose { Pointing = RestPointing(arm), Reach = RestReach(arm) });
 		}
 
 		int count = Mathf.Min(Thighs.Count, Mathf.Min(Shins.Count, Feet.Count));
@@ -405,7 +405,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		UpdateGait(dt);
 		UpdateBody(dt);
 		UpdateArms(dt);
-		PoseLegs();
+		PoseLegs(dt);
 		AimTurret(dt);
 	}
 
@@ -535,7 +535,8 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		}
 		float lead = Tuning.StepLeadSeconds + stepSeconds * 0.5f;
 		bool moving = horizontal.Length() > 0.2f || Mathf.Abs(_yawRate) > 0.3f;
-		float threshold = moving ? Tuning.StepThreshold : Tuning.IdleTidyThreshold;
+		float threshold = StrideThreshold(speed01, sprint01, moving);
+		lead = CapLead(lead, horizontal.Length(), speed01, sprint01);
 
 		// Where each foot would like to land: its rest spot carried forward by
 		// the body's motion over the lead time, turn included.
@@ -594,6 +595,53 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			leg.StepFrom = leg.Planted;
 			leg.StepTo = Ground(Predict(self, leg.RestFoot, horizontal, lead));
 		}
+	}
+
+	/// <summary>How far a foot may lag before it steps. Creeps and turns use
+	/// the short stride; a full run uses the long one; a sprint uses a longer
+	/// one still. Mechs that leave the slow and sprint strides at 0 keep one
+	/// stride at every speed.</summary>
+	private float StrideThreshold(float speed01, float sprint01, bool moving)
+	{
+		if (!moving)
+		{
+			return Tuning.IdleTidyThreshold;
+		}
+
+		float stride = Tuning.StepThreshold;
+		if (Tuning.StepThresholdSlow > 0.0f)
+		{
+			stride = Mathf.Lerp(Tuning.StepThresholdSlow, Tuning.StepThreshold, speed01);
+		}
+		if (sprint01 > 0.0f && Tuning.SprintStepThreshold > Tuning.StepThreshold)
+		{
+			stride = Mathf.Lerp(Tuning.StepThreshold, Tuning.SprintStepThreshold, sprint01);
+		}
+		return stride;
+	}
+
+	/// <summary>Stops a fast body aiming the foot further than the leg can
+	/// reach, and keeps a creep or a turn from aiming at the running plant.</summary>
+	private float CapLead(float lead, float speed, float speed01, float sprint01)
+	{
+		if (Tuning.StepReach <= 0.0f)
+		{
+			return lead;
+		}
+
+		float slow = Tuning.StepThresholdSlow > 0.0f ? Tuning.StepThresholdSlow : Tuning.StepReach * 0.35f;
+		float reach = Mathf.Lerp(slow, Tuning.StepReach, speed01);
+		if (sprint01 > 0.0f && Tuning.SprintStepReach > Tuning.StepReach)
+		{
+			reach = Mathf.Lerp(Tuning.StepReach, Tuning.SprintStepReach, sprint01);
+		}
+
+		// Almost still: predict only the short lead, so a turn plants close.
+		if (speed < 0.5f)
+		{
+			return Mathf.Min(lead, Mathf.Max(Tuning.StepLeadSeconds, 0.08f));
+		}
+		return Mathf.Min(lead, reach / speed);
 	}
 
 	/// <summary>A rest foot spot, moved on by the body's velocity and turn
@@ -671,11 +719,29 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		Model.Transform = sway * _modelRest;
 	}
 
-	private void PoseLegs()
+	private void PoseLegs(float dt)
 	{
 		Transform3D model = Model.GlobalTransform;
 		Basis level = GlobalBasis * _modelRest.Basis;
+		GaitSpeeds(Velocity.Slide(Up).Length(), out _, out float sprint01);
 		float stepHeight = Tuning.StepHeight;
+		float liftReference = Tuning.StepThreshold;
+		float minLift = 0.3f;
+		if (Tuning.StepReach > 0.0f)
+		{
+			liftReference = Tuning.StepThreshold + Tuning.StepReach;
+			minLift = 0.22f;
+			if (sprint01 > 0.0f && Tuning.SprintStepHeight > stepHeight)
+			{
+				stepHeight = Mathf.Lerp(Tuning.StepHeight, Tuning.SprintStepHeight, sprint01);
+				if (Tuning.SprintStepReach > 0.0f)
+				{
+					float sprintLag = Tuning.SprintStepThreshold > 0.0f ? Tuning.SprintStepThreshold : Tuning.StepThreshold;
+					float sprintReference = sprintLag + Tuning.SprintStepReach;
+					liftReference = Mathf.Lerp(liftReference, sprintReference, sprint01);
+				}
+			}
+		}
 		foreach (MechLeg leg in _legs)
 		{
 			if (!leg.Alive)
@@ -689,15 +755,16 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 				float t = Mathf.Clamp(leg.StepT, 0.0f, 1.0f);
 				float eased = t * t * (3.0f - 2.0f * t);
 				float arc = Mathf.Sin(Mathf.Pi * t);
-				// Short shuffles lift less than strides.
-				float lift = stepHeight * Mathf.Clamp(leg.StepFrom.DistanceTo(leg.StepTo) / Mathf.Max(Tuning.StepThreshold, 0.01f), 0.3f, 1.0f);
+				// A short correction lifts a little. A full stride lifts the lot.
+				float distance = leg.StepFrom.DistanceTo(leg.StepTo);
+				float lift = stepHeight * Mathf.Clamp(distance / Mathf.Max(liftReference, 0.01f), minLift, 1.0f);
 				sole = leg.StepFrom.Lerp(leg.StepTo, eased) + Up * (arc * lift);
 				toe = arc * 0.35f;
 			}
 			leg.Pose(model, level, Up, sole, toe);
 		}
 
-		PoseArms();
+		PoseArms(dt);
 	}
 
 	// ---------------- Arms ----------------
@@ -724,17 +791,34 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		return i < 0 || _arms[i].Raise >= Tuning.ArmReadyFraction;
 	}
 
-	/// <summary>This frame's slash override for one arm. Wins over aim while
-	/// <paramref name="weight"/> is above zero. World direction the arm
-	/// should point.</summary>
-	public void StrokeArm(int arm, Vector3 worldDirection, float weight)
+	/// <summary>This frame's swing override for one arm. <paramref name="pitch"/>
+	/// and <paramref name="yaw"/> are radians in the model's space: positive
+	/// pitch lifts the fist backward, positive yaw carries it to the model's
+	/// left. Wins over aim while <paramref name="weight"/> is above zero.</summary>
+	public void StrokeArm(int arm, float pitch, float yaw, float weight)
 	{
 		if ((uint)arm >= (uint)_arms.Count)
 		{
 			return;
 		}
-		_arms[arm].Stroke = worldDirection;
+		_arms[arm].StrokePitch = pitch;
+		_arms[arm].StrokeYaw = yaw;
 		_arms[arm].StrokeWeight = Mathf.Clamp(weight, 0.0f, 1.0f);
+	}
+
+	/// <summary>Where this arm's fist is with the current swing applied, world
+	/// space. The shoulder when the arm index is out of range.</summary>
+	public Vector3 StrokeTip(int arm)
+	{
+		if ((uint)arm >= (uint)_armRest.Count || Model == null)
+		{
+			return GlobalPosition;
+		}
+		Transform3D rest = _armRest[arm];
+		ArmPose pose = _arms[arm];
+		Basis swing = new Basis(Vector3.Right, pose.StrokePitch) * new Basis(Vector3.Up, pose.StrokeYaw);
+		Vector3 local = swing * (rest.Basis * pose.Pointing) * pose.Reach;
+		return Model.ToGlobal(rest.Origin + local);
 	}
 
 	/// <summary>Whether this arm is mid-slash, so a gun on it should hold.</summary>
@@ -780,6 +864,26 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		return Vector3.Down;
 	}
 
+	/// <summary>How far the fist marker sits from the shoulder. The hanging
+	/// length of the club, used to place a swing's hits.</summary>
+	private float RestReach(Node3D arm)
+	{
+		int mounted = Mathf.Min(Mounted.Count, MountedOn.Count);
+		for (int i = 0; i < mounted; i++)
+		{
+			if (MountedOn[i] != arm || Mounted[i] == null)
+			{
+				continue;
+			}
+			float reach = Mounted[i].Position.Length();
+			if (reach > 0.05f)
+			{
+				return reach;
+			}
+		}
+		return 3.4f;
+	}
+
 	private void GaitSpeeds(float speed, out float speed01, out float sprint01)
 	{
 		float walk = Mathf.Max(Tuning.MaxSpeed, 0.01f);
@@ -811,7 +915,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 
 	/// <summary>Each arm starts as a gait swing against the opposite leg,
 	/// then blends toward its aim, then toward a slash stroke. Stroke wins.</summary>
-	private void PoseArms()
+	private void PoseArms(float dt)
 	{
 		if (_armRest.Count == 0)
 		{
@@ -821,6 +925,9 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		Transform3D self = GlobalTransform;
 		Vector3 forward = self.Basis.Z.Normalized();
 		float max = Mathf.DegToRad(Tuning.MaxArmSwingDegrees);
+		float follow = Tuning.ArmSwingFollow > 1e-4f
+			? 1.0f - Mathf.Exp(-dt / Tuning.ArmSwingFollow)
+			: 1.0f;
 		for (int i = 0; i < _armRest.Count; i++)
 		{
 			Transform3D rest = _armRest[i];
@@ -831,9 +938,11 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 				float ahead = (opposite.Sole - self * opposite.RestFoot).Dot(forward);
 				angle = Mathf.Clamp(-ahead * Mathf.DegToRad(Tuning.ArmSwingDegreesPerMetre), -max, max);
 			}
+			ArmPose pose = _arms[i];
+			pose.Swing = Mathf.Lerp(pose.Swing, angle, follow);
+			angle = pose.Swing;
 			Transform3D posed = new Transform3D(new Basis(Vector3.Right, angle) * rest.Basis, rest.Origin);
 
-			ArmPose pose = _arms[i];
 			if (pose.Raise > 1e-4f)
 			{
 				float t = pose.Raise * pose.Raise * (3.0f - 2.0f * pose.Raise);
@@ -841,7 +950,11 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			}
 			if (pose.StrokeWeight > 1e-4f)
 			{
-				posed = posed.InterpolateWith(PointPose(i, rest, pose.Stroke), pose.StrokeWeight);
+				// Pitch then yaw, both in the model's space, so the fist
+				// travels the arc instead of twisting toward a look target.
+				Basis swing = new Basis(Vector3.Right, pose.StrokePitch) * new Basis(Vector3.Up, pose.StrokeYaw);
+				var swung = new Transform3D(swing * rest.Basis, rest.Origin);
+				posed = pose.StrokeWeight >= 0.999f ? swung : posed.InterpolateWith(swung, pose.StrokeWeight);
 			}
 			Arms[i].Transform = posed;
 		}
@@ -889,8 +1002,14 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		public Vector3 Aim;
 		public float Hold;
 		public float Raise;
-		public Vector3 Stroke;
+		public float StrokePitch;
+		public float StrokeYaw;
 		public float StrokeWeight;
+		public float Reach = 3.4f;
+
+		/// <summary>Shoulder angle the gait has eased to, radians. Trails the
+		/// foot when <see cref="MechTuning.ArmSwingFollow"/> is set.</summary>
+		public float Swing;
 	}
 
 	// ---------------- Turret ----------------

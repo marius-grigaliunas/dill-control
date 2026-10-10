@@ -489,16 +489,27 @@ public partial class MechGunner : Node
 
         Vector3 from = CannonMuzzle.GlobalPosition;
         Vector3 direction = (target - from).Normalized();
-        Vector3 nose = Walker.GlobalBasis.Z.Normalized();
-        if (Mathf.RadToDeg(nose.AngleTo(direction)) > Stats.CannonTraverseDegrees)
+        // A hull gun cannot depress, so a shot aimed past its traverse goes
+        // out along the nose. An arm can point down at the crowd: flattening
+        // that shot sends it over the crosshair, which from the air is upward.
+        if (!OnArm(CannonMuzzle))
         {
-            direction = nose;
+            Vector3 nose = Walker.GlobalBasis.Z.Normalized();
+            if (Mathf.RadToDeg(nose.AngleTo(direction)) > Stats.CannonTraverseDegrees)
+            {
+                direction = nose;
+            }
         }
 
         Rocket shell = ShellScene.Instantiate<Rocket>();
         Scene().AddChild(shell);
+        // Only the part of the mech's speed already along the shot. The jump
+        // and the fall are perpendicular to a level aim, and adding them
+        // pitches the shell off the crosshair. The motor then holds that heading.
+        float along = Walker.Velocity.Dot(direction);
+        Vector3 carried = along > 0.0f ? direction * along : Vector3.Zero;
         shell.Launch(Stats.CannonShell, Walker, from, direction, Walker.Up, Walker.GetGravity(),
-            Walker.GetRid(), Walker.Velocity);
+            Walker.GetRid(), carried);
         Walker.Kick(-direction * 2.5f);
     }
 
@@ -510,6 +521,24 @@ public partial class MechGunner : Node
 
     /// <summary>The part a muzzle rides on, if it rides on one.</summary>
     private static Node3D MountOf(Node3D muzzle) => muzzle?.GetParent() as Node3D;
+
+    /// <summary>Whether this muzzle is mounted on one of the walker's arms.</summary>
+    private bool OnArm(Node3D muzzle)
+    {
+        Node3D mount = MountOf(muzzle);
+        if (mount == null)
+        {
+            return false;
+        }
+        foreach (Node3D arm in Walker.Arms)
+        {
+            if (arm == mount)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /// <summary>Raises the arm that carries this muzzle, if it is an arm.</summary>
     private void RaiseMount(Node3D muzzle, Vector3 target)

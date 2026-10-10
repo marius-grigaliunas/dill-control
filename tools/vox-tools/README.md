@@ -1,7 +1,7 @@
 # Vox tools
 
 Small Python scripts for getting bought or old voxel art into the shape
-`art/_source/README.md` asks for. Python 3, no packages. Run from the project
+`docs/art-to-game.md` asks for. Python 3, no packages. Run from the project
 folder. Nothing here runs in the game; Godot never sees this folder.
 
 | Script | What it does |

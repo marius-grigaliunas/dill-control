@@ -31,7 +31,7 @@ public partial class GrappleTuning : Resource
     /// cross ground faster than the horde can.
     /// </summary>
     [Export(PropertyHint.Range, "5,200,1,suffix:m")]
-    public float GrappleRange { get; set; } = 80.0f;
+    public float GrappleRange { get; set; } = 140.0f;
 
     /// <summary>
     /// How fast the hook flies. Finite rather than instant, so a throw at full
@@ -47,29 +47,23 @@ public partial class GrappleTuning : Resource
 
     /// <summary>How fast holding jump shortens the line.</summary>
     [Export(PropertyHint.Range, "1,60,0.5,suffix:m/s")]
-    public float GrappleReelSpeed { get; set; } = 14.0f;
+    public float GrappleReelSpeed { get; set; } = 22.0f;
 
     /// <summary>
-    /// The pull toward the anchor while reeling. Separate from the reel speed
-    /// because shortening the line only ever stops you drifting outward --
-    /// this is what actually hauls you in.
+    /// Extra pull toward the anchor while reeling, added on top of the swing.
+    /// It never replaces the speed across the line: holding jump hauls you in
+    /// and leaves the arc you already have.
     /// </summary>
     [Export(PropertyHint.Range, "1,150,0.5,suffix:m/s²")]
-    public float GrappleReelAcceleration { get; set; } = 70.0f;
-
-    /// <summary>Speed along the line past which reeling stops adding to it.</summary>
-    [Export(PropertyHint.Range, "1,80,0.5,suffix:m/s")]
-    public float GrappleReelMaxSpeed { get; set; } = 45.0f;
+    public float GrappleReelAcceleration { get; set; } = 90.0f;
 
     /// <summary>
-    /// How fast reeling turns existing speed toward the anchor, in radians
-    /// per second. The speed's size is kept, so holding jump cannot make you
-    /// slower than you were. Zero is a stone on a string: reeling in spins
-    /// you faster and faster round the anchor. High is a winch: it takes you
-    /// straight to what you hooked.
+    /// Speed toward the anchor past which reeling stops adding to it. The
+    /// swing across the line keeps its own speed up to <see cref="GrappleMaxSpeed"/>;
+    /// this cap is only the reel.
     /// </summary>
-    [Export(PropertyHint.Range, "0,20,0.1,suffix:rad/s")]
-    public float GrappleReelTurnRate { get; set; } = 6.0f;
+    [Export(PropertyHint.Range, "1,80,0.5,suffix:m/s")]
+    public float GrappleReelMaxSpeed { get; set; } = 32.0f;
 
     /// <summary>
     /// Within this of the hang length, inward speed is capped so arriving at
@@ -118,7 +112,11 @@ public partial class GrappleTuning : Resource
     [Export(PropertyHint.Range, "0,2,0.01")]
     public float GrappleSwingDrag { get; set; } = 0.08f;
 
-    /// <summary>Hard ceiling on the player's speed while on the line.</summary>
+    /// <summary>
+    /// Hard ceiling on speed across the line. While reeling, speed toward the
+    /// anchor is extra, up to <see cref="GrappleReelMaxSpeed"/>, and is only
+    /// trimmed once the two together pass this.
+    /// </summary>
     [Export(PropertyHint.Range, "5,120,1,suffix:m/s")]
     public float GrappleMaxSpeed { get; set; } = 45.0f;
 

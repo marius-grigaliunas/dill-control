@@ -89,10 +89,21 @@ public partial class MechTuning : Resource
     public float FollowSprintDistance { get; set; }
 
     [ExportGroup("Gait")]
-    /// <summary>How far a planted foot may fall behind where it ought to be
-    /// before it steps. Smaller steps more often.</summary>
-    [Export(PropertyHint.Range, "0.05,2,0.01,suffix:m")]
+    /// <summary>How far a planted foot may fall behind at full walk speed
+    /// before it steps. This is the running stride.</summary>
+    [Export(PropertyHint.Range, "0.05,3,0.01,suffix:m")]
     public float StepThreshold { get; set; } = 0.45f;
+
+    /// <summary>The same lag at a creep or a turn in place, so a small
+    /// correction is a small step. 0 keeps <see cref="StepThreshold"/> at
+    /// every speed.</summary>
+    [Export(PropertyHint.Range, "0,2,0.01,suffix:m")]
+    public float StepThresholdSlow { get; set; }
+
+    /// <summary>How far behind a foot may sit at full sprint, longer than the
+    /// run. 0 sprints on <see cref="StepThreshold"/>.</summary>
+    [Export(PropertyHint.Range, "0,4,0.01,suffix:m")]
+    public float SprintStepThreshold { get; set; }
 
     /// <summary>Standing still, feet further off than this from rest are
     /// tidied in with a step, so a stop ends square.</summary>
@@ -110,11 +121,26 @@ public partial class MechTuning : Resource
     [Export(PropertyHint.Range, "0,2,0.01,suffix:m")]
     public float StepHeight { get; set; } = 0.35f;
 
+    /// <summary>How high a full sprint stride lifts. 0 uses <see cref="StepHeight"/>.</summary>
+    [Export(PropertyHint.Range, "0,2,0.01,suffix:m")]
+    public float SprintStepHeight { get; set; }
+
     /// <summary>How far ahead of the moving body a foot lands, in seconds of
     /// travel. Landing ahead is what lets the body walk over the foot, not
-    /// drag it.</summary>
+    /// drag it. <see cref="StepReach"/> caps the distance this aims.</summary>
     [Export(PropertyHint.Range, "0,1,0.01,suffix:s")]
     public float StepLeadSeconds { get; set; } = 0.2f;
+
+    /// <summary>Furthest ahead of the body a foot may aim at full walk speed.
+    /// 0 means no cap. A creep aims a much shorter distance, so small steps
+    /// stay small.</summary>
+    [Export(PropertyHint.Range, "0,4,0.01,suffix:m")]
+    public float StepReach { get; set; }
+
+    /// <summary>Furthest ahead at full sprint. Longer than <see cref="StepReach"/>.
+    /// 0 uses the walk reach.</summary>
+    [Export(PropertyHint.Range, "0,5,0.01,suffix:m")]
+    public float SprintStepReach { get; set; }
 
     /// <summary>Which way knees bend, in the model's space (+Z is its
     /// front), added to the bend the model was built with. Zero keeps the
@@ -130,6 +156,12 @@ public partial class MechTuning : Resource
 
     [Export(PropertyHint.Range, "0,90,1,suffix:°")]
     public float MaxArmSwingDegrees { get; set; } = 30.0f;
+
+    /// <summary>How long the shoulder takes to catch up with the foot it
+    /// swings against. 0 locks the arm to the foot. A short follow lets the
+    /// swing ease through a plant instead of stopping dead.</summary>
+    [Export(PropertyHint.Range, "0,0.4,0.005,suffix:s")]
+    public float ArmSwingFollow { get; set; }
 
     /// <summary>How long an arm takes to raise toward a target, and to drop
     /// once the hold runs out.</summary>

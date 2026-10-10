@@ -65,12 +65,33 @@ tank's turret) is always ready and ignores both. No clips: the aim is the
 shortest-arc rotation from the rest pointing direction (shoulder to muzzle)
 onto the target, yaw-clamped so a shoulder cannot twist behind the back.
 
-**The slash is `Blast`, like every other hit.** `MechSlasher` poses a
-horizontal sweep and, in three slices, lays spheres along the arm through
-`Blast.ApplyDamage`, `SourceRid` the walker, `NoCrater`. The horde hears it
-on the bus; voxel props and buildings take it the same way. Slot 3 selects
-it, then LMB swings; holding chains, alternating arms. On its own it slashes
-when the gunner's target is inside `AutoRange` and `AutoConeDegrees`.
+**The slam is `Blast`, like every other hit.** The fighter's arms are long
+clubs, so they hang while it walks (`MaxArmSwingDegrees` stays small) and
+the stroke is a shoulder arc, not a look-at twist. `CockPitch`,
+`StrikePitch`, `CockYaw` and `StrikeYaw` in the slash resource are the
+arc, in degrees, edited and seen on the next swing. Tick `Preview` on
+`MechSlasher` to loop it. The fist travels that arc down across the
+front, into the crowd at its feet. `MechSlasher` lays three slices
+along the lower arm through `Blast.ApplyDamage`, `SourceRid` the walker,
+`NoCrater`. The horde hears it on the bus; voxel props and buildings take
+it the same way. Slot 3 selects it, then LMB slams; holding chains,
+alternating arms. On its own it slams when the gunner's target is inside
+`AutoRange` and `AutoConeDegrees`. The drop accelerates and the arm lifts
+back along the same path. There is still nothing to keyframe: a clip on
+these parts would be overwritten every frame by the walker, and a part
+that has been shot off has no clip to play.
+
+**Stride follows speed.** A creep or a turn in place steps at
+`StepThresholdSlow` and aims only a short plant. Full walk speed uses
+`StepThreshold` and `StepReach`. Sprint goes further still
+(`SprintStepThreshold`, `SprintStepReach`) and lifts a little higher. The
+reach cap is what the leg can actually get to: the fighter's hip-to-ankle
+is about 3.8 m and nearly straight at rest, so the body sinks at speed to
+buy the stride. Mechs that leave the new numbers at 0 keep one stride.
+
+**The shoulder trails the foot.** `ArmSwingFollow` eases the gait swing
+toward the angle the opposite foot asks for, so a plant does not stop the
+arm dead. 0 keeps the old lock. A stroke still wins over that swing.
 
 Numbers live in `mch_field_fighter_tuning.tres` and
 `mch_field_fighter_slash.tres`. `bench.gd ... mechs` on the target machine,

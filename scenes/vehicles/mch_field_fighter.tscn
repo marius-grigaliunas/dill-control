@@ -74,13 +74,13 @@ anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 24.0
 offset_top = -150.0
-offset_right = 600.0
+offset_right = 920.0
 offset_bottom = -24.0
 theme_override_colors/font_outline_color = Color(0.08, 0.1, 0.06, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 20
 text = "WASD  walk   Shift  sprint   Space  jump, hold for jets
-LMB  gun (1) / flamer (2) / slash (3)   RMB  arm cannon
+LMB  gun (1) / flamer (2) / slam (3)   RMB  arm cannon
 V  cockpit / chase view        F  climb off"
 
 [node name="Gunner" type="Node" parent="." node_paths=PackedStringArray("Walker", "TurretMuzzle", "CannonMuzzle")]

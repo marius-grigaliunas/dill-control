@@ -3,9 +3,10 @@ using Godot;
 namespace DillControl.Vehicles;
 
 /// <summary>
-/// A walking mech's arm slash: one horizontal stroke, how strokes chain, and
-/// how it decides to slash on its own. Read by <see cref="MechSlasher"/>; there
-/// is no balance number there.
+/// A walking mech's arm swing: the arc the fist travels, how long each
+/// part takes, and how it decides to swing on its own. Read by
+/// <see cref="MechSlasher"/>. Edit this resource, then swing again: the
+/// next stroke uses the new numbers. There is no balance number in the slasher.
 /// </summary>
 [GlobalClass]
 public partial class MechSlashStats : Resource
@@ -18,24 +19,34 @@ public partial class MechSlashStats : Resource
     [Export(PropertyHint.Range, "0,1,0.005,suffix:s")]
     public float Windup { get; set; } = 0.12f;
 
-    /// <summary>How long the arm takes to sweep. Hits land in three slices
-    /// across this window.</summary>
-    [Export(PropertyHint.Range, "0.01,0.8,0.005,suffix:s")]
-    public float Strike { get; set; } = 0.16f;
+    /// <summary>How long the fist takes to travel from the cock to the
+    /// follow-through. Hits land in the second half.</summary>
+    [Export(PropertyHint.Range, "0.05,1.2,0.01,suffix:s")]
+    public float Strike { get; set; } = 0.36f;
 
-    [Export(PropertyHint.Range, "0,1.5,0.005,suffix:s")]
-    public float Recovery { get; set; } = 0.22f;
+    [Export(PropertyHint.Range, "0,1.5,0.01,suffix:s")]
+    public float Recovery { get; set; } = 0.32f;
 
-    /// <summary>How wide the arm sweeps, from cocked out to the side across
-    /// the nose to follow-through on the other side.</summary>
-    [Export(PropertyHint.Range, "20,180,1,suffix:°")]
-    public float ArcDegrees { get; set; } = 140.0f;
+    [ExportGroup("Swing")]
+    /// <summary>How far the fist cocks up and back before the swing, in
+    /// degrees from hanging. Larger lifts the club higher.</summary>
+    [Export(PropertyHint.Range, "0,120,1,suffix:°")]
+    public float CockPitch { get; set; } = 75.0f;
+
+    /// <summary>How far the fist follows through forward and down, in degrees
+    /// past hanging. Larger reaches further in front of the feet.</summary>
+    [Export(PropertyHint.Range, "0,100,1,suffix:°")]
+    public float StrikePitch { get; set; } = 55.0f;
+
+    /// <summary>How far out to the arm's own side the cock sits.</summary>
+    [Export(PropertyHint.Range, "0,90,1,suffix:°")]
+    public float CockYaw { get; set; } = 40.0f;
+
+    /// <summary>How far past the nose the swing carries the fist.</summary>
+    [Export(PropertyHint.Range, "0,90,1,suffix:°")]
+    public float StrikeYaw { get; set; } = 28.0f;
 
     [ExportGroup("Reach")]
-    /// <summary>How far from the shoulder the furthest blast sits.</summary>
-    [Export(PropertyHint.Range, "0.5,12,0.1,suffix:m")]
-    public float Reach { get; set; } = 4.5f;
-
     /// <summary>Blast spheres laid along the arm, so the slash has a length
     /// rather than a point.</summary>
     [Export(PropertyHint.Range, "1,8,1")]
@@ -59,7 +70,7 @@ public partial class MechSlashStats : Resource
     public bool Alternate { get; set; } = true;
 
     [ExportGroup("On its own")]
-    /// <summary>It slashes a pickle this close instead of shooting it.</summary>
+    /// <summary>It slams a pickle this close instead of shooting it.</summary>
     [Export(PropertyHint.Range, "0,40,0.5,suffix:m")]
     public float AutoRange { get; set; } = 8.0f;
 

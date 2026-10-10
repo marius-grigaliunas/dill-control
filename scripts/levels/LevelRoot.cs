@@ -47,6 +47,10 @@ public partial class LevelRoot : Node3D
     [Export]
     public Marker3D PlayerSpawn { get; set; }
 
+    /// <summary>False in the ship: the player carries no weapons and no line until a contract is taken.</summary>
+    [Export]
+    public bool PlayerArmed { get; set; } = true;
+
     [ExportGroup("Loading")]
     /// <summary>Builds the level after it loads. Must implement <see cref="ILevelBuilder"/>. Empty spawns at once.</summary>
     [Export]
@@ -134,6 +138,7 @@ public partial class LevelRoot : Node3D
         Player = PlayerScene.Instantiate<Node3D>();
         PlayerSpawn.AddChild(Player);
         Player.GlobalTransform = PlayerSpawn.GlobalTransform;
+        (Player as PlayerController)?.SetArmed(PlayerArmed);
         EmitSignal(SignalName.PlayerSpawned, Player);
         WarmUpExplosionEffects();
     }

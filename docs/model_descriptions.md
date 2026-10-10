@@ -2,7 +2,7 @@
 
 *8 October 2026.* Every model the game needs, what it shows, and enough of a
 brief to start modelling it. The game is in `pitch.md`; how a model gets into
-the game is in `art/_source/README.md`. Strike an entry through when its wrapper
+the game is in `docs/art-to-game.md`. Strike an entry through when its wrapper
 scene is in the game.
 
 **Pipeline** says which tool: **Blender** (`.glb`, UV-mapped onto
@@ -37,7 +37,7 @@ blocks read better than small greebles.
 **Test crate.** A wooden or metal supply crate with a clearly marked front
 (a stencilled arrow or company logo on the `-Y` face) and a few palette
 colours. It exists to prove facing, scale and the palette mapping; see "The
-first test asset" in `art/_source/README.md`. Keep it afterwards as set
+first test asset" in `docs/art-to-game.md`. Keep it afterwards as set
 dressing.
 
 ---
@@ -190,7 +190,7 @@ hinges**:
   `BombBay` and `Seat`.
 
 The three mechs are Max Parata's (`credits.md`) and are already in. A new mech
-of our own follows the voxel half of `art/_source/README.md`.
+of our own follows `docs/art-to-game.md`.
 
 ---
 
