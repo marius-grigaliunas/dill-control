@@ -31,6 +31,15 @@ cannot find it; a weapon that named the horde would make every weapon depend
 on it. The horde listens and runs its own pass over the agents in the radius.
 The player listens for camera shake.
 
+**`ObstaclesChanged(centre, radius)`.** Emitted by a building's `VoxelPart`
+when its collision changes (shot through, crushed, collapsed), at most twice a
+second per part. The horde stamps what stands where into its flow field once,
+when it is built; a building that came down stayed blocked in it for good, and
+the pickles walked round a gap that was no longer there. A building cannot
+name the horde, and the horde cannot know every building. The `HordeDirector`
+listens and asks physics again for the flow cells in the radius. Loose pieces
+and rubble heaps do not count as obstacles there: they are walked over.
+
 ## What is not on it
 
 Anything parent-to-child or between siblings in one scene: those use local

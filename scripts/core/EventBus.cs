@@ -60,6 +60,20 @@ public partial class EventBus : Node
     [Signal]
     public delegate void AreaBlastEventHandler(BlastInfo blast);
 
+    /// <summary>
+    /// The collision of something that stands in the world (a building's
+    /// voxels) changed within <paramref name="radius"/> of
+    /// <paramref name="centre"/>: shot through, crushed, gone. Emitted by
+    /// <c>DillControl.Voxel.VoxelPart</c>, at most twice a second per part.
+    ///
+    /// The building cannot name its listener: the horde stamps what stands
+    /// where into its flow field once, at build, and without this the cells
+    /// of a building that has come down stayed blocked for good. Listened to
+    /// by the HordeDirector, which asks physics again there.
+    /// </summary>
+    [Signal]
+    public delegate void ObstaclesChangedEventHandler(Vector3 centre, float radius);
+
     public override void _EnterTree()
     {
         Instance = this;
@@ -93,6 +107,11 @@ public partial class EventBus : Node
     public static void EmitAreaBlast(BlastInfo blast)
     {
         Instance?.EmitSignal(SignalName.AreaBlast, blast);
+    }
+
+    public static void EmitObstaclesChanged(Vector3 centre, float radius)
+    {
+        Instance?.EmitSignal(SignalName.ObstaclesChanged, centre, radius);
     }
 }
 

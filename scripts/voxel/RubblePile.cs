@@ -232,12 +232,17 @@ public partial class RubblePile : Node3D, IDamageable, IBlastSurface
                 }
                 _tileDirty[t] = false;
                 // Rows run along +Z; the grid's y runs along -Z. Neighbouring
-                // tiles share their edge vertices.
+                // tiles share their edge vertices. Bare ground is a hole, not
+                // a floor at the heap's base: where the ground dipped below
+                // that base, a floor was an invisible shelf over the dip.
+                // Under Jolt a NaN height leaves out every quad touching it,
+                // so a column is a hole only when its neighbours are bare
+                // too, and the heap's edge still slopes down to the ground.
                 for (int j = 0; j <= Tile; j++)
                     for (int i = 0; i <= Tile; i++)
                     {
                         int x = Math.Min(tx * Tile + i, n - 1), y = Math.Min(ty * Tile + Tile - j, n - 1);
-                        _tileMap[i + (Tile + 1) * j] = _height[x + n * y];
+                        _tileMap[i + (Tile + 1) * j] = Bare(x, y) ? float.NaN : _height[x + n * y];
                     }
                 if (_tiles[t] == null)
                 {
@@ -261,24 +266,36 @@ public partial class RubblePile : Node3D, IDamageable, IBlastSurface
 
     private const int TilesPerTick = 4;
 
+    /// <summary>No rubble in this column or any next to it.</summary>
+    private bool Bare(int x, int y)
+    {
+        int n = _size.X;
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                int nx = x + dx, ny = y + dy;
+                if (nx >= 0 && ny >= 0 && nx < n && ny < n && _height[nx + n * ny] > 0)
+                {
+                    return false;
+                }
+            }
+        return true;
+    }
+
     /// <summary>Marks the tiles a column's height belongs to (shared edges
     /// included) for a refresh.</summary>
     private void Touch(int x, int y)
     {
-        int tx = x / Tile, ty = y / Tile;
-        _tileDirty[tx + _tileCount * ty] = true;
-        if (x % Tile == 0 && tx > 0)
-        {
-            _tileDirty[tx - 1 + _tileCount * ty] = true;
-        }
-        if (y % Tile == 0 && ty > 0)
-        {
-            _tileDirty[tx + _tileCount * (ty - 1)] = true;
-        }
-        if (x % Tile == 0 && y % Tile == 0 && tx > 0 && ty > 0)
-        {
-            _tileDirty[tx - 1 + _tileCount * (ty - 1)] = true;
-        }
+        // A tile's vertices are columns tx*Tile to tx*Tile+Tile, and a
+        // column decides its neighbours' holes too (Bare): every tile with a
+        // vertex within a column of this one.
+        int t0x = Math.Max(0, (x - 2) / Tile), t1x = Math.Min(_tileCount - 1, (x + 1) / Tile);
+        int t0y = Math.Max(0, (y - 2) / Tile), t1y = Math.Min(_tileCount - 1, (y + 1) / Tile);
+        for (int ty = t0y; ty <= t1y; ty++)
+            for (int tx = t0x; tx <= t1x; tx++)
+            {
+                _tileDirty[tx + _tileCount * ty] = true;
+            }
         _mapDirty = true;
     }
 
@@ -380,12 +397,16 @@ public partial class RubblePile : Node3D, IDamageable, IBlastSurface
     /// a settled piece leaves the loose-piece count without leaving the
     /// screen (VoxelDebris, past its cap).
     /// </summary>
-    public void Bake(VoxelGrid piece, Transform3D pieceTransform)
+    /// <returns>False, and nothing taken in, when more than a tenth of it
+    /// would fall outside the heap's grid (below its base, where the ground
+    /// dips, or past its edge): it would visibly lose those voxels.</returns>
+    public bool Bake(VoxelGrid piece, Transform3D pieceTransform)
     {
         float voxel = _grid.VoxelSize;
         Transform3D toPile = GlobalTransform.AffineInverse() * pieceTransform;
         _cells.Clear();
         Vector3I min = _size, max = Vector3I.Zero;
+        int outside = 0;
         for (int i = 0; i < piece.Cells.Length; i++)
         {
             byte colour = piece.Cells[i];
@@ -401,16 +422,27 @@ public partial class RubblePile : Node3D, IDamageable, IBlastSurface
                 Mathf.FloorToInt(local.Y));
             if (cell.X < 0 || cell.Y < 0 || cell.Z < 0 || cell.X >= _size.X || cell.Y >= _size.Y || cell.Z >= _size.Z)
             {
+                outside++;
                 continue;
             }
             _cells.Add((_grid.Index(cell.X, cell.Y, cell.Z), colour));
-            int column = cell.X + _size.X * cell.Y;
-            _height[column] = Math.Max(_height[column], cell.Z + 1);
-            Touch(cell.X, cell.Y);
             min = min.Min(cell);
             max = max.Max(cell);
         }
+        if (_cells.Count == 0 || outside * 10 > _cells.Count + outside)
+        {
+            _cells.Clear();
+            return false;
+        }
+        foreach ((int index, _) in _cells)
+        {
+            Vector3I cell = _grid.CellOf(index);
+            int column = cell.X + _size.X * cell.Y;
+            _height[column] = Math.Max(_height[column], cell.Z + 1);
+            Touch(cell.X, cell.Y);
+        }
         _part.Fill(_cells, min, max);
+        return true;
     }
 
     private static readonly (int, int)[] Neighbours = { (1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1) };

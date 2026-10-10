@@ -16,7 +16,7 @@ namespace DillControl.Horde;
 /// the line, the horde and the weapons -- and a heightfield is the planet's
 /// job when it arrives.
 /// </summary>
-public sealed class FlatGround : IHordeGround, IFlowGraph
+public sealed class FlatGround : IHordeGround, IFlowGraph, IObstacleGround
 {
     private static readonly int[] StepU = { 1, 1, 0, -1, -1, -1, 0, 1 };
     private static readonly int[] StepV = { 0, 1, 1, 1, 0, -1, -1, -1 };
@@ -160,4 +160,39 @@ public sealed class FlatGround : IHordeGround, IFlowGraph
 
     /// <summary>What counts as an obstacle: authored world geometry and props.</summary>
     public static uint ObstacleMask => GameLayers.Mask(GameLayers.World, GameLayers.Prop);
+
+    public int RestampObstacles(PhysicsDirectSpaceState3D space, FlowField flow, uint mask, Vector3 centre, float radius,
+                                System.Func<GodotObject, bool> blocks)
+    {
+        using PhysicsShapeQueryParameters3D query = ObstacleQuery.Box(CellSize, mask, out BoxShape3D box);
+        using (box)
+        {
+            int u0 = Mathf.Clamp((int)((centre.X - radius - _min.X) * _inverseCell), 0, GridSize - 1);
+            int u1 = Mathf.Clamp((int)((centre.X + radius - _min.X) * _inverseCell), 0, GridSize - 1);
+            int v0 = Mathf.Clamp((int)((centre.Z - radius - _min.Z) * _inverseCell), 0, GridSize - 1);
+            int v1 = Mathf.Clamp((int)((centre.Z + radius - _min.Z) * _inverseCell), 0, GridSize - 1);
+            float radiusSquared = radius * radius;
+            int changed = 0;
+            for (int v = v0; v <= v1; v++)
+                for (int u = u0; u <= u1; u++)
+                {
+                    int cell = (v * GridSize) + u;
+                    Vector3 at = CellCentre(cell);
+                    if (new Vector2(at.X - centre.X, at.Z - centre.Z).LengthSquared() > radiusSquared)
+                    {
+                        continue;
+                    }
+                    query.Transform = new Transform3D(Basis.Identity, at + new Vector3(0.0f, 1.3f, 0.0f));
+                    bool blocked = ObstacleQuery.Blocked(space, query, blocks);
+                    bool was = flow.BaseWeightAt(cell) == FlowField.Blocked;
+                    if (blocked != was)
+                    {
+                        // The flats have no slope: free ground weighs one.
+                        flow.SetWeight(cell, blocked ? FlowField.Blocked : (byte)1);
+                        changed++;
+                    }
+                }
+            return changed;
+        }
+    }
 }

@@ -20,6 +20,20 @@ public static class VoxelBudget
     private static double _applied;
     private static bool _appliedAny;
     private static int _workers;
+    private static int _sectionsApplied;
+    private static int _boxesSet;
+
+    /// <summary>Voxel parts in the tree: buildings' parts, loose pieces' and heaps'.</summary>
+    public static int LiveParts;
+
+    /// <summary>Sections being re-meshed on worker threads now.</summary>
+    public static int BusyWorkers => System.Threading.Volatile.Read(ref _workers);
+
+    /// <summary>Sections handed to the renderer and the physics this frame.</summary>
+    public static int SectionsApplied => _frame == Engine.GetProcessFrames() ? _sectionsApplied : 0;
+
+    /// <summary>Collision boxes made this frame, every part together.</summary>
+    public static int BoxesSet => _frame == Engine.GetProcessFrames() ? _boxesSet : 0;
 
     private static void Roll()
     {
@@ -31,7 +45,23 @@ public static class VoxelBudget
             _blasts = 0;
             _applied = 0.0;
             _appliedAny = false;
+            _sectionsApplied = 0;
+            _boxesSet = 0;
         }
+    }
+
+    /// <summary>A section handed over, for the counts in a recording.</summary>
+    public static void CountApplied()
+    {
+        Roll();
+        _sectionsApplied++;
+    }
+
+    /// <summary>Boxes made, for the counts in a recording.</summary>
+    public static void CountBoxes(int boxes)
+    {
+        Roll();
+        _boxesSet += boxes;
     }
 
     /// <summary>A worker for one section's re-mesh, if one is free. Give it
@@ -159,6 +189,71 @@ public partial class VoxelDebris : Node3D
 
     public int ChunkCount => _chunks.Count;
 
+    private int _madeThisFrame;
+    private ulong _madeFrame;
+
+    /// <summary>What a <c>U</c> recording counts of destruction, every frame.
+    /// Registered when the first level readies, before anyone can press U.</summary>
+    private static void RegisterCounters()
+    {
+        PerfLog.Counter("chunks", () => Current?._chunks.Count ?? 0);
+        PerfLog.Counter("chunks_moving", () => Current?.CountMoving() ?? 0);
+        PerfLog.Counter("chunks_settled", () => Current?.CountSettled() ?? 0);
+        PerfLog.Counter("chunks_still", () => Current?.CountStill() ?? 0);
+        PerfLog.Counter("chunks_unbakeable", () => Current?.CountRefused() ?? 0);
+        PerfLog.Counter("chunk_queue", () => Current?._pending.Count ?? 0);
+        PerfLog.Counter("chunks_made", () => Current != null && Current._madeFrame == Engine.GetPhysicsFrames() ? Current._madeThisFrame : 0);
+        PerfLog.Counter("heaps", () => Current?._piles.Count ?? 0);
+        PerfLog.Counter("voxel_parts", () => VoxelBudget.LiveParts);
+        PerfLog.Counter("mesh_workers", () => VoxelBudget.BusyWorkers);
+        PerfLog.Counter("sections_applied", () => VoxelBudget.SectionsApplied);
+        PerfLog.Counter("boxes_set", () => VoxelBudget.BoxesSet);
+    }
+
+    private int CountMoving()
+    {
+        int moving = 0;
+        foreach (VoxelChunk chunk in _chunks)
+        {
+            if (!chunk.IsSettled && !chunk.Sleeping)
+            {
+                moving++;
+            }
+        }
+        return moving;
+    }
+
+    /// <summary>Lying still long enough to join a heap.</summary>
+    private int CountStill()
+    {
+        int still = 0;
+        foreach (VoxelChunk chunk in _chunks)
+        {
+            still += chunk.StillFor >= Stats.BakeAfterSeconds ? 1 : 0;
+        }
+        return still;
+    }
+
+    private int CountRefused()
+    {
+        int refused = 0;
+        foreach (VoxelChunk chunk in _chunks)
+        {
+            refused += chunk.BakeRefused ? 1 : 0;
+        }
+        return refused;
+    }
+
+    private int CountSettled()
+    {
+        int settled = 0;
+        foreach (VoxelChunk chunk in _chunks)
+        {
+            settled += chunk.IsSettled ? 1 : 0;
+        }
+        return settled;
+    }
+
     public override void _EnterTree()
     {
         Current = this;
@@ -179,6 +274,7 @@ public partial class VoxelDebris : Node3D
     public override void _Ready()
     {
         Stats ??= GD.Load<VoxelDestructionStats>(VoxelDestructionStats.DefaultPath);
+        RegisterCounters();
         _dust = new DustField { Name = "Dust" };
         AddChild(_dust);
         VoxelRehearsal.Run(this, Stats);
@@ -209,7 +305,7 @@ public partial class VoxelDebris : Node3D
         {
             VoxelChunk chunk = _chunks[k];
             if (chunk.StillFor < Stats.BakeAfterSeconds || chunk.IsHinged || chunk.VoxelCount > Stats.BakeMaxVoxels
-                || chunk.Grid == null || chunk.IsHeld)
+                || chunk.Grid == null || chunk.IsHeld || chunk.BakeRefused)
             {
                 continue;
             }
@@ -221,6 +317,8 @@ public partial class VoxelDebris : Node3D
             }
             else
             {
+                // Not again until it has moved (VoxelChunk clears it).
+                chunk.BakeRefused = true;
                 _chunks.Add(chunk);
             }
         }
@@ -413,6 +511,18 @@ public partial class VoxelDebris : Node3D
             }
         }
 
+        // At the cap with nothing lying still to give up, the smallest piece
+        // goes: if that is this one, it never becomes a body. Made and then
+        // dissolved in the same tick, a collapse's queue of three hundred
+        // cost a millisecond or two a piece for nothing.
+        if (p.Batch != null && _chunks.Count >= Stats.MaxChunks && !HasRestingChunk()
+            && p.Grid.SolidCount <= SmallestMoving())
+        {
+            DustInstead(p.Grid, p.Palette, p.Emission, p.Material, at.Origin, velocity);
+            p.Batch.One();
+            return null;
+        }
+
         // Placed before it is added: added first, it would enter the world at
         // the origin, inside whatever is there, and be moved after.
         VoxelChunk chunk = _spare.Count > 0 ? _spare.Pop() : NewChunk();
@@ -431,6 +541,9 @@ public partial class VoxelDebris : Node3D
         }
         _chunks.Add(chunk);
         p.Batch?.One();
+        ulong physicsFrame = Engine.GetPhysicsFrames();
+        _madeThisFrame = _madeFrame == physicsFrame ? _madeThisFrame + 1 : 1;
+        _madeFrame = physicsFrame;
 
         while (_chunks.Count > Stats.MaxChunks)
         {
@@ -443,19 +556,80 @@ public partial class VoxelDebris : Node3D
             _chunks.Remove(expendable);
             // Lying still, it joins the heap where it lies and stays on the
             // screen; only one still moving goes to dust.
-            if ((expendable.IsSettled || expendable.Sleeping) && Bake(expendable))
+            if ((expendable.IsSettled || expendable.Sleeping) && !expendable.BakeRefused && Bake(expendable))
             {
                 // Until the heap has drawn it: the heap's meshes come off the
                 // workers a few frames later.
                 expendable.RetireAfter(0.3f);
+                if (PerfLog.Recording)
+                {
+                    PerfLog.Event($"cap-baked {expendable.VoxelCount}v");
+                }
             }
             else
             {
+                if (PerfLog.Recording)
+                {
+                    PerfLog.Event($"cap-dissolved {expendable.VoxelCount}v");
+                }
                 expendable.Dissolve();
             }
         }
         return chunk;
     }
+
+    private bool HasRestingChunk()
+    {
+        foreach (VoxelChunk chunk in _chunks)
+        {
+            if (!chunk.IsHeld && (chunk.IsSettled || chunk.Sleeping))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int SmallestMoving()
+    {
+        int smallest = int.MaxValue;
+        foreach (VoxelChunk chunk in _chunks)
+        {
+            if (!chunk.IsHeld)
+            {
+                smallest = Math.Min(smallest, chunk.VoxelCount);
+            }
+        }
+        return smallest;
+    }
+
+    /// <summary>A piece there is no room for as a body: a cloud its size,
+    /// and its rubble share on the heap under it, so a collapse past the cap
+    /// still leaves its pile.</summary>
+    private void DustInstead(VoxelGrid grid, Color[] palette, float[] emission, Material material, Vector3 at,
+        Vector3 velocity)
+    {
+        Dust(at, WorldUp.At(at), velocity, AverageColour(grid, palette),
+            Mathf.Pow(grid.SolidCount, 1.0f / 3.0f) * grid.VoxelSize);
+        _sample.Clear();
+        int stride = Math.Max(1, grid.SolidCount / 48);
+        int seen = 0;
+        for (int i = 0; i < grid.Cells.Length; i++)
+        {
+            if (grid.Cells[i] != 0 && seen++ % stride == 0)
+            {
+                _sample.Add(grid.Cells[i]);
+            }
+        }
+        float across = Mathf.Pow(grid.SolidCount, 1.0f / 3.0f) * grid.VoxelSize * 0.5f;
+        LeaveRubble(at, across, grid.SolidCount, _sample, palette, emission, material, grid.VoxelSize);
+        if (PerfLog.Recording)
+        {
+            PerfLog.Event($"cap-dusted {grid.SolidCount}v");
+        }
+    }
+
+    private readonly List<byte> _sample = new();
 
     /// <summary>Hangs a chunk on a hinge: a joint about the hinge's axis to
     /// what is left of the building. The joint is not the chunk's child, so it
@@ -526,7 +700,7 @@ public partial class VoxelDebris : Node3D
     private bool Bake(VoxelChunk chunk)
     {
         VoxelGrid grid = chunk.Grid;
-        if (grid == null || grid.SolidCount == 0)
+        if (grid == null || grid.SolidCount == 0 || !RestsOnGround(chunk))
         {
             return false;
         }
@@ -548,15 +722,61 @@ public partial class VoxelDebris : Node3D
             {
                 return false;
             }
+            // Room for the pieces round it to join, rather than a heap of
+            // its own each: a collapse made forty, forty more parts to draw
+            // and to process. In voxels, so a mech's fine debris does not get
+            // a grid of millions of cells.
+            float room = Mathf.Min(Stats.RubbleReach, 48.0f * grid.VoxelSize);
+            float high = Mathf.Min(Stats.RubbleHeight, 48.0f * grid.VoxelSize);
             pile = new RubblePile { Name = "Rubble", Transform = GlobalTransform.AffineInverse() * WorldUp.StandingAt(ground) };
-            pile.Setup(chunk.Palette, chunk.Emission, chunk.Material, Stats, grid.VoxelSize, size + 2.0f,
-                Mathf.Max(size + 2.0f, Stats.RubbleHeight));
+            pile.Setup(chunk.Palette, chunk.Emission, chunk.Material, Stats, grid.VoxelSize,
+                Mathf.Max(size + 2.0f, room), Mathf.Max(size + 2.0f, high));
             AddChild(pile);
             _piles.Add(pile);
+            if (PerfLog.Recording)
+            {
+                PerfLog.Event($"heap-made #{_piles.Count}");
+            }
         }
-        pile.Bake(grid, chunk.GlobalTransform);
-        return true;
+        return pile.Bake(grid, chunk.GlobalTransform);
     }
+
+    /// <summary>
+    /// Whether a piece lies on the ground or on a heap, where it can join the
+    /// heap: not on a building's ledge, a mech, or another loose piece. A heap's
+    /// collision is a column from its base to its top voxel, so a piece baked
+    /// in where it lay on a ledge became an invisible pillar from the ground
+    /// up to it. One ray down from its middle to just under its lowest point.
+    /// </summary>
+    private bool RestsOnGround(VoxelChunk chunk)
+    {
+        PhysicsDirectSpaceState3D space = GetWorld3D()?.DirectSpaceState;
+        if (space == null || !chunk.Grid.SolidBounds(out Aabb local))
+        {
+            return false;
+        }
+        Vector3 at = chunk.GlobalTransform * local.GetCenter();
+        Vector3 up = WorldUp.At(at);
+        float below = 0.0f;
+        for (int k = 0; k < 8; k++)
+        {
+            below = Mathf.Max(below, (at - chunk.GlobalTransform * local.GetEndpoint(k)).Dot(up));
+        }
+        _ignore.Clear();
+        _ignore.Add(chunk.GetRid());
+        using var query = PhysicsRayQueryParameters3D.Create(at, at - up * (below + 1.5f),
+            GameLayers.Mask(GameLayers.World, GameLayers.Prop), _ignore);
+        Godot.Collections.Dictionary hit = space.IntersectRay(query);
+        if (hit.Count == 0)
+        {
+            return false;
+        }
+        GodotObject collider = hit["collider"].AsGodotObject();
+        // The ground and heaps are static bodies; so is a building's section.
+        return collider is StaticBody3D and not VoxelCollider;
+    }
+
+    private readonly Godot.Collections.Array<Rid> _ignore = new();
 
     /// <summary>The ground under a point: the first World hit straight down
     /// that is not a building, a loose piece or a heap.</summary>

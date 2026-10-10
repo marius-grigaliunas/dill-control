@@ -294,6 +294,20 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "1,600,1,suffix:s")]
     public float SettleSeconds { get; set; } = 20.0f;
 
+    /// <summary>Fastest a loose piece moves other than falling: up or
+    /// sideways. Blasts stacking on one piece threw it at 80 m/s, 600 m into
+    /// the sky, where it never came to rest. Above the gravity gun's throw
+    /// (42 m/s). 0 for no limit.</summary>
+    [Export(PropertyHint.Range, "0,200,1,suffix:m/s")]
+    public float MaxThrowSpeed { get; set; } = 45.0f;
+
+    /// <summary>Most boxes in a resting piece's collision. In flight a piece is
+    /// boxed coarsely (<see cref="MaxChunkBoxes"/>); once it lies still it is
+    /// re-boxed as finely as this allows, or a box spans every hole shot into
+    /// it and stops you where nothing is drawn.</summary>
+    [Export(PropertyHint.Range, "8,2000,1")]
+    public int RestingChunkBoxes { get; set; } = 256;
+
     [ExportGroup("Budget")]
     /// <summary>Edge of one re-meshed section, in voxels. A hit re-meshes the
     /// section it lands in, not the model.</summary>

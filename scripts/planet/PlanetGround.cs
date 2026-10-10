@@ -17,7 +17,7 @@ namespace DillControl.Planet;
 /// <see cref="IHordeGround"/>). Craters change heights on the main thread
 /// between ticks.
 /// </summary>
-public sealed class PlanetGround : IHordeGround, IFlowGraph
+public sealed class PlanetGround : IHordeGround, IFlowGraph, IObstacleGround
 {
     private const int DirectionCount = 8;
 
@@ -228,8 +228,7 @@ public sealed class PlanetGround : IHordeGround, IFlowGraph
     /// </summary>
     public void StampSlope(FlowField flow, float maxSlopeDegrees, Vector3 centre = default, float radius = 0.0f)
     {
-        float maxSlope = Mathf.DegToRad(maxSlopeDegrees);
-        float sampleArc = CellSize * 0.5f;
+        _maxSlope = Mathf.DegToRad(maxSlopeDegrees);
         Vector3 direction = centre.LengthSquared() > 0.0f ? centre.Normalized() : Vector3.Zero;
         float minDot = radius > 0.0f
             ? Mathf.Cos(Mathf.Min((radius / _heights.Radius) + (CellSize * 2.0f / _heights.Radius), Mathf.Pi))
@@ -243,15 +242,55 @@ public sealed class PlanetGround : IHordeGround, IFlowGraph
             }
 
             _cellCentre[cell] = _heights.SurfacePoint(_cellDirection[cell]);
-            float slope = _heights.SlopeAt(_cellDirection[cell], sampleArc);
-            if (slope >= maxSlope)
-            {
-                flow.SetWeight(cell, FlowField.Blocked);
-                continue;
-            }
+            flow.SetWeight(cell, SlopeWeight(cell));
+        }
+    }
 
-            float t = slope / maxSlope;
-            flow.SetWeight(cell, (byte)Mathf.Clamp(1 + Mathf.RoundToInt(t * t * (FlowField.MaxWeight - 1)), 1, FlowField.MaxWeight));
+    private float _maxSlope = Mathf.DegToRad(35.0f);
+
+    /// <summary>A cell's weight from its slope alone: dearer the steeper, a
+    /// wall past the steepest the horde climbs.</summary>
+    private byte SlopeWeight(int cell)
+    {
+        float slope = _heights.SlopeAt(_cellDirection[cell], CellSize * 0.5f);
+        if (slope >= _maxSlope)
+        {
+            return FlowField.Blocked;
+        }
+        float t = slope / _maxSlope;
+        return (byte)Mathf.Clamp(1 + Mathf.RoundToInt(t * t * (FlowField.MaxWeight - 1)), 1, FlowField.MaxWeight);
+    }
+
+    public int RestampObstacles(PhysicsDirectSpaceState3D space, FlowField flow, uint mask, Vector3 centre, float radius,
+                                System.Func<GodotObject, bool> blocks)
+    {
+        using PhysicsShapeQueryParameters3D query = ObstacleQuery.Box(CellSize, mask, out BoxShape3D box);
+        using (box)
+        {
+            // The terrain is never an obstacle: StampObstacles excludes its
+            // colliders, and here they are passed over by type.
+            bool Blocks(GodotObject collider) => collider is not PlanetChunk && blocks(collider);
+            float minDot = Mathf.Cos(Mathf.Min((radius + CellSize) / _heights.Radius, Mathf.Pi));
+            Vector3 direction = centre.Normalized();
+            int changed = 0;
+            for (int cell = 0; cell < CellCount; cell++)
+            {
+                if (_cellDirection[cell].Dot(direction) < minDot)
+                {
+                    continue;
+                }
+                Vector3 up = _cellDirection[cell];
+                query.Transform = new Transform3D(PlanetHeightfield.UprightBasis(up, Vector3.Forward), _cellCentre[cell] + (up * 1.3f));
+                bool blocked = ObstacleQuery.Blocked(space, query, Blocks);
+                if (blocked == _obstacle[cell])
+                {
+                    continue;
+                }
+                _obstacle[cell] = blocked;
+                flow.SetWeight(cell, blocked ? FlowField.Blocked : SlopeWeight(cell));
+                changed++;
+            }
+            return changed;
         }
     }
 

@@ -186,10 +186,19 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
                 return;
             }
         }
+        if (!IsHeld && LimitThrow(ref velocity))
+        {
+            LinearVelocity = velocity;
+        }
         _lastVelocity = velocity;
         _lastSpin = AngularVelocity;
 
         _still = !IsHeld && (Sleeping || velocity.LengthSquared() < 0.01f) ? _still + dt : 0.0f;
+        if (_still <= 0.0f)
+        {
+            // Moved: where it comes to rest next may be the ground.
+            BakeRefused = false;
+        }
         if (!IsSettled && _still > _stats.SettleSeconds)
         {
             // Rubble now: no simulation, still breakable.
@@ -197,6 +206,84 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             FreezeMode = FreezeModeEnum.Static;
             Freeze = true;
         }
+        Refine();
+    }
+
+    /// <summary>Caps how fast it goes up or sideways (falling is left
+    /// alone). True when it was over.</summary>
+    private bool LimitThrow(ref Vector3 velocity)
+    {
+        float cap = _stats.MaxThrowSpeed;
+        if (cap <= 0.0f || velocity.LengthSquared() <= cap * cap)
+        {
+            return false;
+        }
+        Vector3 up = WorldUp.At(GlobalPosition);
+        float down = Mathf.Min(0.0f, velocity.Dot(up));
+        Vector3 rest = velocity - up * down;
+        if (rest.LengthSquared() <= cap * cap)
+        {
+            return false;
+        }
+        velocity = rest.Normalized() * cap + up * down;
+        return true;
+    }
+
+    /// <summary>Set by <see cref="VoxelDebris"/> when it would not join a heap
+    /// where it lies (on a ledge, on another piece); cleared when it moves.</summary>
+    public bool BakeRefused { get; set; }
+
+    private bool _refined;
+    private System.Threading.Tasks.Task<int> _refine;
+
+    /// <summary>
+    /// Once it has lain still a moment and was not taken into a heap, its
+    /// collision is re-boxed as finely as <see cref="VoxelDestructionStats.RestingChunkBoxes"/>
+    /// allows. It flew with boxes up to 8 voxels across (4 m on a building),
+    /// each the size of whatever voxels were left in it, so a hole shot through
+    /// a fallen piece still stopped you. The step is worked out on a worker
+    /// from a copy of its cells; the re-boxing goes to the workers like any.
+    /// </summary>
+    private void Refine()
+    {
+        if (_refine != null && _refine.IsCompleted)
+        {
+            if (_refine.IsCompletedSuccessfully && _part != null && _refine.Result < _part.CollisionStep)
+            {
+                if (PerfLog.Recording)
+                {
+                    PerfLog.Event($"refine {VoxelCount}v step {_part.CollisionStep}->{_refine.Result}");
+                }
+                _part.Rebox(_refine.Result);
+            }
+            _refine = null;
+        }
+        if (_refined || _part == null || IsHeld || _part.CollisionStep <= 1
+            || _still < _stats.BakeAfterSeconds + 0.5f || _grid.SolidCount == 0)
+        {
+            return;
+        }
+        _refined = true;
+        var copy = new VoxelGrid(_grid.Size, (byte[])_grid.Cells.Clone(), _grid.Origin, _grid.VoxelSize);
+        int max = _stats.RestingChunkBoxes, from = _part.CollisionStep;
+        _refine = System.Threading.Tasks.Task.Run(() => FinestStep(copy, max, from));
+    }
+
+    /// <summary>The finest step below <paramref name="from"/> whose boxes
+    /// stay within <paramref name="maxBoxes"/>; <paramref name="from"/> if none.</summary>
+    private static int FinestStep(VoxelGrid grid, int maxBoxes, int from)
+    {
+        var boxes = new List<(Vector3, Vector3)>();
+        for (int step = 1; step < from; step *= 2)
+        {
+            boxes.Clear();
+            grid.Boxes(Vector3I.Zero, grid.Size, step, boxes);
+            if (boxes.Count <= maxBoxes)
+            {
+                return step;
+            }
+        }
+        return from;
     }
 
     public override void _ExitTree()
@@ -349,6 +436,10 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         {
             return false;
         }
+        if (PerfLog.Recording)
+        {
+            PerfLog.Event($"crush-through {VoxelCount}v crushed={crushed}v building={(under != null ? under.Name : "none")}");
+        }
         Aftermath(centre, normal, footprint, crushed);
         // The building it lands on has had its slab: the blast is for what
         // is under it (VoxelBody.Ignores).
@@ -450,6 +541,10 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
     private void Break(Vector3 velocity)
     {
         _breaking = true;
+        if (PerfLog.Recording)
+        {
+            PerfLog.Event($"landed-break {VoxelCount}v at {velocity.Length():F0}m/s");
+        }
         var normal = new Vector3((float)GD.RandRange(-1, 1), (float)GD.RandRange(-1, 1), (float)GD.RandRange(-1, 1));
         if (normal.LengthSquared() < 0.01f)
         {
@@ -545,6 +640,9 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         _hangSoon = null;
         _hingeAge = 0.0f;
         _hingeDust = 0.0f;
+        _refined = false;
+        _refine = null;
+        BakeRefused = false;
         IsSettled = false;
         IsHeld = false;
         Freeze = false;

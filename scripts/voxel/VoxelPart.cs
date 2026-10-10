@@ -113,6 +113,8 @@ public partial class VoxelPart : Node3D
     private MeshInstance3D[] _meshes;
     private List<uint>[] _shapeOwners;
     private CollisionObject3D[] _sectionBodies;
+    private int[] _boxCount;
+    private bool[] _boxDirty;
 
     // Box shapes by size, in millimetres: shared by every body that needs one
     // that size, so re-boxing a section makes no new resources.
@@ -164,6 +166,12 @@ public partial class VoxelPart : Node3D
         int layers = Grid.Size.Z;
         _builtCount = new int[layers];
         _builtHalf = new float[layers];
+        if (Grid.SolidCount == 0)
+        {
+            // A rubble heap starts empty: nothing was built to carry anything,
+            // and scanning its whole grid for nothing cost a new heap 2-5 ms.
+            return;
+        }
         var min = new Vector2I[layers];
         var max = new Vector2I[layers];
         for (int z = 0; z < layers; z++)
@@ -192,6 +200,10 @@ public partial class VoxelPart : Node3D
         }
     }
 
+    public override void _EnterTree() => VoxelBudget.LiveParts++;
+
+    public override void _ExitTree() => VoxelBudget.LiveParts--;
+
     public override void _Ready()
     {
         if (Grid == null)
@@ -205,6 +217,8 @@ public partial class VoxelPart : Node3D
         int sections = _sectionCount.X * _sectionCount.Y * _sectionCount.Z;
         _meshes = new MeshInstance3D[sections];
         _shapeOwners = new List<uint>[sections];
+        _boxCount = new int[sections];
+        _boxDirty = new bool[sections];
         _meshDirty = new bool[sections];
         _version = new int[sections];
         _inFlight = new bool[sections];
@@ -256,6 +270,9 @@ public partial class VoxelPart : Node3D
         }
         _adopt = null;
         _build = null;
+        // From here on a building's changes reach the horde's map of what
+        // stands where; its first build is what the map was made from.
+        _reportObstacles = SectionBody != null;
     }
 
     private ChunkBuild _build;
@@ -521,11 +538,13 @@ public partial class VoxelPart : Node3D
         {
             return;
         }
-        foreach (CollisionObject3D body in _sectionBodies)
+        for (int s = 0; s < _sectionBodies.Length; s++)
         {
-            if (body != null)
+            if (_sectionBodies[s] != null)
             {
-                PhysicsServer3D.BodyClearShapes(body.GetRid());
+                PhysicsServer3D.BodyClearShapes(_sectionBodies[s].GetRid());
+                _boxCount[s] = 0;
+                NoteObstacle(s);
             }
         }
     }
@@ -539,6 +558,7 @@ public partial class VoxelPart : Node3D
             return;
         }
 
+        ReportObstacles(delta);
         if (_plan != null && _plan.IsCompleted)
         {
             FinishPlan();
@@ -580,15 +600,25 @@ public partial class VoxelPart : Node3D
                 continue;
             }
             long start = Stopwatch.GetTimestamp();
+            int vertices = job.Mesh?.VertexCount ?? 0;
             using (FrameProfiler.Begin(SectionApply))
             {
                 if (job.WithMesh)
                 {
                     SetMesh(job.Section, job.Mesh);
                 }
+                long meshed = Stopwatch.GetTimestamp();
                 if (job.Boxes != null)
                 {
                     SetBoxes(job.Section, job.Boxes);
+                }
+                long end = Stopwatch.GetTimestamp();
+                VoxelBudget.CountApplied();
+                double ms = (end - start) * 1000.0 / Stopwatch.Frequency;
+                if (ms > 3.0 && PerfLog.Recording)
+                {
+                    PerfLog.Event(System.FormattableString.Invariant(
+                        $"slow-apply {OwnerName()} s{job.Section} {ms:F1}ms mesh={(meshed - start) * 1000.0 / Stopwatch.Frequency:F1}ms/{vertices}v boxes={(end - meshed) * 1000.0 / Stopwatch.Frequency:F1}ms/{job.Boxes?.Count ?? 0} on {CollisionKind()}"));
                 }
             }
             VoxelBudget.Spent((Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency);
@@ -601,7 +631,7 @@ public partial class VoxelPart : Node3D
         bool remaining = false;
         for (int s = 0; s < _meshDirty.Length; s++)
         {
-            if (!_meshDirty[s])
+            if (!_meshDirty[s] && !_boxDirty[s])
             {
                 continue;
             }
@@ -610,10 +640,91 @@ public partial class VoxelPart : Node3D
                 remaining = true;
                 continue;
             }
+            bool mesh = _meshDirty[s];
             _meshDirty[s] = false;
-            Submit(s, mesh: true);
+            _boxDirty[s] = false;
+            Submit(s, mesh);
         }
         _anyDirty = remaining;
+    }
+
+    /// <summary>For a recording's events: what this part belongs to.</summary>
+    private string OwnerName() => GetParent()?.Name ?? Name;
+
+    private string CollisionKind() =>
+        CollisionOwner != null ? $"body({CollisionOwner.GetShapeOwners().Length} owners)" : SectionBody != null ? "section body" : "none";
+
+    private float _obstacleTimer;
+
+    /// <summary>A building's footprint changed: the horde's map of what
+    /// stands where is asked again there, at most twice a second per part.</summary>
+    private void ReportObstacles(double delta)
+    {
+        if (!_obstacleDirty)
+        {
+            return;
+        }
+        _obstacleTimer -= (float)delta;
+        if (_obstacleTimer > 0.0f)
+        {
+            return;
+        }
+        _obstacleTimer = 0.5f;
+        _obstacleDirty = false;
+        // How far it reaches across the ground, not up: a tower's height
+        // would make the radius, and the cells asked again, ten times more.
+        Vector3 centre = ToGlobal(_obstacleBox.GetCenter());
+        Vector3 up = WorldUp.At(centre);
+        float radius = 0.0f;
+        for (int k = 0; k < 8; k++)
+        {
+            Vector3 d = ToGlobal(_obstacleBox.GetEndpoint(k)) - centre;
+            radius = Mathf.Max(radius, (d - up * d.Dot(up)).Length());
+        }
+        EventBus.EmitObstaclesChanged(centre, radius);
+    }
+
+    private bool _reportObstacles;
+    private bool _obstacleDirty;
+    private Aabb _obstacleBox;
+
+    /// <summary>A section's collision changed: its box joins what the horde
+    /// is told about next.</summary>
+    private void NoteObstacle(int s)
+    {
+        if (!_reportObstacles)
+        {
+            return;
+        }
+        (Vector3I min, Vector3I max) = SectionBounds(s);
+        Vector3 a = VoxSpace.ToGodot(new Vector3(min.X, min.Y, min.Z) - Grid.Origin) * Grid.VoxelSize;
+        Vector3 b = VoxSpace.ToGodot(new Vector3(max.X, max.Y, max.Z) - Grid.Origin) * Grid.VoxelSize;
+        var box = new Aabb(a.Min(b), (a - b).Abs());
+        _obstacleBox = _obstacleDirty ? _obstacleBox.Merge(box) : box;
+        _obstacleDirty = true;
+    }
+
+    /// <summary>
+    /// Re-boxes every section's collision at a new step, on the workers like
+    /// any change. A loose piece flies with coarse boxes (cheap to simulate)
+    /// and is re-boxed finer once it lies still: coarse, a box spans every
+    /// hole shot into it, and the piece stops you where nothing is drawn.
+    /// </summary>
+    public void Rebox(int step)
+    {
+        if (_boxDirty == null || step == CollisionStep || IsEmpty)
+        {
+            return;
+        }
+        CollisionStep = step;
+        for (int s = 0; s < _boxDirty.Length; s++)
+        {
+            if (_boxCount[s] > 0)
+            {
+                _boxDirty[s] = true;
+                _anyDirty = true;
+            }
+        }
     }
 
     // ---------------- Structure ----------------
@@ -785,8 +896,18 @@ public partial class VoxelPart : Node3D
                 if (_version[s] == version)
                 {
                     SetMesh(s, mesh);
-                    _inFlight[s] = false;
                 }
+                else
+                {
+                    // Hit again while it waited: that hit marked it dirty, and
+                    // it is re-meshed with the rest.
+                    mesh?.Release();
+                }
+                // Free for the workers either way, unless one is on it now.
+                // Left set when the section had changed, it was never
+                // re-meshed or re-boxed again: its look and its collision
+                // stuck where they were, whatever was shot off it after.
+                _inFlight[s] = HasJob(s);
             }
             if (breakingUp)
             {
@@ -855,10 +976,27 @@ public partial class VoxelPart : Node3D
         {
             AudioDirector.PlayAt(Sfx.VoxelCollapse, pivot);
         }
+        if (PerfLog.Recording && (plan.Collapsed || plan.BreakingUp || plan.Pieces.Count > 0))
+        {
+            string what = plan.Collapsed ? "collapse" : plan.BreakingUp ? "break-up" : "split";
+            PerfLog.Event($"{what} {OwnerName()} pieces={plan.Pieces.Count} dust={plan.Dust.Count}v sections={plan.Sections.Count}");
+        }
         if (batch.Remaining <= 0)
         {
             batch.Finish();
         }
+    }
+
+    private bool HasJob(int s)
+    {
+        foreach (SectionJob job in _jobs)
+        {
+            if (job.Section == s)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>
@@ -1069,13 +1207,49 @@ public partial class VoxelPart : Node3D
         int edge = Math.Max(4, _stats.SectionEdge);
         Vector3I lo = (min - Vector3I.One).Clamp(Vector3I.Zero, Grid.Size - Vector3I.One) / edge;
         Vector3I hi = (max + Vector3I.One).Clamp(Vector3I.Zero, Grid.Size - Vector3I.One) / edge;
+        _now.Clear();
         for (int z = lo.Z; z <= hi.Z; z++)
             for (int y = lo.Y; y <= hi.Y; y++)
                 for (int x = lo.X; x <= hi.X; x++)
                 {
-                    RebuildCollision(x + _sectionCount.X * (y + _sectionCount.Y * z));
+                    _now.Add(x + _sectionCount.X * (y + _sectionCount.Y * z));
                 }
+        if (_now.Count == 1 && !PerfLog.Recording)
+        {
+            RebuildCollision(_now[0]);
+            return;
+        }
+
+        // A crush through a tower touches a dozen sections, and boxing them
+        // one after another on this thread cost a landing 15-20 ms. The boxes
+        // are worked out side by side (the grid is only read meanwhile) and
+        // handed to the physics here, in order.
+        using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionCollision);
+        long start = Stopwatch.GetTimestamp();
+        var boxes = new List<(Vector3 centre, Vector3 size)>[_now.Count];
+        int step = CollisionStep;
+        Parallel.For(0, _now.Count, k =>
+        {
+            (Vector3I from, Vector3I to) = SectionBounds(_now[k]);
+            boxes[k] = new List<(Vector3, Vector3)>();
+            Grid.Boxes(from, to, step, boxes[k]);
+        });
+        long boxed = Stopwatch.GetTimestamp();
+        int total = 0;
+        for (int k = 0; k < _now.Count; k++)
+        {
+            SetBoxes(_now[k], boxes[k]);
+            total += boxes[k].Count;
+        }
+        long end = Stopwatch.GetTimestamp();
+        if (PerfLog.Recording && (end - start) * 1000.0 / Stopwatch.Frequency > 3.0)
+        {
+            PerfLog.Event(System.FormattableString.Invariant(
+                $"slow-rebox {OwnerName()} sections={_now.Count} boxes={total} step={step} boxing={(boxed - start) * 1000.0 / Stopwatch.Frequency:F1}ms handing={(end - boxed) * 1000.0 / Stopwatch.Frequency:F1}ms on {CollisionKind()}"));
+        }
     }
+
+    private readonly List<int> _now = new();
 
     private (Vector3I min, Vector3I max) SectionBounds(int s)
     {
@@ -1145,6 +1319,8 @@ public partial class VoxelPart : Node3D
         {
             return;
         }
+        _boxCount[s] = boxes.Count;
+        VoxelBudget.CountBoxes(boxes.Count);
         if (CollisionOwner == null)
         {
             // A section's own body: its shapes straight on the server, no
@@ -1154,6 +1330,7 @@ public partial class VoxelPart : Node3D
             {
                 return;
             }
+            NoteObstacle(s);
             Rid rid = body.GetRid();
             PhysicsServer3D.BodyClearShapes(rid);
             foreach ((Vector3 centre, Vector3 size) in boxes)

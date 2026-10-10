@@ -60,6 +60,9 @@ public static class JitWarmup
                     prepared += Prepare(constructor);
                 }
             }
+            // The library's own parallel loop is not ours to prepare: run it
+            // once. Its first use, re-boxing a crushed building, cost 7 ms.
+            System.Threading.Tasks.Parallel.For(0, 4, _ => { });
             GD.Print($"[jit] warmed {prepared} methods in {Time.GetTicksMsec() - start} ms");
         })
         {

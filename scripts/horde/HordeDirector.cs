@@ -97,7 +97,15 @@ public partial class HordeDirector : Node3D
             return;
         }
 
-        _sectionFlow = FrameProfiler.Section("flow build [worker]");
+        _sectionFlow = FrameProfiler.Section("flow build [worker]", background: true);
+        _sectionRestamp = FrameProfiler.Section("horde restamp");
+        PerfLog.Counter("horde_agents", () => Manager?.AgentCount ?? 0);
+        PerfLog.Counter("horde_drawn", () => Manager?.VisibleAgentCount ?? 0);
+        PerfLog.Counter("horde_stepped", () => Manager?.SteppedCount ?? 0);
+        if (EventBus.Instance != null)
+        {
+            EventBus.Instance.ObstaclesChanged += OnObstaclesChanged;
+        }
 
         Manager = new HordeManager { Name = "Manager" };
         AddChild(Manager);
@@ -129,6 +137,52 @@ public partial class HordeDirector : Node3D
         if (Level != null)
         {
             Level.PlayerSpawned -= OnPlayerSpawned;
+        }
+        if (EventBus.Instance != null)
+        {
+            EventBus.Instance.ObstaclesChanged -= OnObstaclesChanged;
+        }
+    }
+
+    private int _sectionRestamp;
+    private readonly System.Collections.Generic.Queue<(Vector3 centre, float radius)> _restamps = new();
+
+    /// <summary>
+    /// Something that stood in the way has changed (a building shot through
+    /// or brought down; see EventBus.ObstaclesChanged): its cells are asked
+    /// again, one region a frame, before the next flow build reads them.
+    /// Stamped once at build and never again, a fallen tower's footprint
+    /// stayed a wall the pickles walked round.
+    /// </summary>
+    private void OnObstaclesChanged(Vector3 centre, float radius)
+    {
+        foreach ((Vector3 c, float r) in _restamps)
+        {
+            if (c.DistanceTo(centre) + radius <= r)
+            {
+                return;
+            }
+        }
+        _restamps.Enqueue((centre, radius));
+    }
+
+    /// <summary>Loose pieces and rubble heaps are walked over, not round.</summary>
+    private static bool Blocks(GodotObject collider) =>
+        collider is not (Voxel.VoxelChunk or Voxel.RubbleCollider);
+
+    private void Restamp()
+    {
+        if (_restamps.Count == 0 || Ground is not IObstacleGround ground)
+        {
+            return;
+        }
+        using FrameProfiler.Scope scope = FrameProfiler.Begin(_sectionRestamp);
+        (Vector3 centre, float radius) = _restamps.Dequeue();
+        int changed = ground.RestampObstacles(GetWorld3D().DirectSpaceState, Flow, FlatGround.ObstacleMask, centre,
+            radius + Ground.CellSize, Blocks);
+        if (changed > 0 && PerfLog.Recording)
+        {
+            PerfLog.Event(System.FormattableString.Invariant($"horde-restamp r={radius:F0}m changed={changed}"));
         }
     }
 
@@ -214,6 +268,7 @@ public partial class HordeDirector : Node3D
 
         float dt = (float)delta;
         PushStats();
+        Restamp();
         TickFlow(dt);
 
         Manager.SeedMinRadius = Seed(out Vector3 centre, out float radius);

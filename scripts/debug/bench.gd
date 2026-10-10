@@ -284,7 +284,7 @@ const COLLAPSE_TIMELINE := [
 # With "quiet" there are no screenshots and no status lines, and every frame
 # from before the cut to the end is recorded to perflogs/ (PerfRecorder): the
 # run to read worst frames and the cause of each from.
-static func _cut_timeline(method: String, shot: String, quiet: bool) -> Array:
+static func _cut_timeline(method: String, shot: String, quiet: bool, seconds := 13.0) -> Array:
 	var status := "!call:VoxelDebris:PrintBenchStatus"
 	var timeline := [
 		["hold the horde off", ([] if quiet else ["@status"]) + ["!set:Horde:Stats:HuntSeedMinRadius=400.0",
@@ -295,7 +295,7 @@ static func _cut_timeline(method: String, shot: String, quiet: bool) -> Array:
 	if quiet:
 		# One silent phase: a console line costs the frame it is printed in
 		# 15-40 ms on Windows, which is the very hitch being looked for.
-		timeline.append(["falling", [], [], 13.0])
+		timeline.append(["falling", [], [], seconds])
 		timeline.append(["stop", ["!call:PerfRecorder:Stop", "!loud", status], [], 0.3])
 		return timeline
 	for i in 16:
@@ -594,8 +594,10 @@ func _initialize() -> void:
 		"wreck": _timeline = WRECK_TIMELINE
 		"mechwreck": _timeline = MECHWRECK_TIMELINE
 		"collapse": _timeline = COLLAPSE_TIMELINE
-		"cut": _timeline = _cut_timeline("BenchCutThrough", "cut", args.size() > 2 and args[2] == "quiet")
-		"cutside": _timeline = _cut_timeline("BenchCutSide", "cutside", args.size() > 2 and args[2] == "quiet")
+		"cut": _timeline = _cut_timeline("BenchCutThrough", "cut", args.size() > 2 and args[2] == "quiet",
+			float(args[3]) if args.size() > 3 else 13.0)
+		"cutside": _timeline = _cut_timeline("BenchCutSide", "cutside", args.size() > 2 and args[2] == "quiet",
+			float(args[3]) if args.size() > 3 else 13.0)
 		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)
