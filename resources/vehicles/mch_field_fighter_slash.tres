@@ -1,22 +1,15 @@
-[gd_resource type="Resource" script_class="MechSlashStats" format=3]
+[gd_resource type="Resource" script_class="MechSlashStats" format=3 uid="uid://cryqvio26ywpr"]
 
-[ext_resource type="Script" path="res://scripts/vehicles/MechSlashStats.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://chdp8534hqwqi" path="res://scripts/vehicles/MechSlashStats.cs" id="1_script"]
 
 [resource]
 resource_name = "FieldFighterSlash"
 script = ExtResource("1_script")
-Damage = 80.0
 Windup = 0.28
 Strike = 0.36
 Recovery = 0.32
-CockPitch = 75.0
-StrikePitch = 55.0
-CockYaw = 40.0
-StrikeYaw = 28.0
-Spheres = 3
 SphereRadius = 1.7
 Knockback = 14.0
 ComboWindow = 0.35
-Alternate = true
 AutoRange = 5.5
 AutoConeDegrees = 75.0

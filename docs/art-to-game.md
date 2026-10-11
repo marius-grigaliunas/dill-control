@@ -244,7 +244,7 @@ code.** What makes a model break is one node in its wrapper: a `Node` named
 | `VoxelBody` export | Set to |
 |---|---|
 | `Model` | the instanced `.vox` |
-| `Stats` | empty for the default (`voxel_destruction_default.tres`); `voxel_destruction_mech.tres` for armoured things |
+| `Stats` | empty for the default (`voxel_destruction_default.tres`); `voxel_destruction_mech.tres` for armoured things; `voxel_destruction_tree.tres` for trees and anything else that hangs off its base |
 | `Static` | **on** for a building or prop |
 | `Hinged` | for a moving thing: the parts that hang from their pivot voxel |
 
@@ -296,10 +296,23 @@ small script on the wrapper's root body when the first such prop is needed.
 Every number is in `resources/voxel/voxel_destruction_default.tres` (carving,
 structure, collapse, fracture, loose pieces, budgets), documented field by
 field in `VoxelDestructionStats.cs`. Armour (`Armour`, `MinCarveDamage`,
-`CarveVolumePerDamage`) is in `voxel_destruction_mech.tres`. **Changing the
-default changes every voxel thing in the game, which is intended.** A third
-`.tres` for one model breaks "everything breaks the same way" and needs a
-decision record.
+`CarveVolumePerDamage`) is in `voxel_destruction_mech.tres`. Trees use
+`voxel_destruction_tree.tres`, which turns the weight check off
+(`MinSupportFraction = 0`): a tree's canopy hangs off its trunk, and the
+building check cut every tree down at the first hit (0024). **Changing the
+default changes every voxel thing in the game, which is intended.** Another
+`.tres` breaks "everything breaks the same way" and needs a decision record.
+
+A model's own `.tres` reaches only how that model splits: carving, structure,
+collapse, fracture and section size. Loose pieces always use the default, and
+so do the per-frame budgets, which are world-wide. Density or settle time in a
+model's `.tres` does nothing.
+
+**Anything that hangs off its own base** (a tree, a leaning rock, an arch) fails
+the building check before it is ever hit: the check counts a load off the
+layer's centre against it, and the first hit anywhere brings it down from
+the lowest layer that fails. Give it the tree resource (0024 says how it
+fails).
 
 ---
 

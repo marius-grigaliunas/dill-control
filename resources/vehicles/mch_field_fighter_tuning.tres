@@ -34,7 +34,6 @@ ArmSwingFollow = 0.1
 ArmRaiseSeconds = 0.15
 ArmAimHoldSeconds = 0.6
 ArmReadyFraction = 0.8
-ArmAimMaxYawDegrees = 70.0
 HordeDamageScale = 0.2
 StompDamage = 90.0
 StompRadius = 1.2

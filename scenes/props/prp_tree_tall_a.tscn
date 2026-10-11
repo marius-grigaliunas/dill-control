@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://j3nja030bqkb"]
+
+[ext_resource type="Script" uid="uid://csjy6ff4bwc1m" path="res://scripts/voxel/VoxelBody.cs" id="2_voxels"]
+[ext_resource type="PackedScene" uid="uid://ddcb15nkarpub" path="res://art/voxels/prp_tree_tall_a.vox" id="2_yc0yj"]
+[ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_tree.tres" id="3_tree"]
+
+[node name="prp_tree_tall_a" type="Node3D" unique_id=174060837]
+
+[node name="Voxels" type="Node" parent="." unique_id=1790007313 node_paths=PackedStringArray("Model")]
+script = ExtResource("2_voxels")
+Model = NodePath("../Model")
+Stats = ExtResource("3_tree")
+Static = true
+
+[node name="Model" parent="." unique_id=374371308 instance=ExtResource("2_yc0yj")]

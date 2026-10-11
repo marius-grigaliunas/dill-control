@@ -165,7 +165,10 @@ animated by code, never clips: `docs/decisions/0010`.
 `VoxelBody` in its wrapper (static for buildings, hinged parts for mechs). No
 voxel thing gets damage code of its own; its numbers are in
 `resources/voxel/voxel_destruction_default.tres`, or for armoured things
-(mechs) `voxel_destruction_mech.tres`. Buildings carry their own weight
+(mechs) `voxel_destruction_mech.tres`, or for trees `voxel_destruction_tree.tres`
+(no weight check: only what is cut free falls, `docs/decisions/0024`). A stats
+resource sets how its own model splits; loose pieces and every budget always
+use the default. Buildings carry their own weight
 (`docs/decisions/0013`); what comes loose falls whole, crushes through storey
 by storey, hangs on a hinge when it went on one side, and snaps where it lands
 (`docs/decisions/0014`).
@@ -210,6 +213,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut       # a tower cut through: drops whole, crushes down
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cutside   # cut on one side: leans, tears, topples
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet # the same, every frame recorded
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn tree quiet # rockets into a tree's canopy, then its trunk cut
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet 40  # recorded for 40 s: does the debris drain?
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn gpuab     # what each part of the view costs the GPU
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn siege 25000  # crowd vs player and allies

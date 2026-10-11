@@ -28,11 +28,11 @@ extends SceneTree
 # Measurement starts when the scene stops changing, not on a clock. In the lab a
 # fixed warm-up silently measured a half-built planet whenever the machine was
 # busy; waiting for the draw count to hold still removed that.
-const SETTLE_TOLERANCE := 0.06   # fractional drift allowed in the draw count
-const SETTLE_HOLD := 2.0         # seconds it has to stay within that
-const SETTLE_MIN := 6.0          # never measure before this
-const WARMUP_MAX := 40.0         # give up and measure anyway
-const STEP := 4.0                # default phase length
+const SETTLE_TOLERANCE := 0.06 # fractional drift allowed in the draw count
+const SETTLE_HOLD := 2.0 # seconds it has to stay within that
+const SETTLE_MIN := 6.0 # never measure before this
+const WARMUP_MAX := 40.0 # give up and measure anyway
+const STEP := 4.0 # default phase length
 const BUDGET := 1.0 / 60.0
 const PULSE_SECONDS := 0.15
 
@@ -315,6 +315,35 @@ static func _cut_timeline(method: String, shot: String, quiet: bool, seconds := 
 	timeline.append(["holding shot", ["#%s_grab" % shot, status], ["fire"], 0.3])
 	timeline.append(["throw", [], [], 1.2])
 	timeline.append(["thrown shot", ["#%s_thrown" % shot, status], [], 0.3])
+	return timeline
+
+# A tall tree (voxel_destruction_tree.tres): rockets into the canopy, where
+# only what is shot free should fall, then a slit 2 m up the trunk, and the
+# whole tree comes down and snaps where it lands. Watched from about 60 m.
+# "quiet" records every frame from the first rocket and prints nothing.
+static func _tree_timeline(quiet: bool) -> Array:
+	var status := "!call:VoxelDebris:PrintBenchStatus"
+	var tree := "prp_tree_tall_a2"
+	var timeline := [
+		["hold the horde off", ([] if quiet else ["@status"]) + ["!set:Horde:Stats:HuntSeedMinRadius=400.0",
+			"!call:Horde:BenchReseed", "@goto:-40, 0.2, 120"], [], 2.0],
+		["look", ["@aim:%s:40" % tree, "slot_3"] + (["!call:PerfRecorder:Start", "!silent"] if quiet else []), [], 2.0],
+		["rockets at the canopy", ["@aim:%s:48" % tree], ["~fire"], 4.0],
+		["branches falling", [] if quiet else [status], [], 4.0],
+	]
+	if not quiet:
+		timeline.append(["canopy shot", ["#tree_canopy", status], [], 0.3])
+	timeline.append(["cut", ["@aim:%s:30" % tree, "!call:%s/Voxels:BenchCutThrough" % tree], [], 0.5])
+	if quiet:
+		timeline.append(["falling", [], [], 12.0])
+		timeline.append(["stop", ["!call:PerfRecorder:Stop", "!loud", status], [], 0.3])
+		return timeline
+	for i in 8:
+		timeline.append(["t+%.1f" % (0.5 + i * 1.0), [status], [], 1.0])
+		if i % 2 == 1:
+			timeline.append(["tree %d" % i, ["#tree_%02d" % i], [], 0.3])
+	timeline.append(["settling", [status], [], 4.0])
+	timeline.append(["settled shot", ["#tree_settled", status], [], 0.3])
 	return timeline
 
 # Airstrikes called on a tower as fast as the designator will take them, every
@@ -611,6 +640,7 @@ func _initialize() -> void:
 			float(args[3]) if args.size() > 3 else 13.0)
 		"cutside": _timeline = _cut_timeline("BenchCutSide", "cutside", args.size() > 2 and args[2] == "quiet",
 			float(args[3]) if args.size() > 3 else 13.0)
+		"tree": _timeline = _tree_timeline(args.size() > 2 and args[2] == "quiet")
 		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)

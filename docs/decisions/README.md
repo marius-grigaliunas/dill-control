@@ -34,3 +34,4 @@ Number them in order, `NNNN-short-title.md`.
 | [0021](0021-session-and-loading.md) | `Session`, a third autoload, carries the contract (state only); the contract level builds itself in stages behind its own loading screen and lets the player in once frames settle |
 | [0022](0022-destruction-that-recovers.md) | Destruction the machine recovers from: the cap decides before a body is made, heaps merge and have holes, only grounded pieces bake, resting pieces re-boxed finely, a throw-speed cap, buildings tell the horde |
 | [0023](0023-the-horde-keeps-house.md) | The horde keeps to its nest until provoked (aggro range, kills, a leash) and roams it rather than piling into one cell; on per contract tier |
+| [0024](0024-trees-hold-by-connection.md) | Trees hold by connection, not weight: `voxel_destruction_tree.tres` turns 0013's load check off; a stats resource reaches only how its own model splits |
