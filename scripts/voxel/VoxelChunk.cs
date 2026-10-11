@@ -43,6 +43,8 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
     private float _hingeDust;
     private float _hingeAge;
     private VoxelHinge? _hangSoon;
+    private bool _trails;
+    private float _trailDust;
 
     public bool IsSettled { get; private set; }
 
@@ -105,6 +107,8 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         Weigh();
         CanSleep = true;
         _heavy = volume >= _stats.FractureVolume;
+        _trails = _stats.TrailDustVolume > 0.0f && volume >= _stats.TrailDustVolume;
+        _trailDust = 0.0f;
         _halfLength = Mathf.Max(_grid.Size.X, Mathf.Max(_grid.Size.Y, _grid.Size.Z)) * _grid.VoxelSize * 0.5f;
         if (_heavy)
         {
@@ -192,8 +196,12 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         }
         _lastVelocity = velocity;
         _lastSpin = AngularVelocity;
+        if (_trails && !IsHeld && !IsSettled)
+        {
+            Trail(dt, velocity);
+        }
 
-        _still = !IsHeld && (Sleeping || velocity.LengthSquared() < 0.01f) ? _still + dt : 0.0f;
+        _still =!IsHeld && (Sleeping || velocity.LengthSquared() < 0.01f) ? _still + dt : 0.0f;
         if (_still <= 0.0f)
         {
             // Moved: where it comes to rest next may be the ground.
@@ -207,6 +215,39 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             Freeze = true;
         }
         Refine();
+    }
+
+    /// <summary>
+    /// A big piece falling sheds dust off its edges along its whole length,
+    /// left hanging behind it: whatever happens to it next (crushed, broken,
+    /// swapped for pieces) happens inside a cloud rather than with its ink
+    /// outline in clear air. On a side of its box at random, which is where
+    /// the outline is.
+    /// </summary>
+    private void Trail(float dt, Vector3 velocity)
+    {
+        _trailDust -= dt;
+        if (_trailDust > 0.0f || velocity.LengthSquared() < _stats.TrailDustSpeed * _stats.TrailDustSpeed
+            || VoxelDebris.Current == null || !_grid.SolidBounds(out Aabb box))
+        {
+            return;
+        }
+        _trailDust = _stats.TrailDustInterval;
+
+        int along = (int)box.Size.MaxAxisIndex();
+        int across = (along + 1) % 3, other = (along + 2) % 3;
+        Vector3 centre = box.GetCenter(), half = box.Size * 0.5f;
+        Color colour = VoxelDebris.AverageColour(_grid, _palette);
+        Vector3 up = WorldUp.At(GlobalPosition);
+        int points = _stats.TrailDustPoints;
+        for (int k = 0; k < points; k++)
+        {
+            Vector3 local = centre;
+            local[along] += half[along] * (points == 1 ? 0.0f : (2.0f * k / (points - 1) - 1.0f) * 0.9f);
+            local[across] += half[across] * (GD.Randf() < 0.5f ? -1.0f : 1.0f);
+            local[other] += half[other] * (float)GD.RandRange(-1.0, 1.0);
+            VoxelDebris.Current.Dust(ToGlobal(local), up, velocity * 0.2f, colour, _stats.TrailDustSize);
+        }
     }
 
     /// <summary>Caps how fast it goes up or sideways (falling is left
@@ -636,6 +677,8 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         _crushCooldown = 0.0f;
         _breaking = false;
         _heavy = false;
+        _trails = false;
+        _trailDust = 0.0f;
         _hinge = null;
         _hangSoon = null;
         _hingeAge = 0.0f;

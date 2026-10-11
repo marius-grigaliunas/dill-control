@@ -84,7 +84,10 @@ public partial class ContractBoard : CanvasLayer
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (IsOpen && @event.IsActionPressed("ui_cancel"))
+        // East face button backs out while the board is up. It is not
+        // ui_cancel, so the same button can crouch once the board is closed.
+        if (IsOpen && (@event.IsActionPressed("ui_cancel")
+            || @event is InputEventJoypadButton { Pressed: true, ButtonIndex: JoyButton.B }))
         {
             Close();
             GetViewport().SetInputAsHandled();

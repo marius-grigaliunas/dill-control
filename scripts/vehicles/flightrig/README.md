@@ -12,10 +12,11 @@ autoloads, no project settings beyond the input actions you already have.
 3. Assign a `FlightRigStats` resource to `Stats` -- either
    `flightrig_stats_default.tres` in this folder, or a new one made in the
    inspector (`[GlobalClass]`, so it appears in the resource picker).
-4. Either add the ten input actions `FlightRig` expects by default
+4. Either add the input actions `FlightRig` expects by default
    (`move_forward`, `move_back`, `move_left`, `move_right`, `jump`, `crouch`,
-   `sprint`, `ship_roll_left`, `ship_roll_right`, `ship_mode_toggle`) or point
-   its `[Export]` action-name fields at whatever your project already has.
+   `sprint`, `ship_roll_left`, `ship_roll_right`, `ship_mode_toggle`, and for
+   a stick `look_left`, `look_right`, `look_up`, `look_down`) or point its
+   `[Export]` action-name fields at whatever your project already has.
 5. Call `SetActive(true)` when something should be flying it, `false` when
    not. Nothing else runs `_PhysicsProcess`'s thrust or `_UnhandledInput`'s
    look and mode-toggle handling while inactive, and gravity still applies

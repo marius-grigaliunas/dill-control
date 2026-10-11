@@ -98,6 +98,14 @@ public partial class FlightRigStats : Resource
     [Export(PropertyHint.Range, "0.0002,0.02,0.0001")]
     public float MouseSensitivity { get; set; } = 0.0020f;
 
+    /// <summary>Radians per second at full right-stick deflection.</summary>
+    [Export(PropertyHint.Range, "0.5,8,0.05,suffix:rad/s")]
+    public float StickLookSpeed { get; set; } = 2.2f;
+
+    /// <summary>Power curve on the right stick. 1 is linear.</summary>
+    [Export(PropertyHint.Range, "1,3,0.05")]
+    public float StickLookCurve { get; set; } = 1.4f;
+
     [Export(PropertyHint.Range, "0.1,6,0.05,suffix:rad/s")]
     public float RollSpeed { get; set; } = 1.4f;
 

@@ -39,6 +39,9 @@ A frame that misses it is a bug, on the same footing as a crash. Recorded in
 | Art facing | **MagicaVoxel: verified.** A `.vox` model's front (`-Y`) arrives facing Godot's `+Z` (`Vector3.ModelFront`); the tank in `lvl_pipeline_test`. **Blender: not yet verified.** Expected the same from Blender's `-Y`; confirm with a Blender test asset and replace this half. |
 | Art scale | **MagicaVoxel: verified,** 0.1 m per voxel (import option `voxel/size`). **Blender: not yet verified.** Expected: 1 Blender unit = 1 m with transforms applied. |
 
+Joypad events in the input map use device `-1` (any pad). The layout is
+`docs/decisions/0025`.
+
 ## Rules
 
 1. **Authored over generated.** If a designer would want to move it, it is a

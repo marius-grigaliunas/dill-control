@@ -80,6 +80,10 @@ public partial class FlightRig : CharacterBody3D
     [Export] public StringName RollLeftAction { get; set; } = "ship_roll_left";
     [Export] public StringName RollRightAction { get; set; } = "ship_roll_right";
     [Export] public StringName ModeToggleAction { get; set; } = "ship_mode_toggle";
+    [Export] public StringName LookLeftAction { get; set; } = "look_left";
+    [Export] public StringName LookRightAction { get; set; } = "look_right";
+    [Export] public StringName LookUpAction { get; set; } = "look_up";
+    [Export] public StringName LookDownAction { get; set; } = "look_down";
 
     /// <summary>Whether the rig is currently reading input and applying
     /// thrust. A game toggles this on boarding/leaving, arming/disarming, or
@@ -175,6 +179,7 @@ public partial class FlightRig : CharacterBody3D
 
         if (Active)
         {
+            ApplyStickLook(dt);
             boosting = Input.IsActionPressed(BoostAction);
             ApplyRoll(dt);
             velocity += ThrustAcceleration(boosting) * dt;
@@ -188,8 +193,9 @@ public partial class FlightRig : CharacterBody3D
         // holding a heading in Cruise cost either the climb key or a permanent
         // asin(gravity / MainThrust) of nose-up trim, and letting go of
         // everything sank at gravity / LinearDamping. This is a translational
-        // term: GlobalBasis is untouched here and everywhere else in this
-        // method, so the no-auto-levelling rule above is intact.
+        // term: it never touches GlobalBasis. The stick look above is the
+        // pilot turning, the same rotation the mouse applies, not the hull
+        // levelling itself.
         float compensation = Active
             ? Mathf.Clamp(Stats.GravityCompensation, 0.0f, 1.0f)
             : 0.0f;
@@ -298,6 +304,41 @@ public partial class FlightRig : CharacterBody3D
         {
             GroundDistance = GlobalPosition.DistanceTo(result["position"].AsVector3());
         }
+    }
+
+    /// <summary>
+    /// Right stick, same signs as the mouse. Before thrust, so this tick's
+    /// acceleration uses the heading the stick just set.
+    /// </summary>
+    private void ApplyStickLook(float dt)
+    {
+        if (!Active || Stats == null || Input.MouseMode != Input.MouseModeEnum.Captured)
+        {
+            return;
+        }
+
+        Vector2 stick = CurveStick(
+            Input.GetVector(LookLeftAction, LookRightAction, LookUpAction, LookDownAction),
+            Stats.StickLookCurve);
+        if (stick == Vector2.Zero)
+        {
+            return;
+        }
+
+        float step = Stats.StickLookSpeed * dt;
+        RotateObjectLocal(Vector3.Up, -stick.X * step);
+        RotateObjectLocal(Vector3.Right, -stick.Y * step);
+    }
+
+    private static Vector2 CurveStick(Vector2 stick, float curve)
+    {
+        if (stick == Vector2.Zero || curve <= 1.0f)
+        {
+            return stick;
+        }
+
+        float mag = stick.Length();
+        return stick * (Mathf.Pow(mag, curve) / mag);
     }
 
     private void ApplyRoll(float dt)

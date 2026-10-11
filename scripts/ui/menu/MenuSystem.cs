@@ -265,7 +265,10 @@ public partial class MenuSystem : CanvasLayer
             return;
         }
 
-        if (@event.IsActionPressed("ui_cancel"))
+        // East face button (B / Circle) goes back only while the menu is open.
+        // It is not ui_cancel, so the same button can be crouch in play
+        // without opening this menu. Start and Escape are ui_cancel.
+        if (@event.IsActionPressed("ui_cancel") || EastButton(@event))
         {
             GoBack();
         }
@@ -518,7 +521,7 @@ public partial class MenuSystem : CanvasLayer
         _hintLabel = new Label
         {
             Name = "Hint",
-            Text = "arrows move   left/right adjust   enter select   esc back",
+            Text = "stick or arrows move   A or enter select   B, Start or esc back",
             HorizontalAlignment = HorizontalAlignment.Center,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
@@ -587,16 +590,22 @@ public partial class MenuSystem : CanvasLayer
 
     /// <summary>Writes the text and colour of every row. Allocates no nodes.</summary>
     /// <summary>
-    /// The next key or mouse button press becomes the action's only binding.
-    /// Escape cancels; mouse motion and releases are ignored. The new event
-    /// keeps the device it arrived on, so it matches real input.
+    /// The next key, mouse button, pad button or stick axis replaces bindings
+    /// of that same kind and leaves the others. A key rebind keeps the pad
+    /// binding, and the other way around. Escape or Start cancels. Mouse
+    /// motion, releases and a resting stick are ignored. A pad event is stored
+    /// for any device, because a pad's index changes when it is replugged.
     /// </summary>
     private void Capture(InputEvent @event)
     {
-        bool cancel = @event is InputEventKey { Keycode: Key.Escape } or InputEventKey { PhysicalKeycode: Key.Escape };
+        bool cancel = @event is InputEventKey { Keycode: Key.Escape }
+            or InputEventKey { PhysicalKeycode: Key.Escape }
+            or InputEventJoypadButton { Pressed: true, ButtonIndex: JoyButton.Start };
         bool key = @event is InputEventKey { Pressed: true, Echo: false };
-        bool button = @event is InputEventMouseButton { Pressed: true };
-        if (!key && !button)
+        bool mouse = @event is InputEventMouseButton { Pressed: true };
+        bool pad = @event is InputEventJoypadButton { Pressed: true };
+        bool stick = @event is InputEventJoypadMotion motion && Mathf.Abs(motion.AxisValue) >= 0.6f;
+        if (!cancel && !key && !mouse && !pad && !stick)
         {
             return;
         }
@@ -605,19 +614,120 @@ public partial class MenuSystem : CanvasLayer
         _capturing = null;
         if (!cancel)
         {
-            InputEvent copy = (InputEvent)@event.Duplicate();
-            if (copy is InputEventWithModifiers modifiers)
+            InputEvent copy = BindingFrom(@event);
+            Godot.Collections.Array<InputEvent> existing = InputMap.ActionGetEvents(entry.Id);
+            foreach (InputEvent old in existing)
             {
-                modifiers.ShiftPressed = false;
-                modifiers.CtrlPressed = false;
-                modifiers.AltPressed = false;
-                modifiers.MetaPressed = false;
+                if (SameBindingKind(old, copy))
+                {
+                    InputMap.ActionEraseEvent(entry.Id, old);
+                }
             }
-            InputMap.ActionEraseEvents(entry.Id);
+
             InputMap.ActionAddEvent(entry.Id, copy);
             EmitSignal(SignalName.RebindChanged, entry.Id);
         }
         Paint();
+    }
+
+    /// <summary>
+    /// A binding worth storing. Stick axes keep their direction as a full
+    /// deflection, not the halfway value the stick happened to be at.
+    /// </summary>
+    private static InputEvent BindingFrom(InputEvent @event)
+    {
+        if (@event is InputEventJoypadMotion motion)
+        {
+            return new InputEventJoypadMotion
+            {
+                Device = -1,
+                Axis = motion.Axis,
+                AxisValue = Mathf.Sign(motion.AxisValue),
+            };
+        }
+
+        InputEvent copy = (InputEvent)@event.Duplicate();
+        if (copy is InputEventWithModifiers modifiers)
+        {
+            modifiers.ShiftPressed = false;
+            modifiers.CtrlPressed = false;
+            modifiers.AltPressed = false;
+            modifiers.MetaPressed = false;
+        }
+
+        if (copy is InputEventJoypadButton)
+        {
+            copy.Device = -1;
+        }
+
+        return copy;
+    }
+
+    private static bool SameBindingKind(InputEvent a, InputEvent b) =>
+        (a is InputEventKey && b is InputEventKey)
+        || (a is InputEventMouseButton && b is InputEventMouseButton)
+        || (a is InputEventJoypadButton && b is InputEventJoypadButton)
+        || (a is InputEventJoypadMotion && b is InputEventJoypadMotion);
+
+    private static bool EastButton(InputEvent @event) =>
+        @event is InputEventJoypadButton { Pressed: true, ButtonIndex: JoyButton.B };
+
+    private static string ButtonLabel(JoyButton button)
+    {
+        bool playstation = PlayStationConnected();
+        return button switch
+        {
+            JoyButton.A => playstation ? "Cross" : "A",
+            JoyButton.B => playstation ? "Circle" : "B",
+            JoyButton.X => playstation ? "Square" : "X",
+            JoyButton.Y => playstation ? "Triangle" : "Y",
+            JoyButton.Back => playstation ? "Share" : "Back",
+            JoyButton.Start => playstation ? "Options" : "Start",
+            JoyButton.Guide => "Guide",
+            JoyButton.LeftStick => "L3",
+            JoyButton.RightStick => "R3",
+            JoyButton.LeftShoulder => playstation ? "L1" : "LB",
+            JoyButton.RightShoulder => playstation ? "R1" : "RB",
+            JoyButton.DpadUp => "D-pad up",
+            JoyButton.DpadDown => "D-pad down",
+            JoyButton.DpadLeft => "D-pad left",
+            JoyButton.DpadRight => "D-pad right",
+            _ => "Button " + (int)button,
+        };
+    }
+
+    private static string AxisLabel(JoyAxis axis, float axisValue)
+    {
+        bool playstation = PlayStationConnected();
+        bool negative = axisValue < 0.0f;
+        return axis switch
+        {
+            JoyAxis.LeftX => negative ? "Left stick left" : "Left stick right",
+            JoyAxis.LeftY => negative ? "Left stick up" : "Left stick down",
+            JoyAxis.RightX => negative ? "Right stick left" : "Right stick right",
+            JoyAxis.RightY => negative ? "Right stick up" : "Right stick down",
+            JoyAxis.TriggerLeft => playstation ? "L2" : "LT",
+            JoyAxis.TriggerRight => playstation ? "R2" : "RT",
+            _ => "Axis " + (int)axis,
+        };
+    }
+
+    private static bool PlayStationConnected()
+    {
+        foreach (int device in Input.GetConnectedJoypads())
+        {
+            string name = Input.GetJoyName(device);
+            if (name.Contains("Dual", System.StringComparison.OrdinalIgnoreCase)
+                || name.Contains("PlayStation", System.StringComparison.OrdinalIgnoreCase)
+                || name.Contains("PS4", System.StringComparison.OrdinalIgnoreCase)
+                || name.Contains("PS5", System.StringComparison.OrdinalIgnoreCase)
+                || name.Contains("Sony", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>The keys bound to an action, as a player reads them.</summary>
@@ -645,6 +755,8 @@ public partial class MenuSystem : CanvasLayer
                     MouseButton.WheelDown => "Wheel down",
                     _ => $"Mouse {(int)m.ButtonIndex}",
                 },
+                InputEventJoypadButton padButton => ButtonLabel(padButton.ButtonIndex),
+                InputEventJoypadMotion padMotion => AxisLabel(padMotion.Axis, padMotion.AxisValue),
                 _ => string.Empty,
             };
             if (name.Length > 0 && !names.Contains(name))
@@ -675,7 +787,7 @@ public partial class MenuSystem : CanvasLayer
             }
             else if (entry.Action == MenuAction.Rebind)
             {
-                text = entry.Label + "    " + (entry == _capturing ? "press a key..." : BindingText(entry.Id));
+                text = entry.Label + "    " + (entry == _capturing ? "press a button..." : BindingText(entry.Id));
             }
             else if (entry.Action == MenuAction.Slider)
             {

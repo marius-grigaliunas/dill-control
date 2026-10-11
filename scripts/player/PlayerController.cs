@@ -460,9 +460,66 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
         }
     }
 
+    /// <summary>
+    /// Right stick, same signs as the mouse: stick right yaws right, stick up
+    /// pitches up. Runs on the physics tick so the facing movement reads is
+    /// already the one the stick asked for.
+    /// </summary>
+    private void ApplyStickLook(float dt)
+    {
+        if (_lookSuppressed || Tuning == null || Input.MouseMode != Input.MouseModeEnum.Captured)
+        {
+            return;
+        }
+
+        Vector2 stick = CurveStick(
+            Input.GetVector("look_left", "look_right", "look_up", "look_down"),
+            Tuning.StickLookCurve);
+        if (stick == Vector2.Zero)
+        {
+            return;
+        }
+
+        float speed = Tuning.StickLookSpeed * dt;
+        if (CameraRig != null && CameraRig.IsAiming)
+        {
+            speed *= Tuning.StickAimScale;
+        }
+
+        float yawDelta = -stick.X * speed;
+        float pitchDelta = -stick.Y * speed;
+        if (Tuning.InvertY)
+        {
+            pitchDelta = -pitchDelta;
+        }
+
+        RotateObjectLocal(Vector3.Up, yawDelta);
+        CameraRig?.ApplyLookInput(yawDelta, pitchDelta, Tuning);
+    }
+
+    /// <summary>
+    /// A power curve on a deflection that the input map has already deadzoned.
+    /// A curve of 1 leaves the stick linear.
+    /// </summary>
+    private static Vector2 CurveStick(Vector2 stick, float curve)
+    {
+        if (stick == Vector2.Zero || curve <= 1.0f)
+        {
+            return stick;
+        }
+
+        float mag = stick.Length();
+        return stick * (Mathf.Pow(mag, curve) / mag);
+    }
+
     public override void _PhysicsProcess(double delta)
     {
         float dt = (float)delta;
+
+        // Before movement, so a stick turn faces the step that is about to
+        // read the body's axes. The mouse does this from _UnhandledInput,
+        // which has already run this frame.
+        ApplyStickLook(dt);
 
         // Before anything reads IsOnFloor: floor, ceiling and snap are all
         // defined relative to UpDirection, so up has to be current first.

@@ -303,4 +303,12 @@ public partial class MechTuning : Resource
 
     [Export(PropertyHint.Range, "0.0001,0.02,0.0001")]
     public float MouseSensitivity { get; set; } = 0.0025f;
+
+    /// <summary>Radians per second at full right-stick deflection.</summary>
+    [Export(PropertyHint.Range, "0.5,8,0.05,suffix:rad/s")]
+    public float StickLookSpeed { get; set; } = 2.6f;
+
+    /// <summary>Power curve on the right stick. 1 is linear.</summary>
+    [Export(PropertyHint.Range, "1,3,0.05")]
+    public float StickLookCurve { get; set; } = 1.5f;
 }

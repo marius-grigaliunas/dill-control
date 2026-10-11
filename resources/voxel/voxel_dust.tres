@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="DustStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/voxel/DustStats.cs" id="1_script"]
+
+[resource]
+resource_name = "VoxelDust"
+script = ExtResource("1_script")
+PoolSize = 48
+MaxPerFrame = 8
+ParticlesPerCloud = 24
+SizeScale = 2.2
+MaxScale = 12.0
+PeakOpacity = 0.92
+HoldFraction = 0.35
+CloudLifetime = 3.4
+LifetimePerScale = 0.6

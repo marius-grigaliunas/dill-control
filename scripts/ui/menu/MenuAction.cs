@@ -30,8 +30,9 @@ public enum MenuAction
 
     /// <summary>
     /// Rebinds the input action named by the entry's Id: activating it waits
-    /// for the next key or mouse button, which replaces the action's events
-    /// in the InputMap. Escape cancels. Raises RebindChanged.
+    /// for the next key, mouse button, pad button or stick axis, which
+    /// replaces bindings of that same kind. Escape or Start cancels. Raises
+    /// RebindChanged.
     /// </summary>
     Rebind,
 

@@ -14,7 +14,11 @@ namespace (`ModularMenu`), no scenes, no autoloads, no project settings.
 
 That is the whole integration. It needs no input actions of its own: it drives
 off the engine's built-in `ui_up`, `ui_down`, `ui_left`, `ui_right`,
-`ui_accept` and `ui_cancel`, which exist in a blank Godot project.
+`ui_accept` and `ui_cancel`, which exist in a blank Godot project. While the
+menu is open, the pad's east button also goes back, so that button can stay a
+gameplay action and not open the menu. A rebind row takes a key, a mouse
+button, a pad button or a stick axis; Start or Esc cancels, and a new binding
+replaces only its own kind.
 
 ## The pieces
 

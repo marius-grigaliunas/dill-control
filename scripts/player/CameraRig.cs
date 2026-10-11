@@ -62,6 +62,9 @@ public partial class CameraRig : Node3D
 
     public Camera3D ActiveCamera => Camera;
 
+    /// <summary>True while the weapon in hand has asked the rig to aim.</summary>
+    public bool IsAiming => _aiming;
+
     /// <summary>Current recoil offset in radians. Debug readout only.</summary>
     public Vector2 RecoilOffset => _recoilCurrent;
 

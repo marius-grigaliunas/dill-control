@@ -170,6 +170,29 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "0,16,1")]
     public int CrushDustRing { get; set; } = 6;
 
+    /// <summary>A loose piece at least this big trails dust off its edges
+    /// while it falls, so its outline is in a cloud when it is crushed, broken
+    /// or swapped. 0 for none.</summary>
+    [Export(PropertyHint.Range, "0,2000,1,suffix:m³")]
+    public float TrailDustVolume { get; set; } = 40.0f;
+
+    /// <summary>Slowest a piece trails dust at.</summary>
+    [Export(PropertyHint.Range, "0,40,0.5,suffix:m/s")]
+    public float TrailDustSpeed { get; set; } = 4.0f;
+
+    /// <summary>Seconds between one trail of clouds and the next.</summary>
+    [Export(PropertyHint.Range, "0.05,2,0.01,suffix:s")]
+    public float TrailDustInterval { get; set; } = 0.3f;
+
+    /// <summary>Clouds in each trail, spread along the piece's length.</summary>
+    [Export(PropertyHint.Range, "0,8,1")]
+    public int TrailDustPoints { get; set; } = 3;
+
+    /// <summary>How big each trail cloud is, as the edge of the material it
+    /// stands for (DustField sizes clouds from that).</summary>
+    [Export(PropertyHint.Range, "0.5,10,0.1,suffix:m")]
+    public float TrailDustSize { get; set; } = 3.0f;
+
     [ExportGroup("Fracture")]
     /// <summary>A piece bigger than this is heavy: what comes loose of a
     /// building falls as one body and crushes through what it lands on

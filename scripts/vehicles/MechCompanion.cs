@@ -195,6 +195,7 @@ public partial class MechCompanion : Node
 
         if (IsRidden)
         {
+            ApplyStickLook((float)delta);
             Ride();
         }
         else
@@ -254,6 +255,41 @@ public partial class MechCompanion : Node
         _yaw -= motion.Relative.X * Tuning.MouseSensitivity;
         _pitch = Mathf.Clamp(_pitch - motion.Relative.Y * Tuning.MouseSensitivity, -1.2f, 0.9f);
         GetViewport().SetInputAsHandled();
+    }
+
+    /// <summary>
+    /// Right stick, same signs as the mouse. Applied before <see cref="Ride"/>
+    /// so the body faces the direction the camera is about to use.
+    /// </summary>
+    private void ApplyStickLook(float dt)
+    {
+        if (!IsRidden || Tuning == null || Input.MouseMode != Input.MouseModeEnum.Captured)
+        {
+            return;
+        }
+
+        Vector2 stick = CurveStick(
+            Input.GetVector("look_left", "look_right", "look_up", "look_down"),
+            Tuning.StickLookCurve);
+        if (stick == Vector2.Zero)
+        {
+            return;
+        }
+
+        float step = Tuning.StickLookSpeed * dt;
+        _yaw -= stick.X * step;
+        _pitch = Mathf.Clamp(_pitch - (stick.Y * step), -1.2f, 0.9f);
+    }
+
+    private static Vector2 CurveStick(Vector2 stick, float curve)
+    {
+        if (stick == Vector2.Zero || curve <= 1.0f)
+        {
+            return stick;
+        }
+
+        float mag = stick.Length();
+        return stick * (Mathf.Pow(mag, curve) / mag);
     }
 
     // ---------------- Following ----------------

@@ -103,6 +103,21 @@ public partial class MovementTuning : Resource
     [Export]
     public bool InvertY { get; set; }
 
+    /// <summary>Radians per second at full right-stick deflection.</summary>
+    [Export(PropertyHint.Range, "0.5,12,0.05,suffix:rad/s")]
+    public float StickLookSpeed { get; set; } = 4.0f;
+
+    /// <summary>
+    /// Power curve on the right stick. 1 is linear. Higher keeps a small tilt
+    /// slow enough to track and a full tilt fast enough to flick.
+    /// </summary>
+    [Export(PropertyHint.Range, "1,3,0.05")]
+    public float StickLookCurve { get; set; } = 1.5f;
+
+    /// <summary>Multiplies stick look while a weapon is aiming.</summary>
+    [Export(PropertyHint.Range, "0.1,1,0.05")]
+    public float StickAimScale { get; set; } = 0.45f;
+
     // ---------------- Field of view ----------------
 
     [ExportGroup("Field Of View")]

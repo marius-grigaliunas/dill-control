@@ -24,49 +24,9 @@ namespace DillControl.Voxel;
 /// </summary>
 public partial class DustField : Node3D
 {
-    /// <summary>Emitters in the pool: the most clouds alive at once.</summary>
-    public int PoolSize { get; set; } = 24;
-
-    /// <summary>Requests closer than this in one frame become one cloud.</summary>
-    public float MergeDistance { get; set; } = 4.0f;
-
-    /// <summary>
-    /// Most clouds started in one frame. Past it the frame's requests are
-    /// merged again at twice the distance, and again, until they fit -- so a
-    /// collapsing tower becomes a few big clouds along its whole height rather
-    /// than an arbitrary few of two dozen small ones.
-    /// </summary>
-    public int MaxPerFrame { get; set; } = 6;
-
-    /// <summary>Cloud scale per metre of the cube root of the material lost.</summary>
-    public float SizeScale { get; set; } = 1.6f;
-
-    private const float MinScale = 0.6f;
-
-    /// <summary>
-    /// The biggest cloud, as a scale on the emitter. A skyscraper coming down
-    /// loses a few thousand cubic metres and should raise a cloud the size of a
-    /// building; a rifle round should raise a puff.
-    /// </summary>
-    private const float MaxScale = 8.0f;
-
-    private const int ParticlesPerCloud = 16;
-
-    /// <summary>Lifetime of the smallest cloud. Bigger ones linger longer, as dust does.</summary>
-    private const float CloudLifetime = 2.6f;
-
-    /// <summary>Extra seconds of life per unit of scale past one.</summary>
-    private const float LifetimePerScale = 0.45f;
-
-    /// <summary>
-    /// How much faster a cloud sinks per metre per second its material was
-    /// falling. Collapse dust drops with the structure it came off; dust
-    /// knocked out of a wall mostly hangs.
-    /// </summary>
-    private const float SinkPerFallSpeed = 0.9f;
-
-    /// <summary>How far a cloud's colour leans from the broken material toward plain dust.</summary>
-    private const float DustBlend = 0.45f;
+    /// <summary>Every number about the clouds (<see cref="DustStats"/>).
+    /// Read in <see cref="_Ready"/>: the pool is built from it.</summary>
+    public DustStats Stats { get; set; }
 
     private static readonly Color DustColour = new(0.58f, 0.53f, 0.44f);
 
@@ -87,15 +47,16 @@ public partial class DustField : Node3D
 
     public override void _Ready()
     {
+        Stats ??= GD.Load<DustStats>(DustStats.DefaultPath) ?? new DustStats();
         Texture2D puff = BuildPuffTexture();
 
-        for (int i = 0; i < PoolSize; i++)
+        for (int i = 0; i < Stats.PoolSize; i++)
         {
             // One material per slot, because the tint is per cloud and a shared
             // material would repaint every live cloud the colour of the newest.
             // And one process material per slot, for the same reason: how fast a
             // cloud sinks depends on what it came from.
-            ParticleProcessMaterial process = BuildProcessMaterial();
+            ParticleProcessMaterial process = BuildProcessMaterial(Stats);
 
             StandardMaterial3D material = new()
             {
@@ -107,13 +68,18 @@ public partial class DustField : Node3D
                 BillboardMode = BaseMaterial3D.BillboardModeEnum.Particles,
                 BillboardKeepScale = true,
                 DisableReceiveShadows = true,
+                // Drawn after the ink (ToonPass, priority 0), which otherwise
+                // comes last of the transparents: a cloud covers the outlines
+                // behind it, and a piece swapped for dust in the middle of
+                // one does not leave its ink line blinking out.
+                RenderPriority = 1,
             };
 
             GpuParticles3D emitter = new()
             {
                 Name = $"Dust{i}",
-                Amount = ParticlesPerCloud,
-                Lifetime = CloudLifetime,
+                Amount = Stats.ParticlesPerCloud,
+                Lifetime = Stats.CloudLifetime,
                 OneShot = true,
                 Explosiveness = 0.8f,
                 Emitting = false,
@@ -155,7 +121,7 @@ public partial class DustField : Node3D
             Volume = size * size * size,
         };
 
-        if (!MergeInto(_pending, incoming, MergeDistance))
+        if (!MergeInto(_pending, incoming, Stats.MergeDistance))
         {
             _pending.Add(incoming);
         }
@@ -182,8 +148,8 @@ public partial class DustField : Node3D
         // Over budget: merge again at twice the distance until it fits, rather
         // than dropping clusters. Dropping kept an arbitrary few of a tower's
         // two dozen and left the rest of its height with no dust at all.
-        float distance = MergeDistance;
-        int budget = Mathf.Max(1, MaxPerFrame);
+        float distance = Stats.MergeDistance;
+        int budget = Mathf.Max(1, Stats.MaxPerFrame);
         while (_pending.Count > budget)
         {
             distance *= 2.0f;
@@ -248,17 +214,17 @@ public partial class DustField : Node3D
 
         GpuParticles3D emitter = _pool[slot];
 
-        float scale = Mathf.Clamp(Mathf.Pow(cluster.Volume, 1.0f / 3.0f) * SizeScale, MinScale, MaxScale);
+        float scale = Mathf.Clamp(Mathf.Pow(cluster.Volume, 1.0f / 3.0f) * Stats.SizeScale, Stats.MinScale, Stats.MaxScale);
         emitter.GlobalTransform = new Transform3D(BasisFromUp(cluster.Up).Scaled(Vector3.One * scale), cluster.Position);
-        emitter.Lifetime = CloudLifetime + (Mathf.Max(0.0f, scale - 1.0f) * LifetimePerScale);
+        emitter.Lifetime = Stats.CloudLifetime + (Mathf.Max(0.0f, scale - 1.0f) * Stats.LifetimePerScale);
 
         // Local coordinates, so gravity here is along the cloud's own up and is
         // scaled with the node: divided back out so a big cloud sinks at the
         // same metres per second as a small one.
         float fall = Mathf.Max(0.0f, -cluster.Velocity.Dot(cluster.Up));
-        _processes[slot].Gravity = new Vector3(0.0f, -(BaseSink + (fall * SinkPerFallSpeed)) / scale, 0.0f);
+        _processes[slot].Gravity = new Vector3(0.0f, -(Stats.BaseSink + (fall * Stats.SinkPerFallSpeed)) / scale, 0.0f);
 
-        Color tint = cluster.Colour.Lerp(DustColour, DustBlend);
+        Color tint = cluster.Colour.Lerp(DustColour, Stats.DustBlend);
         tint.A = 1.0f;
         _materials[slot].AlbedoColor = tint;
 
@@ -266,20 +232,21 @@ public partial class DustField : Node3D
         emitter.Restart();
     }
 
-    /// <summary>How fast dust settles with nothing pushing it, in m/s².</summary>
-    private const float BaseSink = 0.7f;
-
-    private static ParticleProcessMaterial BuildProcessMaterial()
+    private static ParticleProcessMaterial BuildProcessMaterial(DustStats stats)
     {
+        // Opaque almost at once: the structure is gone the frame the cloud
+        // starts, and a cloud that fades in shows the gap first. Then it holds
+        // while pieces are being swapped inside it, and thins.
+        float peak = stats.PeakOpacity;
+        float hold = Mathf.Clamp(0.06f + stats.HoldFraction, 0.07f, 0.95f);
         Gradient fade = new()
         {
-            // Opaque almost at once: the structure is gone the frame the cloud
-            // starts, and a cloud that fades in shows the gap first.
-            Offsets = new[] { 0.0f, 0.06f, 1.0f },
+            Offsets = new[] { 0.0f, 0.06f, hold, 1.0f },
             Colors = new[]
             {
                 new Color(1, 1, 1, 0.0f),
-                new Color(1, 1, 1, 0.75f),
+                new Color(1, 1, 1, peak),
+                new Color(1, 1, 1, peak),
                 new Color(0.85f, 0.85f, 0.85f, 0.0f),
             },
         };
@@ -303,8 +270,8 @@ public partial class DustField : Node3D
             DampingMax = 2.5f,
             AngleMin = -180.0f,
             AngleMax = 180.0f,
-            ScaleMin = 1.2f,
-            ScaleMax = 2.4f,
+            ScaleMin = stats.PuffScaleMin,
+            ScaleMax = stats.PuffScaleMax,
             ScaleCurve = new CurveTexture { Curve = grow },
             ColorRamp = new GradientTexture1D { Gradient = fade },
             LifetimeRandomness = 0.35f,
