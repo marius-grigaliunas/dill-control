@@ -1,8 +1,10 @@
-[gd_resource type="Resource" script_class="MeleeStats" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="MeleeStats" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/weapons/MeleeStats.cs" id="1_mstat"]
+[ext_resource type="Resource" path="res://resources/weapons/stroke_overhead_slam.tres" id="2_slam"]
 
 [resource]
 resource_name = "BayouMachete"
 script = ExtResource("1_mstat")
 DisplayName = "Bayou Machete"
+AltStroke = ExtResource("2_slam")

@@ -1,0 +1,140 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/MeleeWeapon.cs" id="1_weapon"]
+[ext_resource type="Resource" path="res://resources/weapons/wpn_sledge.tres" id="2_stats"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_impact.tscn" id="3_impact"]
+[ext_resource type="Script" path="res://scripts/weapons/MeleeArms.cs" id="4_arms"]
+
+[sub_resource type="StandardMaterial3D" id="mat_grip"]
+albedo_color = Color(0.36, 0.24, 0.14, 1)
+roughness = 0.86
+
+[sub_resource type="BoxMesh" id="mesh_grip"]
+size = Vector3(0.05, 0.05, 0.16)
+
+[sub_resource type="StandardMaterial3D" id="mat_shaft"]
+albedo_color = Color(0.22, 0.22, 0.24, 1)
+metallic = 0.45
+roughness = 0.48
+
+[sub_resource type="BoxMesh" id="mesh_shaft"]
+size = Vector3(0.038, 0.038, 0.62)
+
+[sub_resource type="StandardMaterial3D" id="mat_head"]
+albedo_color = Color(0.42, 0.43, 0.46, 1)
+metallic = 0.72
+roughness = 0.34
+
+[sub_resource type="BoxMesh" id="mesh_head"]
+size = Vector3(0.13, 0.18, 0.24)
+
+[sub_resource type="StandardMaterial3D" id="mat_face"]
+albedo_color = Color(0.58, 0.59, 0.62, 1)
+metallic = 0.8
+roughness = 0.22
+
+[sub_resource type="BoxMesh" id="mesh_face"]
+size = Vector3(0.14, 0.19, 0.04)
+
+[sub_resource type="StandardMaterial3D" id="mat_sleeve"]
+albedo_color = Color(0.16, 0.2, 0.16, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="mesh_sleeve"]
+size = Vector3(0.042, 0.042, 1)
+
+[sub_resource type="StandardMaterial3D" id="mat_glove"]
+albedo_color = Color(0.4, 0.28, 0.18, 1)
+roughness = 0.78
+
+[sub_resource type="BoxMesh" id="mesh_glove"]
+size = Vector3(0.09, 0.07, 0.11)
+
+[node name="Sledge" type="Node3D" node_paths=PackedStringArray("ViewModel", "Head", "HeadPivot")]
+script = ExtResource("1_weapon")
+ViewModel = NodePath("ViewModel")
+ViewModelScale = 1.0
+ViewModelOffset = Vector3(0.02, -0.02, 0)
+Stats = ExtResource("2_stats")
+ImpactScene = ExtResource("3_impact")
+Head = NodePath("ViewModel/HeadPivot/Head")
+HeadPivot = NodePath("ViewModel/HeadPivot")
+
+[node name="ViewModel" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22, -0.28, -0.5)
+
+[node name="Grip" type="MeshInstance3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.06)
+material_override = SubResource("mat_grip")
+cast_shadow = 0
+mesh = SubResource("mesh_grip")
+
+[node name="GripMain" type="Marker3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.08)
+
+[node name="GloveMain" type="MeshInstance3D" parent="ViewModel/GripMain"]
+material_override = SubResource("mat_glove")
+cast_shadow = 0
+mesh = SubResource("mesh_glove")
+
+[node name="HeadPivot" type="Node3D" parent="ViewModel"]
+
+[node name="Shaft" type="MeshInstance3D" parent="ViewModel/HeadPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.34)
+material_override = SubResource("mat_shaft")
+cast_shadow = 0
+mesh = SubResource("mesh_shaft")
+
+[node name="HeadMesh" type="MeshInstance3D" parent="ViewModel/HeadPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.78)
+material_override = SubResource("mat_head")
+cast_shadow = 0
+mesh = SubResource("mesh_head")
+
+[node name="HeadFace" type="MeshInstance3D" parent="ViewModel/HeadPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.9)
+material_override = SubResource("mat_face")
+cast_shadow = 0
+mesh = SubResource("mesh_face")
+
+[node name="Head" type="Marker3D" parent="ViewModel/HeadPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.92)
+
+[node name="GripOff" type="Marker3D" parent="ViewModel/HeadPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.16)
+
+[node name="GloveOff" type="MeshInstance3D" parent="ViewModel/HeadPivot/GripOff"]
+material_override = SubResource("mat_glove")
+cast_shadow = 0
+mesh = SubResource("mesh_glove")
+
+[node name="Arms" type="Node3D" parent="." node_paths=PackedStringArray("ShoulderMain", "ShoulderOff", "WristMain", "WristOff", "ForearmMain", "ForearmOff")]
+script = ExtResource("4_arms")
+ShoulderMain = NodePath("ShoulderMain")
+ShoulderOff = NodePath("ShoulderOff")
+WristMain = NodePath("../ViewModel/GripMain")
+WristOff = NodePath("../ViewModel/HeadPivot/GripOff")
+ForearmMain = NodePath("ForearmMain")
+ForearmOff = NodePath("ForearmOff")
+
+[node name="ShoulderMain" type="Marker3D" parent="Arms"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22, -0.55, -0.48)
+
+[node name="ShoulderOff" type="Marker3D" parent="Arms"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.08, -0.52, -0.4)
+
+[node name="ForearmMain" type="Node3D" parent="Arms"]
+
+[node name="Sleeve" type="MeshInstance3D" parent="Arms/ForearmMain"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
+material_override = SubResource("mat_sleeve")
+cast_shadow = 0
+mesh = SubResource("mesh_sleeve")
+
+[node name="ForearmOff" type="Node3D" parent="Arms"]
+
+[node name="Sleeve" type="MeshInstance3D" parent="Arms/ForearmOff"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
+material_override = SubResource("mat_sleeve")
+cast_shadow = 0
+mesh = SubResource("mesh_sleeve")

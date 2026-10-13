@@ -39,11 +39,12 @@ size = Vector3(0.016, 0.02, 0.4)
 [sub_resource type="BoxMesh" id="BoxMesh_tip"]
 size = Vector3(0.014, 0.052, 0.09)
 
-[node name="BayouMachete" type="Node3D" node_paths=PackedStringArray("ViewModel")]
+[node name="BayouMachete" type="Node3D" node_paths=PackedStringArray("ViewModel", "Head")]
 script = ExtResource("1_mlwp0")
 ViewModel = NodePath("ViewModel")
 Stats = ExtResource("2_mstat")
 ImpactScene = ExtResource("3_impct")
+Head = NodePath("ViewModel/Head")
 
 [node name="ViewModel" type="Node3D" parent="."]
 transform = Transform3D(0.97992, 0.084186, -0.18101, 0, 0.90715, 0.42188, 0.19943, -0.41338, 0.88872, 0.21, -0.19, -0.42)
@@ -77,3 +78,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.037, -0.435)
 material_override = SubResource("StandardMaterial3D_blade")
 cast_shadow = 0
 mesh = SubResource("BoxMesh_tip")
+
+[node name="Head" type="Marker3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.48)
+
+[node name="GripMain" type="Marker3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.1)
+
+[node name="GripOff" type="Marker3D" parent="ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.02)

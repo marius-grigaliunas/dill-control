@@ -163,7 +163,8 @@ own importer: one node per MagicaVoxel object, colour per vertex on
 materials, palette index 255 marks a part's pivot, objects named `@Name` become
 markers. See `docs/decisions/0009` and `docs/art-to-game.md`.
 Everything not ours is listed in `credits.md` the day it arrives. Mechs are
-animated by code, never clips: `docs/decisions/0010`.
+animated by code, never clips: `docs/decisions/0010`. A melee stroke is the
+same, poses in a resource rather than a clip: `docs/decisions/0028`.
 
 **Every voxel model is destructible, the same way** (`docs/decisions/0011`): a
 `VoxelBody` in its wrapper (static for buildings, hinged parts for mechs). No
@@ -212,6 +213,8 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mechs     # all three allies
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mechsab   # what vehicles cost to draw
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn arsenal   # designator, burner, lance, manipulator
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn slam      # sledge: ground, crowd, voxel, wall, miss
+"$GODOT" --path . --write-movie perflogs/slam/f.png --fixed-fps 10 --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn slam quiet
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn wreck     # the compound shot down
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mechwreck # the allies shot apart
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn collapse  # a skyscraper brought down

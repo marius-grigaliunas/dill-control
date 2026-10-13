@@ -13,7 +13,9 @@
 # weapon fired), both in lvl_horde_flats; planet [count] (stood on, lifted to
 # orbit and back, then the crowd), in lvl_planet_test; drop (landed, a mesa,
 # the arena from above, the nest) and extract (the pod home, boarded), in
-# lvl_drop_test.
+# lvl_drop_test; slam (the sledge, slot 9, into the ground, a tight crowd, a
+# pillar, a tower face and the sky) in lvl_horde_flats. "slam quiet" drops the
+# shots so a --write-movie run stays clean.
 #
 # It instances the level itself and sets current_scene, so effects that parent
 # to the scene behave as they do on a normal launch. Vsync goes off so the frame
@@ -54,6 +56,7 @@ const PULSE_SECONDS := 0.15
 #   "@goto:x, y, z"          move the level's player there
 #   "@aim:Node:height"       turn the player to look at that node, raised by
 #                            height metres
+#   "@pitch:degrees"         set the camera pitch; negative looks down
 #   "@status"                toggle a line of the player's and the horde's state
 #                            twice a second
 const IDLE_TIMELINE := [
@@ -619,6 +622,50 @@ const HORDE_AB_PAIRS := [
 # The machete's two strokes, caught mid-swing: left to right, then the
 # chained return right to left, then a late click that has to start left to
 # right again. Shots are taken a little into each strike, after the windup.
+# The sledge's overhead slam, slot 9. Ground under the crosshair, a tight
+# ring of pickles, a pillar, a tower face, then the sky. The shot is taken
+# as the drop arrives. quiet drops the shots: printing and capturing hitch
+# the frames a --write-movie run is there to keep.
+static func _slam_timeline(quiet: bool) -> Array:
+	var timeline: Array = [
+		["sledge out", ["slot_9"], [], 0.5],
+		["ground", ["@pitch:-62"], [], 0.35],
+		["ground slam", ["fire"], [], 0.64],
+		["ground settle", [], [], 0.7],
+		["seed the ring", ["!set:Horde:Stats:HuntSeedMinRadius=2.0",
+			"!set:Horde:Stats:HuntSeedRadius=8.0", "!set:Horde:Stats:AgentCount=80"], [], 0.4],
+		["reseed", ["!call:Horde:BenchReseed"], [], 3.0],
+		["into them", ["@pitch:-40", "slot_9"], [], 0.35],
+		["crowd slam", ["fire"], [], 0.64],
+		["crowd settle", [], [], 0.7],
+		["pillar", ["@goto:-30, 0.2, -16.6", "@aim:Pillar1:1.5"], [], 0.45],
+		["pillar slam", ["fire"], [], 0.64],
+		["pillar settle", [], [], 0.7],
+		["wall", ["@goto:-10, 0.2, 47.2", "@aim:Block4:1.5"], [], 0.45],
+		["wall slam", ["fire"], [], 0.64],
+		["wall settle", [], [], 0.7],
+		["sky", ["@goto:0, 0.2, 70", "@pitch:55"], [], 0.4],
+		["miss slam", ["fire"], [], 0.66],
+		["miss settle", [], [], 0.8],
+	]
+	if quiet:
+		timeline[0][1].append("!silent")
+		return timeline
+	# The settle shot is inside the contact hold. At heft 1.7 the drop arrives
+	# at 0.54 s and the hold lasts to 0.64 s, which is when the head has caught
+	# the grip.
+	var shots := {
+		"ground settle": "slam_ground",
+		"crowd settle": "slam_crowd",
+		"pillar settle": "slam_pillar",
+		"wall settle": "slam_wall",
+		"miss settle": "slam_miss",
+	}
+	for entry in timeline:
+		if shots.has(entry[0]):
+			entry[1].append("#" + shots[entry[0]])
+	return timeline
+
 const MACHETE_TIMELINE := [
 	["out", ["slot_2", "@status"], [], 1.0],
 	["swing 1", ["fire"], [], 0.17],
@@ -675,6 +722,7 @@ func _initialize() -> void:
 		"strike": _timeline = STRIKE_TIMELINE
 		"grapple": _timeline = GRAPPLE_TIMELINE
 		"machete": _timeline = MACHETE_TIMELINE
+		"slam": _timeline = _slam_timeline(args.size() > 2 and args[2] == "quiet")
 		"mech": _timeline = MECH_TIMELINE
 		"bike": _timeline = BIKE_TIMELINE
 		"mechs": _timeline = MECHS_TIMELINE
@@ -787,6 +835,13 @@ func _tap(action: String) -> void:
 			player.global_position = at
 		else:
 			print("[bench] cannot ", action)
+		return
+	if action.begins_with("@pitch:"):
+		var player_pitch := _player()
+		if player_pitch == null:
+			print("[bench] cannot ", action)
+			return
+		player_pitch.call("BenchSetPitch", float(action.substr(7)))
 		return
 	if action.begins_with("@aim:"):
 		var parts := action.substr(5).split(":")

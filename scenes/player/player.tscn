@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.cs" id="1_ctrl"]
 [ext_resource type="Resource" path="res://resources/player/movement_tuning_default.tres" id="2_move"]
@@ -20,6 +20,7 @@
 [ext_resource type="PackedScene" path="res://scenes/weapons/wpn_brine_burner.tscn" id="42_burner"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/wpn_vinegar_lance.tscn" id="43_lance"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/wpn_gravity_manipulator.tscn" id="44_manipulator"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/wpn_sledge.tscn" id="45_sledge"]
 
 [sub_resource type="CapsuleShape3D" id="BodyShape"]
 radius = 0.35
@@ -65,7 +66,7 @@ far = 4000.0
 [node name="ToonPass" type="MeshInstance3D" parent="CameraPivot/CameraOffset/Camera3D"]
 script = ExtResource("7_toon")
 
-[node name="WeaponMount" type="Node3D" parent="CameraPivot/CameraOffset/Camera3D" node_paths=PackedStringArray("Primary", "Melee", "Launcher", "Support", "Sidearm", "Sustained", "Precision", "Utility", "Thrower")]
+[node name="WeaponMount" type="Node3D" parent="CameraPivot/CameraOffset/Camera3D" node_paths=PackedStringArray("Primary", "Melee", "Launcher", "Support", "Sidearm", "Sustained", "Precision", "Utility", "Sledge", "Thrower")]
 script = ExtResource("9_loadout")
 Primary = NodePath("BrineRipper")
 Melee = NodePath("BayouMachete")
@@ -75,6 +76,7 @@ Sidearm = NodePath("DillHammer")
 Sustained = NodePath("BrineBurner")
 Precision = NodePath("VinegarLance")
 Utility = NodePath("GravityManipulator")
+Sledge = NodePath("Sledge")
 Thrower = NodePath("Grenades")
 
 [node name="BrineRipper" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("10_ripper")]
@@ -100,6 +102,9 @@ AimCamera = NodePath("../..")
 AimCamera = NodePath("../..")
 
 [node name="GravityManipulator" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("44_manipulator")]
+AimCamera = NodePath("../..")
+
+[node name="Sledge" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("45_sledge")]
 AimCamera = NodePath("../..")
 
 [node name="Grenades" parent="CameraPivot/CameraOffset/Camera3D/WeaponMount" node_paths=PackedStringArray("AimCamera") instance=ExtResource("13_grenades")]

@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="MeleeStroke" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/MeleeStroke.cs" id="1_stroke"]
+
+[resource]
+resource_name = "OverheadSlam"
+script = ExtResource("1_stroke")
+CockedPosition = Vector3(0.06, 0.08, -0.14)
+CockedEulerDegrees = Vector3(78, 12, 16)
+ContactPosition = Vector3(0.04, -0.38, -0.42)
+ContactEulerDegrees = Vector3(-42, 4, 8)
+FollowPosition = Vector3(0.04, -0.42, -0.3)
+FollowEulerDegrees = Vector3(-70, -6, 12)
+RecoverPosition = Vector3(0.12, -0.18, -0.32)
+RecoverEulerDegrees = Vector3(-8, 8, 10)
+Raise = 0.18
+Hold = 0.05
+Strike = 0.09
+ContactHold = 0.055
+Recover = 0.24
+MissRecover = 0.42
+RaiseEase = 2.0
+StrikeEase = 1.8
+RecoverEase = 2.0
+ResolveAt = 0.72
+Shape = 1
+Range = 3.2
+SweepRadius = 0.32
+BlastRadius = 2.6
+BlastDamage = 46.0
+BlastImpulse = 9.0
+BlastUpBias = 0.6
+SplashScale = 0.45
+NoCrater = true
+KickPitchDegrees = 3.2
+ImpactTrauma = 0.22
+BounceBack = 0.05
+BouncePitch = 7.0

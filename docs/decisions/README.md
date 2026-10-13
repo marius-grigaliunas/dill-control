@@ -38,3 +38,4 @@ Number them in order, `NNNN-short-title.md`.
 | [0025](0025-gamepad.md) | Gamepad and joystick on the same actions as the keys: one layout, stick look as data, the east button crouches in play and goes back only while a menu is open |
 | [0026](0026-drop-and-extract-trial.md) | On trial: swing first; a contract is drop by pod, cull half and crack the jar, extract on foot; three clones, no bike; a 1 km arena of its own, dressed by hand |
 | [0027](0027-chunk-graph.md) | Buildings fall by a chunk graph baked at import: a cut chunk splits along the cut, pieces break and crush by chunks, overloaded edges give way in stages, the gravity gun tears chunks out |
+| [0028](0028-melee-strokes.md) | Melee is a stroke, not a clip: four poses, a ray then a sweep, a hit stops and a miss follows through |

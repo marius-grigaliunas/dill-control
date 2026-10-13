@@ -45,6 +45,14 @@ public abstract partial class WeaponBase : Node3D
     [Signal]
     public delegate void ThrustEventHandler(Vector3 impulse);
 
+    /// <summary>
+    /// A hit that should shake the camera, separate from the pitch punch on
+    /// <see cref="Fired"/>. The loadout re-emits it and the player adds it to
+    /// the rig's trauma. A miss never emits it.
+    /// </summary>
+    [Signal]
+    public delegate void ImpactedEventHandler(float trauma);
+
     /// <summary>True while this is the weapon in the player's hands.</summary>
     public bool IsEquipped { get; private set; }
 
@@ -201,22 +209,7 @@ public abstract partial class WeaponBase : Node3D
         // A damped spring rather than an exponential ease: the gun snaps back
         // past rest and settles, which is what reads as cartoon recoil. The
         // stats' recover speed sets how fast; the damping sets the bounce.
-        float omega = ViewModelRecoverSpeed * 1.3f;
-        float stiffness = omega * omega;
-        float damping = 2.0f * KickDamping * omega;
-        float step = Mathf.Min(dt, 1.0f / 30.0f);
-
-        _kickVelocity += ((-stiffness * ViewModelKick) - (damping * _kickVelocity)) * step;
-        ViewModelKick += _kickVelocity * step;
-        _pitchVelocity += ((-stiffness * ViewModelPitchKick) - (damping * _pitchVelocity)) * step;
-        ViewModelPitchKick += _pitchVelocity * step;
-        _rollVelocity += ((-stiffness * _rollKick) - (damping * _rollVelocity)) * step;
-        _rollKick += _rollVelocity * step;
-
-        // The squash is quicker and bouncier than the kick: a beat of rubber.
-        float squashOmega = omega * 1.8f;
-        _squashVelocity += ((-squashOmega * squashOmega * _squash) - (2.0f * 0.35f * squashOmega * _squashVelocity)) * step;
-        _squash += _squashVelocity * step;
+        AdvanceViewModelSpring(dt);
 
         bool reloading = IsReloading;
         float before = _reloadPose;
@@ -237,6 +230,29 @@ public abstract partial class WeaponBase : Node3D
             _rollKick + (0.55f * pose));
         float bulge = 1.0f + (0.12f * _squash);
         ViewModel.Scale = new Vector3(bulge, bulge, 1.0f - (0.18f * _squash)) * ViewModelScale;
+    }
+
+    /// <summary>
+    /// The recoil spring only, without writing the rest pose. A stroke owns
+    /// the viewmodel's transform and still wants the bounce to decay under it.
+    /// </summary>
+    protected void AdvanceViewModelSpring(float dt)
+    {
+        float omega = ViewModelRecoverSpeed * 1.3f;
+        float stiffness = omega * omega;
+        float damping = 2.0f * KickDamping * omega;
+        float step = Mathf.Min(dt, 1.0f / 30.0f);
+
+        _kickVelocity += ((-stiffness * ViewModelKick) - (damping * _kickVelocity)) * step;
+        ViewModelKick += _kickVelocity * step;
+        _pitchVelocity += ((-stiffness * ViewModelPitchKick) - (damping * _pitchVelocity)) * step;
+        ViewModelPitchKick += _pitchVelocity * step;
+        _rollVelocity += ((-stiffness * _rollKick) - (damping * _rollVelocity)) * step;
+        _rollKick += _rollVelocity * step;
+
+        float squashOmega = omega * 1.8f;
+        _squashVelocity += ((-squashOmega * squashOmega * _squash) - (2.0f * 0.35f * squashOmega * _squashVelocity)) * step;
+        _squash += _squashVelocity * step;
     }
 
     protected void AddViewModelKick(float back, float pitchDegrees)

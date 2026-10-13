@@ -9,8 +9,9 @@ namespace DillControl.Weapons;
 ///
 /// Ported from the lab's machete without its stab, its random chain
 /// directions and its momentum bonus. The slice's machete is one swing that
-/// alternates left-to-right and right-to-left; the rest waits in the lab until
-/// play asks for it.
+/// alternates left-to-right and right-to-left. A <see cref="MeleeStroke"/>
+/// on <see cref="PrimaryStroke"/> or <see cref="AltStroke"/> adds a posed
+/// attack — the overhead slam — without replacing that swing.
 /// </summary>
 [GlobalClass]
 public partial class MeleeStats : Resource
@@ -148,4 +149,32 @@ public partial class MeleeStats : Resource
 
     [Export(PropertyHint.Range, "1,40,0.1")]
     public float ViewmodelRecoverSpeed { get; set; } = 14.0f;
+
+    [ExportGroup("Strokes")]
+    /// <summary>
+    /// How heavy this weapon is, as a multiplier on a stroke's times, its
+    /// head-lag and its bounce. 1 is the stroke as authored. A sledge sits
+    /// above 1; the poses stay the ones in the stroke resource.
+    /// </summary>
+    [Export(PropertyHint.Range, "0.4,3,0.05")]
+    public float Heft { get; set; } = 1.0f;
+
+    /// <summary>How fast the head catches the grip, at heft 1. Higher heft lags more.</summary>
+    [Export(PropertyHint.Range, "1,80,0.5")]
+    public float HeadLag { get; set; } = 26.0f;
+
+    /// <summary>
+    /// Furthest the contact pose may slide to put the Head marker on the
+    /// surface. A short blade and a long hammer share one stroke because of this.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,1.5,0.01,suffix:m")]
+    public float ContactSlide { get; set; } = 0.7f;
+
+    /// <summary>Played on fire. Empty keeps the horizontal swing.</summary>
+    [Export]
+    public MeleeStroke PrimaryStroke { get; set; }
+
+    /// <summary>Played on alt fire. Empty means alt fire does nothing.</summary>
+    [Export]
+    public MeleeStroke AltStroke { get; set; }
 }

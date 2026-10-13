@@ -56,6 +56,13 @@ public partial class WeaponLoadout : Node3D
     public WeaponBase Utility { get; set; }
 
     /// <summary>
+    /// The sledge, a test weapon for the posed slam. Last, so the slots in
+    /// front of it keep the numbers the benches already press. Slot 9.
+    /// </summary>
+    [Export]
+    public WeaponBase Sledge { get; set; }
+
+    /// <summary>
     /// The hand that throws. Not a slot: it borrows the hands and gives them
     /// back, and the loadout is what mediates that.
     /// </summary>
@@ -86,6 +93,10 @@ public partial class WeaponLoadout : Node3D
     [Signal]
     public delegate void AimStateChangedEventHandler(
         bool aiming, float fovScale, float transitionSpeed);
+
+    /// <summary>A melee hit's camera shake, re-emitted from the active weapon.</summary>
+    [Signal]
+    public delegate void ImpactedEventHandler(float trauma);
 
     [Signal]
     public delegate void ActiveSlotChangedEventHandler(int slot);
@@ -161,6 +172,10 @@ public partial class WeaponLoadout : Node3D
         {
             _slots.Add(Utility);
         }
+        if (Sledge != null)
+        {
+            _slots.Add(Sledge);
+        }
 
         if (_slots.Count == 0)
         {
@@ -174,6 +189,7 @@ public partial class WeaponLoadout : Node3D
             weapon.Fired += OnWeaponFired;
             weapon.Thrust += OnWeaponThrust;
             weapon.AimStateChanged += OnWeaponAimStateChanged;
+            weapon.Impacted += OnWeaponImpacted;
             weapon.Holster();
         }
 
@@ -198,6 +214,7 @@ public partial class WeaponLoadout : Node3D
             weapon.Fired -= OnWeaponFired;
             weapon.Thrust -= OnWeaponThrust;
             weapon.AimStateChanged -= OnWeaponAimStateChanged;
+            weapon.Impacted -= OnWeaponImpacted;
         }
 
         if (Thrower != null)
@@ -220,6 +237,11 @@ public partial class WeaponLoadout : Node3D
     private void OnWeaponAimStateChanged(bool aiming, float fovScale, float transitionSpeed)
     {
         EmitSignal(SignalName.AimStateChanged, aiming, fovScale, transitionSpeed);
+    }
+
+    private void OnWeaponImpacted(float trauma)
+    {
+        EmitSignal(SignalName.Impacted, trauma);
     }
 
     public override void _Process(double delta)
@@ -267,7 +289,7 @@ public partial class WeaponLoadout : Node3D
     /// unknown action name makes IsActionJustPressed push an engine error.</summary>
     private static readonly StringName[] SlotActions =
     {
-        "slot_1", "slot_2", "slot_3", "slot_4", "slot_5", "slot_6", "slot_7", "slot_8",
+        "slot_1", "slot_2", "slot_3", "slot_4", "slot_5", "slot_6", "slot_7", "slot_8", "slot_9",
     };
 
     private void TickSwitch(float dt)

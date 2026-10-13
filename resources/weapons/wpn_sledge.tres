@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MeleeStats" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/MeleeStats.cs" id="1_mstat"]
+[ext_resource type="Resource" path="res://resources/weapons/stroke_overhead_slam.tres" id="2_slam"]
+
+[resource]
+resource_name = "Sledge"
+script = ExtResource("1_mstat")
+DisplayName = "Sledge"
+Damage = 110.0
+Knockback = 12.0
+KnockbackUpBias = 0.45
+Heft = 1.7
+HeadLag = 26.0
+ContactSlide = 1.25
+PrimaryStroke = ExtResource("2_slam")

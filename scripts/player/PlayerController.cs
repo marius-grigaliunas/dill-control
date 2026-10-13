@@ -278,6 +278,7 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
             Loadout.Fired += OnWeaponFired;
             Loadout.AimStateChanged += OnWeaponAimStateChanged;
             Loadout.Thrust += OnWeaponThrust;
+            Loadout.Impacted += OnWeaponImpacted;
             Loadout.TakeOwnerResupply = TryRefuel;
         }
 
@@ -309,6 +310,7 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
             Loadout.Fired -= OnWeaponFired;
             Loadout.AimStateChanged -= OnWeaponAimStateChanged;
             Loadout.Thrust -= OnWeaponThrust;
+            Loadout.Impacted -= OnWeaponImpacted;
             Loadout.TakeOwnerResupply = null;
         }
 
@@ -392,6 +394,11 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
     private void OnWeaponFired(Vector2 recoilRadians, float recoverSpeed, float snappiness)
     {
         CameraRig?.AddRecoil(recoilRadians, recoverSpeed, snappiness);
+    }
+
+    private void OnWeaponImpacted(float trauma)
+    {
+        CameraRig?.AddShake(trauma);
     }
 
     private void OnWeaponThrust(Vector3 impulse)
@@ -1902,6 +1909,20 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
 
         float pitch = Mathf.Atan2(toPoint.Dot(UpDirection), toPoint.Slide(UpDirection).Length());
         CameraRig.SetPitch(pitch, Tuning);
+    }
+
+    /// <summary>
+    /// Sets the camera pitch in degrees, the same sign as mouse look: negative
+    /// looks down. For <c>bench.gd</c>'s <c>@pitch</c>; nothing in play calls it.
+    /// </summary>
+    public void BenchSetPitch(float degrees)
+    {
+        if (CameraRig == null || Tuning == null)
+        {
+            return;
+        }
+
+        CameraRig.SetPitch(Mathf.DegToRad(degrees), Tuning);
     }
 
     /// <summary>One line of locomotion and rope state, for <c>bench.gd</c>'s <c>@status</c>.</summary>
