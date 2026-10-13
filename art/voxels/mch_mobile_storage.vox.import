@@ -43,3 +43,5 @@ _subresources={}
 voxel/size=0.04
 voxel/pivot_index=255
 voxel/material="res://art/materials/mat_voxel_toon.tres"
+voxel/chunk_size=8
+voxel/chunk_jitter=2

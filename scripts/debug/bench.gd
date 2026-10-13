@@ -11,7 +11,9 @@
 # [count] (the crowd seeded, arriving and on top of the player), mech (the ally
 # mech followed, ridden, jumped and left), bike (the hoverbike flown and every
 # weapon fired), both in lvl_horde_flats; planet [count] (stood on, lifted to
-# orbit and back, then the crowd), in lvl_planet_test.
+# orbit and back, then the crowd), in lvl_planet_test; drop (landed, a mesa,
+# the arena from above, the nest) and extract (the pod home, boarded), in
+# lvl_drop_test.
 #
 # It instances the level itself and sets current_scene, so effects that parent
 # to the scene behave as they do on a normal launch. Vsync goes off so the frame
@@ -56,6 +58,29 @@ const PULSE_SECONDS := 0.15
 #                            twice a second
 const IDLE_TIMELINE := [
 	["idle", [], [], 6.0],
+]
+
+# lvl_drop_test (decision 0026): by the time the frames settle the pod has
+# landed. The jar from the landing site, from a mesa and from high over the
+# arena, then the nest walked up to until the horde comes.
+const DROP_TIMELINE := [
+	["landed, at the jar", ["@aim:Jar:20", "@status"], [], 4.0],
+	["landed shot", ["#drop_landed"], [], 1.0],
+	["west mesa", ["@goto:-230, 34, -40", "@aim:Jar:20"], [], 4.0],
+	["west mesa shot", ["#drop_mesa"], [], 1.0],
+	["over the arena", ["@goto:0, 220, 520", "@aim:Jar:0"], [], 1.0],
+	["over the arena shot", ["#drop_overview"], [], 1.0],
+	["at the nest", ["@goto:0, 2, 120", "@aim:Jar:20"], [], 8.0],
+	["at the nest shot", ["#drop_nest"], [], 1.0],
+]
+
+# lvl_drop_test's ending: the job called done, the pod home falls to its
+# site, the player is put in its hatch, and it climbs out to the end card.
+const EXTRACT_TIMELINE := [
+	["job done", ["!call:Mission:BenchJobDone", "@status"], [], 11.0],
+	["pod down shot", ["#extract_pod"], [], 1.0],
+	["boarding", ["!call:Mission:BenchToPod"], [], 9.0],
+	["end card shot", ["#extract_end"], [], 1.0],
 ]
 
 const LOOK_TIMELINE := [
@@ -210,6 +235,13 @@ static func _arsenal_timeline() -> Array:
 		["burner shot", ["#arsenal_burner"], ["fire"], 0.3],
 		["vinegar lance", ["slot_7", "@aim:Horde:0.5"], ["~fire"], 5.0],
 		["lance shot", ["#arsenal_lance"], ["~fire"], 0.3],
+		["hold off for the tear", ["!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
+			"@goto:-60, 0.2, -40"], [], 2.0],
+		["aim the facade", ["slot_8", "@aim:Tower11:20"], [], 1.0],
+		["tug a chunk", ["@aim:Tower11:20"], ["fire"], 2.5],
+		["the rip", ["#arsenal_tear"], ["fire"], 0.3],
+		["throw it into the tower", [], [], 2.0],
+		["thrown shot", ["#arsenal_thrown", "@aim:Tower11:20"], [], 0.3],
 	]
 
 # Voxel destruction against the compound: a pillar shot at its base with the
@@ -276,6 +308,19 @@ const COLLAPSE_TIMELINE := [
 	["settling", [], [], 5.0],
 	["settled shot", ["#collapse_settled", WRECK_STATUS], [], 0.3],
 ]
+
+# The bike's real beam swept through Tower11, not the instant slit of cut.
+# Quiet on purpose: graph-upkeep events are what the gate reads.
+static func _lasercut_timeline() -> Array:
+	return [
+		["hold the horde off", ["!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
+			"@goto:-60, 0.2, -40"], [], 2.0],
+		["board", ["!call:Systems:BoardNow"], [], 1.0],
+		["look", ["@aim:Tower11:20", "!call:PerfRecorder:Start", "!silent"], [], 1.0],
+		["beam", ["slot_2", "@aim:Tower11:12"], ["fire"], 6.0],
+		["falling", ["@aim:Tower11:30"], [], 8.0],
+		["stop", ["!call:PerfRecorder:Stop", "!loud", "!call:VoxelDebris:PrintBenchStatus"], [], 0.3],
+	]
 
 # A tower cut by a slit 2 m up, as a beam would leave it: clean through
 # (cut), it drops whole and crushes down storey by storey; through 60% of
@@ -623,6 +668,8 @@ func _initialize() -> void:
 
 	match mode:
 		"look": _timeline = LOOK_TIMELINE
+		"drop": _timeline = DROP_TIMELINE
+		"extract": _timeline = EXTRACT_TIMELINE
 		"ink": _timeline = INK_TIMELINE
 		"gpuab": _timeline = GPUAB_TIMELINE
 		"strike": _timeline = STRIKE_TIMELINE
@@ -636,6 +683,7 @@ func _initialize() -> void:
 		"wreck": _timeline = WRECK_TIMELINE
 		"mechwreck": _timeline = MECHWRECK_TIMELINE
 		"collapse": _timeline = COLLAPSE_TIMELINE
+		"lasercut": _timeline = _lasercut_timeline()
 		"cut": _timeline = _cut_timeline("BenchCutThrough", "cut", args.size() > 2 and args[2] == "quiet",
 			float(args[3]) if args.size() > 3 else 13.0)
 		"cutside": _timeline = _cut_timeline("BenchCutSide", "cutside", args.size() > 2 and args[2] == "quiet",

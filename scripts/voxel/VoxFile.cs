@@ -73,6 +73,11 @@ public sealed class VoxFile
     /// weight-1 voxel at power 2 is 3.</summary>
     public readonly float[] Emission = new float[256];
 
+    /// <summary>MagicaVoxel material <c>_type</c> per palette index, empty when
+    /// the file names none. Chunks never cross two types, so glass breaks as
+    /// glass (docs/decisions/0027).</summary>
+    public readonly string[] MaterialType = new string[256];
+
     public readonly Dictionary<int, TransformNode> Transforms = new();
     public readonly Dictionary<int, GroupNode> Groups = new();
     public readonly Dictionary<int, ShapeNode> Shapes = new();
@@ -164,7 +169,11 @@ public sealed class VoxFile
     {
         int index = reader.ReadInt32();
         Dictionary<string, string> props = ReadDict(reader);
-        if (index <= 0 || index > 255 || !props.TryGetValue("_type", out string type) || type != "_emit")
+        if (index <= 0 || index > 255 || !props.TryGetValue("_type", out string type))
+            return;
+
+        MaterialType[index] = type;
+        if (type != "_emit")
             return;
 
         // Older files call the weight _emit; newer ones _weight.

@@ -342,6 +342,13 @@ public sealed partial class PerfRecorder : Node
         if (fullCollection)
         {
             _gc2Frames++;
+            // In the events column too, so a 90 ms frame can be tied to the
+            // collector without reading the gc2 column off the CSV.
+            if (_events.Length > 0)
+            {
+                _events.Append(" | ");
+            }
+            _events.Append("gen2-gc ").Append(gc2 - _gc2);
         }
         _gc0 = gc0;
         _gc1 = gc1;

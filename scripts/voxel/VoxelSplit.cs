@@ -69,6 +69,10 @@ internal sealed class SplitPiece
     public Vector3 Away;
 
     public ChunkBuild Build;
+
+    /// <summary>The chunks this piece is made of, in its own grid. Null when
+    /// the part it came off has no chunk graph.</summary>
+    public VoxelChunkGraph Graph;
 }
 
 /// <summary>A worked-out split, for the part to carry out on the main thread.</summary>
@@ -229,6 +233,169 @@ internal sealed class VoxelSplit
             Release(plan, new List<int>(island), breakup, VoxelSpin.Own);
         }
         return plan;
+    }
+
+    /// <summary>
+    /// Builds a plan from a chunk-graph decision. The decision was made on the
+    /// main thread; this only gathers cells and meshes, so it runs on a worker
+    /// from a copy of the grid and of the chunk ids.
+    /// </summary>
+    public SplitPlan Assemble(GraphDecision decision, int[] chunkOf)
+    {
+        var plan = new SplitPlan
+        {
+            Version = Grid.Version,
+            Changed = decision.Changed,
+            Emptied = decision.Emptied,
+            BreakingUp = decision.BreakingUp,
+            Collapsed = decision.Collapsed,
+            Support = decision.Support,
+            Lean = decision.Lean,
+            OffCentre = decision.OffCentre,
+            Fail = decision.Fail,
+            Top = decision.Top,
+            Held = decision.Held,
+        };
+        if (decision.DustCells != null)
+        {
+            foreach (int i in decision.DustCells)
+            {
+                if ((uint)i < (uint)Grid.Cells.Length && Grid.Cells[i] != 0)
+                {
+                    plan.Dust.Add(i);
+                }
+            }
+        }
+        if (decision.BreakingUp && Grid.SolidBounds(out Aabb box))
+        {
+            plan.BurstCentre = box.GetCenter();
+            plan.BurstSize = Mathf.Pow(Grid.SolidCount, 1.0f / 3.0f) * Grid.VoxelSize * 1.5f;
+        }
+
+        int pieces = decision.PieceChunks?.Length ?? 0;
+        var role = new Dictionary<int, int>();
+        var crushed = new HashSet<int>();
+        if (decision.CrushedChunks != null)
+        {
+            foreach (int c in decision.CrushedChunks)
+            {
+                crushed.Add(c);
+            }
+        }
+        var lists = new List<int>[pieces];
+        for (int p = 0; p < pieces; p++)
+        {
+            lists[p] = new List<int>();
+            foreach (int c in decision.PieceChunks[p])
+            {
+                if (!crushed.Contains(c))
+                {
+                    role[c] = p;
+                }
+            }
+        }
+        var crushedCells = new List<int>();
+        for (int i = 0; i < Grid.Cells.Length; i++)
+        {
+            if (Grid.Cells[i] == 0 || (uint)i >= (uint)chunkOf.Length)
+            {
+                continue;
+            }
+            int c = chunkOf[i];
+            if (c < 0)
+            {
+                continue;
+            }
+            if (crushed.Contains(c))
+            {
+                crushedCells.Add(i);
+            }
+            else if (role.TryGetValue(c, out int p))
+            {
+                lists[p].Add(i);
+            }
+        }
+        if (crushedCells.Count > 0)
+        {
+            plan.Crushed = crushedCells;
+        }
+
+        Vector3 whole = Vector3.Zero;
+        int wholeN = 0;
+        if (decision.BreakingUp)
+        {
+            for (int p = 0; p < pieces; p++)
+            {
+                whole += Centre(lists[p]) * lists[p].Count;
+                wholeN += lists[p].Count;
+            }
+            if (wholeN > 0)
+            {
+                whole /= wholeN;
+            }
+        }
+        for (int p = 0; p < pieces; p++)
+        {
+            if (lists[p].Count < MinChunkVoxels)
+            {
+                plan.Dust.AddRange(lists[p]);
+                continue;
+            }
+            VoxelSpin spin = decision.PieceSpin != null && p < decision.PieceSpin.Length ? decision.PieceSpin[p] : VoxelSpin.Own;
+            Vector3 away = Vector3.Zero;
+            if (decision.BreakingUp && wholeN > 0)
+            {
+                away = Centre(lists[p]) - whole;
+                away = away.LengthSquared() > 1e-4f ? away.Normalized() : Vector3.Zero;
+            }
+            AddPiece(plan, lists[p], spin, away);
+            SplitPiece piece = plan.Pieces[^1];
+            if (decision.PieceHinge != null && p < decision.PieceHinge.Length)
+            {
+                piece.Hinge = decision.PieceHinge[p];
+            }
+            int align = piece.Cells.Count > Edge * Edge && ChunkEdge == Edge ? Edge : 1;
+            piece.Graph = VoxelChunkGraph.Extract(decision.Snapshot, piece.Cells, Grid, piece.Grid, align, piece.Offset);
+            UseGraphBoxes(piece);
+        }
+        return plan;
+    }
+
+    /// <summary>Swaps a piece's collision for its chunks' baked boxes when
+    /// those fit the cap. Otherwise the boxes <see cref="AddPiece"/> built stay.</summary>
+    private void UseGraphBoxes(SplitPiece piece)
+    {
+        if (piece.Graph == null || piece.Build == null)
+        {
+            return;
+        }
+        var boxes = new List<(Vector3, Vector3)>();
+        if (!piece.Graph.TryBoxes(MaxChunkBoxes, boxes))
+        {
+            return;
+        }
+        int edge = Math.Max(4, ChunkEdge);
+        var sections = new Vector3I(
+            (piece.Grid.Size.X + edge - 1) / edge,
+            (piece.Grid.Size.Y + edge - 1) / edge,
+            (piece.Grid.Size.Z + edge - 1) / edge);
+        foreach (List<(Vector3, Vector3)> list in piece.Build.Boxes)
+        {
+            list?.Clear();
+        }
+        foreach ((Vector3 centre, Vector3 size) in boxes)
+        {
+            Vector3 vox = piece.Grid.ToVox(centre);
+            int x = Mathf.Clamp(Mathf.FloorToInt(vox.X) / edge, 0, sections.X - 1);
+            int y = Mathf.Clamp(Mathf.FloorToInt(vox.Y) / edge, 0, sections.Y - 1);
+            int z = Mathf.Clamp(Mathf.FloorToInt(vox.Z) / edge, 0, sections.Z - 1);
+            int s = x + sections.X * (y + sections.Y * z);
+            if ((uint)s < (uint)piece.Build.Boxes.Length && piece.Build.Boxes[s] != null)
+            {
+                piece.Build.Boxes[s].Add((centre, size));
+            }
+        }
+        piece.Build.Step = 1;
     }
 
     /// <summary>

@@ -21,7 +21,7 @@ namespace DillControl.Voxel;
 /// Made only by <see cref="VoxelDebris"/>, which counts them and keeps the
 /// spent ones to use again: making one costs 0.7 ms (see VoxelDebris).
 /// </summary>
-public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrabbable
+public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrabbable, ITearable
 {
     private VoxelPart _part;
     private VoxelDestructionStats _stats;
@@ -45,6 +45,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
     private VoxelHinge? _hangSoon;
     private bool _trails;
     private float _trailDust;
+    private float _dustScale = 1.0f;
 
     public bool IsSettled { get; private set; }
 
@@ -58,6 +59,17 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
 
     /// <summary>Held, it is awake and stays so: it does not settle, freeze,
     /// join a heap or go for the cap.</summary>
+    private VoxelChunkGraph _graph;
+
+    /// <summary>Before it is added: the chunks this piece is made of.</summary>
+    public void GiveGraph(VoxelChunkGraph graph) => _graph = graph;
+
+    public float TearTime(Vector3 point) => _part?.TearTime(point) ?? 0.0f;
+
+    public RigidBody3D Tear(Vector3 point) => _part?.Tear(point);
+
+    public void Tug(Vector3 point, float delta) => _part?.Tug(point, delta);
+
     public void SetHeld(bool held)
     {
         IsHeld = held;
@@ -86,9 +98,10 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
     private bool _retired;
 
     public void Setup(VoxelGrid grid, Color[] palette, float[] emission, Material material, VoxelDestructionStats stats,
-        (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null)
+        (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null, float dustScale = 1.0f)
     {
         _retired = false;
+        _dustScale = dustScale;
         _build = build;
         _meshes = meshes;
         _grid = grid;
@@ -128,6 +141,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             CollisionOwner = this,
             CollisionStep = _build?.Step ?? VoxelSplit.CollisionStepFor(_grid, _stats.MaxChunkBoxes),
             Velocity = () => LinearVelocity,
+            DustScale = _dustScale,
             // Made mid-game: its sections are built on worker threads, unless
             // it is small enough to build in the moment (a piece torn off a
             // heap is seen at once, in the gravity gun's grip).
@@ -145,6 +159,11 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         _meshes = null;
         _build = null;
         _part.Setup(_grid, VoxelAnchor.Largest, _palette, _emission, _material, _stats);
+        if (_graph != null)
+        {
+            _part.UseGraph(_graph);
+            _graph = null;
+        }
         _part.Emptied += _ => Callable.From(Retire).CallDeferred();
         AddChild(_part);
         _parts.Add(_part);
@@ -246,7 +265,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             local[along] += half[along] * (points == 1 ? 0.0f : (2.0f * k / (points - 1) - 1.0f) * 0.9f);
             local[across] += half[across] * (GD.Randf() < 0.5f ? -1.0f : 1.0f);
             local[other] += half[other] * (float)GD.RandRange(-1.0, 1.0);
-            VoxelDebris.Current.Dust(ToGlobal(local), up, velocity * 0.2f, colour, _stats.TrailDustSize);
+            VoxelDebris.Current.Dust(ToGlobal(local), up, velocity * 0.2f, colour, _stats.TrailDustSize, _dustScale);
         }
     }
 
@@ -374,7 +393,8 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             if (_hingeDust <= 0.0f && VoxelDebris.Current != null)
             {
                 _hingeDust = 0.35f;
-                VoxelDebris.Current.Dust(_hingePivot, WorldUp.At(_hingePivot), Vector3.Zero, colour, 2.0f + 4.0f * angle / limit);
+                VoxelDebris.Current.Dust(_hingePivot, WorldUp.At(_hingePivot), Vector3.Zero, colour, 2.0f + 4.0f * angle / limit,
+                    _dustScale);
             }
             return;
         }
@@ -384,7 +404,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             _hinge.QueueFree();
         }
         _hinge = null;
-        VoxelDebris.Current?.Dust(_hingePivot, WorldUp.At(_hingePivot), LinearVelocity * 0.3f, colour, 7.0f);
+        VoxelDebris.Current?.Dust(_hingePivot, WorldUp.At(_hingePivot), LinearVelocity * 0.3f, colour, 7.0f, _dustScale);
         AudioDirector.PlayAt(Sfx.VoxelCollapse, _hingePivot);
     }
 
@@ -518,14 +538,15 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         for (int k = 0; k < ring; k++)
         {
             Vector3 out_ = side.Rotated(normal, turn + Mathf.Tau * k / ring);
-            debris.Dust(centre + out_ * edge, normal, out_ * 4.0f + LinearVelocity * 0.3f, colour, _stats.CrushDepth * 1.4f);
+            debris.Dust(centre + out_ * edge, normal, out_ * 4.0f + LinearVelocity * 0.3f, colour, _stats.CrushDepth * 1.4f,
+                _dustScale);
         }
         for (int k = 0; k < _stats.SpallPerCrush; k++)
         {
             Vector3 out_ = side.Rotated(normal, (float)GD.RandRange(0.0, Mathf.Tau));
             Vector3 velocity = out_ * (float)GD.RandRange(5.0, 11.0) + normal * (float)GD.RandRange(2.0, 6.0);
             debris.Spall(centre + out_ * edge + normal * 1.0f, velocity, _colours, _palette, _emission, _material,
-                _grid.VoxelSize);
+                _grid.VoxelSize, _dustScale);
         }
     }
 
@@ -610,7 +631,8 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         if (_part != null && !_part.IsEmpty && VoxelDebris.Current != null)
         {
             VoxelDebris.Current.Dust(GlobalPosition, WorldUp.At(GlobalPosition), LinearVelocity,
-                VoxelDebris.AverageColour(_grid, _palette), Mathf.Pow(_grid.SolidCount, 1.0f / 3.0f) * _grid.VoxelSize);
+                VoxelDebris.AverageColour(_grid, _palette), Mathf.Pow(_grid.SolidCount, 1.0f / 3.0f) * _grid.VoxelSize,
+                _dustScale);
         }
         Callable.From(Retire).CallDeferred();
     }
@@ -670,6 +692,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         _material = null;
         _meshes = null;
         _build = null;
+        _graph = null;
         _lastVelocity = Vector3.Zero;
         _lastSpin = Vector3.Zero;
         _age = 0.0f;
@@ -677,6 +700,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         _crushCooldown = 0.0f;
         _breaking = false;
         _heavy = false;
+        _dustScale = 1.0f;
         _trails = false;
         _trailDust = 0.0f;
         _hinge = null;

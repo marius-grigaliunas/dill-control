@@ -346,8 +346,9 @@ public partial class VoxelDebris : Node3D
         }
     }
 
-    public void Dust(Vector3 position, Vector3 up, Vector3 velocity, Color colour, float edge) =>
-        _dust?.Request(position, up, velocity, colour, edge);
+    /// <param name="amount">The source's <see cref="VoxelDestructionStats.DustScale"/>.</param>
+    public void Dust(Vector3 position, Vector3 up, Vector3 velocity, Color colour, float edge, float amount = 1.0f) =>
+        _dust?.Request(position, up, velocity, colour, edge, amount);
 
     private readonly struct Pending
     {
@@ -362,12 +363,16 @@ public partial class VoxelDebris : Node3D
         public readonly (MeshInstance3D[] meshes, Vector3 offset)? Meshes;
         public readonly ChunkBuild Build;
         public readonly SpawnBatch Batch;
+        public readonly float DustScale;
         public readonly ulong Asked;
+        public readonly VoxelChunkGraph Graph;
 
         public Pending(VoxelGrid grid, Color[] palette, float[] emission, Material material, Transform3D at,
             Vector3 velocity, Vector3 spin, VoxelHinge? hinge, (MeshInstance3D[], Vector3)? meshes, ChunkBuild build,
-            SpawnBatch batch)
+            SpawnBatch batch, float dustScale, VoxelChunkGraph graph = null)
         {
+            Graph = graph;
+            DustScale = dustScale;
             Build = build;
             Batch = batch;
             Meshes = meshes;
@@ -402,9 +407,12 @@ public partial class VoxelDebris : Node3D
     /// (<see cref="VoxelPart.Adopt"/>).</param>
     /// <param name="build">Its collision and meshes, built already; null to
     /// build them as it is made.</param>
+    /// <param name="dustScale">The dust of what it came off
+    /// (<see cref="VoxelDestructionStats.DustScale"/>), which it keeps.</param>
     public void SpawnChunk(VoxelGrid grid, Color[] palette, float[] emission, Material material,
         Transform3D at, Vector3 velocity, Vector3? spin = null, VoxelHinge? hinge = null,
-        (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null, SpawnBatch batch = null)
+        (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null, SpawnBatch batch = null,
+        float dustScale = 1.0f, VoxelChunkGraph graph = null)
     {
         if (batch != null)
         {
@@ -417,7 +425,7 @@ public partial class VoxelDebris : Node3D
         if (grid.SolidCount < Stats.MinChunkVoxels || Stats.MaxChunks <= 0)
         {
             Dust(at.Origin, WorldUp.At(at.Origin), velocity, AverageColour(grid, palette),
-                Mathf.Pow(grid.SolidCount, 1.0f / 3.0f) * grid.VoxelSize);
+                Mathf.Pow(grid.SolidCount, 1.0f / 3.0f) * grid.VoxelSize, dustScale);
             batch?.One();
             return;
         }
@@ -431,7 +439,8 @@ public partial class VoxelDebris : Node3D
 
         // Made on the next physics tick, never in the frame that asked: that
         // frame has just split the thing it came from (VoxelPart.Apply).
-        _pending.Enqueue(new Pending(grid, palette, emission, material, at, velocity, spin.Value, hinge, meshes, build, batch));
+        _pending.Enqueue(new Pending(grid, palette, emission, material, at, velocity, spin.Value, hinge, meshes, build, batch,
+            dustScale, graph));
     }
 
     private readonly List<SpawnBatch> _batches = new();
@@ -484,9 +493,10 @@ public partial class VoxelDebris : Node3D
 
     /// <summary>Makes a chunk at once, not on the next tick: a piece torn
     /// off a heap by the gravity gun is held this frame.</summary>
-    public VoxelChunk MakeNow(VoxelGrid grid, Color[] palette, float[] emission, Material material, Transform3D at)
+    public VoxelChunk MakeNow(VoxelGrid grid, Color[] palette, float[] emission, Material material, Transform3D at,
+        VoxelChunkGraph graph = null)
     {
-        return Make(new Pending(grid, palette, emission, material, at, Vector3.Zero, Vector3.Zero, null, null, null, null), 0.0f);
+        return Make(new Pending(grid, palette, emission, material, at, Vector3.Zero, Vector3.Zero, null, null, null, null, 1.0f, graph), 0.0f);
     }
 
     /// <summary>Makes a chunk that was asked for <paramref name="late"/>
@@ -518,7 +528,7 @@ public partial class VoxelDebris : Node3D
         if (p.Batch != null && _chunks.Count >= Stats.MaxChunks && !HasRestingChunk()
             && p.Grid.SolidCount <= SmallestMoving())
         {
-            DustInstead(p.Grid, p.Palette, p.Emission, p.Material, at.Origin, velocity);
+            DustInstead(p.Grid, p.Palette, p.Emission, p.Material, at.Origin, velocity, p.DustScale);
             p.Batch.One();
             return null;
         }
@@ -527,7 +537,8 @@ public partial class VoxelDebris : Node3D
         // the origin, inside whatever is there, and be moved after.
         VoxelChunk chunk = _spare.Count > 0 ? _spare.Pop() : NewChunk();
         chunk.Transform = GlobalTransform.AffineInverse() * at;
-        chunk.Setup(p.Grid, p.Palette, p.Emission, p.Material, Stats, p.Meshes, p.Build);
+        chunk.Setup(p.Grid, p.Palette, p.Emission, p.Material, Stats, p.Meshes, p.Build, p.DustScale);
+        chunk.GiveGraph(p.Graph);
         using (FrameProfiler.Begin(VoxelPart.SectionChunkAdd))
         {
             AddChild(chunk);
@@ -607,10 +618,10 @@ public partial class VoxelDebris : Node3D
     /// and its rubble share on the heap under it, so a collapse past the cap
     /// still leaves its pile.</summary>
     private void DustInstead(VoxelGrid grid, Color[] palette, float[] emission, Material material, Vector3 at,
-        Vector3 velocity)
+        Vector3 velocity, float dustScale)
     {
         Dust(at, WorldUp.At(at), velocity, AverageColour(grid, palette),
-            Mathf.Pow(grid.SolidCount, 1.0f / 3.0f) * grid.VoxelSize);
+            Mathf.Pow(grid.SolidCount, 1.0f / 3.0f) * grid.VoxelSize, dustScale);
         _sample.Clear();
         int stride = Math.Max(1, grid.SolidCount / 48);
         int seen = 0;
@@ -816,7 +827,7 @@ public partial class VoxelDebris : Node3D
     /// crush: something for the eye to follow out of the dust.
     /// </summary>
     public void Spall(Vector3 at, Vector3 velocity, IReadOnlyList<byte> colours, Color[] palette, float[] emission,
-        Material material, float voxel)
+        Material material, float voxel, float dustScale = 1.0f)
     {
         if (colours.Count == 0 || !HasRoom(1))
         {
@@ -833,7 +844,8 @@ public partial class VoxelDebris : Node3D
             }
         }
         var grid = new VoxelGrid(size, cells, new Vector3(size.X, size.Y, size.Z) * 0.5f, voxel);
-        SpawnChunk(grid, palette, emission, material, new Transform3D(Basis.Identity, at), velocity);
+        SpawnChunk(grid, palette, emission, material, new Transform3D(Basis.Identity, at), velocity,
+            dustScale: dustScale);
     }
 
     /// <summary>Room for this many more pieces under the cap, counting those

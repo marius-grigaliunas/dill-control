@@ -68,5 +68,9 @@ public partial class PerfDriver : Node
             Recorder.Toggle();
             GetViewport().SetInputAsHandled();
         }
+        else if (@event is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.B })
+        {
+            Voxel.VoxelPart.ToggleChunkTint();
+        }
     }
 }

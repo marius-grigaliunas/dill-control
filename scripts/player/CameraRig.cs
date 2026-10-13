@@ -68,13 +68,42 @@ public partial class CameraRig : Node3D
     /// <summary>Current recoil offset in radians. Debug readout only.</summary>
     public Vector2 RecoilOffset => _recoilCurrent;
 
+    private static CameraRig _live;
+
     public override void _Ready()
     {
+        _live = this;
         if (Offset == null || Camera == null)
         {
             GD.PushError("CameraRig needs both Offset and Camera assigned in the scene.");
             SetProcess(false);
         }
+    }
+
+    public override void _ExitTree()
+    {
+        if (_live == this)
+        {
+            _live = null;
+        }
+    }
+
+    /// <summary>A small shake when a building starts to give, falling off with
+    /// distance. The voxel code does not know about blasts; this is the one
+    /// thing it is allowed to ask the rig.</summary>
+    public static void Feel(Vector3 world, float trauma, float radius)
+    {
+        CameraRig rig = _live;
+        if (rig == null || trauma <= 0.0f || radius <= 0.0f || !rig.IsInsideTree())
+        {
+            return;
+        }
+        float distance = rig.GlobalPosition.DistanceTo(world);
+        if (distance >= radius)
+        {
+            return;
+        }
+        rig.AddShake(trauma * (1.0f - distance / radius));
     }
 
     /// <summary>

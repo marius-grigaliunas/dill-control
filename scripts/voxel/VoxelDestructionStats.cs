@@ -193,6 +193,13 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "0.5,10,0.1,suffix:m")]
     public float TrailDustSize { get; set; } = 3.0f;
 
+    /// <summary>How much dust this kind of thing raises: every cloud from it
+    /// and from the pieces that came off it is this times as wide, after
+    /// the cloud's size cap. 0.5 is a quarter of the cover. Read from the
+    /// model's own resource, not the default's, and carried by its pieces.</summary>
+    [Export(PropertyHint.Range, "0,4,0.05")]
+    public float DustScale { get; set; } = 1.0f;
+
     [ExportGroup("Fracture")]
     /// <summary>A piece bigger than this is heavy: what comes loose of a
     /// building falls as one body and crushes through what it lands on
@@ -360,6 +367,42 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "1,32,1")]
     public int IntegrityChecksPerFrame { get; set; } = 2;
 
+    [ExportGroup("Chunks")]
+    /// <summary>An edge between two chunks holds while it keeps at least this
+    /// share of the voxel faces it was built with. 0: a single remaining face
+    /// holds, which is how a flood over cells behaves, so a railing built on
+    /// two voxels does not fall off at load.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float MinContactShare { get; set; } = 0.0f;
+
+    /// <summary>How long an overloaded, already-damaged edge weakens before it
+    /// lets go: dust, a creak and chunks shedding off the cut, then the fall.
+    /// 0: it lets go on the check that finds it, as in decision 0014.</summary>
+    [Export(PropertyHint.Range, "0,8,0.1,suffix:s")]
+    public float StressSeconds { get; set; } = 1.4f;
+
+    /// <summary>An edge that has lost this share of its as-built faces, and
+    /// still carries weight, starts weakening instead of waiting for the
+    /// next hit. A cut clean through has no faces left and does not wait.</summary>
+    [Export(PropertyHint.Range, "0.05,1,0.01")]
+    public float StressLimit { get; set; } = 0.35f;
+
+    /// <summary>How long the gravity gun pulls per voxel face still holding
+    /// the chunk it is aimed at.</summary>
+    [Export(PropertyHint.Range, "0,0.05,0.0005,suffix:s")]
+    public float TearSecondsPerContact { get; set; } = 0.004f;
+
+    /// <summary>Past this long a pull would take, the chunk is refused as
+    /// held fast rather than coming out.</summary>
+    [Export(PropertyHint.Range, "0.1,8,0.1,suffix:s")]
+    public float TearMaxSeconds { get; set; } = 1.6f;
+
+    /// <summary>Camera shake when a strained edge starts to give, falling off
+    /// with distance. The collapse itself still shakes through its blasts.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float StrainShake { get; set; } = 0.18f;
+
+    [ExportGroup("Budget")]
     /// <summary>Most loose pieces made in one frame. A collapse fractures into
     /// dozens at once; the rest are made over the next frames, where they
     /// would have got to by then.</summary>

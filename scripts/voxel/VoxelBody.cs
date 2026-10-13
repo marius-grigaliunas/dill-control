@@ -94,6 +94,14 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
             VoxelAnchor anchor = Static ? VoxelAnchor.Ground : hinged.Contains(host) ? VoxelAnchor.Hinge : VoxelAnchor.Largest;
             var part = new VoxelPart { Name = "Voxels", Velocity = () => Velocity() };
             part.Setup(grid, anchor, palette, emission, material, Stats);
+            if (Static)
+            {
+                VoxelChunkGraph graph = VoxelChunkGraph.TryRead(host, grid.Cells.Length, host.Name);
+                if (graph != null)
+                {
+                    part.UseGraph(graph);
+                }
+            }
 
             if (Static)
             {
@@ -183,7 +191,7 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
 /// weapons hit: it relays damage to its <see cref="VoxelBody"/>, which takes
 /// it once however many of its sections a blast reaches.
 /// </summary>
-public partial class VoxelCollider : StaticBody3D, IDamageable, IBlastSurface, IDamageRelay
+public partial class VoxelCollider : StaticBody3D, IDamageable, IBlastSurface, IDamageRelay, ITearable
 {
     public VoxelBody Body { get; set; }
 
@@ -204,6 +212,60 @@ public partial class VoxelCollider : StaticBody3D, IDamageable, IBlastSurface, I
     public bool IsAlive => Body != null && Body.IsAlive;
 
     public void ApplyDamage(DamageInfo info) => Body?.ApplyDamage(info);
+
+    public float TearTime(Vector3 point)
+    {
+        if (Body == null)
+        {
+            return 0.0f;
+        }
+        float best = 0.0f;
+        foreach (VoxelPart part in Body.Parts)
+        {
+            float time = part.TearTime(point);
+            if (time < 0.0f)
+            {
+                return time;
+            }
+            if (time > best)
+            {
+                best = time;
+            }
+        }
+        return best;
+    }
+
+    public RigidBody3D Tear(Vector3 point)
+    {
+        if (Body == null)
+        {
+            return null;
+        }
+        foreach (VoxelPart part in Body.Parts)
+        {
+            if (part.TearTime(point) > 0.0f)
+            {
+                return part.Tear(point);
+            }
+        }
+        return null;
+    }
+
+    public void Tug(Vector3 point, float delta)
+    {
+        if (Body == null)
+        {
+            return;
+        }
+        foreach (VoxelPart part in Body.Parts)
+        {
+            if (part.TearTime(point) > 0.0f)
+            {
+                part.Tug(point, delta);
+                return;
+            }
+        }
+    }
 
     public Vector3 NearestBlastPoint(Vector3 from) => Body?.NearestBlastPoint(from) ?? GlobalPosition;
 }

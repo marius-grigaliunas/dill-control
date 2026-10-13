@@ -126,6 +126,27 @@ public static class VoxelRehearsal
             }
             copy.Raycast(new Vector3(0, 0, 10), Vector3.Back, 50.0f, out _);
             copy.Extract(all.GetRange(all.Count / 2, all.Count / 4), out _, 8);
+
+            // The chunk graph: a cut chunk split, a decision, a piece's
+            // sub-graph, a breakup and a whole-chunk crush. First time at
+            // load, same as the flood above.
+            ChunkBake bake = VoxChunker.Build((byte[])grid.Cells.Clone(), size, null, 8, 2, 1, grid.Origin, grid.VoxelSize);
+            if (bake != null)
+            {
+                VoxelChunkGraph graph = VoxelChunkGraph.FromBake(bake);
+                graph.DepthVoxels = Math.Max(1, (int)Math.Round(stats.FailureDepth / grid.VoxelSize));
+                grid.CellCleared = index => graph.NoteRemoved(grid, index);
+                grid.Carve(grid.CellCentre(size.X - 1, 0, 8), 1.2f, removed, out _, out _);
+                GraphDecision decision = graph.Decide(grid, stats, VoxelAnchor.Ground, built, half);
+                var chunkOf = new int[graph.CellLength];
+                graph.CopyCells(chunkOf);
+                decision.Snapshot = graph.Snapshot(chunkOf);
+                VoxelSplit assembled = Split(new VoxelGrid(size, (byte[])grid.Cells.Clone(), grid.Origin, grid.VoxelSize), VoxelAnchor.Ground);
+                assembled.Assemble(decision, chunkOf);
+                graph.Breakup(grid, stats, VoxelBreakup.Crumble);
+                var slab = new List<int>();
+                graph.ChunksInSlab(new Vector3(size.X * 0.5f, 0.0f, 6.0f), Vector3.Up, 10.0f, 36.0f, slab);
+            }
         }
         catch (Exception exception)
         {

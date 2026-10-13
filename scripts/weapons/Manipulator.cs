@@ -57,7 +57,7 @@ public partial class Manipulator : Node
     /// <see cref="ThrownImpact"/>.</summary>
     public ThrownImpact.Tuning Impact { get; set; } = new(2.0f, 8.0f, 20.0f, 4, 3.0f);
 
-    public bool IsHolding => (_held != null && IsInstanceValid(_held) && _held.IsInsideTree()
+    public bool IsHolding => _tug != null || (_held != null && IsInstanceValid(_held) && _held.IsInsideTree()
                                && (_held is not IGrabbable grabbable || grabbable.IsHeld)) || _heldAgent != 0;
 
     public string HeldName => _heldAgent != 0
@@ -107,10 +107,19 @@ public partial class Manipulator : Node
     private long _heldAgent;
     private Vector3 _agentHoldPoint;
 
+    private ITearable _tug;
+    private Vector3 _tugPoint;
+    private Vector3 _aimPoint;
+    private float _tugTime;
+    private float _tugNeed;
+    private bool _tugRefused;
+
     /// <summary>Where the held thing is, for drawing a tether to it.</summary>
     public Vector3 HeldPosition => _heldAgent != 0
         ? _agentHoldPoint
-        : _held != null && IsInstanceValid(_held) ? _held.GlobalPosition : Vector3.Zero;
+        : _tug != null
+            ? _tugPoint
+            : _held != null && IsInstanceValid(_held) ? _held.GlobalPosition : Vector3.Zero;
 
     /// <summary>Tries to grab whatever the camera is looking at.</summary>
     public bool TryGrab(Camera3D camera)
@@ -138,16 +147,34 @@ public partial class Manipulator : Node
 
         // A thin ray first: if you are actually pointing at a body, that body
         // is the one you meant.
-        RigidBody3D body = RayGrab(space, origin, forward) ?? NearGrab(space, origin, forward);
+        RigidBody3D body = RayGrab(space, origin, forward);
+        if (_tug != null)
+        {
+            return true;
+        }
+        if (_tugRefused)
+        {
+            return false;
+        }
+        body ??= NearGrab(space, origin, forward);
         if (body == null)
         {
             return false;
         }
 
         // Rubble says for itself what can be lifted: it is concrete, far past
-        // the mass limit for crates.
+        // the mass limit for crates. Too big to lift whole, a chunk of it
+        // still tears out.
         if (body is IGrabbable grabbable ? !grabbable.CanGrab : body.Mass > MaxGrabMass)
         {
+            if (body is ITearable tearable && BeginTug(tearable, _aimPoint))
+            {
+                return true;
+            }
+            if (_tugRefused)
+            {
+                return false;
+            }
             LastRefusal = body is IGrabbable ? "too big" : $"too heavy ({body.Mass:F0} > {MaxGrabMass:F0})";
             return false;
         }
@@ -225,10 +252,14 @@ public partial class Manipulator : Node
             return null;
         }
         // A heap is not a body: a piece of it is torn off where it was hit.
+        Vector3 point = result["position"].AsVector3();
+        _aimPoint = point;
+        _tugRefused = false;
         return collider.AsGodotObject() switch
         {
             RigidBody3D body => body,
-            IPluckable pluckable => pluckable.Pluck(result["position"].AsVector3()),
+            ITearable tearable when BeginTug(tearable, point) => null,
+            IPluckable pluckable => pluckable.Pluck(point),
             _ => null,
         };
     }
@@ -286,6 +317,58 @@ public partial class Manipulator : Node
         return best;
     }
 
+    /// <summary>Starts a pull. False when there is nothing, or it is held fast
+    /// (then <see cref="LastRefusal"/> says so).</summary>
+    private bool BeginTug(ITearable tearable, Vector3 point)
+    {
+        float seconds = tearable.TearTime(point);
+        if (seconds == 0.0f)
+        {
+            return false;
+        }
+        if (seconds < 0.0f)
+        {
+            LastRefusal = "held fast";
+            _tugRefused = true;
+            return false;
+        }
+        _tug = tearable;
+        _tugPoint = point;
+        _tugNeed = seconds;
+        _tugTime = 0.0f;
+        return true;
+    }
+
+    /// <summary>The pull. When it is done the chunk is in the gun's grip.</summary>
+    private void TickTug(float delta)
+    {
+        if (_tug == null)
+        {
+            return;
+        }
+        _tug.Tug(_tugPoint, delta);
+        _tugTime += delta;
+        if (_tugTime < _tugNeed)
+        {
+            return;
+        }
+        ITearable tearing = _tug;
+        _tug = null;
+        RigidBody3D body = tearing.Tear(_tugPoint);
+        if (body == null || !IsInstanceValid(body))
+        {
+            return;
+        }
+        AudioDirector.PlayAt(Sfx.ManipulatorGrab, body.GlobalPosition);
+        _held = body;
+        _heldGravityScale = body.GravityScale;
+        body.Freeze = false;
+        body.Sleeping = false;
+        body.GravityScale = 0.0f;
+        body.AngularDamp = 2.0f;
+        (body as IGrabbable)?.SetHeld(true);
+    }
+
     /// <summary>How far in front of the camera the assist sphere sits.</summary>
     private const float AssistDistance = 5.0f;
 
@@ -295,6 +378,11 @@ public partial class Manipulator : Node
     /// <summary>Lets go, adding the camera's forward as a launch impulse.</summary>
     public void Release(Camera3D camera, bool launch)
     {
+        if (_tug != null)
+        {
+            _tug = null;
+            return;
+        }
         if (_heldAgent != 0)
         {
             Vector3 throwVelocity = launch && camera != null
@@ -435,6 +523,12 @@ public partial class Manipulator : Node
         if (camera == null)
         {
             Release(null, false);
+            return;
+        }
+
+        if (_tug != null)
+        {
+            TickTug(delta);
             return;
         }
 

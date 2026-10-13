@@ -67,6 +67,10 @@ public sealed class VoxelGrid
     /// <summary>A point in the owning node's space, in voxel coordinates.</summary>
     public Vector3 ToVox(Vector3 local) => VoxSpace.FromGodot(local / VoxelSize) + Origin;
 
+    /// <summary>Told the index of each cell as it is cleared, so a chunk graph
+    /// can follow without scanning the grid. Not set on a grid that is a copy.</summary>
+    public Action<int> CellCleared;
+
     /// <summary>A voxel removed by a carve: where it was (node space) and its colour index.</summary>
     public readonly struct Removed
     {
@@ -120,6 +124,7 @@ public sealed class VoxelGrid
                     Cells[i] = 0;
                     count++;
                     removed?.Add(new Removed(CellCentre(x, y, z), colour));
+                    CellCleared?.Invoke(i);
                 }
 
         SolidCount -= count;
@@ -414,6 +419,7 @@ public sealed class VoxelGrid
             }
             Cells[i] = 0;
             SolidCount--;
+            CellCleared?.Invoke(i);
         }
         Version++;
     }

@@ -32,6 +32,8 @@ public partial class VoxSceneImporter : EditorSceneFormatImporter
     private const string VoxelSizeOption = "voxel/size";
     private const string PivotIndexOption = "voxel/pivot_index";
     private const string MaterialOption = "voxel/material";
+    private const string ChunkSizeOption = "voxel/chunk_size";
+    private const string ChunkJitterOption = "voxel/chunk_jitter";
 
     public override string[] _GetExtensions() => new[] { "vox" };
 
@@ -41,6 +43,11 @@ public partial class VoxSceneImporter : EditorSceneFormatImporter
         AddImportOptionAdvanced(Variant.Type.Float, VoxelSizeOption, 0.1f, PropertyHint.Range, "0.01,2,0.005,suffix:m");
         AddImportOptionAdvanced(Variant.Type.Int, PivotIndexOption, 255, PropertyHint.Range, "-1,255,1");
         AddImportOptionAdvanced(Variant.Type.String, MaterialOption, "res://art/materials/mat_voxel_toon.tres", PropertyHint.File, "*.tres");
+        // About 0.8 m at the default voxel size. A chunk never crosses a
+        // MagicaVoxel material type, and the boundaries jitter so a cut does
+        // not read as a grid (docs/decisions/0027).
+        AddImportOptionAdvanced(Variant.Type.Int, ChunkSizeOption, 8, PropertyHint.Range, "2,32,1,suffix:voxels");
+        AddImportOptionAdvanced(Variant.Type.Int, ChunkJitterOption, 2, PropertyHint.Range, "0,8,1,suffix:voxels");
     }
 
     public override Variant _GetOptionVisibility(string path, bool forAnimation, string option) => true;
@@ -72,6 +79,8 @@ public partial class VoxSceneImporter : EditorSceneFormatImporter
             PivotIndex = Option(options, PivotIndexOption, 255),
             Material = GD.Load<Material>(Option(options, MaterialOption, "res://art/materials/mat_voxel_toon.tres")),
             Path = path,
+            ChunkSize = Option(options, ChunkSizeOption, 8),
+            ChunkJitter = Option(options, ChunkJitterOption, 2),
         };
 
         var root = new Node3D { Name = path.GetFile().GetBaseName() };
@@ -103,6 +112,8 @@ public partial class VoxSceneImporter : EditorSceneFormatImporter
         public Material Material;
         public string Path;
         public int Unnamed;
+        public int ChunkSize;
+        public int ChunkJitter;
     }
 
     private static void WalkTransform(Context ctx, int id, Node3D parent, bool isRoot = false)
@@ -180,7 +191,42 @@ public partial class VoxSceneImporter : EditorSceneFormatImporter
         node.SetMeta(VoxelMeta.Cells, cells);
         node.SetMeta(VoxelMeta.Dims, model.Size);
         node.SetMeta(VoxelMeta.Origin, origin);
+        WriteChunks(ctx, node, cells, model.Size, origin);
         parent.AddChild(node, forceReadableName: true);
+    }
+
+    /// <summary>Chunks, their as-built contacts and boxes, after the pivot
+    /// voxel is gone so it is not a chunk of its own.</summary>
+    private static void WriteChunks(Context ctx, Node node, byte[] cells, Vector3I size, Vector3 origin)
+    {
+        if (ctx.ChunkSize * ctx.ChunkSize * ctx.ChunkSize > VoxChunker.GrabWarnVoxels)
+        {
+            GD.PushWarning($"VoxSceneImporter: {ctx.Path}: chunk_size {ctx.ChunkSize} makes a full chunk heavier than the gravity gun can tear out ({VoxChunker.GrabWarnVoxels} voxels).");
+        }
+        ChunkBake bake = VoxChunker.Build(
+            cells, size, VoxChunker.KindOf(ctx.File.MaterialType), ctx.ChunkSize, ctx.ChunkJitter,
+            VoxChunker.SeedOf(ctx.Path), origin, ctx.VoxelSize);
+        if (bake == null)
+        {
+            return;
+        }
+        node.SetMeta(VoxelMeta.ChunkVersion, VoxChunker.FormatVersion);
+        node.SetMeta(VoxelMeta.ChunkCells, bake.CellChunk);
+        node.SetMeta(VoxelMeta.ChunkCount, bake.Count);
+        node.SetMeta(VoxelMeta.ChunkSolid, bake.Solid);
+        node.SetMeta(VoxelMeta.ChunkMin, bake.Min);
+        node.SetMeta(VoxelMeta.ChunkMax, bake.Max);
+        node.SetMeta(VoxelMeta.ChunkLayers, bake.Layers);
+        node.SetMeta(VoxelMeta.ChunkLayerCount, bake.LayerCount);
+        node.SetMeta(VoxelMeta.ChunkLayerSumX, bake.LayerSumX);
+        node.SetMeta(VoxelMeta.ChunkLayerSumY, bake.LayerSumY);
+        node.SetMeta(VoxelMeta.ChunkEdgeA, bake.EdgeA);
+        node.SetMeta(VoxelMeta.ChunkEdgeB, bake.EdgeB);
+        node.SetMeta(VoxelMeta.ChunkEdgeFaces, bake.EdgeFaces);
+        node.SetMeta(VoxelMeta.ChunkBoxOffset, bake.BoxOffset);
+        node.SetMeta(VoxelMeta.ChunkBoxCentre, bake.BoxCentre);
+        node.SetMeta(VoxelMeta.ChunkBoxSize, bake.BoxSize);
+        node.SetMeta(VoxelMeta.ChunkGround, bake.GroundCells);
     }
 
     private static Vector3 PivotOrCentre(Context ctx, VoxFile.Model model, string name)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using DillControl.Core;
 using Godot;
@@ -191,6 +192,7 @@ public partial class RubblePile : Node3D, IDamageable, IBlastSurface
 
     public override void _PhysicsProcess(double delta)
     {
+        DrainDeposits();
         if (_reheight >= 0.0f)
         {
             _reheight -= (float)delta;
@@ -316,53 +318,149 @@ public partial class RubblePile : Node3D, IDamageable, IBlastSurface
     /// </summary>
     public void Deposit(Vector3 centre, float inner, int count, IReadOnlyList<byte> colours)
     {
-        if (count <= 0 || colours.Count == 0)
+        if (count <= 0 || colours == null || colours.Count == 0 || _grid == null)
         {
             return;
         }
+        var copy = new byte[colours.Count];
+        for (int i = 0; i < colours.Count; i++)
+        {
+            copy[i] = colours[i];
+        }
+        _waiting.Enqueue(new DepositRequest(centre, inner, count, copy));
+        KickDeposit();
+    }
+
+    private readonly Queue<DepositRequest> _waiting = new();
+    private readonly ConcurrentQueue<DepositDone> _done = new();
+    private bool _depositFlying;
+
+    private readonly record struct DepositRequest(Vector3 Centre, float Inner, int Count, byte[] Colours);
+
+    private sealed class DepositDone
+    {
+        public List<(int, byte)> Cells;
+        public Vector3I Min;
+        public Vector3I Max;
+        public bool[] Blocked;
+    }
+
+    /// <summary>One deposit at a time. The roll-down reads a copy of the
+    /// height map; this thread only fills the cells in when it comes back,
+    /// a frame or two later, under the crush's dust.</summary>
+    private void KickDeposit()
+    {
+        if (_depositFlying || _waiting.Count == 0 || _grid == null)
+        {
+            return;
+        }
+        DepositRequest request = _waiting.Dequeue();
         float voxel = _grid.VoxelSize;
-        Vector3 local = ToLocal(centre) / voxel;
+        Vector3 local = ToLocal(request.Centre) / voxel;
         float cx = local.X + _size.X * 0.5f, cy = -local.Z + _size.Y * 0.5f;
-        float innerCells = inner / voxel;
+        float innerCells = request.Inner / voxel;
         float outerCells = _size.X * 0.5f - 1.0f;
         float spread = Mathf.Max(1.0f, (outerCells - innerCells) * 0.22f);
+        int[] height = (int[])_height.Clone();
+        bool[] blocked = (bool[])_blocked.Clone();
+        int seed = _random.Next();
+        Vector3I size = _size;
+        byte[] colours = request.Colours;
+        int count = request.Count;
+        _depositFlying = true;
+        VoxelWorkers.Run(() =>
+        {
+            DepositDone done;
+            try
+            {
+                done = Roll(height, blocked, size, cx, cy, innerCells, spread, count, colours, seed);
+            }
+            catch (Exception exception)
+            {
+                done = new DepositDone
+                {
+                    Cells = new List<(int, byte)>(),
+                    Min = Vector3I.Zero,
+                    Max = Vector3I.Zero,
+                    Blocked = blocked,
+                };
+                GD.PushError($"RubblePile: a deposit failed: {exception.Message}");
+            }
+            _done.Enqueue(done);
+        });
+    }
 
-        // The footprint takes nothing.
-        for (int y = 0; y < _size.Y; y++)
-            for (int x = 0; x < _size.X; x++)
+    private void DrainDeposits()
+    {
+        if (!_done.TryDequeue(out DepositDone done))
+        {
+            return;
+        }
+        _depositFlying = false;
+        _blocked = done.Blocked;
+        _cells.Clear();
+        Vector3I min = done.Min, max = done.Max;
+        foreach ((int index, byte colour) in done.Cells)
+        {
+            Vector3I cell = _grid.CellOf(index);
+            int column = cell.X + _size.X * cell.Y;
+            int z = Math.Max(cell.Z, _height[column]);
+            if (z >= _size.Z)
+            {
+                continue;
+            }
+            _height[column] = z + 1;
+            Touch(cell.X, cell.Y);
+            _cells.Add((_grid.Index(cell.X, cell.Y, z), colour));
+            min = min.Min(new Vector3I(cell.X, cell.Y, z));
+            max = max.Max(new Vector3I(cell.X, cell.Y, z));
+        }
+        if (_cells.Count > 0)
+        {
+            _part.Fill(_cells, min, max);
+        }
+        KickDeposit();
+    }
+
+    /// <summary>The roll-down, on a copy. Nothing of the node is touched.</summary>
+    private static DepositDone Roll(int[] height, bool[] blocked, Vector3I size, float cx, float cy,
+        float innerCells, float spread, int count, byte[] colours, int seed)
+    {
+        var random = new Random(seed);
+        for (int y = 0; y < size.Y; y++)
+            for (int x = 0; x < size.X; x++)
             {
                 float dx = x + 0.5f - cx, dy = y + 0.5f - cy;
                 if (dx * dx + dy * dy < innerCells * innerCells)
                 {
-                    _blocked[x + _size.X * y] = true;
+                    blocked[x + size.X * y] = true;
                 }
             }
 
-        _cells.Clear();
-        Vector3I min = _size, max = Vector3I.Zero;
+        var cells = new List<(int, byte)>();
+        Vector3I min = size, max = Vector3I.Zero;
         for (int k = 0; k < count; k++)
         {
-            double angle = _random.NextDouble() * Math.Tau;
-            float r = innerCells + 0.5f + Mathf.Abs(Gauss()) * spread;
-            int x = Mathf.Clamp((int)(cx + Math.Cos(angle) * r), 1, _size.X - 2);
-            int y = Mathf.Clamp((int)(cy + Math.Sin(angle) * r), 1, _size.Y - 2);
-            if (_blocked[x + _size.X * y])
+            double angle = random.NextDouble() * Math.Tau;
+            float radius = innerCells + 0.5f + Math.Abs(Gauss(random)) * spread;
+            int x = Math.Clamp((int)(cx + Math.Cos(angle) * radius), 1, size.X - 2);
+            int y = Math.Clamp((int)(cy + Math.Sin(angle) * radius), 1, size.Y - 2);
+            if (blocked[x + size.X * y])
             {
                 continue;
             }
-            // Roll down while the drop is more than a voxel.
             for (int step = 0; step < 12; step++)
             {
-                int here = _height[x + _size.X * y];
+                int here = height[x + size.X * y];
                 int bx = x, by = y, lowest = here - 1;
                 foreach ((int ox, int oy) in Neighbours)
                 {
                     int nx = x + ox, ny = y + oy;
-                    if (nx < 1 || ny < 1 || nx > _size.X - 2 || ny > _size.Y - 2 || _blocked[nx + _size.X * ny])
+                    if (nx < 1 || ny < 1 || nx > size.X - 2 || ny > size.Y - 2 || blocked[nx + size.X * ny])
                     {
                         continue;
                     }
-                    int h = _height[nx + _size.X * ny];
+                    int h = height[nx + size.X * ny];
                     if (h < lowest)
                     {
                         lowest = h;
@@ -377,19 +475,20 @@ public partial class RubblePile : Node3D, IDamageable, IBlastSurface
                 x = bx;
                 y = by;
             }
-            int column = x + _size.X * y;
-            int z = _height[column];
-            if (z >= _size.Z)
+            int column = x + size.X * y;
+            int z = height[column];
+            if (z >= size.Z)
             {
                 continue;
             }
-            _height[column] = z + 1;
-            Touch(x, y);
-            _cells.Add((_grid.Index(x, y, z), Patch(colours, x, y, z)));
-            min = min.Min(new Vector3I(x, y, z));
-            max = max.Max(new Vector3I(x, y, z));
+            height[column] = z + 1;
+            int index = x + size.X * (y + size.Y * z);
+            cells.Add((index, Patch(colours, x, y, z)));
+            var cell = new Vector3I(x, y, z);
+            min = min.Min(cell);
+            max = max.Max(cell);
         }
-        _part.Fill(_cells, min, max);
+        return new DepositDone { Cells = cells, Min = min, Max = max, Blocked = blocked };
     }
 
     /// <summary>
@@ -447,9 +546,9 @@ public partial class RubblePile : Node3D, IDamageable, IBlastSurface
 
     private static readonly (int, int)[] Neighbours = { (1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1) };
 
-    private float Gauss()
+    private static float Gauss(Random random)
     {
-        double u = 1.0 - _random.NextDouble(), v = _random.NextDouble();
+        double u = 1.0 - random.NextDouble(), v = random.NextDouble();
         return (float)(Math.Sqrt(-2.0 * Math.Log(u)) * Math.Cos(Math.Tau * v));
     }
 }

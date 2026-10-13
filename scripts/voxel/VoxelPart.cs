@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using DillControl.Audio;
 using DillControl.Core;
+using DillControl.Player;
 using Godot;
 
 namespace DillControl.Voxel;
@@ -65,6 +66,24 @@ public partial class VoxelPart : Node3D
     internal static readonly int SectionChunkAdd = FrameProfiler.Section("chunk add");
     internal static readonly int SectionChunkLand = FrameProfiler.Section("chunk land");
     internal static readonly int SectionChunkBlast = FrameProfiler.Section("chunk blast");
+    internal static readonly int SectionGraph = FrameProfiler.Section("voxel graph");
+
+    /// <summary>Debug tint: each chunk a colour of its own. Toggled with B.</summary>
+    public static bool ShowChunks { get; private set; }
+
+    private static readonly List<VoxelPart> Live = new();
+
+    public static void ToggleChunkTint()
+    {
+        ShowChunks = !ShowChunks;
+        foreach (VoxelPart part in Live)
+        {
+            if (part.Graph != null && !part.IsEmpty)
+            {
+                part.MarkAllDirty();
+            }
+        }
+    }
 
     public VoxelGrid Grid { get; private set; }
     public VoxelAnchor Anchor { get; private set; }
@@ -200,9 +219,58 @@ public partial class VoxelPart : Node3D
         }
     }
 
-    public override void _EnterTree() => VoxelBudget.LiveParts++;
+    public override void _EnterTree()
+    {
+        VoxelBudget.LiveParts++;
+        Live.Add(this);
+    }
 
-    public override void _ExitTree() => VoxelBudget.LiveParts--;
+    public override void _ExitTree()
+    {
+        VoxelBudget.LiveParts--;
+        Live.Remove(this);
+    }
+
+    public VoxelChunkGraph Graph { get; private set; }
+
+    /// <summary>Before it is added, or just after <see cref="Setup"/>: the
+    /// chunks the importer baked, or the ones this piece broke off with.</summary>
+    public void UseGraph(VoxelChunkGraph graph)
+    {
+        Graph = graph;
+        if (Grid != null && graph != null)
+        {
+            Grid.CellCleared = OnCellCleared;
+        }
+    }
+
+    private long _graphTicks;
+
+    private void OnCellCleared(int index)
+    {
+        if (Graph == null)
+        {
+            return;
+        }
+        long start = Stopwatch.GetTimestamp();
+        Graph.NoteRemoved(Grid, index);
+        _graphTicks += Stopwatch.GetTimestamp() - start;
+    }
+
+    private void FlushGraph()
+    {
+        if (_graphTicks == 0)
+        {
+            return;
+        }
+        double ms = _graphTicks * 1000.0 / Stopwatch.Frequency;
+        FrameProfiler.AddExternal(SectionGraph, ms);
+        if (ms > 0.3 && PerfLog.Recording)
+        {
+            PerfLog.Event(System.FormattableString.Invariant($"graph-upkeep {ms:F2}ms"));
+        }
+        _graphTicks = 0;
+    }
 
     public override void _Ready()
     {
@@ -329,13 +397,25 @@ public partial class VoxelPart : Node3D
         bool boxes = CollisionOwner != null || SectionBody != null;
         Color[] palette = Palette;
         float[] emission = Emission;
+        int[] tint = null;
+        if (mesh && ShowChunks && Graph != null)
+        {
+            tint = new int[size.X * size.Y * size.Z];
+            Array.Fill(tint, -1);
+            for (int z = 0; z < size.Z; z++)
+                for (int y = 0; y < size.Y; y++)
+                    for (int x = 0; x < size.X; x++)
+                    {
+                        tint[x + size.X * (y + size.Y * z)] = Graph.ChunkOf(Grid.Index(lo.X + x, lo.Y + y, lo.Z + z));
+                    }
+        }
         VoxelWorkers.Run(() =>
         {
             try
             {
                 if (mesh)
                 {
-                    job.Mesh = VoxMesher.BuildArrays(cells, size, from, to, palette, emission, origin, voxel, -1);
+                    job.Mesh = VoxMesher.BuildArrays(cells, size, from, to, palette, emission, origin, voxel, -1, tint);
                 }
                 if (boxes)
                 {
@@ -381,6 +461,7 @@ public partial class VoxelPart : Node3D
 
         MarkDirty(min, max);
         Dust(_removed);
+        FlushGraph();
         _integrityTimer = _stats.IntegrityDelay;
         Carved?.Invoke(this, count);
         if (Grid.SolidCount <= 0)
@@ -417,6 +498,7 @@ public partial class VoxelPart : Node3D
                 }
         _removed.Clear();
         Grid.Remove(cells, _removed);
+        FlushGraph();
         CollapseDust(_removed);
         MarkAllDirty();
         RebuildCollisionNow(new Vector3I(0, 0, z0), new Vector3I(x1, Grid.Size.Y - 1, z1));
@@ -559,6 +641,10 @@ public partial class VoxelPart : Node3D
         }
 
         ReportObstacles(delta);
+        if (Graph != null && _stats.StressSeconds > 0.0f)
+        {
+            Graph.TickStrain((float)delta, _stats, this);
+        }
         if (_plan != null && _plan.IsCompleted)
         {
             FinishPlan();
@@ -731,6 +817,7 @@ public partial class VoxelPart : Node3D
 
     private Task<SplitPlan> _plan;
     private byte[] _snapshot;
+    private int[] _chunkSnap;
     private VoxelBreakup? _planBreakup;
     private Vector3 _planPush;
 
@@ -766,6 +853,11 @@ public partial class VoxelPart : Node3D
     /// </summary>
     private void Schedule(VoxelBreakup? breakup, Vector3 push)
     {
+        if (Graph != null)
+        {
+            ScheduleGraph(breakup, push);
+            return;
+        }
         using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionIntegrity);
         // One copy per part, kept: only one plan is ever in flight.
         if (_snapshot == null || _snapshot.Length != Grid.Cells.Length)
@@ -791,6 +883,66 @@ public partial class VoxelPart : Node3D
             {
                 split.Grid = new VoxelGrid(size, cells, origin, voxel);
                 SplitPlan plan = breakup is VoxelBreakup b ? split.Breakup(b) : split.Integrity();
+                plan.Version = version;
+                split.Settle(plan, step, boxes);
+                done.SetResult(plan);
+            }
+            catch (Exception exception)
+            {
+                done.SetException(exception);
+            }
+        });
+    }
+
+    /// <summary>The graph decides on this thread. The worker only gathers the
+    /// cells and builds the meshes, from a copy, as any other split.</summary>
+    private void ScheduleGraph(VoxelBreakup? breakup, Vector3 push)
+    {
+        using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionIntegrity);
+        Graph.DepthVoxels = Math.Max(1, Mathf.RoundToInt(_stats.FailureDepth / Math.Max(0.01f, Grid.VoxelSize)));
+        long start = Stopwatch.GetTimestamp();
+        GraphDecision decision = breakup is VoxelBreakup kind
+            ? Graph.Breakup(Grid, _stats, kind)
+            : Graph.Decide(Grid, _stats, Anchor, _builtCount, _builtHalf);
+        double decided = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
+        FrameProfiler.AddExternal(SectionGraph, decided);
+        if (decided > 2.0 && PerfLog.Recording)
+        {
+            PerfLog.Event(System.FormattableString.Invariant(
+                $"graph-decide {decided:F1}ms chunks={Graph.Count}"));
+        }
+        if (_snapshot == null || _snapshot.Length != Grid.Cells.Length)
+        {
+            _snapshot = new byte[Grid.Cells.Length];
+        }
+        Array.Copy(Grid.Cells, _snapshot, Grid.Cells.Length);
+        if (_chunkSnap == null || _chunkSnap.Length != Graph.CellLength)
+        {
+            _chunkSnap = new int[Graph.CellLength];
+        }
+        Graph.CopyCells(_chunkSnap);
+        // The snapshot keeps this array. Nothing else writes it until the
+        // next plan, and a plan is one at a time.
+        int[] chunkOf = _chunkSnap;
+        decision.Snapshot = Graph.Snapshot(chunkOf);
+        byte[] cells = _snapshot;
+        int version = Grid.Version;
+        Vector3I size = Grid.Size;
+        Vector3 origin = Grid.Origin;
+        float voxel = Grid.VoxelSize;
+        VoxelSplit split = Splitter(null);
+        int step = CollisionStep;
+        bool boxes = CollisionOwner != null || SectionBody != null;
+        _planBreakup = breakup;
+        _planPush = push;
+        var done = new TaskCompletionSource<SplitPlan>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _plan = done.Task;
+        VoxelWorkers.Run(() =>
+        {
+            try
+            {
+                split.Grid = new VoxelGrid(size, cells, origin, voxel);
+                SplitPlan plan = split.Assemble(decision, chunkOf);
                 plan.Version = version;
                 split.Settle(plan, step, boxes);
                 done.SetResult(plan);
@@ -844,7 +996,7 @@ public partial class VoxelPart : Node3D
         if (plan.BurstSize > 0.0f && VoxelDebris.Current != null)
         {
             VoxelDebris.Current.Dust(ToGlobal(plan.BurstCentre), Up(), Velocity() * 0.3f,
-                VoxelDebris.AverageColour(Grid, Palette), plan.BurstSize);
+                VoxelDebris.AverageColour(Grid, Palette), plan.BurstSize, Dusty);
         }
         if (plan.Dust.Count > 0)
         {
@@ -944,13 +1096,14 @@ public partial class VoxelPart : Node3D
                 velocity += w.Cross(at.Origin - pivot);
             }
             VoxelDebris.Current.SpawnChunk(piece.Grid, Palette, Emission, Material, at, velocity, turning,
-                piece.Hinge ? hinge : null, given == null ? null : (given, piece.Offset), piece.Build, batch);
+                piece.Hinge ? hinge : null, given == null ? null : (given, piece.Offset), piece.Build, batch, Dusty,
+                piece.Graph);
             if (breakingUp)
             {
                 // Cover: each piece comes out of a cloud its own size, so the
                 // moment the old shape gives way to its pieces is in dust.
                 VoxelDebris.Current.Dust(at.Origin, Up(), velocity * 0.2f, VoxelDebris.AverageColour(piece.Grid, Palette),
-                    Mathf.Pow(piece.Grid.SolidCount, 1.0f / 3.0f) * Grid.VoxelSize * _stats.CoverDust);
+                    Mathf.Pow(piece.Grid.SolidCount, 1.0f / 3.0f) * Grid.VoxelSize * _stats.CoverDust, Dusty);
             }
         }
 
@@ -985,6 +1138,7 @@ public partial class VoxelPart : Node3D
         {
             batch.Finish();
         }
+        FlushGraph();
     }
 
     private bool HasJob(int s)
@@ -1045,6 +1199,7 @@ public partial class VoxelPart : Node3D
             return;
         }
         Grid.Remove(cells, null);
+        FlushGraph();
         MarkDirty(min, max);
         _integrityTimer = _stats.IntegrityDelay;
     }
@@ -1095,6 +1250,33 @@ public partial class VoxelPart : Node3D
         var cells = new List<int>();
         Vector3I min = hi, max = lo;
         float sideways2 = 0.0f;
+        bool wholeChunks = false;
+        if (Graph != null)
+        {
+            var chunks = new List<int>();
+            Graph.ChunksInSlab(from, along, deep, wide2, chunks);
+            if (chunks.Count > 0)
+            {
+                foreach (int chunk in chunks)
+                {
+                    Graph.CellsOf(Grid, chunk, cells);
+                }
+                wholeChunks = cells.Count > 0;
+            }
+        }
+        if (wholeChunks)
+        {
+            foreach (int i in cells)
+            {
+                Vector3I c = Grid.CellOf(i);
+                min = min.Min(c);
+                max = max.Max(c);
+                Vector3 q = new Vector3(c.X + 0.5f, c.Y + 0.5f, c.Z + 0.5f) - from;
+                sideways2 = Mathf.Max(sideways2, q.LengthSquared() - q.Dot(along) * q.Dot(along));
+            }
+        }
+        else
+        {
         // Row by row, jumping the empty runs with a vector search: a tilted
         // landing's box takes in most of a hollow tower's grid.
         int width = hi.X - lo.X + 1;
@@ -1127,6 +1309,7 @@ public partial class VoxelPart : Node3D
                     sideways2 = Mathf.Max(sideways2, q.LengthSquared() - d * d);
                 }
             }
+        }
         reach = Mathf.Sqrt(sideways2) * Grid.VoxelSize;
         if (cells.Count == 0)
         {
@@ -1144,6 +1327,7 @@ public partial class VoxelPart : Node3D
             }
         }
         MarkDirty(min, max);
+        FlushGraph();
         RebuildCollisionNow(min, max);
         // A crush checks the structure once the crushing has stopped: a slab off
         // the bottom of a falling tower all but never parts it, and a check
@@ -1332,10 +1516,22 @@ public partial class VoxelPart : Node3D
             }
             NoteObstacle(s);
             Rid rid = body.GetRid();
+            // Out of the space while the shapes change, so Jolt builds the
+            // body's shape once instead of on every BodyAddShape. The cost
+            // being avoided is the "handing" half of a slow-rebox.
+            Rid space = PhysicsServer3D.BodyGetSpace(rid);
+            if (space.IsValid)
+            {
+                PhysicsServer3D.BodySetSpace(rid, default);
+            }
             PhysicsServer3D.BodyClearShapes(rid);
             foreach ((Vector3 centre, Vector3 size) in boxes)
             {
                 PhysicsServer3D.BodyAddShape(rid, Box(size).GetRid(), new Transform3D(Basis.Identity, centre));
+            }
+            if (space.IsValid)
+            {
+                PhysicsServer3D.BodySetSpace(rid, space);
             }
             return;
         }
@@ -1416,7 +1612,110 @@ public partial class VoxelPart : Node3D
         return SectionBodyOf(c.X + _sectionCount.X * (c.Y + _sectionCount.Y * c.Z), true);
     }
 
+    // ---------------- Strain and the gravity gun ----------------
+
+    private float _tugDust;
+
+    /// <summary>Seconds of pull the chunk under <paramref name="worldPoint"/>
+    /// needs, 0 when there is no chunk there, negative when it will not come.</summary>
+    public float TearTime(Vector3 worldPoint)
+    {
+        if (Graph == null || IsEmpty)
+        {
+            return 0.0f;
+        }
+        int chunk = Graph.ChunkAt(Grid, Grid.ToVox(ToLocal(worldPoint)));
+        if (chunk < 0)
+        {
+            return 0.0f;
+        }
+        int voxels = Graph.SolidOf(chunk);
+        if (voxels < _stats.MinChunkVoxels || voxels > _stats.MaxGrabVoxels)
+        {
+            return -1.0f;
+        }
+        float seconds = Graph.ContactFaces(chunk) * _stats.TearSecondsPerContact;
+        if (seconds > _stats.TearMaxSeconds)
+        {
+            return -1.0f;
+        }
+        return Mathf.Max(0.15f, seconds);
+    }
+
+    /// <summary>Rips that chunk out as a body made this frame, so the gun is
+    /// holding it. What it was holding is checked again by the integrity timer
+    /// <see cref="Take"/> starts.</summary>
+    public RigidBody3D Tear(Vector3 worldPoint)
+    {
+        if (Graph == null || VoxelDebris.Current == null || TearTime(worldPoint) <= 0.0f)
+        {
+            return null;
+        }
+        int chunk = Graph.ChunkAt(Grid, Grid.ToVox(ToLocal(worldPoint)));
+        var cells = new List<int>();
+        Graph.CellsOf(Grid, chunk, cells);
+        if (cells.Count < _stats.MinChunkVoxels)
+        {
+            return null;
+        }
+        var min = new Vector3I(int.MaxValue, int.MaxValue, int.MaxValue);
+        var max = new Vector3I(int.MinValue, int.MinValue, int.MinValue);
+        foreach (int i in cells)
+        {
+            Vector3I c = Grid.CellOf(i);
+            min = min.Min(c);
+            max = max.Max(c);
+        }
+        var snapCells = new int[Graph.CellLength];
+        Graph.CopyCells(snapCells);
+        GraphSnapshot snapshot = Graph.Snapshot(snapCells);
+        VoxelGrid lump = Grid.Copy(cells, out Vector3 offset, 1, clear: false);
+        VoxelChunkGraph piece = VoxelChunkGraph.Extract(snapshot, cells, Grid, lump, 1, offset);
+        Take(cells, min, max);
+        Transform3D placed = GlobalTransform * new Transform3D(Basis.Identity, offset);
+        return VoxelDebris.Current.MakeNow(lump, Palette, Emission, Material, placed, piece);
+    }
+
+    /// <summary>Dust at the pull, so the chunk shows it is coming.</summary>
+    public void Tug(Vector3 worldPoint, float delta)
+    {
+        _tugDust += delta;
+        if (_tugDust < 0.08f || VoxelDebris.Current == null)
+        {
+            return;
+        }
+        _tugDust = 0.0f;
+        VoxelDebris.Current.Dust(worldPoint, Up(), Vector3.Zero, Colors.White, 0.4f, Dusty);
+    }
+
+    internal void StrainBegan(Vector3 local)
+    {
+        Vector3 world = ToGlobal(local);
+        AudioDirector.PlayAt(Sfx.VoxelChip, world, 0.45f, -8.0f);
+        VoxelDebris.Current?.Dust(world, Up(), Vector3.Zero, Colors.White, 0.7f, Dusty);
+        Player.CameraRig.Feel(world, _stats.StrainShake, 28.0f);
+    }
+
+    internal void StrainFailed() => _integrityTimer = 0.0f;
+
+    internal void StrainShed(int chunk)
+    {
+        if (chunk < 0 || Graph == null || _plan != null)
+        {
+            return;
+        }
+        Graph.Sever(chunk);
+        _integrityTimer = 0.0f;
+    }
+
     // ---------------- Dust ----------------
+
+    /// <summary>How much dust it raises, when it is not its own stats'
+    /// (<see cref="VoxelDestructionStats.DustScale"/>): a loose piece keeps
+    /// the dust of what it came off, since it is made with the default stats.</summary>
+    public float? DustScale { get; set; }
+
+    private float Dusty => DustScale ?? _stats.DustScale;
 
     private void Dust(List<VoxelGrid.Removed> removed)
     {
@@ -1434,7 +1733,7 @@ public partial class VoxelPart : Node3D
         centre /= removed.Count;
         colour /= removed.Count;
         float edge = Mathf.Pow(removed.Count, 1.0f / 3.0f) * Grid.VoxelSize;
-        VoxelDebris.Current.Dust(ToGlobal(centre), Up(), Velocity(), colour.LinearToSrgb(), edge);
+        VoxelDebris.Current.Dust(ToGlobal(centre), Up(), Velocity(), colour.LinearToSrgb(), edge, Dusty);
     }
 
     /// <summary>What a failed storey was goes on the heap round its base,
@@ -1483,7 +1782,7 @@ public partial class VoxelPart : Node3D
         }
         foreach ((Vector3 sum, Color colour, int n) in bins.Values)
         {
-            VoxelDebris.Current.Dust(ToGlobal(sum / n), Up(), Velocity(), (colour / n).LinearToSrgb(), 4.0f);
+            VoxelDebris.Current.Dust(ToGlobal(sum / n), Up(), Velocity(), (colour / n).LinearToSrgb(), 4.0f, Dusty);
         }
     }
 }

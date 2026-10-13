@@ -153,8 +153,9 @@ The pipeline, from a model to a placed, destructible, animated thing, is
 Blender, `.glb` export, every model UV-mapped onto `art/textures/palette.png`
 and drawn with `art/materials/mat_palette_toon.tres` (toon diffuse and specular,
 nearest filtering). The outlines are `shaders/toon_ink.gdshader`, a depth-only
-screen pass carried by `ToonPass` on the camera. Pickles are animated in the
-vertex shader, not rigged.
+screen pass carried by `ToonPass` on the camera. Smoke and dust are
+`shaders/fx_toon_puff.gdshader`: opaque cartoon balls the ink outlines, never
+soft alpha sprites. Pickles are animated in the vertex shader, not rigged.
 
 Voxel art is MagicaVoxel `.vox`, saved into `art/voxels/` and imported by our
 own importer: one node per MagicaVoxel object, colour per vertex on
@@ -171,10 +172,11 @@ voxel thing gets damage code of its own; its numbers are in
 (mechs) `voxel_destruction_mech.tres`, or for trees `voxel_destruction_tree.tres`
 (no weight check: only what is cut free falls, `docs/decisions/0024`). A stats
 resource sets how its own model splits; loose pieces and every budget always
-use the default. Buildings carry their own weight
+use the default. How much dust a kind of thing raises is its own resource's
+`DustScale` (cloud width, after the size cap), and its loose pieces keep it. Buildings carry their own weight
 (`docs/decisions/0013`); what comes loose falls whole, crushes through storey
 by storey, hangs on a hinge when it went on one side, and snaps where it lands
-(`docs/decisions/0014`).
+(`docs/decisions/0014`). Buildings decide what falls by a chunk graph baked by the importer: a cut chunk splits along the cut, pieces break and crush by chunks, overloaded edges give way in stages, and the gravity gun tears chunks out (`docs/decisions/0027`).
 
 **Nothing that scales with a model's voxels runs in the frame**
 (`docs/decisions/0015`): re-meshing, structural checks and splits go to
@@ -216,6 +218,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut       # a tower cut through: drops whole, crushes down
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cutside   # cut on one side: leans, tears, topples
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet # the same, every frame recorded
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn lasercut # the bike's beam swept through Tower11
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn tree quiet # rockets into a tree's canopy, then its trunk cut
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet 40  # recorded for 40 s: does the debris drain?
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn gpuab     # what each part of the view costs the GPU

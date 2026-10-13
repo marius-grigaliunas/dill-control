@@ -210,6 +210,11 @@ for walkers, `vxl_` for anything else. If the model is not ours, add it to
 Select the `.vox`, open the Import dock, set **voxel/size** to the metres one
 voxel should be, and reimport. The model's target height is what matters;
 height in voxels times voxel size gets you there. The default is 0.1 m.
+**voxel/chunk_size** (default 8 voxels) and **voxel/chunk_jitter** (default 2)
+bake the chunk graph a building falls by (`docs/decisions/0027`): chunks stay
+inside one MagicaVoxel material type, and a full chunk of `chunk_size`³ voxels
+heavier than 600 cannot be torn out by the gravity gun. At 0.1 m a chunk is
+about 0.8 m; a model on 0.5 m voxels gets 4 m chunks at the same setting.
 
 After changing the importer itself, force a reimport by deleting
 `.godot/imported/*.vox-*`, because Godot skips sources that have not changed.

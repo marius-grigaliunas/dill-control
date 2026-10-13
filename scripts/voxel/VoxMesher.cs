@@ -126,7 +126,7 @@ public static class VoxMesher
     /// touching nothing of Godot's: safe on any thread.</summary>
     public static Arrays BuildArrays(
         byte[] cells, Vector3I size, Vector3I regionMin, Vector3I regionMax,
-        Color[] palette, float[] emission, Vector3 origin, float voxelSize, int skip)
+        Color[] palette, float[] emission, Vector3 origin, float voxelSize, int skip, int[] tint = null)
     {
         List<Vector3> vertices = _vertices ??= new List<Vector3>();
         List<Vector3> normals = _normals ??= new List<Vector3>();
@@ -174,6 +174,14 @@ public static class VoxMesher
                         {
                             p[axis] = slice; p[u] = lo[u] + pu; p[v] = lo[v] + pv;
                             byte c = Solid(p);
+                            if (c != 0 && tint != null)
+                            {
+                                int id = tint[p[0] + dims[0] * (p[1] + dims[1] * p[2])];
+                                if (id >= 0)
+                                {
+                                    c = (byte)(1 + id % 254);
+                                }
+                            }
                             if (c != 0)
                             {
                                 n[axis] = slice + dir; n[u] = lo[u] + pu; n[v] = lo[v] + pv;
@@ -210,8 +218,8 @@ public static class VoxMesher
                             for (int k = 0; k < 4; k++)
                             {
                                 normals.Add(normal);
-                                colours.Add(palette[c]);
-                                uvs.Add(new Vector2(emission[c], 0.0f));
+                                colours.Add(tint != null ? TintColour(c) : palette[c]);
+                                uvs.Add(new Vector2(tint != null ? 0.0f : emission[c], 0.0f));
                             }
 
                             // Godot culls counter-clockwise triangles, so a
@@ -242,6 +250,13 @@ public static class VoxMesher
             VertexCount = vertices.Count,
             IndexCount = indices.Count,
         };
+    }
+
+    /// <summary>A stable bright colour per chunk, for the debug tint.</summary>
+    private static Color TintColour(byte key)
+    {
+        uint h = (uint)(key * 1103515245 + 12345);
+        return new Color(0.25f + (h & 255) / 340.0f, 0.25f + ((h >> 8) & 255) / 340.0f, 0.25f + ((h >> 16) & 255) / 340.0f);
     }
 
     private static bool RowMatches(byte[] mask, int su, int pu, int pv, int w, byte c)
