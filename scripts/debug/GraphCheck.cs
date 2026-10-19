@@ -67,7 +67,8 @@ public partial class GraphCheck : Node
         uint state = 2463534242u;
         var cells = new List<int>();
         var hit = new List<int>();
-        int wrongDrop = 0, floating = 0, dropped = 0;
+        int wrongDrop = 0, floating = 0, dropped = 0, strainFailed = 0, strainDropped = 0;
+        var strain = new Host { Graph = graph };
         int firstWrong = -1, firstFloat = -1;
         for (int h = 0; h <= hits; h++)
         {
@@ -103,6 +104,13 @@ public partial class GraphCheck : Node
             }
 
             bool[] anchored = Anchored(grid);
+            // Three seconds of strain after the hit, as the part would tick it.
+            strain.Failed = 0;
+            for (int step = 0; step < 180; step++)
+            {
+                graph.TickStrain(1.0f / 60.0f, stats, strain);
+            }
+            strainFailed += strain.Failed;
             graph.DepthVoxels = 8;
             GraphDecision decision = graph.Decide(grid, stats, VoxelAnchor.Ground, null, null);
             cells.Clear();
@@ -120,6 +128,13 @@ public partial class GraphCheck : Node
                 {
                     wrongNow++;
                 }
+            }
+            // A building's strain may let go of what still hangs on: that is
+            // its weight check over time (0027). With no weight check, never.
+            if (wrongNow > 0 && strain.Failed > 0 && stats.MinSupportFraction > 0.0f)
+            {
+                strainDropped += wrongNow;
+                wrongNow = 0;
             }
             if (wrongNow > 0 && firstWrong < 0)
             {
@@ -148,7 +163,8 @@ public partial class GraphCheck : Node
         }
         ok = wrongDrop == 0 && floating == 0;
         report.AppendLine($"{(ok ? "ok  " : "BAD ")}{name}/{host.Name}: chunks={graph.Count} voxels={grid.InitialCount} dropped={dropped} " +
-            $"wrongly-dropped={wrongDrop} (first at hit {firstWrong}) floating-at-end={floating} (first at hit {firstFloat})");
+            $"wrongly-dropped={wrongDrop} (first at hit {firstWrong}) floating-at-end={floating} (first at hit {firstFloat}) " +
+            $"strain: edges let go={strainFailed} dropped={strainDropped}");
         return ok;
     }
 
@@ -206,6 +222,27 @@ public partial class GraphCheck : Node
         }
         report.AppendLine($"     {name}/{host.Name}: contacts={faces.Count} links={linkFaces.Count} missing={missing} extra={extra} " +
             $"face-count-off={wrongCount} solid-off={solidOff} unchunked-cells={unchunked} chunked-air={mismatchSolid}");
+    }
+
+    /// <summary>The part's side of strain, without the part: a shed chunk is
+    /// severed as the part would sever it; creaks are only counted.</summary>
+    private sealed class Host : IStrainHost
+    {
+        public VoxelChunkGraph Graph;
+        public int Failed;
+
+        public void StrainBegan(Vector3 local) { }
+
+        public void StrainFailed() => Failed++;
+
+        public void StrainShed(int chunk)
+        {
+            if (chunk >= 0)
+            {
+                Graph.Sever(chunk);
+                Failed++;
+            }
+        }
     }
 
     private static bool Exposed(VoxelGrid grid, int i)

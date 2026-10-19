@@ -104,3 +104,16 @@ found four causes, none of them the crush:
 Cooled `cut quiet`, plugged in: mean 10.8 and 11.0 ms, 2.5% and 2.8% over
 16.7 ms. `collapse`, `cut`, `cutside`, `tree`, `wreck` and `lasercut` with
 the probe: nothing lost, no piece whose boxes and voxels disagree.
+
+## Follow-up, 20 October 2026: strain only where there is weight
+
+Strain weakened every edge that had lost `StressLimit` of its faces with
+anything above it, whatever the load: a shot branch of a vine let go of
+others below it a second and a half later. It now runs only with a weight
+check (`MinSupportFraction` above 0; trees and vines hold by connection
+alone, 0024), and only on an edge whose upper chunk is overloaded: what is
+left of all its contacts with chunks at or below it is under
+`MinSupportFraction` of what it was built with. `graphcheck.gd` ticks 3 s of
+strain after every hit and covers the vines: with the old strain the vines
+dropped 2,700-6,900 voxels still connected to the ground and tall tree A
+11,700; now none.

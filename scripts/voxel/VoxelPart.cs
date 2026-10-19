@@ -46,7 +46,7 @@ public readonly record struct VoxelHinge(CollisionObject3D Anchor, Vector3 Pivot
 /// Every voxel model in the game is made of these, which is what makes them all
 /// break the same way (docs/decisions/0011).
 /// </summary>
-public partial class VoxelPart : Node3D
+public partial class VoxelPart : Node3D, IStrainHost
 {
     private static readonly int SectionMesh = FrameProfiler.Section("voxel mesh");
     private static readonly int SectionCollision = FrameProfiler.Section("voxel collision");
@@ -1688,7 +1688,7 @@ public partial class VoxelPart : Node3D
         VoxelDebris.Current.Dust(worldPoint, Up(), Vector3.Zero, Colors.White, 0.4f, Dusty);
     }
 
-    internal void StrainBegan(Vector3 local)
+    public void StrainBegan(Vector3 local)
     {
         Vector3 world = ToGlobal(local);
         AudioDirector.PlayAt(Sfx.VoxelChip, world, 0.45f, -8.0f);
@@ -1696,9 +1696,9 @@ public partial class VoxelPart : Node3D
         Player.CameraRig.Feel(world, _stats.StrainShake, 28.0f);
     }
 
-    internal void StrainFailed() => _integrityTimer = 0.0f;
+    public void StrainFailed() => _integrityTimer = 0.0f;
 
-    internal void StrainShed(int chunk)
+    public void StrainShed(int chunk)
     {
         if (chunk < 0 || Graph == null || _plan != null)
         {

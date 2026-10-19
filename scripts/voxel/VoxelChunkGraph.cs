@@ -26,6 +26,15 @@ public sealed class GraphSnapshot
     public int[] LinkBuilt;
 }
 
+/// <summary>What strain tells the part that owns the graph: a creak (dust,
+/// a sound, a shake), an edge let go, a small chunk to shed.</summary>
+internal interface IStrainHost
+{
+    void StrainBegan(Vector3 local);
+    void StrainFailed();
+    void StrainShed(int chunk);
+}
+
 /// <summary>What the graph decided, for the worker that builds the pieces.</summary>
 internal sealed class GraphDecision
 {
@@ -341,7 +350,7 @@ public sealed class VoxelChunkGraph
     /// then let go. A cut with nothing left holding does not come here: it
     /// has already failed the check. <paramref name="stressSeconds"/> at 0
     /// does nothing.</summary>
-    public void TickStrain(float dt, VoxelDestructionStats stats, VoxelPart host)
+    internal void TickStrain(float dt, VoxelDestructionStats stats, IStrainHost host)
     {
         if (stats.StressSeconds <= 0.0f || _count == 0)
         {
@@ -912,6 +921,13 @@ public sealed class VoxelChunkGraph
 
     private void ConsiderStrain(VoxelDestructionStats stats)
     {
+        // No weight check, no strain: a tree or a vine holds by connection
+        // alone (0024). Strain cut every nicked edge with anything above it,
+        // and a shot branch let go of others a second and a half later.
+        if (stats.MinSupportFraction <= 0.0f)
+        {
+            return;
+        }
         for (int c = 0; c < _count; c++)
         {
             for (int i = 0; i < _links[c].Count; i++)
@@ -949,11 +965,38 @@ public sealed class VoxelChunkGraph
                 {
                     continue;
                 }
+                // Overloaded, as 0027 says, not merely nicked: what is left of
+                // all the upper chunk's contacts with chunks at or below it is
+                // under MinSupportFraction of what it was built with. One
+                // damaged edge beside healthy ones carries nothing alone.
+                if (SupportShare(upper) >= stats.MinSupportFraction)
+                {
+                    continue;
+                }
                 link.Weaken = stats.StressSeconds;
                 _links[c][i] = link;
                 Mirror(c, link);
             }
         }
+    }
+
+    /// <summary>Live over built faces of a chunk's contacts with chunks whose
+    /// middle is not above its own: how much of what held it up is left.</summary>
+    private float SupportShare(int chunk)
+    {
+        float middle = (_min[chunk].Z + _max[chunk].Z) * 0.5f;
+        int live = 0, built = 0;
+        foreach (Link link in _links[chunk])
+        {
+            int other = link.Other;
+            if ((_min[other].Z + _max[other].Z) * 0.5f > middle || link.Built <= 0)
+            {
+                continue;
+            }
+            live += _solid[other] > 0 ? link.Live : 0;
+            built += link.Built;
+        }
+        return built == 0 ? 1.0f : (float)live / built;
     }
 
     private int SmallestDirty()
