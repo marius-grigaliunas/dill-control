@@ -132,6 +132,11 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         // Heavy: it lands and stays, grinds rather than skates, and a block
         // on its corner falls over instead of spinning on.
         PhysicsMaterialOverride = new PhysicsMaterial { Friction = _stats.Friction, Bounce = 0.0f, Rough = true };
+        // Swept, not stepped: a toppling tower's far end leaves at a hundred
+        // metres a second, nearly the ground's whole thickness in one physics
+        // step, and went through it between two. Jolt sweeps only a body that
+        // moves far for its size in a step, so a resting piece costs nothing.
+        ContinuousCd = true;
         AngularDampMode = DampMode.Combine;
         AngularDamp = _stats.AngularDamp;
 
@@ -530,24 +535,54 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         debris.LeaveRubble(centre, footprint + _grid.VoxelSize, crushed, _colours, _palette, _emission, _material,
             _grid.VoxelSize);
 
-        Vector3 side = normal.Cross(Mathf.Abs(normal.Y) < 0.9f ? Vector3.Up : Vector3.Right).Normalized();
+        // Outward is level, about world up, not about the contact normal: the
+        // normal averages contacts with the ground and the rubble, leans by
+        // tens of degrees, and "outward" along it pointed metres underground.
+        Vector3 up = WorldUp.At(centre);
+        Vector3 side = up.Cross(Mathf.Abs(up.X) < 0.9f ? Vector3.Right : Vector3.Forward).Normalized();
         Color colour = VoxelDebris.AverageColour(_grid, _palette);
         float edge = footprint + 1.0f;
         int ring = _stats.CrushDustRing;
         float turn = (float)GD.RandRange(0.0, Mathf.Tau);
         for (int k = 0; k < ring; k++)
         {
-            Vector3 out_ = side.Rotated(normal, turn + Mathf.Tau * k / ring);
-            debris.Dust(centre + out_ * edge, normal, out_ * 4.0f + LinearVelocity * 0.3f, colour, _stats.CrushDepth * 1.4f,
-                _dustScale);
+            Vector3 out_ = side.Rotated(up, turn + Mathf.Tau * k / ring);
+            if (OnSurface(centre + out_ * edge, up, 0.5f) is Vector3 at)
+            {
+                debris.Dust(at, up, out_ * 4.0f + LinearVelocity * 0.3f, colour, _stats.CrushDepth * 1.4f, _dustScale);
+            }
         }
         for (int k = 0; k < _stats.SpallPerCrush; k++)
         {
-            Vector3 out_ = side.Rotated(normal, (float)GD.RandRange(0.0, Mathf.Tau));
-            Vector3 velocity = out_ * (float)GD.RandRange(5.0, 11.0) + normal * (float)GD.RandRange(2.0, 6.0);
-            debris.Spall(centre + out_ * edge + normal * 1.0f, velocity, _colours, _palette, _emission, _material,
-                _grid.VoxelSize, _dustScale);
+            Vector3 out_ = side.Rotated(up, (float)GD.RandRange(0.0, Mathf.Tau));
+            // A spall is up to 4 voxels across, centred: its half and a little.
+            if (OnSurface(centre + out_ * edge, up, 2.5f * _grid.VoxelSize + 0.5f) is not Vector3 at)
+            {
+                continue;
+            }
+            Vector3 velocity = out_ * (float)GD.RandRange(5.0, 11.0) + up * (float)GD.RandRange(2.0, 6.0);
+            debris.Spall(at, velocity, _colours, _palette, _emission, _material, _grid.VoxelSize, _dustScale);
         }
+    }
+
+    /// <summary>
+    /// Where something thrown out of a crush starts: <paramref name="clear"/>
+    /// above whatever is under <paramref name="point"/> (ground, heap or
+    /// building), found from well above the crush so a point that is already
+    /// under the surface comes back out. Null when there is nothing under it.
+    /// </summary>
+    private Vector3? OnSurface(Vector3 point, Vector3 up, float clear)
+    {
+        PhysicsDirectSpaceState3D space = GetWorld3D()?.DirectSpaceState;
+        if (space == null)
+        {
+            return null;
+        }
+        float reach = _stats.CrushDepth + 8.0f;
+        using var query = PhysicsRayQueryParameters3D.Create(point + up * reach, point - up * reach,
+            GameLayers.Mask(GameLayers.World, GameLayers.Prop), new Godot.Collections.Array<Rid> { GetRid() });
+        Godot.Collections.Dictionary hit = space.IntersectRay(query);
+        return hit.Count == 0 ? null : hit["position"].AsVector3() + up * clear;
     }
 
     /// <summary>Voxels in it: how much it matters, when the cap needs room.</summary>
@@ -641,6 +676,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
     public Color[] Palette => _palette;
     public float[] Emission => _emission;
     public Material Material => _material;
+    public float DustScale => _dustScale;
 
     /// <summary>Stays drawn, still and without collision, for
     /// <paramref name="seconds"/>, then retires.</summary>

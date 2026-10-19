@@ -168,6 +168,9 @@ public partial class VoxelDebris : Node3D
 
     public static VoxelDebris Current { get; private set; }
 
+    /// <summary>Debug (SinkProbe): who asked for each piece, by its grid.</summary>
+    public static System.Runtime.CompilerServices.ConditionalWeakTable<VoxelGrid, string> SpawnedBy;
+
     [Export]
     public VoxelDestructionStats Stats { get; set; }
 
@@ -414,6 +417,7 @@ public partial class VoxelDebris : Node3D
         (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null, SpawnBatch batch = null,
         float dustScale = 1.0f, VoxelChunkGraph graph = null)
     {
+        SpawnedBy?.AddOrUpdate(grid, $"at y={at.Origin.Y:F2} " + System.Environment.StackTrace);
         if (batch != null)
         {
             batch.Remaining++;
@@ -447,6 +451,7 @@ public partial class VoxelDebris : Node3D
 
     public override void _PhysicsProcess(double delta)
     {
+        CatchSunk((float)delta);
         // A batch whose pieces are slow in coming lets go of its old look anyway.
         ulong ms = Time.GetTicksMsec();
         for (int k = _batches.Count - 1; k >= 0; k--)
@@ -513,7 +518,7 @@ public partial class VoxelDebris : Node3D
         if (late > 0.0f && p.Hinge == null)
         {
             Vector3 gravity = WorldUp.GravityAt(at.Origin);
-            at.Origin += velocity * late + gravity * (0.5f * late * late);
+            at.Origin += ClampToGround(p.Grid, at, velocity * late + gravity * (0.5f * late * late));
             velocity += gravity * late;
             if (p.Spin.LengthSquared() > 1e-8f)
             {
@@ -789,6 +794,118 @@ public partial class VoxelDebris : Node3D
 
     private readonly Godot.Collections.Array<Rid> _ignore = new();
 
+    /// <summary>
+    /// A late piece's catch-up move, cut short where its lowest point would
+    /// pass the ground under it. A toppling tower's pieces leave at tens of
+    /// metres a second; projected blind over a queue's wait they were made
+    /// metres inside the ground, and fell out of the world.
+    /// </summary>
+    private Vector3 ClampToGround(VoxelGrid grid, Transform3D at, Vector3 move)
+    {
+        Vector3 up = WorldUp.At(at.Origin);
+        float down = -move.Dot(up);
+        if (down <= 0.0f || !grid.SolidBounds(out Aabb local))
+        {
+            return move;
+        }
+        float lowest = float.MaxValue, highest = float.MinValue;
+        for (int c = 0; c < 8; c++)
+        {
+            float h = (at * local.GetEndpoint(c)).Dot(up);
+            lowest = Mathf.Min(lowest, h);
+            highest = Mathf.Max(highest, h);
+        }
+        if (!Ground(at.Origin + up * (highest - at.Origin.Dot(up) + 2.0f), out Vector3 ground))
+        {
+            return move;
+        }
+        float room = Mathf.Max(0.0f, lowest - ground.Dot(up));
+        return down <= room ? move : move + up * (down - room);
+    }
+
+    /// <summary>A piece's lowest voxel corner, for the bench: its origin
+    /// stays where it was made while crushing eats its bottom, and read as
+    /// a tower 33 m under the ground.</summary>
+    private static float LowestY(VoxelChunk chunk)
+    {
+        if (chunk.Grid == null || !chunk.Grid.SolidBounds(out Aabb local))
+        {
+            return chunk.GlobalPosition.Y;
+        }
+        float lowest = float.MaxValue;
+        for (int c = 0; c < 8; c++)
+        {
+            lowest = Mathf.Min(lowest, (chunk.GlobalTransform * local.GetEndpoint(c)).Y);
+        }
+        return lowest;
+    }
+
+    private float _sunkTimer;
+
+    /// <summary>
+    /// Pieces squeezed under the ground. A small piece pinned under a falling
+    /// tower is pressed through the ground's collision by mass the solver
+    /// cannot hold, and fell out of the world. Small ones are crushed into the
+    /// heap where they went under, as the tower would have crushed them; big
+    /// ones are set back on the surface (<see cref="VoxelDestructionStats.SunkDepth"/>).
+    /// </summary>
+    private void CatchSunk(float delta)
+    {
+        _sunkTimer -= delta;
+        if (_sunkTimer > 0.0f || Stats.SunkDepth <= 0.0f)
+        {
+            return;
+        }
+        _sunkTimer = 0.2f;
+        for (int k = _chunks.Count - 1; k >= 0; k--)
+        {
+            VoxelChunk chunk = _chunks[k];
+            if (chunk.Freeze || chunk.IsHeld || chunk.IsHinged || chunk.Grid == null
+                || !chunk.Grid.SolidBounds(out Aabb local))
+            {
+                continue;
+            }
+            Vector3 at = chunk.GlobalTransform * local.GetCenter();
+            Vector3 up = WorldUp.At(at);
+            float lowest = float.MaxValue, highest = float.MinValue;
+            for (int c = 0; c < 8; c++)
+            {
+                float h = (chunk.GlobalTransform * local.GetEndpoint(c)).Dot(up);
+                lowest = Mathf.Min(lowest, h);
+                highest = Mathf.Max(highest, h);
+            }
+            // From above its top, so a piece already under the ground still
+            // finds the ground over it.
+            if (!Ground(at + up * (highest - at.Dot(up) + 2.0f), out Vector3 ground))
+            {
+                continue;
+            }
+            float depth = ground.Dot(up) - lowest;
+            if (depth < Stats.SunkDepth)
+            {
+                continue;
+            }
+            Vector3 surface = at + up * (ground.Dot(up) - at.Dot(up));
+            if (PerfLog.Recording)
+            {
+                PerfLog.Event($"sunk {chunk.VoxelCount}v {depth:F1}m");
+            }
+            if (chunk.VoxelCount <= Stats.BakeMaxVoxels)
+            {
+                _chunks.RemoveAt(k);
+                DustInstead(chunk.Grid, chunk.Palette, chunk.Emission, chunk.Material, surface, Vector3.Zero,
+                    chunk.DustScale);
+                chunk.RetireAfter(0.05f);
+            }
+            else
+            {
+                chunk.GlobalPosition += up * depth;
+                Vector3 v = chunk.LinearVelocity;
+                chunk.LinearVelocity = v - up * Mathf.Min(0.0f, v.Dot(up));
+            }
+        }
+    }
+
     /// <summary>The ground under a point: the first World hit straight down
     /// that is not a building, a loose piece or a heap.</summary>
     private bool Ground(Vector3 from, out Vector3 ground)
@@ -900,7 +1017,7 @@ public partial class VoxelDebris : Node3D
             }
         }
         string big = biggest == null ? "" :
-            $" biggest={biggest.VoxelCount} at y={biggest.GlobalPosition.Y:F1} tilt={Mathf.RadToDeg(biggest.GlobalBasis.Y.AngleTo(Vector3.Up)):F1}° speed={biggest.LinearVelocity.Length():F1} hinged={biggest.IsHinged}";
+            $" biggest={biggest.VoxelCount} bottom y={LowestY(biggest):F1} tilt={Mathf.RadToDeg(biggest.GlobalBasis.Y.AngleTo(Vector3.Up)):F1}° speed={biggest.LinearVelocity.Length():F1} hinged={biggest.IsHinged}";
         GD.Print($"[bench]   debris chunks={_chunks.Count} sleeping={sleeping} settled={settled} queued={_pending.Count} held={held} heaps={_piles.Count}{big}");
     }
 

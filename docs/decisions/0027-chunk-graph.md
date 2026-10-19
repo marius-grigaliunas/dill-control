@@ -74,3 +74,33 @@ A second `cut quiet` taken before the machine had cooled (mean 16.6 ms, 40%
 over) is not a measurement. `cutside quiet`, `collapse`, `wreck`, `lasercut`,
 `arsenal` and the movie frames were not run. The 0.5 ms check and the paired
 gates are not met.
+
+## Follow-up, 19 October 2026
+
+Pieces sank through the ground and "glitched away". `SinkProbe` (bench
+words `sink`, `nodust`, `shapes`) followed every loose piece's boxes and
+found four causes, none of them the crush:
+
+- **A piece's collision stood above its voxels.** `Extract` shifted baked
+  boxes by `ToGodot(min) * voxel` as well as by the piece's offset: a
+  piece's boxes stood as high above its voxels as it had stood in the model
+  (37 m for a branch). The drawn piece fell through everything. The shift
+  is the offset alone.
+- **Pieces flew with one sliver of collision.** The per-chunk fallback in
+  `TryBoxes` took each chunk's first baked box, not their bounds, and a
+  re-split or shot chunk kept boxes over cells it no longer had. A piece now
+  takes the baked boxes only when every chunk is as baked and they fit the
+  cap; otherwise it keeps the worker's boxes, made from its cells.
+- **Pieces were made inside the ground.** A late piece's catch-up move
+  (`Make`) is cut short at the ground, and crush spall is thrown level
+  and dropped onto the surface under it, not along a contact normal that
+  leaned by tens of degrees.
+- **Fast or pinned pieces went through it.** Loose pieces sweep
+  (`ContinuousCd`): a toppling tower's end reached 100 m/s, nearly the
+  ground's thickness per step. A small piece pressed through by a tower on
+  top of it, more than `SunkDepth` down, goes to dust and its rubble to the
+  heap there; a big one is set back on the surface.
+
+Cooled `cut quiet`, plugged in: mean 10.8 and 11.0 ms, 2.5% and 2.8% over
+16.7 ms. `collapse`, `cut`, `cutside`, `tree`, `wreck` and `lasercut` with
+the probe: nothing lost, no piece whose boxes and voxels disagree.

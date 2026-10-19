@@ -25,6 +25,10 @@ public partial class PerfDriver : Node
         AddChild(PhysicsStepProbe.Create());
         Recorder = new PerfRecorder { Name = "PerfRecorder" };
         AddChild(Recorder);
+        if (SinkProbe.Wanted(OS.GetCmdlineUserArgs()))
+        {
+            AddChild(new SinkProbe { Name = "SinkProbe" });
+        }
     }
 
     private readonly double[] _benchTotals = new double[FrameProfiler.MaxSections];

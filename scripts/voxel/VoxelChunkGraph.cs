@@ -18,6 +18,8 @@ public sealed class GraphSnapshot
     public int[] BoxOffset;
     public Vector3[] BoxCentre;
     public Vector3[] BoxSize;
+    /// <summary>Chunks whose baked boxes no longer describe them (re-split).</summary>
+    public bool[] Stale;
     public int[] LinkA;
     public int[] LinkB;
     public int[] LinkLive;
@@ -76,6 +78,10 @@ public sealed class VoxelChunkGraph
     private int[] _boxOffset;
     private Vector3[] _boxCentre;
     private Vector3[] _boxSize;
+    /// <summary>A chunk a cut re-split keeps its id and its baked boxes,
+    /// which still cover the cells that went to its new neighbours (or to a
+    /// piece); its boxes are its cell bounds from then on.</summary>
+    private bool[] _stale;
     private readonly HashSet<int> _dirty = new();
     private readonly HashSet<int> _fling = new();
     private float _strainTick;
@@ -100,6 +106,7 @@ public sealed class VoxelChunkGraph
             _layerSumX = (float[])bake.LayerSumX.Clone(),
             _layerSumY = (float[])bake.LayerSumY.Clone(),
             _boxOffset = (int[])bake.BoxOffset.Clone(),
+            _stale = new bool[bake.Count],
             _boxCentre = (Vector3[])bake.BoxCentre.Clone(),
             _boxSize = (Vector3[])bake.BoxSize.Clone(),
             _min = new Vector3I[bake.Count],
@@ -175,6 +182,7 @@ public sealed class VoxelChunkGraph
         }
         _cell[index] = -1;
         _solid[chunk] = Math.Max(0, _solid[chunk] - 1);
+        _stale[chunk] = true;
         Vector3I c = grid.CellOf(index);
         int layer = chunk * _layers + c.Z;
         if ((uint)layer < (uint)_layerCount.Length)
@@ -302,47 +310,31 @@ public sealed class VoxelChunkGraph
     }
 
     /// <summary>
-    /// Chunks the finest collision that stays within <paramref name="maxBoxes"/>
-    /// can use: baked boxes, else one box per chunk. False when even that is
-    /// over the cap (the caller boxes the grid the old way).
+    /// The baked boxes, when every chunk is as it was baked and they fit in
+    /// <paramref name="maxBoxes"/>: exact, and finer than the worker's. False
+    /// otherwise, and the worker's boxes, made from the cells, stay. A chunk
+    /// a shot took cells from, or a cut re-split, has boxes over cells that
+    /// are gone or belong to another piece.
     /// </summary>
     public bool TryBoxes(int maxBoxes, List<(Vector3 centre, Vector3 size)> into)
     {
-        int baked = _boxOffset[_count];
-        if (baked > 0 && baked <= maxBoxes)
-        {
-            for (int i = 0; i < baked; i++)
-            {
-                into.Add((_boxCentre[i], _boxSize[i]));
-            }
-            return true;
-        }
-        int alive = 0;
         for (int c = 0; c < _count; c++)
         {
-            if (_solid[c] > 0)
+            if (_stale[c] && _solid[c] > 0)
             {
-                alive++;
+                return false;
             }
         }
-        if (alive == 0 || alive > maxBoxes)
+        int baked = _boxOffset[_count];
+        if (baked <= 0 || baked > maxBoxes)
         {
             return false;
         }
-        for (int c = 0; c < _count; c++)
+        for (int i = 0; i < baked; i++)
         {
-            if (_solid[c] <= 0)
-            {
-                continue;
-            }
-            Vector3 a = _boxCentre.Length > 0 ? BoxBoundsCentre(c) : Vector3.Zero;
-            Vector3 b = BoxBoundsSize(c);
-            if (b != Vector3.Zero)
-            {
-                into.Add((a, b));
-            }
+            into.Add((_boxCentre[i], _boxSize[i]));
         }
-        return into.Count > 0;
+        return true;
     }
 
     /// <summary>Damaged edges that still carry something above them weaken,
@@ -414,7 +406,7 @@ public sealed class VoxelChunkGraph
         int from = _boxOffset[chunk], to = _boxOffset[chunk + 1];
         if (from >= to)
         {
-            return BoxBoundsCentre(chunk);
+            return BoxBounds(chunk, out Vector3 centre, out _) ? centre : Vector3.Zero;
         }
         Vector3 sum = Vector3.Zero;
         for (int i = from; i < to; i++)
@@ -438,6 +430,7 @@ public sealed class VoxelChunkGraph
             BoxOffset = (int[])_boxOffset.Clone(),
             BoxCentre = (Vector3[])_boxCentre.Clone(),
             BoxSize = (Vector3[])_boxSize.Clone(),
+            Stale = (bool[])_stale.Clone(),
         };
         int links = 0;
         for (int c = 0; c < _count; c++)
@@ -500,6 +493,7 @@ public sealed class VoxelChunkGraph
             islands.Sort((a, b) => b.Count.CompareTo(a.Count));
             var fresh = new List<int> { chunk };
             Reassign(grid, chunk, islands[0]);
+            _stale[chunk] = true;
             for (int k = 1; k < islands.Count; k++)
             {
                 // A scrap is dust only when it holds nothing: one still
@@ -798,6 +792,7 @@ public sealed class VoxelChunkGraph
             _layerSumY = new float[count * piece.Size.Z],
             _links = new List<Link>[count],
             _boxOffset = new int[count + 1],
+            _stale = new bool[count],
         };
         Array.Fill(graph._cell, -1);
         for (int c = 0; c < count; c++)
@@ -808,10 +803,14 @@ public sealed class VoxelChunkGraph
         }
         var centres = new List<Vector3>();
         var sizes = new List<Vector3>();
-        // Baked boxes live in the old part's node space. The piece's origin
-        // sits at offset there, and Copy also slid the grid origin to min,
-        // so a point moves by ToGodot(min) * voxel - offset.
-        Vector3 shift = VoxSpace.ToGodot(V(min)) * oldGrid.VoxelSize - offset;
+        // Baked boxes live in the old part's node space, and the piece's node
+        // sits at offset there, so a point moves by -offset and nothing more.
+        // Copy slides the grid's cells to min, but it moves the grid's origin
+        // with them (centre - min), so node space does not see the slide.
+        // Adding ToGodot(min) put a piece's collision as far above its voxels
+        // as it had stood in the model: 37 m for a branch, and the piece fell
+        // through the ground with its boxes up in the air.
+        Vector3 shift = -offset;
         var inverse = new int[count];
         for (int old = 0; old < map.Length; old++)
         {
@@ -872,7 +871,8 @@ public sealed class VoxelChunkGraph
             int old = inverse[c];
             int from = snap.BoxOffset != null && old + 1 < snap.BoxOffset.Length ? snap.BoxOffset[old] : 0;
             int to = snap.BoxOffset != null && old + 1 < snap.BoxOffset.Length ? snap.BoxOffset[old + 1] : 0;
-            if (from < to && snap.BoxCentre != null)
+            bool stale = snap.Stale != null && (uint)old < (uint)snap.Stale.Length && snap.Stale[old];
+            if (!stale && from < to && snap.BoxCentre != null)
             {
                 for (int b = from; b < to; b++)
                 {
@@ -881,6 +881,8 @@ public sealed class VoxelChunkGraph
                 }
                 continue;
             }
+            // A bounds box is not exact: not offered as baked (TryBoxes).
+            graph._stale[c] = true;
             Vector3 lo = VoxSpace.ToGodot(V(graph._min[c]) - piece.Origin) * piece.VoxelSize;
             Vector3 hi = VoxSpace.ToGodot(V(graph._max[c] + Vector3I.One) - piece.Origin) * piece.VoxelSize;
             centres.Add((lo + hi) * 0.5f);
@@ -1272,6 +1274,7 @@ public sealed class VoxelChunkGraph
         Array.Resize(ref _min, _count);
         Array.Resize(ref _max, _count);
         Array.Resize(ref _links, _count);
+        Array.Resize(ref _stale, _count);
         _links[id] = new List<Link>();
         int layers = _layers;
         Array.Resize(ref _layerCount, _count * layers);
@@ -1433,29 +1436,32 @@ public sealed class VoxelChunkGraph
         }
     }
 
-    private Vector3 BoxBoundsCentre(int chunk)
+    /// <summary>The box round all of a chunk's boxes. It returned the
+    /// chunk's first box only: a leafy chunk's first greedy box is a sliver,
+    /// and a piece flew with that sliver for its collision.</summary>
+    private bool BoxBounds(int chunk, out Vector3 centre, out Vector3 size)
     {
-        if (_boxCentre.Length == 0)
+        centre = size = Vector3.Zero;
+        if ((uint)chunk + 1 >= (uint)_boxOffset.Length)
         {
-            return Vector3.Zero;
+            return false;
         }
-        int from = chunk < _boxOffset.Length - 1 ? _boxOffset[chunk] : 0;
-        int to = chunk + 1 < _boxOffset.Length ? _boxOffset[chunk + 1] : _boxCentre.Length;
+        int from = _boxOffset[chunk], to = Math.Min(_boxOffset[chunk + 1], _boxCentre.Length);
         if (from >= to)
         {
-            return _boxCentre[Math.Min(from, _boxCentre.Length - 1)];
+            return false;
         }
-        return _boxCentre[from];
-    }
-
-    private Vector3 BoxBoundsSize(int chunk)
-    {
-        int from = chunk < _boxOffset.Length - 1 ? _boxOffset[chunk] : 0;
-        if ((uint)from >= (uint)_boxSize.Length)
+        Vector3 lo = new(float.MaxValue, float.MaxValue, float.MaxValue);
+        Vector3 hi = -lo;
+        for (int i = from; i < to; i++)
         {
-            return Vector3.Zero;
+            Vector3 half = _boxSize[i] * 0.5f;
+            lo = lo.Min(_boxCentre[i] - half);
+            hi = hi.Max(_boxCentre[i] + half);
         }
-        return _boxSize[from];
+        centre = (lo + hi) * 0.5f;
+        size = hi - lo;
+        return true;
     }
 
     private static Vector3 Block(Vector3I size, float voxel, float minMetres, float fraction)

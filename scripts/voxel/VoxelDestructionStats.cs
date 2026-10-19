@@ -319,6 +319,13 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "1,100000,1")]
     public int BakeMaxVoxels { get; set; } = 3000;
 
+    /// <summary>A loose piece found this far under the ground has been
+    /// squeezed through it (a tower coming down on it, mass against mass):
+    /// up to <see cref="BakeMaxVoxels"/> it goes to dust and its rubble to
+    /// the heap there, a bigger one is set back on the surface. 0 is off.</summary>
+    [Export(PropertyHint.Range, "0,5,0.05,suffix:m")]
+    public float SunkDepth { get; set; } = 0.6f;
+
     /// <summary>A piece asleep this long stops being a body and stays as
     /// scenery: no physics, still breakable.</summary>
     [Export(PropertyHint.Range, "1,600,1,suffix:s")]
