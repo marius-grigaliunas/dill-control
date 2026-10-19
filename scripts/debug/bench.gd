@@ -394,6 +394,23 @@ static func _tree_timeline(quiet: bool) -> Array:
 	timeline.append(["settled shot", ["#tree_settled", status], [], 0.3])
 	return timeline
 
+# A vine (voxel_destruction_tree.tres) shot in short bursts at three heights
+# from 42 m: only what is shot free should fall. With "drops", every piece it
+# sheds is checked against a flood from the ground (VoxelPart.WatchDrops).
+static func _vine_timeline(slot: String) -> Array:
+	var vine := "prp_vine_41051"
+	var status := "!call:VoxelDebris:PrintBenchStatus"
+	var timeline := [
+		["hold the horde off", ["!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
+			"@goto:-179, 0.2, 40"], [], 2.0],
+		["look", ["@aim:%s:15" % vine, slot, "#vine_before"], [], 2.0],
+	]
+	for height in [12, 20, 28]:
+		timeline.append(["burst at %d m" % height, ["@aim:%s:%d" % [vine, height]], ["~fire"], 0.6])
+		timeline.append(["after %d m" % height, [status], [], 4.0])
+	timeline.append(["settled", ["@aim:%s:15" % vine, "#vine_after", status], [], 1.0])
+	return timeline
+
 # Airstrikes called on a tower as fast as the designator will take them, every
 # frame recorded and nothing printed meanwhile: the hitches of a strike spam.
 const STRIKE_TIMELINE := [
@@ -737,6 +754,7 @@ func _initialize() -> void:
 		"cutside": _timeline = _cut_timeline("BenchCutSide", "cutside", args.size() > 2 and args[2] == "quiet",
 			float(args[3]) if args.size() > 3 else 13.0)
 		"tree": _timeline = _tree_timeline(args.size() > 2 and args[2] == "quiet")
+		"vine": _timeline = _vine_timeline(args[2] if args.size() > 2 and args[2].begins_with("slot_") else "slot_1")
 		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"hordeab": _timeline = _hordeab_timeline(int(args[2]) if args.size() > 2 else 25000, HORDE_AB_PAIRS)

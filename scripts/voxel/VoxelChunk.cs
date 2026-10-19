@@ -678,6 +678,38 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
     public Material Material => _material;
     public float DustScale => _dustScale;
 
+    /// <summary>The lowest corner of its collision boxes along <paramref name="up"/>,
+    /// or NaN with none. What the ground actually holds up: the corners of its
+    /// voxels' bounding box reach far below a long piece lying aslant.</summary>
+    public float LowestBox(Vector3 up)
+    {
+        float lowest = float.NaN;
+        Transform3D body = GlobalTransform;
+        foreach (uint owner in GetShapeOwners())
+        {
+            if (IsShapeOwnerDisabled(owner))
+            {
+                continue;
+            }
+            Transform3D at = body * ShapeOwnerGetTransform(owner);
+            for (int s = 0; s < ShapeOwnerGetShapeCount(owner); s++)
+            {
+                if (ShapeOwnerGetShape(owner, s) is not BoxShape3D box)
+                {
+                    continue;
+                }
+                Vector3 h = box.Size * 0.5f;
+                for (int k = 0; k < 8; k++)
+                {
+                    var corner = new Vector3((k & 1) == 0 ? -h.X : h.X, (k & 2) == 0 ? -h.Y : h.Y, (k & 4) == 0 ? -h.Z : h.Z);
+                    float d = (at * corner).Dot(up);
+                    lowest = float.IsNaN(lowest) ? d : Mathf.Min(lowest, d);
+                }
+            }
+        }
+        return lowest;
+    }
+
     /// <summary>Stays drawn, still and without collision, for
     /// <paramref name="seconds"/>, then retires.</summary>
     internal void RetireAfter(float seconds)

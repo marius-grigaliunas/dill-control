@@ -313,8 +313,13 @@ public partial class VoxelDebris : Node3D
                 continue;
             }
             _chunks.RemoveAt(k);
+            int bakedVoxels = chunk.VoxelCount;
             if (Bake(chunk))
             {
+                if (PerfLog.Recording)
+                {
+                    PerfLog.Event($"baked {bakedVoxels}v");
+                }
                 chunk.RetireAfter(0.3f);
                 baked++;
             }
@@ -867,12 +872,18 @@ public partial class VoxelDebris : Node3D
             }
             Vector3 at = chunk.GlobalTransform * local.GetCenter();
             Vector3 up = WorldUp.At(at);
-            float lowest = float.MaxValue, highest = float.MinValue;
+            // Its boxes, not its bounds' corners: a branch lying aslant on
+            // the ground has a bounds corner metres under it, and was turned
+            // to dust as sunk while it lay where it fell.
+            float lowest = chunk.LowestBox(up);
+            if (float.IsNaN(lowest))
+            {
+                continue;
+            }
+            float highest = float.MinValue;
             for (int c = 0; c < 8; c++)
             {
-                float h = (chunk.GlobalTransform * local.GetEndpoint(c)).Dot(up);
-                lowest = Mathf.Min(lowest, h);
-                highest = Mathf.Max(highest, h);
+                highest = Mathf.Max(highest, (chunk.GlobalTransform * local.GetEndpoint(c)).Dot(up));
             }
             // From above its top, so a piece already under the ground still
             // finds the ground over it.

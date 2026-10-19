@@ -446,6 +446,11 @@ public partial class VoxelPart : Node3D, IStrainHost
     /// </summary>
     public int Carve(Vector3 worldCentre, float radius)
     {
+        Note($"carve r={radius:F1}");
+        if (WatchDrops)
+        {
+            GD.Print($"[drops] {OwnerName()} carved r={radius:F1} at {worldCentre}");
+        }
         using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionCarve);
         if (IsEmpty)
         {
@@ -478,6 +483,7 @@ public partial class VoxelPart : Node3D, IStrainHost
     /// </summary>
     public void Cut(float height, float thickness, float share)
     {
+        Note("cut");
         if (IsEmpty)
         {
             return;
@@ -542,6 +548,7 @@ public partial class VoxelPart : Node3D, IStrainHost
     /// </summary>
     public void Shatter(Vector3 localNormal, Vector3 push)
     {
+        Note("shatter");
         if (IsEmpty)
         {
             return;
@@ -579,6 +586,7 @@ public partial class VoxelPart : Node3D, IStrainHost
     /// </summary>
     public bool Crumble(Vector3 push, bool snap = false)
     {
+        Note("crumble");
         if (IsEmpty || _plan != null || VoxelSplit.TooSmallToSplit(Grid, _stats, snap))
         {
             return false;
@@ -591,6 +599,7 @@ public partial class VoxelPart : Node3D, IStrainHost
     /// or its owner destroyed. At once, on this thread.</summary>
     public void BreakAway(Vector3 push)
     {
+        Note("break-away");
         if (IsEmpty)
         {
             return;
@@ -736,6 +745,61 @@ public partial class VoxelPart : Node3D, IStrainHost
 
     /// <summary>For a recording's events: what this part belongs to.</summary>
     private string OwnerName() => GetParent()?.Name ?? Name;
+
+    /// <summary>Debug (SinkProbe's <c>drops</c>): every piece a standing part
+    /// sheds is checked against a flood of its cells from the ground, and one
+    /// that still reached the ground is printed with what changed the part
+    /// since its last plan.</summary>
+    public static bool WatchDrops;
+
+    private readonly List<string> _causes = new();
+
+    private void Note(string cause)
+    {
+        if (WatchDrops && _causes.Count < 24)
+        {
+            _causes.Add(cause);
+        }
+    }
+
+    private void WatchDrop(SplitPlan plan)
+    {
+        if (!WatchDrops)
+        {
+            return;
+        }
+        string causes = string.Join(",", _causes);
+        _causes.Clear();
+        if (Anchor != VoxelAnchor.Ground || plan.Pieces.Count == 0)
+        {
+            return;
+        }
+        int layer = Grid.Size.X * Grid.Size.Y;
+        var anchored = new List<bool>();
+        List<List<int>> islands = Grid.Islands(i => i < layer, anchored);
+        var grounded = new bool[Grid.Cells.Length];
+        for (int k = 0; k < islands.Count; k++)
+        {
+            if (anchored[k])
+            {
+                foreach (int i in islands[k])
+                {
+                    grounded[i] = true;
+                }
+            }
+        }
+        foreach (SplitPiece piece in plan.Pieces)
+        {
+            int held = 0;
+            foreach (int i in piece.Cells)
+            {
+                held += grounded[i] ? 1 : 0;
+            }
+            string what = held > 0 ? "STILL-ATTACHED" : "loose";
+            GD.Print($"[drops] {OwnerName()} {what} piece {piece.Cells.Count}v ({held}v reached the ground) " +
+                $"collapsed={plan.Collapsed} graph={Graph != null} after: {causes}");
+        }
+    }
 
     private string CollisionKind() =>
         CollisionOwner != null ? $"body({CollisionOwner.GetShapeOwners().Length} owners)" : SectionBody != null ? "section body" : "none";
@@ -992,6 +1056,7 @@ public partial class VoxelPart : Node3D, IStrainHost
     /// </summary>
     private void Apply(SplitPlan plan, Vector3 push)
     {
+        WatchDrop(plan);
         using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionRelease);
         if (plan.BurstSize > 0.0f && VoxelDebris.Current != null)
         {
@@ -1000,6 +1065,10 @@ public partial class VoxelPart : Node3D, IStrainHost
         }
         if (plan.Dust.Count > 0)
         {
+            if (PerfLog.Recording)
+            {
+                PerfLog.Event($"split-dust {plan.Dust.Count}v breakup={plan.BreakingUp} loose={CollisionOwner != null}");
+            }
             _removed.Clear();
             Grid.Remove(plan.Dust, _removed);
             Dust(_removed);
@@ -1223,6 +1292,7 @@ public partial class VoxelPart : Node3D, IStrainHost
     public int CrushSlab(Vector3 worldPoint, Vector3 direction, float depth, float radius, out float reach,
         List<byte> colours)
     {
+        Note("crush");
         reach = 0.0f;
         using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionCrush);
         if (IsEmpty)
@@ -1647,6 +1717,7 @@ public partial class VoxelPart : Node3D, IStrainHost
     /// <see cref="Take"/> starts.</summary>
     public RigidBody3D Tear(Vector3 worldPoint)
     {
+        Note("tear");
         if (Graph == null || VoxelDebris.Current == null || TearTime(worldPoint) <= 0.0f)
         {
             return null;
@@ -1696,10 +1767,15 @@ public partial class VoxelPart : Node3D, IStrainHost
         Player.CameraRig.Feel(world, _stats.StrainShake, 28.0f);
     }
 
-    public void StrainFailed() => _integrityTimer = 0.0f;
+    public void StrainFailed()
+    {
+        Note("strain-let-go");
+        _integrityTimer = 0.0f;
+    }
 
     public void StrainShed(int chunk)
     {
+        Note("strain-shed");
         if (chunk < 0 || Graph == null || _plan != null)
         {
             return;

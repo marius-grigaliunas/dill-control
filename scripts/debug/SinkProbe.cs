@@ -34,7 +34,7 @@ public partial class SinkProbe : Node
     {
         foreach (string a in args)
         {
-            if (a is "sink" or "nodust")
+            if (a is "sink" or "nodust" or "drops")
             {
                 return true;
             }
@@ -47,6 +47,7 @@ public partial class SinkProbe : Node
         var args = new HashSet<string>(OS.GetCmdlineUserArgs());
         _sink = args.Contains("sink");
         _noDust = args.Contains("nodust");
+        VoxelPart.WatchDrops = args.Contains("drops");
         if (_sink)
         {
             VoxelDebris.SpawnedBy = new();

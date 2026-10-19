@@ -68,6 +68,7 @@ public partial class GraphCheck : Node
         var cells = new List<int>();
         var hit = new List<int>();
         int wrongDrop = 0, floating = 0, dropped = 0, strainFailed = 0, strainDropped = 0;
+        int atLoad = 0, atLoadFloating = 0, atLoadDiagonal = 0;
         var strain = new Host { Graph = graph };
         int firstWrong = -1, firstFloat = -1;
         for (int h = 0; h <= hits; h++)
@@ -143,6 +144,46 @@ public partial class GraphCheck : Node
             }
             wrongDrop += wrongNow;
             dropped += cells.Count;
+            if (h == 0)
+            {
+                atLoad = cells.Count;
+                int floatingAtLoad = 0, islands = 0;
+                bool[] grounded = Anchored(grid);
+                var seenIsland = new bool[grid.Cells.Length];
+                for (int i = 0; i < grid.Cells.Length; i++)
+                {
+                    if (grid.Cells[i] != 0 && !grounded[i])
+                    {
+                        floatingAtLoad++;
+                    }
+                }
+                atLoadFloating = floatingAtLoad;
+                // Of what is detached, how much touches the grounded voxels by
+                // an edge or a corner only (a diagonal step) and how much
+                // floats clear of them.
+                int diagonal = 0;
+                for (int i = 0; i < grid.Cells.Length; i++)
+                {
+                    if (grid.Cells[i] == 0 || grounded[i])
+                    {
+                        continue;
+                    }
+                    Vector3I c = grid.CellOf(i);
+                    bool touches = false;
+                    for (int dz = -1; dz <= 1 && !touches; dz++)
+                        for (int dy = -1; dy <= 1 && !touches; dy++)
+                            for (int dx = -1; dx <= 1 && !touches; dx++)
+                            {
+                                if (grid.InBounds(c.X + dx, c.Y + dy, c.Z + dz)
+                                    && grounded[grid.Index(c.X + dx, c.Y + dy, c.Z + dz)])
+                                {
+                                    touches = true;
+                                }
+                            }
+                    diagonal += touches ? 1 : 0;
+                }
+                atLoadDiagonal = diagonal;
+            }
             grid.Remove(cells, null);
             grid.Remove(decision.DustCells, null);
 
@@ -164,7 +205,7 @@ public partial class GraphCheck : Node
         ok = wrongDrop == 0 && floating == 0;
         report.AppendLine($"{(ok ? "ok  " : "BAD ")}{name}/{host.Name}: chunks={graph.Count} voxels={grid.InitialCount} dropped={dropped} " +
             $"wrongly-dropped={wrongDrop} (first at hit {firstWrong}) floating-at-end={floating} (first at hit {firstFloat}) " +
-            $"strain: edges let go={strainFailed} dropped={strainDropped}");
+            $"strain: edges let go={strainFailed} dropped={strainDropped} | detached before any hit: {atLoadFloating}v ({atLoadDiagonal}v of it beside the attached by an edge or corner), dropped on first decide {atLoad}v");
         return ok;
     }
 
