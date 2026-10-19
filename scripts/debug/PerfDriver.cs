@@ -29,6 +29,10 @@ public partial class PerfDriver : Node
         {
             AddChild(new SinkProbe { Name = "SinkProbe" });
         }
+        if (DustLab.Wanted(OS.GetCmdlineUserArgs()))
+        {
+            AddChild(new DustLab { Name = "DustLab" });
+        }
     }
 
     private readonly double[] _benchTotals = new double[FrameProfiler.MaxSections];

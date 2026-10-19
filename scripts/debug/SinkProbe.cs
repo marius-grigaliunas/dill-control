@@ -10,7 +10,7 @@ namespace DillControl.Debug;
 /// <c>--</c> on the command line (any order, any bench mode):
 /// <c>sink</c> follows every loose piece's collision boxes and prints the
 /// frames before one goes more than <see cref="Depth"/> under the ground;
-/// <c>nodust</c> hides the dust; <c>shapes</c> draws collision shapes.
+/// <c>nodust</c> hides the dust (collision boxes are DustLab's <c>boxes</c>).
 /// Not part of the game: <see cref="PerfDriver"/> adds it only when asked.
 /// </summary>
 public partial class SinkProbe : Node
@@ -34,7 +34,7 @@ public partial class SinkProbe : Node
     {
         foreach (string a in args)
         {
-            if (a is "sink" or "nodust" or "shapes")
+            if (a is "sink" or "nodust")
             {
                 return true;
             }
@@ -51,12 +51,8 @@ public partial class SinkProbe : Node
         {
             VoxelDebris.SpawnedBy = new();
         }
-        if (args.Contains("shapes"))
-        {
-            GetTree().DebugCollisionsHint = true;
-        }
         ProcessPhysicsPriority = int.MaxValue;
-        GD.Print($"[sink] probe on: sink={_sink} nodust={_noDust} shapes={GetTree().DebugCollisionsHint}");
+        GD.Print($"[sink] probe on: sink={_sink} nodust={_noDust}");
     }
 
     public override void _Process(double delta)
