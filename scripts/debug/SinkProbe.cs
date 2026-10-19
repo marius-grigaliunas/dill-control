@@ -25,6 +25,7 @@ public partial class SinkProbe : Node
     private readonly Dictionary<ulong, Queue<string>> _history = new();
     private readonly HashSet<ulong> _reported = new();
     private readonly HashSet<ulong> _lost = new();
+    private readonly Dictionary<ulong, int> _airborne = new();
     private readonly HashSet<ulong> _misfit = new();
     private readonly Dictionary<ulong, int> _misfitFrames = new();
     private readonly Dictionary<ulong, int> _under = new();
@@ -165,7 +166,22 @@ public partial class SinkProbe : Node
             lines.Dequeue();
         }
 
-        _under[id] = shapes > 0 && top < _groundY ? _under.GetValueOrDefault(id) + 1 : 0;
+        // Still, with nothing under it: resting on what has gone since.
+        if (shapes > 0 && _frame % 30 == 0 && !chunk.IsHeld && chunk.LinearVelocity.Length() < 0.1f)
+        {
+            Vector3 from = chunk.GlobalPosition;
+            from.Y = lowest + 0.05f;
+            using var query = PhysicsRayQueryParameters3D.Create(from, from + Vector3.Down * 0.6f, uint.MaxValue,
+                new Godot.Collections.Array<Rid> { chunk.GetRid() });
+            bool under = chunk.GetWorld3D().DirectSpaceState.IntersectRay(query).Count > 0;
+            _airborne[id] = under ? 0 : _airborne.GetValueOrDefault(id) + 1;
+            if (_airborne[id] == 4)
+            {
+                GD.Print($"[sink] AIRBORNE {chunk.Name} ({voxels}v) still for 2 s, bottom {lowest:F2} m, nothing under it: " +
+                    $"sleep={chunk.Sleeping} frozen={chunk.Freeze} settled={chunk.IsSettled} f{_frame}");
+            }
+        }
+                _under[id] = shapes > 0 && top < _groundY ? _under.GetValueOrDefault(id) + 1 : 0;
         // Half a second wholly under: not a piece the sunk-piece catch saved.
         if (_under[id] >= 30 && _lost.Add(id))
         {

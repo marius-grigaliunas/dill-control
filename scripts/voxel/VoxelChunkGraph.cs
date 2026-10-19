@@ -92,6 +92,7 @@ public sealed class VoxelChunkGraph
     /// piece); its boxes are its cell bounds from then on.</summary>
     private bool[] _stale;
     private readonly HashSet<int> _dirty = new();
+    private readonly List<int> _orphans = new();
     private readonly HashSet<int> _fling = new();
     private float _strainTick;
     private float _shedWait;
@@ -548,6 +549,19 @@ public sealed class VoxelChunkGraph
     {
         var dust = new List<int>();
         SplitDirty(grid, stats.MinChunkVoxels, dust);
+        // Scraps an earlier decision took out of the graph for dust, whose
+        // plan was thrown away (the part was hit again while it was worked
+        // out): still in the grid, in no chunk, so never checked again. They
+        // hung in the air for good. Offered again until a plan removes them.
+        foreach (int cell in _orphans)
+        {
+            if (grid.Cells[cell] != 0 && !dust.Contains(cell))
+            {
+                dust.Add(cell);
+            }
+        }
+        _orphans.Clear();
+        _orphans.AddRange(dust);
         var decision = new GraphDecision { DustCells = dust };
         var seen = new bool[_count];
         var queue = new Queue<int>();

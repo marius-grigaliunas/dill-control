@@ -406,7 +406,7 @@ static func _vine_timeline(slot: String) -> Array:
 		["look", ["@aim:%s:15" % vine, slot, "#vine_before"], [], 2.0],
 	]
 	for height in [12, 20, 28]:
-		timeline.append(["burst at %d m" % height, ["@aim:%s:%d" % [vine, height]], ["~fire"], 0.6])
+		timeline.append(["burst at %d m" % height, ["@aim:%s:%d" % [vine, height]], ["~fire"], 2.5])
 		timeline.append(["after %d m" % height, [status], [], 4.0])
 	timeline.append(["settled", ["@aim:%s:15" % vine, "#vine_after", status], [], 1.0])
 	return timeline

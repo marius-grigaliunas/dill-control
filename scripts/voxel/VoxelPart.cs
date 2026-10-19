@@ -762,6 +762,29 @@ public partial class VoxelPart : Node3D, IStrainHost
         }
     }
 
+    /// <summary>After a plan: voxels still in the part that no longer reach
+    /// the ground, floating where the part stood.</summary>
+    private void WatchLeft()
+    {
+        if (!WatchDrops || Anchor != VoxelAnchor.Ground || Grid == null)
+        {
+            return;
+        }
+        int layer = Grid.Size.X * Grid.Size.Y;
+        var anchored = new List<bool>();
+        List<List<int>> islands = Grid.Islands(i => i < layer, anchored);
+        for (int k = 0; k < islands.Count; k++)
+        {
+            if (!anchored[k])
+            {
+                Vector3I c = Grid.CellOf(islands[k][0]);
+                int chunk = Graph?.ChunkOf(islands[k][0]) ?? -1;
+                GD.Print($"[drops] {OwnerName()} FLOATING {islands[k].Count}v left standing at {ToGlobal(Grid.CellCentre(c.X, c.Y, c.Z))} " +
+                    $"chunk={chunk} chunk-solid={(chunk >= 0 ? Graph.SolidOf(chunk) : 0)}");
+            }
+        }
+    }
+
     private void WatchDrop(SplitPlan plan)
     {
         if (!WatchDrops)
@@ -1046,6 +1069,7 @@ public partial class VoxelPart : Node3D, IStrainHost
             return;
         }
         Apply(task.Result, _planPush);
+        WatchLeft();
     }
 
     /// <summary>

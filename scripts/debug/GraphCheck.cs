@@ -68,7 +68,7 @@ public partial class GraphCheck : Node
         var cells = new List<int>();
         var hit = new List<int>();
         int wrongDrop = 0, floating = 0, dropped = 0, strainFailed = 0, strainDropped = 0;
-        int atLoad = 0, atLoadFloating = 0, atLoadDiagonal = 0;
+        int atLoad = 0, atLoadFloating = 0, atLoadDiagonal = 0, discarded = 0;
         var strain = new Host { Graph = graph };
         int firstWrong = -1, firstFloat = -1;
         for (int h = 0; h <= hits; h++)
@@ -106,7 +106,8 @@ public partial class GraphCheck : Node
 
             bool[] anchored = Anchored(grid);
             // Three seconds of strain after the hit, as the part would tick it.
-            strain.Failed = 0;
+            // Its count runs until a decision is carried out: one thrown away
+            // leaves what strain let go for the next.
             for (int step = 0; step < 180; step++)
             {
                 graph.TickStrain(1.0f / 60.0f, stats, strain);
@@ -184,8 +185,17 @@ public partial class GraphCheck : Node
                 }
                 atLoadDiagonal = diagonal;
             }
+            // Every third decision thrown away, as the part throws away a plan
+            // whose cells were hit again while it was worked out.
+            if (h % 3 == 2)
+            {
+                discarded++;
+                dropped -= cells.Count;
+                continue;
+            }
             grid.Remove(cells, null);
             grid.Remove(decision.DustCells, null);
+            strain.Failed = 0;
 
             bool[] after = Anchored(grid);
             int floatNow = 0;
@@ -205,7 +215,7 @@ public partial class GraphCheck : Node
         ok = wrongDrop == 0 && floating == 0;
         report.AppendLine($"{(ok ? "ok  " : "BAD ")}{name}/{host.Name}: chunks={graph.Count} voxels={grid.InitialCount} dropped={dropped} " +
             $"wrongly-dropped={wrongDrop} (first at hit {firstWrong}) floating-at-end={floating} (first at hit {firstFloat}) " +
-            $"strain: edges let go={strainFailed} dropped={strainDropped} | detached before any hit: {atLoadFloating}v ({atLoadDiagonal}v of it beside the attached by an edge or corner), dropped on first decide {atLoad}v");
+            $"strain: edges let go={strainFailed} dropped={strainDropped} | {discarded} decisions thrown away | detached before any hit: {atLoadFloating}v ({atLoadDiagonal}v of it beside the attached by an edge or corner), dropped on first decide {atLoad}v");
         return ok;
     }
 
