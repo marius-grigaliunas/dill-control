@@ -32,7 +32,7 @@ public sealed class ChunkBake
 /// <summary>Groups a model's cells into chunks. Thread-safe: nothing of Godot's but maths.</summary>
 public static class VoxChunker
 {
-    public const int FormatVersion = 1;
+    public const int FormatVersion = 2;
 
     /// <summary>A full chunk heavier than this cannot be torn out by the gravity
     /// gun (<see cref="VoxelDestructionStats.MaxGrabVoxels"/>'s default).</summary>
@@ -200,7 +200,17 @@ public static class VoxChunker
                 {
                     int a = (int)(key % count), b = (int)(key / count);
                     int other = a == id ? b : b == id ? a : -1;
-                    if (other < 0 || solid[other] + solid[c] > cap || faces <= bestFaces)
+                    if (other < 0)
+                    {
+                        continue;
+                    }
+                    // The touch keys are this pass's roots; a neighbour may
+                    // have joined another since, or joined this one. Joining
+                    // what it joined, never itself, keeps the remap a tree:
+                    // two slivers that took each other made a cycle with no
+                    // root, and their cells were left in no chunk at all.
+                    other = Root(other);
+                    if (other == c || solid[other] + solid[c] > cap || faces <= bestFaces)
                     {
                         continue;
                     }

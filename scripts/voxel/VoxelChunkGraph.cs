@@ -502,7 +502,10 @@ public sealed class VoxelChunkGraph
             Reassign(grid, chunk, islands[0]);
             for (int k = 1; k < islands.Count; k++)
             {
-                if (islands[k].Count < minVoxels)
+                // A scrap is dust only when it holds nothing: one still
+                // touching another chunk or the ground may be the bridge a
+                // branch hangs from, and dusting it dropped the branch.
+                if (islands[k].Count < minVoxels && !TouchesOther(grid, islands[k], chunk))
                 {
                     foreach (int cell in islands[k])
                     {
@@ -515,6 +518,27 @@ public sealed class VoxelChunkGraph
             }
             Recount(grid, fresh);
         }
+    }
+
+    private bool TouchesOther(VoxelGrid grid, List<int> cells, int chunk)
+    {
+        int sx = grid.Size.X, sxy = grid.Size.X * grid.Size.Y;
+        foreach (int i in cells)
+        {
+            Vector3I c = grid.CellOf(i);
+            if (c.Z == 0)
+            {
+                return true;
+            }
+            bool Other(int j) => grid.Cells[j] != 0 && _cell[j] >= 0 && _cell[j] != chunk;
+            if ((c.X > 0 && Other(i - 1)) || (c.X + 1 < grid.Size.X && Other(i + 1))
+                || (c.Y > 0 && Other(i - sx)) || (c.Y + 1 < grid.Size.Y && Other(i + sx))
+                || Other(i - sxy) || (c.Z + 1 < grid.Size.Z && Other(i + sxy)))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     internal GraphDecision Decide(VoxelGrid grid, VoxelDestructionStats stats, VoxelAnchor anchor, int[] builtCount, float[] builtHalf)
@@ -1121,7 +1145,10 @@ public sealed class VoxelChunkGraph
                 island.Add(c);
                 foreach (Link link in _links[c])
                 {
-                    if (!set.Contains(link.Other) || !seen.Add(link.Other) || !Holds(link, stats))
+                    // Holds before seen: a chunk met over a broken link must
+                    // still start an island of its own, or it neither falls
+                    // nor stands, and hangs in the air.
+                    if (!set.Contains(link.Other) || !Holds(link, stats) || !seen.Add(link.Other))
                     {
                         continue;
                     }
@@ -1308,25 +1335,33 @@ public sealed class VoxelChunkGraph
         }
         int sx = grid.Size.X, sxy = grid.Size.X * grid.Size.Y;
         var faces = new Dictionary<long, int>();
+        var recounted = new HashSet<int>(chunks);
         foreach (int chunk in chunks)
         {
             CellsOf(grid, chunk, _scan);
             foreach (int i in _scan)
             {
                 Vector3I c = grid.CellOf(i);
-                void Face(int j)
+                // All six sides: a chunk that was not recounted is never
+                // scanned, so a face on its side of this one is counted from
+                // here or not at all. Between two recounted chunks only the
+                // positive side counts, so each face counts once.
+                void Face(int j, bool positive)
                 {
                     int other = _cell[j];
-                    if (other < 0 || other == chunk || grid.Cells[j] == 0)
+                    if (other < 0 || other == chunk || grid.Cells[j] == 0 || (!positive && recounted.Contains(other)))
                     {
                         return;
                     }
                     long key = chunk < other ? chunk + ((long)other << 20) : other + ((long)chunk << 20);
                     faces[key] = faces.GetValueOrDefault(key) + 1;
                 }
-                if (c.X + 1 < grid.Size.X) Face(i + 1);
-                if (c.Y + 1 < grid.Size.Y) Face(i + sx);
-                if (c.Z + 1 < grid.Size.Z) Face(i + sxy);
+                if (c.X + 1 < grid.Size.X) Face(i + 1, true);
+                if (c.Y + 1 < grid.Size.Y) Face(i + sx, true);
+                if (c.Z + 1 < grid.Size.Z) Face(i + sxy, true);
+                if (c.X > 0) Face(i - 1, false);
+                if (c.Y > 0) Face(i - sx, false);
+                if (c.Z > 0) Face(i - sxy, false);
             }
             _scan.Clear();
         }
