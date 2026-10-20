@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace DillControl.Foliage;
 
@@ -933,18 +934,18 @@ public static class VineGenerator
 
         List<string> warnings = result.Warnings;
         if (total > limits.TreeVoxels)
-            warnings.Add($"{total:N0} voxels. The tall tree that already spikes collision is {limits.TreeVoxels:N0}.");
+            warnings.Add(string.Create(CultureInfo.InvariantCulture, $"{total:N0} voxels. The tall tree that already spikes collision is {limits.TreeVoxels:N0}."));
         if (stranded > 0)
-            warnings.Add($"{stranded} voxels float more than {BridgeReach} voxels clear of the vine. In the game they hold until the first shot anywhere on it, then fall.");
+            warnings.Add(string.Create(CultureInfo.InvariantCulture, $"{stranded} voxels float more than {BridgeReach} voxels clear of the vine. In the game they hold until the first shot anywhere on it, then fall."));
         if (core == 0)
             warnings.Add("No core. The stalk is thinner than twice the shell, so a carve will not reveal anything.");
         if (blocked + grounded > 0)
-            warnings.Add($"{blocked + grounded} of {markers.Count} pods have no {limits.PickleHeightM} m drop below them ({blocked} into the vine, {grounded} into the ground). Lengthen the arms, raise their rise, or shorten the stems.");
+            warnings.Add(string.Create(CultureInfo.InvariantCulture, $"{blocked + grounded} of {markers.Count} pods have no {limits.PickleHeightM} m drop below them ({blocked} into the vine, {grounded} into the ground). Lengthen the arms, raise their rise, or shorten the stems."));
         if (markers.Count > 1 && spacingM < limits.PodSpacingM)
-            warnings.Add($"Two pods are {spacingM:F2} m apart; hanging pickles overlap under {limits.PodSpacingM} m. Fewer pods per ring, or more arms.");
+            warnings.Add(string.Create(CultureInfo.InvariantCulture, $"Two pods are {spacingM:F2} m apart; hanging pickles overlap under {limits.PodSpacingM} m. Fewer pods per ring, or more arms."));
         if (result.BoundsX > limits.AxisLimit || result.BoundsY > limits.AxisLimit || result.BoundsZ > limits.AxisLimit)
         {
-            result.Error = $"The vine is {result.BoundsX} × {result.BoundsY} × {result.BoundsZ} voxels. MagicaVoxel stores each axis in a byte, so a model stops at {limits.AxisLimit}. Raise voxel size, or lower the height, lean, wobble, or leaves.";
+            result.Error = string.Create(CultureInfo.InvariantCulture, $"The vine is {result.BoundsX} × {result.BoundsY} × {result.BoundsZ} voxels. MagicaVoxel stores each axis in a byte, so a model stops at {limits.AxisLimit}. Raise voxel size, or lower the height, lean, wobble, or leaves.");
         }
         result.Ok = result.Error == null;
 

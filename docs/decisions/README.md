@@ -43,3 +43,4 @@ Number them in order, `NNNN-short-title.md`.
 | [0030](0030-innocent-pickles.md) | Proposed: the pickles are innocent and the player is not one: cartoon look, scared faces, brine is theirs, whimpers capped and pooled, health and shield for the player |
 | [0031](0031-a-contracts-arc.md) | Proposed: scout first or drop in, both valid; random one-off drops within a contract (mechs, vehicles, weapons) up to the bike; persistent progression unchanged; both lasers |
 | [0032](0032-plants-bend.md) | Proposed: vines and trees bend: a spine of springs built from their voxels, drawn in the shader, collision moved along and carrying the player; wind, hits and the grapple push it; cut weak, it gives way and falls over |
+| [0033](0033-vines-baked-in-the-editor.md) | Proposed: vines are baked by an editor dock (`addons/vine_gen`) to a `.vox` and a wrapper scene with the foot on the origin; nests are laid out in the editor and saved; nothing generates at runtime |

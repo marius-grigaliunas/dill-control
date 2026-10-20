@@ -32,16 +32,19 @@ public static class VineBaker
         public VineGenerator.Result Vine;
     }
 
-    public static string NameOf(VineKind kind, int seed) => $"prp_vine_{kind.Slug}_{seed}";
+    /// <summary>A vine's name regrows it: its kind and seed, and a <c>c</c>
+    /// when a setting was changed by hand (its .json holds every setting).</summary>
+    public static string NameOf(VineKind kind, int seed, bool changed = false) =>
+        $"prp_vine_{kind?.Slug ?? "vine"}_{seed}{(changed ? "c" : "")}";
 
     /// <summary>Grows a vine from <paramref name="kind"/> and <paramref name="seed"/>,
-    /// or from <paramref name="custom"/> settings, and writes it. A vine that
-    /// fails its hard checks is not written: <see cref="Baked.Vine"/> says why.</summary>
-    public static Baked Bake(VineKind kind, int seed, VineBakeStats stats, VineParams custom = null)
+    /// or from <paramref name="settings"/>, and writes it. A vine that fails
+    /// its hard checks is not written: <see cref="Baked.Vine"/> says why.</summary>
+    public static Baked Bake(VineKind kind, int seed, VineBakeStats stats, VineParams settings = null, bool changed = false)
     {
-        VineParams p = custom ?? kind.Roll(seed, Math.Round((double)stats.VoxelSize, 6));
+        VineParams p = settings ?? kind.Roll(seed, Math.Round((double)stats.VoxelSize, 6));
         VineGenerator.Result vine = VineGenerator.Generate(p, stats.Limits());
-        string name = NameOf(kind, (int)vine.Params.Seed);
+        string name = NameOf(kind, (int)vine.Params.Seed, changed);
         var baked = new Baked
         {
             Name = name,
@@ -56,7 +59,7 @@ public static class VineBaker
 
         WriteBytes(baked.VoxPath, Encode(vine, stats.Palette));
         WriteImport(baked.ImportPath, baked.VoxPath, stats.VoxelSize);
-        WriteText(baked.JsonPath, Describe(kind, vine));
+        WriteText(baked.JsonPath, Describe(kind, vine, changed));
         // Re-baking changes the model and keeps the wrapper: whatever was set
         // on it in the editor, and its uid, survive.
         if (!FileAccess.FileExists(baked.ScenePath))
@@ -221,7 +224,7 @@ public static class VineBaker
 
     /// <summary>What the vine was grown from and what it came to, beside it,
     /// for the nest step and for whoever wonders where a vine came from.</summary>
-    public static string Describe(VineKind kind, VineGenerator.Result vine)
+    public static string Describe(VineKind kind, VineGenerator.Result vine, bool changed = false)
     {
         var settings = new Godot.Collections.Dictionary();
         foreach (VineParams.Field field in VineParams.Fields)
@@ -238,6 +241,7 @@ public static class VineBaker
             ["tool"] = Tool,
             ["version"] = Version,
             ["kind"] = kind?.KindName ?? "",
+            ["changedByHand"] = changed,
             ["seed"] = (int)vine.Params.Seed,
             ["params"] = settings,
             ["counts"] = new Godot.Collections.Dictionary

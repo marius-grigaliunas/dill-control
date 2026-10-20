@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/voxel/VoxelBody.cs" id="1_voxels"]
+[ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_vine.tres" id="2_stats"]
+[ext_resource type="PackedScene" path="res://art/voxels/prp_vine_fruiting_2101677.vox" id="3_model"]
+[ext_resource type="Script" path="res://scripts/foliage/PlantFlex.cs" id="4_flex"]
+[ext_resource type="Resource" path="res://resources/foliage/flex_vine.tres" id="5_flexstats"]
+
+[node name="prp_vine_fruiting_2101677" type="Node3D"]
+
+[node name="Voxels" type="Node" parent="." node_paths=PackedStringArray("Model")]
+script = ExtResource("1_voxels")
+Model = NodePath("../Model")
+Stats = ExtResource("2_stats")
+Static = true
+WholeUntilChanged = true
+
+[node name="Model" parent="." instance=ExtResource("3_model")]
+
+[node name="Flex" type="Node" parent="." node_paths=PackedStringArray("Body")]
+script = ExtResource("4_flex")
+Body = NodePath("../Voxels")
+Stats = ExtResource("5_flexstats")

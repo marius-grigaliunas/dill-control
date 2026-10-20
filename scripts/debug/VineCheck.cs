@@ -332,7 +332,7 @@ public partial class VineCheck : Node
         int found = 0;
         foreach (string file in DirAccess.GetFilesAt(stats.SceneFolder))
         {
-            if (!System.Text.RegularExpressions.Regex.IsMatch(file, @"^prp_vine_[a-z]+_\d+\.tscn$"))
+            if (!System.Text.RegularExpressions.Regex.IsMatch(file, @"^prp_vine_[a-z]+_\d+c?\.tscn$"))
                 continue;
             found++;
             string name = file[..^5];

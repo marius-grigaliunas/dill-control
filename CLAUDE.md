@@ -63,7 +63,7 @@ Joypad events in the input map use device `-1` (any pad). The layout is
    debug key is a letter.
 7. **No third-party addons** without a proposal and a reason. Our own editor
    plugins live in `addons/` because Godot looks for them nowhere else; there
-   is one, `vox_importer`.
+   are two, `vox_importer` and `vine_gen`.
 
 ## The level tree
 
@@ -92,7 +92,8 @@ with no body to ask `GetGravity()` asks `WorldUp`, never `Vector3.Up`. See
 
 **Generation draws from authored pools and one seed.** A contract is a seed;
 every roll goes through `SeededRandom` with a named stream, never `GD.Randi`
-or `System.Random`. A planet rolls inside a `PlanetArchetype`'s ranges and
+or `System.Random` (the one exception is bake-time: the vine generator keeps
+the browser prototype's own streams, `docs/decisions/0033`). A planet rolls inside a `PlanetArchetype`'s ranges and
 wears a `PlanetBiome`; a range widens only after `bench.gd planets` holds at
 it. See `docs/decisions/0018`. A compound is a seeded layout of authored
 cluster scenes from a `CompoundKit`: the seed decides where, never what
@@ -107,7 +108,7 @@ made once the builder says the frames have settled. See
 ## Folder map
 
 ```
-addons/         our own editor plugins only (vox_importer)
+addons/         our own editor plugins only (vox_importer, vine_gen)
 art/
   _source/      .blend and paint sources, packs as downloaded. .gdignore'd, LFS.
   models/       .glb exports
@@ -192,6 +193,17 @@ changes, and only then meshes its sections: a forest of 200 vines draws in
 about 200-450 calls instead of 10,000. Its numbers are
 `resources/foliage/flex_vine.tres` / `flex_tree.tres` and `wind_default.tres`.
 
+**Vines are baked, never grown in the game** (`docs/decisions/0033`,
+proposed). The Vines dock (`addons/vine_gen`) rolls a vine from a kind
+(`resources/foliage/vine_kind_*.tres`) and a seed, previews it and bakes
+`art/voxels/prp_vine_<kind>_<seed>.vox` and `scenes/props/prp_vine_<kind>_<seed>.tscn`,
+the wrapper above, with the stalk's foot on the scene origin. Its palette is
+`vine_palette.tres` (deep greens, never neon), its checks and voxel size
+`vine_bake.tres`. `VineGenerator` matches `tools/vine-gen` voxel for voxel
+until the prototype retires: after changing either, `node make-golden.js`
+there and run `vinecheck.gd`. Nests are laid out in the editor from baked
+vines and saved; contracts place saved nests.
+
 **Nothing that scales with a model's voxels runs in the frame**
 (`docs/decisions/0015`): re-meshing, structural checks and splits go to
 `VoxelWorkers` from a copy of the cells and are carried out only if the grid's
@@ -250,6 +262,8 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --headless --path . --script scripts/debug/seedcheck.gd -- 20                                      # same seed, same planet; cube seams
 "$GODOT" --headless --path . --script scripts/debug/graphcheck.gd -- 40                                     # chunk graph vs a cell flood: what falls, what floats
 "$GODOT" --headless --path . --script scripts/debug/flexcheck.gd                                            # a plant's spine: its period, settling, a pull, a cut
+"$GODOT" --headless --path . --script scripts/debug/vinecheck.gd                                            # vine generator vs the browser's golden vines; every baked vine's wrapper and foot
+"$GODOT" --headless --path . --script scripts/debug/vinebake.gd -- fruiting pool:0                          # bake a vine as the dock does (then --editor --quit to import)
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex          # a vine in the wind, rocketed, swung on, stood on, bitten and felled
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn forest        # 85 vines 100 m apart (prp_vine_forest) round the middle: spawn, edge, among them, a swing
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn forestab      # what the forest costs the GPU: shadows, ink, bending, the forest
