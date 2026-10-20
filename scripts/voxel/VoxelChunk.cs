@@ -53,7 +53,12 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
 
     // ---------------- Gravity gun ----------------
 
-    public bool CanGrab => _part != null && !_breaking && _grid.SolidCount <= _stats.MaxGrabVoxels && _hinge == null;
+    /// <summary>Breaking on landing: its pieces are being worked out.</summary>
+    public bool IsBreaking => _breaking;
+
+    public bool IsRetired => _retired;
+
+        public bool CanGrab => _part != null && !_breaking && _grid.SolidCount <= _stats.MaxGrabVoxels && _hinge == null;
 
     public bool IsHeld { get; private set; }
 

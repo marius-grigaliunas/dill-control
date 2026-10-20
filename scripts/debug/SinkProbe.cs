@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Godot;
+using DillControl.Core;
 using DillControl.Voxel;
 
 namespace DillControl.Debug;
@@ -25,6 +26,8 @@ public partial class SinkProbe : Node
     private readonly Dictionary<ulong, Queue<string>> _history = new();
     private readonly HashSet<ulong> _reported = new();
     private readonly HashSet<ulong> _lost = new();
+    private readonly Dictionary<ulong, int> _stuck = new();
+    private readonly Dictionary<ulong, int> _hinged = new();
     private readonly Dictionary<ulong, int> _airborne = new();
     private readonly HashSet<ulong> _misfit = new();
     private readonly Dictionary<ulong, int> _misfitFrames = new();
@@ -33,6 +36,9 @@ public partial class SinkProbe : Node
 
     public static bool Wanted(string[] args)
     {
+        // Always there: with no words it only watches while U records, and
+        // writes what it finds beside the recording.
+        return true;
         foreach (string a in args)
         {
             if (a is "sink" or "nodust" or "drops")
@@ -68,9 +74,14 @@ public partial class SinkProbe : Node
     public override void _PhysicsProcess(double delta)
     {
         _frame++;
-        if (!_sink || VoxelDebris.Current == null)
+        bool watching = _sink || PerfLog.Recording;
+        if (!watching || VoxelDebris.Current == null)
         {
             return;
+        }
+        if (_frame % 60 == 0)
+        {
+            WatchStrays();
         }
         foreach (Node child in VoxelDebris.Current.GetChildren())
         {
@@ -140,8 +151,8 @@ public partial class SinkProbe : Node
                         }
                     }
                 }
-                GD.Print(detail.ToString());
-                GD.Print($"[sink] MISFIT {chunk.Name} ({voxels}v, {shapes} boxes) f{_frame}: voxels {vlow:F2}..{vtop:F2} boxes {lowest:F2}..{top:F2} sleep={chunk.Sleeping} frozen={chunk.Freeze}");
+                Report(detail.ToString());
+                Report($"[sink] MISFIT {chunk.Name} ({voxels}v, {shapes} boxes) f{_frame}: voxels {vlow:F2}..{vtop:F2} boxes {lowest:F2}..{top:F2} sleep={chunk.Sleeping} frozen={chunk.Freeze}");
             }
         }
         string what = "";
@@ -166,7 +177,31 @@ public partial class SinkProbe : Node
             lines.Dequeue();
         }
 
-        // Still, with nothing under it: resting on what has gone since.
+        // Drawn, but out of the world: no boxes, collision switched off, or
+        // frozen without being settled rubble. A piece swapped for its pieces
+        // stays drawn so; one that stays so is stuck between the two.
+        bool inSpace = PhysicsServer3D.BodyGetSpace(chunk.GetRid()).IsValid;
+        bool outOfWorld = shapes == 0 || chunk.CollisionLayer == 0 || (chunk.Freeze && !chunk.IsSettled) || !inSpace;
+        _hinged[id] = chunk.IsHinged ? _hinged.GetValueOrDefault(id) + 1 : 0;
+        if (_hinged[id] == 60 * 8)
+        {
+            Report($"[sink] HINGE-STUCK {chunk.Name} ({voxels}v) on its hinge 8 s: bottom={lowest:F2} |v|={chunk.LinearVelocity.Length():F2} " +
+                $"spin={chunk.AngularVelocity.Length():F3} sleep={chunk.Sleeping} inSpace={inSpace} f{_frame}");
+        }
+        _stuck[id] = outOfWorld && chunk.Visible && !chunk.IsRetired ? _stuck.GetValueOrDefault(id) + 1 : 0;
+        if (_stuck[id] == 180)
+        {
+            var report = new StringBuilder();
+            report.AppendLine($"[sink] STUCK {chunk.Name} ({voxels}v) drawn for 3 s out of the world: boxes={shapes} " +
+                $"layer={chunk.CollisionLayer} frozen={chunk.Freeze} settled={chunk.IsSettled} breaking={chunk.IsBreaking} " +
+                $"hinged={chunk.IsHinged} inSpace={inSpace} bottom={lowest:F2} f{_frame}");
+            foreach (string line in _history[id])
+            {
+                report.AppendLine(line);
+            }
+            Report(report.ToString());
+        }
+                // Still, with nothing under it: resting on what has gone since.
         if (shapes > 0 && _frame % 30 == 0 && !chunk.IsHeld && chunk.LinearVelocity.Length() < 0.1f)
         {
             Vector3 from = chunk.GlobalPosition;
@@ -177,7 +212,7 @@ public partial class SinkProbe : Node
             _airborne[id] = under ? 0 : _airborne.GetValueOrDefault(id) + 1;
             if (_airborne[id] == 4)
             {
-                GD.Print($"[sink] AIRBORNE {chunk.Name} ({voxels}v) still for 2 s, bottom {lowest:F2} m, nothing under it: " +
+                Report($"[sink] AIRBORNE {chunk.Name} ({voxels}v) still for 2 s, bottom {lowest:F2} m, nothing under it: " +
                     $"sleep={chunk.Sleeping} frozen={chunk.Freeze} settled={chunk.IsSettled} f{_frame}");
             }
         }
@@ -185,11 +220,11 @@ public partial class SinkProbe : Node
         // Half a second wholly under: not a piece the sunk-piece catch saved.
         if (_under[id] >= 30 && _lost.Add(id))
         {
-            GD.Print($"[sink] LOST {chunk.Name} ({voxels}v): every box under the ground, top={top:F2} at f{_frame}");
+            Report($"[sink] LOST {chunk.Name} ({voxels}v): every box under the ground, top={top:F2} at f{_frame}");
         }
         if (voxels >= 1000 && _frame % 300 == 0)
         {
-            GD.Print($"[sink] big {chunk.Name} ({voxels}v) f{_frame}: origin y={chunk.GlobalPosition.Y:F2} boxes {lowest:F2}..{top:F2}");
+            Report($"[sink] big {chunk.Name} ({voxels}v) f{_frame}: origin y={chunk.GlobalPosition.Y:F2} boxes {lowest:F2}..{top:F2}");
         }
         if (shapes > 0 && lowest < _groundY - Depth && _reported.Add(id))
         {
@@ -203,7 +238,61 @@ public partial class SinkProbe : Node
             {
                 report.AppendLine("  spawned " + by);
             }
-            GD.Print(report.ToString());
+            Report(report.ToString());
+        }
+    }
+
+    private readonly Dictionary<ulong, int> _strays = new();
+
+    private void WatchStrays()
+    {
+        foreach (VoxelPart part in VoxelPart.All)
+        {
+            if (!IsInstanceValid(part))
+            {
+                continue;
+            }
+            ulong id = part.GetInstanceId();
+            int stray = part.StrayMeshes();
+            _strays[id] = stray > 0 ? _strays.GetValueOrDefault(id) + 1 : 0;
+            if (_strays[id] == 3)
+            {
+                Node owner = part.GetParent();
+                Report($"[sink] STRAY {stray} meshes drawn under {owner?.Name}/{part.Name} for 3 s that the part no longer tracks, " +
+                    $"at {part.GlobalPosition}, owner {owner?.GetType().Name} f{_frame}");
+            }
+        }
+    }
+
+    private string _file;
+
+    /// <summary>Printed, and while U records written beside the recording
+    /// (perf_<time>_probe.txt) with a tag in that frame's events column.</summary>
+    private void Report(string text)
+    {
+        // A console line costs its frame 15-40 ms: while U records, the file only.
+        if (_sink || !PerfLog.Recording)
+        {
+            GD.Print(text);
+        }
+        if (!PerfLog.Recording)
+        {
+            return;
+        }
+        string first = text.Split(System.Environment.NewLine[^1])[0];
+        PerfLog.Event("probe " + (first.Length > 80 ? first.Substring(0, 80) : first));
+        string csv = (GetParent() as PerfDriver)?.Recorder?.CurrentPath;
+        if (string.IsNullOrEmpty(csv))
+        {
+            return;
+        }
+        _file = System.IO.Path.ChangeExtension(csv, null) + "_probe.txt";
+        try
+        {
+            System.IO.File.AppendAllText(_file, text.TrimEnd() + System.Environment.NewLine);
+        }
+        catch (System.IO.IOException)
+        {
         }
     }
 }

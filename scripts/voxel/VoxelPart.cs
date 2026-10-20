@@ -73,6 +73,26 @@ public partial class VoxelPart : Node3D, IStrainHost
 
     private static readonly List<VoxelPart> Live = new();
 
+    /// <summary>Every part in the tree (SinkProbe).</summary>
+    public static IReadOnlyList<VoxelPart> All => Live;
+
+    /// <summary>Debug: meshes drawn under this part that it no longer tracks:
+    /// given to a piece that was never made, the old look of a swap that never
+    /// finished.</summary>
+    public int StrayMeshes()
+    {
+        int stray = 0;
+        foreach (Node child in GetChildren())
+        {
+            if (child is MeshInstance3D { Mesh: not null, Visible: true } mesh && Array.IndexOf(_meshes, mesh) < 0
+                && (_adopt == null || Array.IndexOf(_adopt, mesh) < 0))
+            {
+                stray++;
+            }
+        }
+        return stray;
+    }
+
     public static void ToggleChunkTint()
     {
         ShowChunks = !ShowChunks;
