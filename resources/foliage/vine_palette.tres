@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="VinePalette" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/foliage/VinePalette.cs" id="1_script"]
+
+[resource]
+resource_name = "VinePalette"
+script = ExtResource("1_script")
+Shell = Color(0.20392157, 0.32941177, 0.17254902, 1)
+Knuckle = Color(0.13333334, 0.23529412, 0.1254902, 1)
+Core = Color(0.5882353, 0.57254905, 0.42352942, 1)
+Leaf = Color(0.11764706, 0.27450982, 0.15686275, 1)
+Petiole = Color(0.08627451, 0.19607843, 0.11764706, 1)
+Tendril = Color(0.2509804, 0.3764706, 0.21176471, 1)

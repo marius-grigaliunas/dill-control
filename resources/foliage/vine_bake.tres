@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="VineBakeStats" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/foliage/VineBakeStats.cs" id="1_script"]
+[ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_vine.tres" id="2_destruction"]
+[ext_resource type="Resource" path="res://resources/foliage/flex_vine.tres" id="3_flex"]
+[ext_resource type="Resource" path="res://resources/foliage/vine_palette.tres" id="4_palette"]
+
+[resource]
+resource_name = "VineBake"
+script = ExtResource("1_script")
+ArchetypeSeed = 1
+VoxelSize = 0.5
+VoxelBudget = 30352
+AxisLimit = 256
+PickleHeightM = 1.8
+PodSpacingM = 0.9
+BodiesWarnAbove = 20
+Destruction = ExtResource("2_destruction")
+Flex = ExtResource("3_flex")
+Palette = ExtResource("4_palette")
+VoxelFolder = "res://art/voxels"
+SceneFolder = "res://scenes/props"

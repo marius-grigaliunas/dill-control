@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="VineKind" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/foliage/VineKind.cs" id="1_script"]
+
+[resource]
+resource_name = "VineKindFruiting"
+script = ExtResource("1_script")
+KindName = "Fruiting"
+Weight = 3.0
+Zone = Vector2(0.05, 0.45)
+PoolSize = 4
+HeightM = Vector2(84.0, 96.0)
+RingCount = Vector2(12.0, 14.0)
+BareStalkM = Vector2(20.0, 26.0)
+WobbleM = Vector2(1.0, 4.0)
+WobbleFrequency = Vector2(1.6, 1.6)
+LeanDeg = Vector2(0.0, 5.0)
+HelixTurns = Vector2(0.0, 0.0)
+TrellisRadiusM = Vector2(4.0, 4.0)
+TipNodDeg = Vector2(20.0, 50.0)
+Irregularity = Vector2(0.4, 0.7)
+BaseRadiusM = Vector2(2.6, 3.0)
+TipRadiusM = Vector2(0.9, 1.1)
+ShellVoxels = Vector2(2.0, 2.0)
+KnuckleBulge = Vector2(0.4, 0.4)
+KnuckleWidth = Vector2(3.0, 3.0)
+ArmsPerRing = Vector2(3.0, 4.0)
+ArmLengthM = Vector2(14.0, 18.0)
+ArmRiseDeg = Vector2(36.0, 44.0)
+ArmSag = Vector2(1.1, 1.4)
+ArmThickness = Vector2(0.4, 0.4)
+ArmTipLeafChance = 1.0
+PodsPerRing = Vector2(12.0, 16.0)
+PodTwistDeg = Vector2(30.0, 60.0)
+PedicelM = Vector2(1.5, 2.25)
+LeavesPerRing = Vector2(0.0, 0.0)
+LeavesPerArm = Vector2(0.0, 0.0)
+LeafSizeM = Vector2(7.0, 9.0)
+LeafTiltDeg = Vector2(28.0, 28.0)
+LeafDroopDeg = Vector2(34.0, 34.0)
+TendrilsChance = 0.8
+TendrilCount = Vector2(10.0, 16.0)
+TendrilLengthM = Vector2(6.0, 6.0)
+TendrilCurl = Vector2(2.5, 2.5)
