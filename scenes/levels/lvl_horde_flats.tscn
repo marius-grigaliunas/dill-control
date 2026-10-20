@@ -32,6 +32,7 @@
 [ext_resource type="PackedScene" uid="uid://b7k2n51522xq1" path="res://scenes/props/prp_vine_51522.tscn" id="26_tyqlc"]
 [ext_resource type="PackedScene" uid="uid://c4p8w31428q1a" path="res://scenes/props/prp_vine_3142857.tscn" id="27_60l8v"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_vine_forest.tscn" id="28_forest"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_fruiting_2101677.tscn" id="29_baked"]
 
 [sub_resource type="BoxMesh" id="GroundMesh"]
 size = Vector3(1200, 2, 1200)
@@ -271,6 +272,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -225.86023, 0, 141.73099)
 
 [node name="prp_vine_3142857" parent="Props/Trees" unique_id=1461444139 instance=ExtResource("27_60l8v")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -175.16225, -7.6293945e-06, 66.63972)
+
+[node name="prp_vine_fruiting_2101677" parent="Props/Trees" instance=ExtResource("29_baked")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -240, 0, -170)
 
 [node name="VineForest" parent="Props" instance=ExtResource("28_forest")]
 

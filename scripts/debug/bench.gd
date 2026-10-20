@@ -54,6 +54,7 @@ const PULSE_SECONDS := 0.15
 #   "!call:Node:method"      call a method with no arguments (":arg" after it: one string); "Node/Child"
 #                            for a child of that node
 #   "@goto:x, y, z"          move the level's player there
+#   "@gotorel:Node:x, y, z"  move the player to that offset from a node
 #   "@aim:Node:height"       turn the player to look at that node, raised by
 #                            height metres
 #   "@aimat:x, y, z"         turn the player to look at that point
@@ -452,13 +453,17 @@ static func _vine_timeline(slot: String) -> Array:
 # through its foot: it leans to its limit, gives way there, and what is above
 # falls over from the pose it was drawn in. Every
 # plant's tip printed at each step.
-static func _flex_timeline(vine: String) -> Array:
+# "flex <vine> <metres>": the rifle and rockets aim at the stalk that high
+# (12 m by default). At 12 m the volley is a coin flip: prp_vine_41051 held
+# at 61 % in one run and fell in the next, and then the grapple, perch and
+# bite have no vine. 40 m keeps it standing for the rest of the timeline.
+static func _flex_timeline(vine: String, shot_height: String = "12") -> Array:
 	var status := "!call:FlexField:PrintBenchStatus"
 	# A vine's stalk need not stand over its node: aim where its voxels are.
-	var stalk := "@aimcall:%s/Flex:BenchStalk:12" % vine
+	var stalk := "@aimcall:%s/Flex:BenchStalk:%s" % [vine, shot_height]
 	return [
 		["hold the horde off", ["!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
-			"@goto:-179, 0.2, 43"], [], 2.0],
+			"@gotorel:%s:0, 0.2, 45" % vine], [], 2.0],
 		["wind", ["@aim:%s:30" % vine, status], [], 4.0],
 		["wind shot", ["#flex_wind", status], [], 0.3],
 		["rifle out", [stalk, "slot_1"], [], 1.0],
@@ -471,18 +476,18 @@ static func _flex_timeline(vine: String) -> Array:
 		["shaking shot", ["#flex_hit", status], [], 0.3],
 		["ringing", [status], [], 3.0],
 		["ringing shot", ["#flex_ringing", status], [], 0.3],
-		["throw", ["@status", "@aim:%s:45" % vine], ["grapple"], 1.0],
+		["throw", ["@status", "@aimcall:%s/Flex:BenchStalk:45" % vine], ["grapple"], 1.0],
 		["reel", [], ["grapple", "jump"], 1.2],
 		["swing", [status], ["grapple", "move_forward"], 3.0],
 		["swing shot", ["#flex_swing", status], ["grapple", "move_forward"], 0.3],
 		["swing back", [status], ["grapple", "move_back"], 3.0],
 		["let go", ["@status", status], [], 3.0],
-		["back off to see it whole", ["@goto:-179, 0.2, 110", "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:%s:50" % vine], [], 2.0],
+		["back off to see it whole", ["@gotorel:%s:0, 0.2, 112" % vine, "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:%s:50" % vine], [], 2.0],
 		["before the cut shot", ["#flex_before_cut", status], [], 0.3],
 		["stand on an arm", ["@gotocall:%s/Flex:BenchPerch:30" % vine, "@aimcall:%s/Flex:BenchStalk:40" % vine, "@status", status], [], 2.0],
 		["riding it in the wind", [status], [], 4.0],
 		["riding it shot", ["#flex_perch", "@status", status], [], 0.3],
-		["back off again", ["@goto:-179, 0.2, 110", "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:%s:50" % vine], [], 2.0],
+		["back off again", ["@gotorel:%s:0, 0.2, 112" % vine, "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:%s:50" % vine], [], 2.0],
 		["bite from the foot", ["!call:%s/Flex:BenchCarveFoot" % vine, status], [], 2.0],
 		["leaning", [status], [], 1.0],
 		["falling 1", ["!call:VoxelDebris:PrintBenchStatus"], [], 1.0],
@@ -876,7 +881,7 @@ func _initialize() -> void:
 		"downtown": _timeline = _downtown_timeline(float(args[2]) if args.size() > 2 and args[2].is_valid_float() else 60.0)
 		"forest": _timeline = FOREST_TIMELINE
 		"forestab": _timeline = FORESTAB_TIMELINE
-		"flex": _timeline = _flex_timeline(args[2] if args.size() > 2 else "prp_vine_41051")
+		"flex": _timeline = _flex_timeline(args[2] if args.size() > 2 else "prp_vine_41051", args[3] if args.size() > 3 else "12")
 		"vine": _timeline = _vine_timeline(args[2] if args.size() > 2 and args[2].begins_with("slot_") else "slot_1")
 		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
@@ -974,6 +979,17 @@ func _tap(action: String) -> void:
 		var at = str_to_var("Vector3(%s)" % action.substr(6))
 		if player != null and at is Vector3:
 			player.global_position = at
+		else:
+			print("[bench] cannot ", action)
+		return
+	if action.begins_with("@gotorel:"):
+		# An offset from a node, so a timeline works wherever its target stands.
+		var rel := action.substr(9).split(":", true, 1)
+		var rel_node := _find(rel[0]) as Node3D
+		var rel_player := _player() as Node3D
+		var offset = str_to_var("Vector3(%s)" % rel[1]) if rel.size() == 2 else null
+		if rel_node != null and rel_player != null and offset is Vector3:
+			rel_player.global_position = rel_node.global_position + offset
 		else:
 			print("[bench] cannot ", action)
 		return
