@@ -78,6 +78,55 @@ before the cut). 1 frame of 4182 is over 25 ms.
 A piece queued past the cap is dust rather than something seen falling. A
 piece resting on a ledge or another piece stays a body (frozen after
 `SettleSeconds`) rather than joining a heap. A heap's edge loses up to one
-voxel of collision where a lone column stands on bare ground. Settled pieces do
+voxel of collision where a lone column stands on bare ground. ~~Settled pieces do
 not wake when what they rest on goes, and hang in the air until a blast
-reaches them.
+reaches them.~~ Fixed 2026-10-20, below.
+
+## 2026-10-20: pieces come to rest in seconds
+
+A U recording of total destruction (`perf_2026-10-20_12-33-56`, 208 s, 83 %
+of frames over budget) and the bench mode `downtown` (eight towers cut, then
+rockets into the rubble) showed what the debris cost once it was down:
+
+- Tower segments of 3 000-36 000 voxels crept on the rubble at 0.02-1 m/s for
+  10-30 s, too fast for Jolt to put them to sleep, too slow to go anywhere,
+  each with 200-260 boxes: the fine re-box for resting pieces came at 1.5 s
+  still, and they were nudged awake carrying it. Pieces awake carried up to
+  1 466 boxes.
+- Re-boxing a piece with 600 shape owners cost 60-130 ms a frame: Jolt
+  rebuilt the body's shape at every box added or removed.
+- The cap baked whole tower segments into heaps (12 in the recording, up to
+  16 000 voxels), and a heap's grid is sized to its first piece: 25 million
+  cells, which every rocket into it copied and flooded on a worker (memory
+  from 400 MB to 1.4 GB) and re-scanned on the main thread (~105 ms frames).
+- A sleeping piece stays asleep when what it rests on goes, and a frozen
+  one unfrozen is still asleep: the probe's AIRBORNE pieces.
+
+So: a piece is still when asleep, slow, or less than `StillTravel` from where
+it was a second ago, and settles (freezes) after `SettleSeconds` = 3 s, not 20.
+A settled piece looks for its support every `SupportCheckSeconds` (its boxes
+moved 0.25 m down, or a ray down from a lowest corner) and is woken, unfrozen
+and awake, when there is none. One that wakes and comes to rest again within
+`StillTravel` was held by something neither look sees, and stops looking
+until a blast or the gravity gun moves it. Only a settled piece is re-boxed
+finely, and waking puts its flight boxes back. A loose piece's boxes change
+with its body out of the physics space, as building sections' already did.
+`Bake` refuses pieces over `BakeMaxVoxels` on every path, and the cap gives up
+a settled piece only if it can bake it.
+
+| `downtown 30 noprobe` | before | after (two runs) |
+|---|---|---|
+| frames over 100 ms | 7 | 0, 0 |
+| physics step a tick, rockets landing | 2.5-2.9 ms | 1.3-2.0 ms |
+| managed memory, peak | 404 MB (1.4 GB with a tower baked) | 388, 374 MB |
+| pieces at the end | 13, 1 settled | 22 and 11, all settled |
+| frames over 25 ms | 13 % | 7 %, 20 % |
+
+Frames over 25 ms vary with how the towers fall, more than with this change.
+While rockets land, the frame is the rockets themselves (blast overlap,
+flight, damage), new pieces, the horde and the GPU: not settled debris.
+
+The probe (SinkProbe), on during every U recording, runs last in the physics
+tick and is billed to "physics step [engine]": about 4 ms a tick with a
+hundred pieces. Recordings made before this note read the step high by that
+much; `noprobe` measures without it.

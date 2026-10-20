@@ -80,9 +80,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         IsHeld = held;
         if (held)
         {
-            IsSettled = false;
-            Freeze = false;
-            _still = 0.0f;
+            Wake();
         }
     }
 
@@ -121,6 +119,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         using FrameProfiler.Scope scope = FrameProfiler.Begin(VoxelPart.SectionChunkReady);
         CollisionLayer = GameLayers.Mask(GameLayers.Prop);
         CollisionMask = GameLayers.Mask(GameLayers.World, GameLayers.Prop);
+        _travelFrom = GlobalPosition;
         float volume = _grid.SolidCount * _grid.VoxelSize * _grid.VoxelSize * _grid.VoxelSize;
         Weigh();
         CanSleep = true;
@@ -230,7 +229,18 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             Trail(dt, velocity);
         }
 
-        _still =!IsHeld && (Sleeping || velocity.LengthSquared() < 0.01f) ? _still + dt : 0.0f;
+        // Still: asleep, slow, or gone nowhere over the last second. A piece
+        // grinding on rubble at a few centimetres a second, or jittering in
+        // place, is too fast for Jolt to put to sleep and goes nowhere.
+        _travelFor += dt;
+        if (_travelFor >= 1.0f)
+        {
+            _creeping = GlobalPosition.DistanceTo(_travelFrom) < _stats.StillTravel;
+            _travelFrom = GlobalPosition;
+            _travelFor = 0.0f;
+        }
+        bool still = !IsHeld && _hinge == null && (Sleeping || velocity.LengthSquared() < 0.01f || _creeping);
+        _still = still ? _still + dt : 0.0f;
         if (_still <= 0.0f)
         {
             // Moved: where it comes to rest next may be the ground.
@@ -242,8 +252,159 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             IsSettled = true;
             FreezeMode = FreezeModeEnum.Static;
             Freeze = true;
+            _support = _stats.SupportCheckSeconds * (float)GD.RandRange(0.5, 1.5);
+            if (_unsupportedAt is Vector3 at)
+            {
+                float fell = GlobalPosition.DistanceTo(at);
+                _propped = fell < _stats.StillTravel;
+                if (PerfLog.Recording)
+                {
+                    PerfLog.Event($"resettled {VoxelCount}v {fell:F2}m from where it lost support");
+                }
+            }
+            _unsupportedAt = null;
+        }
+        else if (IsSettled)
+        {
+            WatchSupport(dt);
         }
         Refine();
+    }
+
+    private Vector3 _travelFrom;
+    private float _travelFor;
+    private bool _creeping;
+    private float _support;
+
+    /// <summary>
+    /// Settled, it is frozen where it lay: when what it rests on goes (shot
+    /// away, crushed, a piece under it baked or dusted), it wakes and falls
+    /// rather than hanging in the air. Held is either of two looks: its boxes
+    /// moved a little way down meet something, or a ray down from one of its
+    /// lowest corners does. The first alone missed pieces resting on a heap's
+    /// heightfield or on an edge, which woke and lay where they were.
+    /// </summary>
+    private void WatchSupport(float dt)
+    {
+        _support -= dt;
+        if (_support > 0.0f || IsHeld || _propped)
+        {
+            return;
+        }
+        _support = _stats.SupportCheckSeconds;
+        Rid rid = GetRid();
+        if (!PhysicsServer3D.BodyGetSpace(rid).IsValid)
+        {
+            // Out of the world (a bench A/B): nothing to stand on, nothing to fall through.
+            return;
+        }
+        Vector3 up = WorldUp.At(GlobalPosition);
+        _supportTest ??= new PhysicsTestMotionParameters3D { MaxCollisions = 1, Margin = 0.02f };
+        _supportTest.From = GlobalTransform;
+        _supportTest.Motion = -up * SupportReach;
+        if (PhysicsServer3D.BodyTestMotion(rid, _supportTest) || CornerHeld(up))
+        {
+            return;
+        }
+        if (PerfLog.Recording)
+        {
+            PerfLog.Event($"unsupported {VoxelCount}v");
+        }
+        Wake();
+        _unsupportedAt = GlobalPosition;
+    }
+
+    /// <summary>How far down a settled piece looks for what holds it: under a
+    /// voxel of a building's, so a gap the boxes round off is not a fall.</summary>
+    private const float SupportReach = 0.25f;
+
+    /// <summary>Rays down from its lowest box corners, the few within a
+    /// voxel of its lowest point: whatever it lies on, it touches there.</summary>
+    private bool CornerHeld(Vector3 up)
+    {
+        _corners.Clear();
+        float lowest = float.MaxValue;
+        Transform3D body = GlobalTransform;
+        foreach (uint owner in GetShapeOwners())
+        {
+            if (IsShapeOwnerDisabled(owner))
+            {
+                continue;
+            }
+            Transform3D at = body * ShapeOwnerGetTransform(owner);
+            for (int s = 0; s < ShapeOwnerGetShapeCount(owner); s++)
+            {
+                if (ShapeOwnerGetShape(owner, s) is not BoxShape3D box)
+                {
+                    continue;
+                }
+                Vector3 h = box.Size * 0.5f;
+                for (int k = 0; k < 8; k++)
+                {
+                    Vector3 corner = at * new Vector3((k & 1) == 0 ? -h.X : h.X, (k & 2) == 0 ? -h.Y : h.Y, (k & 4) == 0 ? -h.Z : h.Z);
+                    float d = corner.Dot(up);
+                    if (d < lowest + _grid.VoxelSize)
+                    {
+                        lowest = Mathf.Min(lowest, d);
+                        _corners.Add(corner);
+                    }
+                }
+            }
+        }
+        PhysicsDirectSpaceState3D space = GetWorld3D().DirectSpaceState;
+        _supportRay ??= new PhysicsRayQueryParameters3D { Exclude = new Godot.Collections.Array<Rid> { GetRid() } };
+        _supportRay.CollisionMask = CollisionMask;
+        int rays = 0;
+        foreach (Vector3 corner in _corners)
+        {
+            if (corner.Dot(up) > lowest + _grid.VoxelSize || rays++ >= MaxSupportRays)
+            {
+                continue;
+            }
+            _supportRay.From = corner + up * 0.15f;
+            _supportRay.To = corner - up * (SupportReach + 0.1f);
+            if (space.IntersectRay(_supportRay).Count > 0)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private const int MaxSupportRays = 12;
+    private readonly List<Vector3> _corners = new();
+    private PhysicsRayQueryParameters3D _supportRay;
+    private PhysicsTestMotionParameters3D _supportTest;
+    private Vector3? _unsupportedAt;
+
+    /// <summary>Woken as unsupported, it lay down again where it was: held by
+    /// something neither look sees. It stops looking until a blast or the
+    /// gravity gun moves it, rather than waking every few seconds.</summary>
+    private bool _propped;
+
+    /// <summary>
+    /// A body again: unfrozen, its stillness forgotten, and back on the
+    /// coarse boxes it flies with (a settled piece's fine ones are tested in
+    /// every step while it is awake).
+    /// </summary>
+    private void Wake()
+    {
+        IsSettled = false;
+        Freeze = false;
+        // Unfrozen, a body that slept before it froze still sleeps, and Jolt
+        // does not wake a sleeper when what it lay on goes: it hung in the air.
+        Sleeping = false;
+        _still = 0.0f;
+        _creeping = false;
+        _travelFor = 0.0f;
+        _travelFrom = GlobalPosition;
+        _refine = null;
+        _propped = false;
+        if (_refined && _part != null && _grid.SolidCount > 0)
+        {
+            _refined = false;
+            _part.Rebox(VoxelSplit.CollisionStepFor(_grid, _stats.MaxChunkBoxes));
+        }
     }
 
     /// <summary>
@@ -307,18 +468,19 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
     private System.Threading.Tasks.Task<int> _refine;
 
     /// <summary>
-    /// Once it has lain still a moment and was not taken into a heap, its
-    /// collision is re-boxed as finely as <see cref="VoxelDestructionStats.RestingChunkBoxes"/>
-    /// allows. It flew with boxes up to 8 voxels across (4 m on a building),
-    /// each the size of whatever voxels were left in it, so a hole shot through
-    /// a fallen piece still stopped you. The step is worked out on a worker
+    /// Once it has settled (it was not taken into a heap), its collision is
+    /// re-boxed as finely as <see cref="VoxelDestructionStats.RestingChunkBoxes"/>
+    /// allows, and <see cref="Wake"/> puts the coarse boxes back. It flew with
+    /// boxes up to 8 voxels across (4 m on a building), each the size of
+    /// whatever voxels were left in it, so a hole shot through a fallen piece
+    /// still stopped you. The step is worked out on a worker
     /// from a copy of its cells; the re-boxing goes to the workers like any.
     /// </summary>
     private void Refine()
     {
         if (_refine != null && _refine.IsCompleted)
         {
-            if (_refine.IsCompletedSuccessfully && _part != null && _refine.Result < _part.CollisionStep)
+            if (_refine.IsCompletedSuccessfully && IsSettled && _part != null && _refine.Result < _part.CollisionStep)
             {
                 if (PerfLog.Recording)
                 {
@@ -328,8 +490,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             }
             _refine = null;
         }
-        if (_refined || _part == null || IsHeld || _part.CollisionStep <= 1
-            || _still < _stats.BakeAfterSeconds + 0.5f || _grid.SolidCount == 0)
+        if (_refined || _part == null || !IsSettled || _part.CollisionStep <= 1 || _grid.SolidCount == 0)
         {
             return;
         }
@@ -782,6 +943,11 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         _hingeDust = 0.0f;
         _refined = false;
         _refine = null;
+        _travelFor = 0.0f;
+        _creeping = false;
+        _support = 0.0f;
+        _unsupportedAt = null;
+        _propped = false;
         BakeRefused = false;
         IsSettled = false;
         IsHeld = false;
@@ -806,9 +972,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         if (IsSettled && info.IsSplash)
         {
             // A blast wakes rubble up.
-            IsSettled = false;
-            Freeze = false;
-            _still = 0.0f;
+            Wake();
         }
         VoxelDamage.Apply(info, _parts, _stats, this);
     }

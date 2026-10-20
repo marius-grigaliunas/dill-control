@@ -717,11 +717,15 @@ public partial class VoxelDebris : Node3D
     }
 
     /// <summary>A settled piece, turned into part of the static heap where
-    /// it lies: the same voxels, no body. False if there is no ground.</summary>
+    /// it lies: the same voxels, no body. False if there is no ground, or it
+    /// is bigger than <see cref="VoxelDestructionStats.BakeMaxVoxels"/>: a
+    /// heap is made the size of the first piece baked into it, and a tower's
+    /// segment baked at the cap made one of 25 million cells, which every
+    /// rocket into it then copied and flooded (500 MB, 100 ms frames).</summary>
     private bool Bake(VoxelChunk chunk)
     {
         VoxelGrid grid = chunk.Grid;
-        if (grid == null || grid.SolidCount == 0 || !RestsOnGround(chunk))
+        if (grid == null || grid.SolidCount == 0 || grid.SolidCount > Stats.BakeMaxVoxels || !RestsOnGround(chunk))
         {
             return false;
         }
@@ -981,10 +985,10 @@ public partial class VoxelDebris : Node3D
     public bool HasRoom(int pieces) => _chunks.Count + _pending.Count + pieces <= Stats.MaxChunks;
 
     /// <summary>
-    /// The piece to give up for the cap: the smallest settled rubble, else the
-    /// smallest asleep, else the smallest of all. Never simply the oldest: a
-    /// collapse makes its pieces bottom first, and the oldest was the base of
-    /// a falling tower, which vanished in the air.
+    /// The piece to give up for the cap: the smallest settled rubble that can
+    /// join a heap, else the smallest asleep, else the smallest of all. Never
+    /// simply the oldest: a collapse makes its pieces bottom first, and the
+    /// oldest was the base of a falling tower, which vanished in the air.
     /// </summary>
     private VoxelChunk Expendable()
     {
@@ -996,11 +1000,14 @@ public partial class VoxelDebris : Node3D
                 continue;
             }
             int n = chunk.VoxelCount;
-            if (chunk.IsSettled && (settled == null || n < settled.VoxelCount))
+            if (chunk.IsSettled && !chunk.BakeRefused && n <= Stats.BakeMaxVoxels
+                && (settled == null || n < settled.VoxelCount))
             {
                 settled = chunk;
             }
-            else if (chunk.Sleeping && (sleeping == null || n < sleeping.VoxelCount))
+            // Settled and too big for a heap, it costs the physics nothing
+            // frozen: it stays, unless there is nothing else to give up.
+            else if (!chunk.IsSettled && chunk.Sleeping && (sleeping == null || n < sleeping.VoxelCount))
             {
                 sleeping = chunk;
             }
@@ -1010,6 +1017,51 @@ public partial class VoxelDebris : Node3D
             }
         }
         return settled ?? sleeping ?? any;
+    }
+
+    private readonly Dictionary<Rid, Rid> _benchOut = new();
+
+    /// <summary>Bench A/B: takes every heap tile (<paramref name="what"/> =
+    /// "rubble") or every loose piece ("chunks") out of the physics space, or
+    /// puts back what was taken ("back"). What the step costs without them.</summary>
+    public void BenchPhysicsOut(string what)
+    {
+        if (what == "back")
+        {
+            foreach ((Rid body, Rid space) in _benchOut)
+            {
+                PhysicsServer3D.BodySetSpace(body, space);
+            }
+            _benchOut.Clear();
+            return;
+        }
+        var bodies = new List<Rid>();
+        if (what == "rubble")
+        {
+            var rids = new Godot.Collections.Array<Rid>();
+            foreach (RubblePile pile in _piles)
+            {
+                pile.AddBodies(rids);
+            }
+            bodies.AddRange(rids);
+        }
+        else
+        {
+            foreach (VoxelChunk chunk in _chunks)
+            {
+                bodies.Add(chunk.GetRid());
+            }
+        }
+        foreach (Rid body in bodies)
+        {
+            Rid space = PhysicsServer3D.BodyGetSpace(body);
+            if (space.IsValid)
+            {
+                _benchOut[body] = space;
+                PhysicsServer3D.BodySetSpace(body, default);
+            }
+        }
+        GD.Print($"[bench]   {bodies.Count} bodies out of the physics space");
     }
 
     /// <summary>One line of state, for <c>bench.gd</c>.</summary>
@@ -1028,7 +1080,7 @@ public partial class VoxelDebris : Node3D
             }
         }
         string big = biggest == null ? "" :
-            $" biggest={biggest.VoxelCount} bottom y={LowestY(biggest):F1} tilt={Mathf.RadToDeg(biggest.GlobalBasis.Y.AngleTo(Vector3.Up)):F1}° speed={biggest.LinearVelocity.Length():F1} hinged={biggest.IsHinged}";
+            $" biggest={biggest.VoxelCount} bottom y={LowestY(biggest):F1} tilt={Mathf.RadToDeg(biggest.GlobalBasis.Y.AngleTo(Vector3.Up)):F1}° speed={biggest.LinearVelocity.Length():F1} hinged={biggest.IsHinged} still={biggest.StillFor:F1}s settled={biggest.IsSettled} refused={biggest.BakeRefused}";
         GD.Print($"[bench]   debris chunks={_chunks.Count} sleeping={sleeping} settled={settled} queued={_pending.Count} held={held} heaps={_piles.Count}{big}");
     }
 

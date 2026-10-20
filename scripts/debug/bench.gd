@@ -51,7 +51,7 @@ const PULSE_SECONDS := 0.15
 #   "!set:Node:prop=value"   set a property, value parsed as a Godot literal. The
 #                            property may be an indexed path into a resource,
 #                            "!set:Horde:Stats:AgentCount=25000"
-#   "!call:Node:method"      call a method with no arguments; "Node/Child"
+#   "!call:Node:method"      call a method with no arguments (":arg" after it: one string); "Node/Child"
 #                            for a child of that node
 #   "@goto:x, y, z"          move the level's player there
 #   "@aim:Node:height"       turn the player to look at that node, raised by
@@ -363,6 +363,34 @@ static func _cut_timeline(method: String, shot: String, quiet: bool, seconds := 
 	timeline.append(["holding shot", ["#%s_grab" % shot, status], ["fire"], 0.3])
 	timeline.append(["throw", [], [], 1.2])
 	timeline.append(["thrown shot", ["#%s_thrown" % shot, status], [], 0.3])
+	return timeline
+
+# Total destruction: eight towers cut through 5 s apart, falling into one
+# another, then a minute of watching the rubble. Recorded quietly from the
+# first cut; the probe writes a census of the loose pieces every 5 s. Does
+# the debris ever go quiet, and what does the physics carry until it does?
+static func _downtown_timeline(seconds: float) -> Array:
+	var status := "!call:VoxelDebris:PrintBenchStatus"
+	var timeline := [
+		["hold the horde off", ["!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
+			"@goto:-60, 0.2, -40"], [], 2.0],
+		["look", ["@aim:Tower11:40", "!call:PerfRecorder:Start", "!silent"], [], 1.0],
+	]
+	for tower in ["Tower11", "Tower12", "Tower21", "Tower13", "Tower22", "Tower14", "Tower23", "Tower31"]:
+		timeline.append(["cut %s" % tower, ["@aim:%s:30" % tower, "!call:%s/Voxels:BenchCutThrough" % tower], [], 5.0])
+	# And the rubble shot at, as a player does: it wakes what had settled.
+	timeline.append(["rockets", ["slot_3"], [], 0.5])
+	for tower in ["Tower11", "Tower21", "Tower12", "Tower22"]:
+		timeline.append(["rockets at %s" % tower, ["@aim:%s:2" % tower], ["~fire"], 6.0])
+	timeline.append(["rubble", ["@aim:Tower21:5"], [], seconds])
+	timeline.append(["stop", ["!call:PerfRecorder:Stop", "!loud", status], [], 0.3])
+	# What the step carries: the heaps' tiles, then the loose pieces, taken
+	# out of the physics space and put back, each between two baselines.
+	timeline.append(["all in", [], [], 5.0])
+	timeline.append(["rubble out", ["!call:VoxelDebris:BenchPhysicsOut:rubble"], [], 5.0])
+	timeline.append(["rubble back", ["!call:VoxelDebris:BenchPhysicsOut:back"], [], 5.0])
+	timeline.append(["chunks out", ["!call:VoxelDebris:BenchPhysicsOut:chunks"], [], 5.0])
+	timeline.append(["chunks back", ["!call:VoxelDebris:BenchPhysicsOut:back"], [], 5.0])
 	return timeline
 
 # A tall tree (voxel_destruction_tree.tres): rockets into the canopy, where
@@ -754,6 +782,7 @@ func _initialize() -> void:
 		"cutside": _timeline = _cut_timeline("BenchCutSide", "cutside", args.size() > 2 and args[2] == "quiet",
 			float(args[3]) if args.size() > 3 else 13.0)
 		"tree": _timeline = _tree_timeline(args.size() > 2 and args[2] == "quiet")
+		"downtown": _timeline = _downtown_timeline(float(args[2]) if args.size() > 2 and args[2].is_valid_float() else 60.0)
 		"vine": _timeline = _vine_timeline(args[2] if args.size() > 2 and args[2].begins_with("slot_") else "slot_1")
 		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
@@ -895,6 +924,8 @@ func _tap(action: String) -> void:
 			callee = callee.get_node_or_null(path[1])
 		if callee != null and call_parts.size() == 2:
 			callee.call(call_parts[1])
+		elif callee != null and call_parts.size() == 3:
+			callee.call(call_parts[1], call_parts[2])
 		else:
 			print("[bench] cannot ", action)
 		return

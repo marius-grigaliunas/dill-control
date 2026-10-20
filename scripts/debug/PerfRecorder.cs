@@ -57,6 +57,7 @@ public sealed partial class PerfRecorder : Node
     private readonly List<Func<double>> _columnSources = new();
     private readonly StringBuilder _row = new(1024);
     private readonly StringBuilder _events = new(64);
+    private ulong _lastPhysicsFrames;
 
     private StreamWriter _writer;
     private string _path;
@@ -136,6 +137,15 @@ public sealed partial class PerfRecorder : Node
         AddColumn("nodes", () => Performance.GetMonitor(Performance.Monitor.ObjectNodeCount));
         AddColumn("orphan_nodes", () => Performance.GetMonitor(Performance.Monitor.ObjectOrphanNodeCount));
         AddColumn("video_mb", () => Performance.GetMonitor(Performance.Monitor.RenderVideoMemUsed) / (1024.0 * 1024.0));
+        // Physics ticks this frame: a long frame runs several to catch up, and
+        // "physics step" is all of them together.
+        AddColumn("physics_ticks", () =>
+        {
+            ulong now = Engine.GetPhysicsFrames();
+            ulong ticks = now - _lastPhysicsFrames;
+            _lastPhysicsFrames = now;
+            return (double)ticks;
+        });
 
         _overlay = new CanvasLayer { Name = "RecordingIndicator", Layer = 120, Visible = false };
         _label = new Label

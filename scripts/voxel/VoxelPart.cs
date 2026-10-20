@@ -1534,11 +1534,13 @@ public partial class VoxelPart : Node3D, IStrainHost
         });
         long boxed = Stopwatch.GetTimestamp();
         int total = 0;
+        OwnerOutOfSpace();
         for (int k = 0; k < _now.Count; k++)
         {
             SetBoxes(_now[k], boxes[k]);
             total += boxes[k].Count;
         }
+        OwnerBackInSpace();
         long end = Stopwatch.GetTimestamp();
         if (PerfLog.Recording && (end - start) * 1000.0 / Stopwatch.Frequency > 3.0)
         {
@@ -1651,6 +1653,7 @@ public partial class VoxelPart : Node3D, IStrainHost
         }
 
         // One shape owner per box: an owner's shapes share its transform.
+        OwnerOutOfSpace();
         foreach (uint owner in _shapeOwners[s])
         {
             CollisionOwner.RemoveShapeOwner(owner);
@@ -1663,6 +1666,51 @@ public partial class VoxelPart : Node3D, IStrainHost
             CollisionOwner.ShapeOwnerAddShape(owner, Box(size));
             CollisionOwner.ShapeOwnerSetTransform(owner, toOwner * new Transform3D(Basis.Identity, centre));
             _shapeOwners[s].Add(owner);
+        }
+        OwnerBackInSpace();
+    }
+
+    private int _outOfSpace;
+    private Rid _ownerSpace;
+    private Vector3 _ownerVelocity;
+
+    /// <summary>
+    /// The owning body out of the physics space while its boxes change, so
+    /// Jolt builds its shape once when it goes back instead of at every box
+    /// added or removed: re-boxing 150 boxes on a piece of 600 cost 60-90 ms
+    /// a frame. Nested calls take it out once.
+    /// </summary>
+    private void OwnerOutOfSpace()
+    {
+        if (CollisionOwner == null || _outOfSpace++ > 0)
+        {
+            return;
+        }
+        Rid rid = CollisionOwner.GetRid();
+        _ownerSpace = PhysicsServer3D.BodyGetSpace(rid);
+        if (_ownerSpace.IsValid)
+        {
+            _ownerVelocity = PhysicsServer3D.BodyGetState(rid, PhysicsServer3D.BodyState.LinearVelocity).AsVector3();
+            PhysicsServer3D.BodySetSpace(rid, default);
+        }
+    }
+
+    private void OwnerBackInSpace()
+    {
+        if (CollisionOwner == null || --_outOfSpace > 0 || !_ownerSpace.IsValid)
+        {
+            return;
+        }
+        Rid rid = CollisionOwner.GetRid();
+        PhysicsServer3D.BodySetSpace(rid, _ownerSpace);
+        _ownerSpace = default;
+        if (PerfLog.Recording)
+        {
+            Vector3 now = PhysicsServer3D.BodyGetState(rid, PhysicsServer3D.BodyState.LinearVelocity).AsVector3();
+            if (now.DistanceTo(_ownerVelocity) > 0.01f)
+            {
+                PerfLog.Event($"respace-lost-velocity {_ownerVelocity.Length():F1}->{now.Length():F1}");
+            }
         }
     }
 

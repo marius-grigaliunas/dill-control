@@ -11,7 +11,12 @@ namespace DillControl.Debug;
 /// <c>--</c> on the command line (any order, any bench mode):
 /// <c>sink</c> follows every loose piece's collision boxes and prints the
 /// frames before one goes more than <see cref="Depth"/> under the ground;
-/// <c>nodust</c> hides the dust (collision boxes are DustLab's <c>boxes</c>).
+/// <c>nodust</c> hides the dust (collision boxes are DustLab's <c>boxes</c>);
+/// <c>noprobe</c> switches it off for measuring. While U records it also
+/// writes a census of the loose pieces every 5 s (awake, asleep, frozen, their
+/// boxes) and of every body in the physics world every 30 s. It runs last in
+/// the physics tick, so its time is billed to "physics step [engine]": about
+/// 4 ms a tick with a hundred pieces, a census frame 30-45 ms.
 /// Not part of the game: <see cref="PerfDriver"/> adds it only when asked.
 /// </summary>
 public partial class SinkProbe : Node
@@ -20,7 +25,7 @@ public partial class SinkProbe : Node
     private const float Depth = 1.0f;
     private const int History = 40;
 
-    private bool _sink, _noDust;
+    private bool _sink, _noDust, _off;
     private float _groundY;
     private int _frame;
     private readonly Dictionary<ulong, Queue<string>> _history = new();
@@ -54,6 +59,9 @@ public partial class SinkProbe : Node
         var args = new HashSet<string>(OS.GetCmdlineUserArgs());
         _sink = args.Contains("sink");
         _noDust = args.Contains("nodust");
+        // Measuring: the probe runs last in the physics tick and is billed to
+        // "physics step [engine]" (a census walks every piece, 1-45 ms).
+        _off = args.Contains("noprobe");
         VoxelPart.WatchDrops = args.Contains("drops");
         if (_sink)
         {
@@ -74,7 +82,7 @@ public partial class SinkProbe : Node
     public override void _PhysicsProcess(double delta)
     {
         _frame++;
-        bool watching = _sink || PerfLog.Recording;
+        bool watching = !_off && (_sink || PerfLog.Recording);
         if (!watching || VoxelDebris.Current == null)
         {
             return;
@@ -82,6 +90,10 @@ public partial class SinkProbe : Node
         if (_frame % 60 == 0)
         {
             WatchStrays();
+        }
+        if (_frame % 300 == 0)
+        {
+            Census();
         }
         foreach (Node child in VoxelDebris.Current.GetChildren())
         {
@@ -240,6 +252,138 @@ public partial class SinkProbe : Node
             }
             Report(report.ToString());
         }
+    }
+
+    /// <summary>
+    /// Every loose piece and what the physics carries of it: whether it is
+    /// awake, asleep or frozen, its boxes and shape owners, how fast it moves
+    /// and spins, and where. A piece awake for long is in the solver every step
+    /// with every box it has, so the totals by state are the step's load.
+    /// </summary>
+    private void Census()
+    {
+        var awake = new List<VoxelChunk>();
+        int asleep = 0, frozen = 0, asleepBoxes = 0, frozenBoxes = 0, awakeBoxes = 0, owners = 0;
+        foreach (Node child in VoxelDebris.Current.GetChildren())
+        {
+            if (child is not VoxelChunk chunk || chunk.IsRetired)
+            {
+                continue;
+            }
+            int boxes = EnabledBoxes(chunk);
+            owners += chunk.GetShapeOwners().Length;
+            if (chunk.Freeze)
+            {
+                frozen++;
+                frozenBoxes += boxes;
+            }
+            else if (chunk.Sleeping)
+            {
+                asleep++;
+                asleepBoxes += boxes;
+            }
+            else
+            {
+                awake.Add(chunk);
+                awakeBoxes += boxes;
+            }
+        }
+        var report = new StringBuilder();
+        report.AppendLine($"[sink] CENSUS f{_frame}: awake {awake.Count} ({awakeBoxes} boxes)  asleep {asleep} ({asleepBoxes})  " +
+            $"frozen {frozen} ({frozenBoxes})  owners {owners}");
+        awake.Sort((a, b) => _awakeFor.GetValueOrDefault(b.GetInstanceId()).CompareTo(_awakeFor.GetValueOrDefault(a.GetInstanceId())));
+        var seen = new HashSet<ulong>();
+        foreach (VoxelChunk chunk in awake)
+        {
+            ulong id = chunk.GetInstanceId();
+            seen.Add(id);
+            int since = _awakeFor.GetValueOrDefault(id) + 1;
+            _awakeFor[id] = since;
+            Vector3 p = chunk.GlobalPosition;
+            string moved = _censusAt.TryGetValue(id, out Vector3 was) ? $"{p.DistanceTo(was):F1}m" : "-";
+            _censusAt[id] = p;
+            report.AppendLine($"  {chunk.Name} {chunk.VoxelCount}v boxes={EnabledBoxes(chunk)} owners={chunk.GetShapeOwners().Length} " +
+                $"awake {since * 5}s moved {moved} on {Under(chunk)} |v|={chunk.LinearVelocity.Length():F2} spin={chunk.AngularVelocity.Length():F2} " +
+                $"still={chunk.StillFor:F1} hinged={chunk.IsHinged} held={chunk.IsHeld} refused={chunk.BakeRefused} " +
+                $"bottom={chunk.LowestBox(Vector3.Up):F2} at ({p.X:F0},{p.Y:F1},{p.Z:F0})");
+        }
+        foreach (ulong id in new List<ulong>(_awakeFor.Keys))
+        {
+            if (!seen.Contains(id))
+            {
+                _awakeFor.Remove(id);
+            }
+        }
+        // Everything else in the physics world, by kind: what a step carries
+        // when no piece is moving.
+        // Walks the whole tree (30-45 ms at 30 000 nodes): every sixth census.
+        var kinds = new SortedDictionary<string, (int bodies, int shapes, int inSpace)>();
+        if (_frame % 1800 == 0)
+        {
+            CountBodies(GetTree().Root, kinds);
+        }
+        foreach ((string kind, (int bodies, int shapes, int inSpace) n) in kinds)
+        {
+            report.AppendLine($"  world {kind}: {n.bodies} bodies ({n.inSpace} in space), {n.shapes} shapes");
+        }
+        Report(report.ToString());
+    }
+
+    private static void CountBodies(Node node, SortedDictionary<string, (int, int, int)> kinds)
+    {
+        if (node is CollisionObject3D body)
+        {
+            Rid rid = body.GetRid();
+            bool area = body is Area3D;
+            int shapes = area ? PhysicsServer3D.AreaGetShapeCount(rid) : PhysicsServer3D.BodyGetShapeCount(rid);
+            bool inSpace = (area ? PhysicsServer3D.AreaGetSpace(rid) : PhysicsServer3D.BodyGetSpace(rid)).IsValid;
+            string mode = body is RigidBody3D rb ? (rb.Freeze ? " frozen" : rb.Sleeping ? " asleep" : " awake") : "";
+            string kind = $"{body.GetType().Name}{mode} under {node.GetParent()?.GetType().Name}";
+            (int b, int s, int i) = kinds.GetValueOrDefault(kind);
+            kinds[kind] = (b + 1, s + shapes, i + (inSpace ? 1 : 0));
+        }
+        foreach (Node child in node.GetChildren())
+        {
+            CountBodies(child, kinds);
+        }
+    }
+
+    /// <summary>Census rounds a piece has been awake for in a row.</summary>
+    private readonly Dictionary<ulong, int> _awakeFor = new();
+    private readonly Dictionary<ulong, Vector3> _censusAt = new();
+
+    /// <summary>What is straight under a piece's lowest box, by kind.</summary>
+    private static string Under(VoxelChunk chunk)
+    {
+        float lowest = chunk.LowestBox(Vector3.Up);
+        if (float.IsNaN(lowest))
+        {
+            return "-";
+        }
+        Vector3 from = chunk.GlobalPosition;
+        from.Y = lowest + 0.3f;
+        using var query = PhysicsRayQueryParameters3D.Create(from, from + Vector3.Down * 2.0f, uint.MaxValue,
+            new Godot.Collections.Array<Rid> { chunk.GetRid() });
+        Godot.Collections.Dictionary hit = chunk.GetWorld3D().DirectSpaceState.IntersectRay(query);
+        if (hit.Count == 0)
+        {
+            return "nothing";
+        }
+        float gap = from.Y - 0.3f - hit["position"].AsVector3().Y;
+        return $"{hit["collider"].AsGodotObject()?.GetType().Name}({gap:F2})";
+    }
+
+    private static int EnabledBoxes(VoxelChunk chunk)
+    {
+        int boxes = 0;
+        foreach (uint owner in chunk.GetShapeOwners())
+        {
+            if (!chunk.IsShapeOwnerDisabled(owner))
+            {
+                boxes += chunk.ShapeOwnerGetShapeCount(owner);
+            }
+        }
+        return boxes;
     }
 
     private readonly Dictionary<ulong, int> _strays = new();

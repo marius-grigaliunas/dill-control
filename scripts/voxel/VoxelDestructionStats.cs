@@ -326,10 +326,25 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "0,5,0.05,suffix:m")]
     public float SunkDepth { get; set; } = 0.6f;
 
-    /// <summary>A piece asleep this long stops being a body and stays as
-    /// scenery: no physics, still breakable.</summary>
-    [Export(PropertyHint.Range, "1,600,1,suffix:s")]
-    public float SettleSeconds { get; set; } = 20.0f;
+    /// <summary>A piece still this long stops being a body and stays as
+    /// scenery: no physics, still breakable, and it falls again when what it
+    /// rests on goes (<see cref="SupportCheckSeconds"/>). Awake, a tower's
+    /// segment carries its 200-odd boxes into every physics step: at 20 s,
+    /// eight towers' worth crept on the rubble at a few centimetres a second,
+    /// and the pieces awake carried 1 400 boxes; at 3 s, 700.</summary>
+    [Export(PropertyHint.Range, "0.5,600,0.5,suffix:s")]
+    public float SettleSeconds { get; set; } = 3.0f;
+
+    /// <summary>A piece that has gone less than this far in a second counts
+    /// as still, however fast it jitters or creeps: a tower segment grinding
+    /// on rubble at 0.1-1 m/s went nowhere for 30 s and never slept.</summary>
+    [Export(PropertyHint.Range, "0,2,0.05,suffix:m")]
+    public float StillTravel { get; set; } = 0.3f;
+
+    /// <summary>How often a settled piece checks it still has something under
+    /// it, and wakes and falls if not. Staggered across pieces.</summary>
+    [Export(PropertyHint.Range, "0.1,5,0.1,suffix:s")]
+    public float SupportCheckSeconds { get; set; } = 0.5f;
 
     /// <summary>Fastest a loose piece moves other than falling: up or
     /// sideways. Blasts stacking on one piece threw it at 80 m/s, 600 m into
@@ -338,10 +353,12 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "0,200,1,suffix:m/s")]
     public float MaxThrowSpeed { get; set; } = 45.0f;
 
-    /// <summary>Most boxes in a resting piece's collision. In flight a piece is
-    /// boxed coarsely (<see cref="MaxChunkBoxes"/>); once it lies still it is
+    /// <summary>Most boxes in a settled piece's collision. In flight a piece is
+    /// boxed coarsely (<see cref="MaxChunkBoxes"/>); once it has settled it is
     /// re-boxed as finely as this allows, or a box spans every hole shot into
-    /// it and stops you where nothing is drawn.</summary>
+    /// it and stops you where nothing is drawn. Woken, it goes back to its
+    /// flight boxes: a frozen piece's boxes cost the step nothing, an awake
+    /// one's are tested every tick.</summary>
     [Export(PropertyHint.Range, "8,2000,1")]
     public int RestingChunkBoxes { get; set; } = 256;
 

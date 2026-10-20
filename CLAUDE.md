@@ -224,6 +224,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn lasercut # the bike's beam swept through Tower11
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn tree quiet # rockets into a tree's canopy, then its trunk cut
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet 40  # recorded for 40 s: does the debris drain?
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn downtown 30 noprobe  # eight towers cut, rockets into the rubble, 30 s after
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn gpuab     # what each part of the view costs the GPU
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn siege 25000  # crowd vs player and allies
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn horde 25000
@@ -257,7 +258,11 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
   corner while it runs) and writes `perf_<time>_summary.txt` beside the CSV:
   the machine and its power state, the worst frames each with its sections,
   counts and events, what the spikes were spent on, and how the counts grew.
-  The summary is the file to read first or hand on. Game code reports through
+  The summary is the file to read first or hand on. Beside it,
+  `perf_<time>_probe.txt` is SinkProbe's: pieces sunk, hanging or misfit, and
+  a census of the loose pieces every 5 s. The probe is billed to "physics step
+  [engine]" (about 4 ms a tick with a hundred pieces): the word `noprobe`
+  measures without it. Game code reports through
   `PerfLog`: `PerfLog.Counter` once at load for a column, `PerfLog.Event`
   inside `if (PerfLog.Recording)` for the events column.
   `cut quiet` / `cutside quiet` record the run that way, with no screenshots
