@@ -797,8 +797,9 @@ public partial class VoxelDebris : Node3D
             return false;
         }
         GodotObject collider = hit["collider"].AsGodotObject();
-        // The ground and heaps are static bodies; so is a building's section.
-        return collider is StaticBody3D and not VoxelCollider;
+        // The ground and heaps are static bodies; so is a building's section,
+        // and so is anything that moves on its own (AnimatableBody3D).
+        return collider is StaticBody3D and not (VoxelCollider or AnimatableBody3D);
     }
 
     private readonly Godot.Collections.Array<Rid> _ignore = new();
@@ -922,7 +923,10 @@ public partial class VoxelDebris : Node3D
     }
 
     /// <summary>The ground under a point: the first World hit straight down
-    /// that is not a building, a loose piece or a heap.</summary>
+    /// that is a static body and not a building or a heap. Anything that
+    /// moves is passed through: the hoverbike is a World-layer body, and a
+    /// heap started under it had its base in the air, where every deposit
+    /// round it after made a ring of rubble hanging over the ground.</summary>
     private bool Ground(Vector3 from, out Vector3 ground)
     {
         ground = default;
@@ -943,7 +947,7 @@ public partial class VoxelDebris : Node3D
                 return false;
             }
             GodotObject collider = hit["collider"].AsGodotObject();
-            if (collider is VoxelCollider or VoxelChunk || (collider is Node node && node.GetParent() is RubblePile))
+            if (collider is not StaticBody3D || collider is AnimatableBody3D or VoxelCollider or RubbleCollider)
             {
                 exclude.Add(hit["rid"].AsRid());
                 continue;

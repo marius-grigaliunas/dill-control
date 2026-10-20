@@ -431,12 +431,16 @@ static func _vine_timeline(slot: String) -> Array:
 	var timeline := [
 		["hold the horde off", ["!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
 			"@goto:-179, 0.2, 40"], [], 2.0],
-		["look", ["@aim:%s:15" % vine, slot, "#vine_before"], [], 2.0],
+		["look", ["@aim:%s:15" % vine, slot, "#vine_before", "!call:PerfRecorder:Start"], [], 2.0],
 	]
 	for height in [12, 20, 28]:
 		timeline.append(["burst at %d m" % height, ["@aim:%s:%d" % [vine, height]], ["~fire"], 2.5])
-		timeline.append(["after %d m" % height, [status], [], 4.0])
+		timeline.append(["falling %d m" % height, ["@aim:%s:1" % vine], [], 0.7])
+		timeline.append(["falling %d m shot" % height, ["#vine_%d_falling" % height], [], 0.3])
+		timeline.append(["after %d m" % height, [status, "@aim:%s:1" % vine], [], 3.5])
+		timeline.append(["after %d m shot" % height, ["#vine_%d_after" % height], [], 0.3])
 	timeline.append(["settled", ["@aim:%s:15" % vine, "#vine_after", status], [], 1.0])
+	timeline.append(["stop", ["!call:PerfRecorder:Stop"], [], 0.3])
 	return timeline
 
 # Airstrikes called on a tower as fast as the designator will take them, every

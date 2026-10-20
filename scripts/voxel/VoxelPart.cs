@@ -1101,6 +1101,19 @@ public partial class VoxelPart : Node3D, IStrainHost
     private void Apply(SplitPlan plan, Vector3 push)
     {
         WatchDrop(plan);
+        if (plan.BreakingUp && plan.Pieces.Count == 1 && plan.Dust.Count == 0 && !plan.Collapsed && CollisionOwner != null)
+        {
+            // A loose piece that would break into itself: swapped for a copy
+            // of itself in a puff of cover dust, on every landing. A long
+            // vine's slam counted at 3 m/s, and it popped from landing to
+            // landing. It stays the body it is.
+            if (PerfLog.Recording)
+            {
+                PerfLog.Event($"break-up {OwnerName()} into itself: kept");
+            }
+            Unbroken?.Invoke();
+            return;
+        }
         using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionRelease);
         if (plan.BurstSize > 0.0f && VoxelDebris.Current != null)
         {
@@ -1550,6 +1563,10 @@ public partial class VoxelPart : Node3D, IStrainHost
     }
 
     private readonly List<int> _now = new();
+
+    /// <summary>A break-up worked out to one piece, the whole of it, and was
+    /// not carried out: the loose piece that asked may break again.</summary>
+    public event Action Unbroken;
 
     private (Vector3I min, Vector3I max) SectionBounds(int s)
     {

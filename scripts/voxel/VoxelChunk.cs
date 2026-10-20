@@ -174,6 +174,11 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             _graph = null;
         }
         _part.Emptied += _ => Callable.From(Retire).CallDeferred();
+        _part.Unbroken += () =>
+        {
+            _breaking = false;
+            _part.Velocity = () => LinearVelocity;
+        };
         AddChild(_part);
         _parts.Add(_part);
     }
