@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://art/voxels/prp_jar_block.vox" id="1_model"]
+[ext_resource type="Script" path="res://scripts/voxel/VoxelBody.cs" id="2_voxels"]
+[ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_mech.tres" id="3_stats"]
+
+[node name="PrpJarBlock" type="Node3D"]
+
+[node name="Model" parent="." instance=ExtResource("1_model")]
+
+[node name="Voxels" type="Node" parent="." node_paths=PackedStringArray("Model")]
+script = ExtResource("2_voxels")
+Model = NodePath("../Model")
+Stats = ExtResource("3_stats")
+Static = true

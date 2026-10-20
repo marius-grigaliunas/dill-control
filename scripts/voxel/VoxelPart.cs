@@ -175,6 +175,137 @@ public partial class VoxelPart : Node3D, IStrainHost
     /// their shadows cannot be seen at this scale, and each shadow is another
     /// draw of the piece.</summary>
     public bool CastShadows { get; set; } = true;
+
+    /// <summary>
+    /// What its meshes are drawn with instead of <see cref="Material"/>: a
+    /// plant's own copy, naming the row of the flex texture it bends by
+    /// (voxel_toon), or null. Set by a plant's <c>PlantFlex</c>; a piece that
+    /// breaks off takes its meshes with it, and they stop bending (0032).
+    ///
+    /// DECISION -- a material per plant, not an instance uniform. Every mesh
+    /// drawn with an instance-uniform shader takes a block of a fixed global
+    /// buffer, used or not; a forest of 200 vines (9,000 section meshes) and
+    /// the buildings overflowed it.
+    /// </summary>
+    public Material FlexMaterial
+    {
+        get => _flexMaterial;
+        set
+        {
+            _flexMaterial = value;
+            if (_meshes == null)
+            {
+                return;
+            }
+            foreach (MeshInstance3D mesh in _meshes)
+            {
+                if (mesh != null && IsInstanceValid(mesh))
+                {
+                    mesh.MaterialOverride = value;
+                }
+            }
+        }
+    }
+
+    private Material _flexMaterial;
+
+    /// <summary>
+    /// Before it is added: builds only its collision, no meshes, while what
+    /// owns it draws the model whole (<see cref="VoxelBody.WholeUntilChanged"/>).
+    /// The first change of any kind builds every section, on the workers;
+    /// <see cref="Drawn"/> says when they are all up.
+    /// </summary>
+    public bool DeferMeshes { get; set; }
+
+    /// <summary>Raised once, when a part that deferred its meshes has them all.</summary>
+    public event Action Drawn;
+
+    // Sections never meshed yet, and how many.
+    private bool[] _unbuilt;
+    private int _unbuiltCount;
+    private bool _woken;
+
+    /// <summary>True while it draws nothing of its own (the model is drawn whole).</summary>
+    public bool Dormant => _unbuiltCount > 0 && !_woken;
+
+    /// <summary>Its first change: every section it never meshed goes to the workers.</summary>
+    private void Wake()
+    {
+        if (_unbuilt == null || _woken)
+        {
+            return;
+        }
+        _woken = true;
+        for (int s = 0; s < _unbuilt.Length; s++)
+        {
+            if (_unbuilt[s])
+            {
+                _meshDirty[s] = true;
+            }
+        }
+        _anyDirty = true;
+    }
+
+    private void Built(int s)
+    {
+        if (_unbuilt == null || !_unbuilt[s])
+        {
+            return;
+        }
+        _unbuilt[s] = false;
+        if (--_unbuiltCount == 0)
+        {
+            _unbuilt = null;
+            Drawn?.Invoke();
+        }
+    }
+
+    /// <summary>Set by a plant that bends: what breaks off starts from its drawn pose.</summary>
+    public IVoxelBend Bend { get; set; }
+
+    /// <summary>
+    /// Moves each section's collision by <paramref name="offsetAt"/> (world,
+    /// asked at the section's middle as built). A section within
+    /// <paramref name="nearRadius"/> of <paramref name="near"/> follows every
+    /// call and is given that speed, so what stands on it rides with it; any
+    /// other moves only once it is <paramref name="threshold"/> behind, and
+    /// still. Sections shear, they do not turn: within a section the drawn
+    /// shape and its boxes part by the bend across it.
+    /// </summary>
+    public void BendSections(Func<Vector3, Vector3> offsetAt, float dt, Vector3 near, float nearRadius, float threshold)
+    {
+        if (_sectionBodies == null)
+        {
+            return;
+        }
+        Transform3D frame = GlobalTransform;
+        Basis toLocal = frame.Basis.Inverse();
+        for (int s = 0; s < _sectionBodies.Length; s++)
+        {
+            if (_sectionBodies[s] is not StaticBody3D body)
+            {
+                continue;
+            }
+            (Vector3I min, Vector3I max) = SectionBounds(s);
+            Vector3 middle = VoxSpace.ToGodot((new Vector3(min.X + max.X, min.Y + max.Y, min.Z + max.Z) * 0.5f) - Grid.Origin)
+                * Grid.VoxelSize;
+            Vector3 built = frame * middle;
+            bool close = built.DistanceSquaredTo(near) < nearRadius * nearRadius;
+            Vector3 offset = toLocal * offsetAt(built);
+            Vector3 was = body.Position;
+            float step = close ? 0.005f : threshold;
+            if ((offset - was).LengthSquared() < step * step)
+            {
+                if (body.ConstantLinearVelocity != Vector3.Zero)
+                {
+                    body.ConstantLinearVelocity = Vector3.Zero;
+                }
+                continue;
+            }
+            body.Position = offset;
+            body.ConstantLinearVelocity = close && dt > 0.0f ? frame.Basis * ((offset - was) / dt) : Vector3.Zero;
+        }
+    }
     private bool _anyDirty;
     private float _integrityTimer = -1.0f;
     private bool _emptied;
@@ -310,6 +441,10 @@ public partial class VoxelPart : Node3D, IStrainHost
         _meshDirty = new bool[sections];
         _version = new int[sections];
         _inFlight = new bool[sections];
+        if (DeferMeshes && BuildAtOnce && _build == null && _adopt == null && Grid.SolidCount > 0)
+        {
+            _unbuilt = new bool[sections];
+        }
         for (int s = 0; s < sections; s++)
         {
             _shapeOwners[s] = new List<uint>();
@@ -326,6 +461,7 @@ public partial class VoxelPart : Node3D, IStrainHost
                 instance.GetParent()?.RemoveChild(instance);
                 AddChild(instance);
                 instance.Transform = new Transform3D(Basis.Identity, -_adoptOffset);
+                instance.MaterialOverride = _flexMaterial;
                 _meshes[s] = instance;
             }
 
@@ -344,6 +480,13 @@ public partial class VoxelPart : Node3D, IStrainHost
             else if (adopted)
             {
                 RebuildCollision(s);
+            }
+            else if (_unbuilt != null)
+            {
+                // Drawn whole by what owns it until something changes.
+                RebuildCollision(s);
+                _unbuilt[s] = true;
+                _unbuiltCount++;
             }
             else if (BuildAtOnce)
             {
@@ -1100,6 +1243,7 @@ public partial class VoxelPart : Node3D, IStrainHost
     /// </summary>
     private void Apply(SplitPlan plan, Vector3 push)
     {
+        Wake();
         WatchDrop(plan);
         if (plan.BreakingUp && plan.Pieces.Count == 1 && plan.Dust.Count == 0 && !plan.Collapsed && CollisionOwner != null)
         {
@@ -1221,9 +1365,30 @@ public partial class VoxelPart : Node3D, IStrainHost
             {
                 velocity += w.Cross(at.Origin - pivot);
             }
+            float damp = -1.0f;
+            VoxelHinge? hung = piece.Hinge ? hinge : null;
+            if (Bend != null && piece.Grid.SolidBounds(out Aabb bounds))
+            {
+                // Drawn bent: it leaves from where it was seen, moving as it was.
+                Bend.Release(bounds, ref at, ref velocity, ref turning, out damp, out Vector3 hingePivot,
+                    out Vector3 hingeAxis);
+                if (hingeAxis != Vector3.Zero)
+                {
+                    // Hung on what is left just under the edge it goes over.
+                    Vector3 under = ToLocal(Bend.ToBuilt(hingePivot) - (Up() * Grid.VoxelSize));
+                    Vector3 vox = Grid.ToVox(under);
+                    CollisionObject3D stump = SectionBodyAt(new Vector3I(
+                        Mathf.Clamp((int)vox.X, 0, Grid.Size.X - 1), Mathf.Clamp((int)vox.Y, 0, Grid.Size.Y - 1),
+                        Mathf.Clamp((int)vox.Z, 0, Grid.Size.Z - 1)));
+                    if (stump != null)
+                    {
+                        hung = new VoxelHinge(stump, hingePivot, hingeAxis);
+                    }
+                }
+            }
             VoxelDebris.Current.SpawnChunk(piece.Grid, Palette, Emission, Material, at, velocity, turning,
-                piece.Hinge ? hinge : null, given == null ? null : (given, piece.Offset), piece.Build, batch, Dusty,
-                piece.Graph);
+                hung, given == null ? null : (given, piece.Offset), piece.Build, batch, Dusty,
+                piece.Graph, damp);
             if (breakingUp)
             {
                 // Cover: each piece comes out of a cloud its own size, so the
@@ -1482,6 +1647,7 @@ public partial class VoxelPart : Node3D, IStrainHost
 
     private void MarkDirty(Vector3I min, Vector3I max)
     {
+        Wake();
         int edge = Math.Max(4, _stats.SectionEdge);
         // A carve changes the faces of its neighbours too: one cell of margin.
         Vector3I lo = (min - Vector3I.One).Clamp(Vector3I.Zero, Grid.Size - Vector3I.One) / edge;
@@ -1499,6 +1665,7 @@ public partial class VoxelPart : Node3D, IStrainHost
 
     private void MarkAllDirty()
     {
+        Wake();
         for (int s = 0; s < _meshDirty.Length; s++)
         {
             _meshDirty[s] = true;
@@ -1596,6 +1763,7 @@ public partial class VoxelPart : Node3D, IStrainHost
             {
                 instance.Mesh = null;
             }
+            Built(s);
             return;
         }
         var mesh = new ArrayMesh();
@@ -1615,6 +1783,8 @@ public partial class VoxelPart : Node3D, IStrainHost
         // An adopted mesh sat where its old part had its origin.
         instance.Transform = Transform3D.Identity;
         instance.Mesh = mesh;
+        instance.MaterialOverride = _flexMaterial;
+        Built(s);
     }
 
     private void RebuildCollision(int s)

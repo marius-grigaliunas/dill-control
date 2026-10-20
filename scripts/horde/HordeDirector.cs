@@ -281,8 +281,10 @@ public partial class HordeDirector : Node3D
 
         // The base count plus whatever has been added on top. Comparing
         // against the base alone trimmed every extra off the end of the array
-        // on the frame after it spawned.
-        int wanted = Stats.AgentCount + Manager.TransientCount;
+        // on the frame after it spawned. Less the dead that stay dead: without
+        // that, a contract's horde was topped back up every frame and never
+        // fell.
+        int wanted = Stats.AgentCount - Manager.BaseLost + Manager.TransientCount;
         if (Manager.AgentCount != wanted)
         {
             Manager.SetAgentCount(wanted, centre, radius);

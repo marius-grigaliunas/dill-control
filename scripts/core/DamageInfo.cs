@@ -31,6 +31,11 @@ public partial class DamageInfo : RefCounted
     /// </summary>
     public bool IsSplash { get; set; }
 
+    /// <summary>From a detonation (<see cref="Blast.Settings.Explosive"/>):
+    /// strong enough to shake something big, where a round or a blade only
+    /// bites it.</summary>
+    public bool IsExplosive { get; set; }
+
     /// <summary>World-space point of impact.</summary>
     public Vector3 Position { get; set; }
 

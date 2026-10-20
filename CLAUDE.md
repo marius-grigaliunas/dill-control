@@ -34,7 +34,7 @@ A frame that misses it is a bug, on the same footing as a crash. Recorded in
 | Engine | `4.7.2.stable.mono.official.ed1daf0bf`, on the Desktop, not on PATH: `C:\Users\Elena\Desktop\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe` |
 | Framework | `net8.0`, `Godot.NET.Sdk/4.7.2`, assembly `DillControl` |
 | Renderer | Forward+, D3D12 |
-| Physics | `physics/3d/physics_engine="Jolt Physics"`, explicit. **`DEFAULT` is not Jolt in 4.7.2.** Never fall back to Godot Physics; raise it instead. |
+| Physics | `physics/3d/physics_engine="Jolt Physics"`, explicit. **`DEFAULT` is not Jolt in 4.7.2.** Never fall back to Godot Physics; raise it instead. Jolt's body limit is raised to 32,768 (`jolt_physics_3d/limits/max_bodies`); past it bodies silently fail and hinges error. `!bodies` in a bench timeline counts them. |
 | Input device ids | Keyboard events arrive as device `16`, mouse as `32`. A stored event with device `0` never matches. Hand-edited input maps keep `16`/`32`, or `-1` for any. |
 | Art facing | **MagicaVoxel: verified.** A `.vox` model's front (`-Y`) arrives facing Godot's `+Z` (`Vector3.ModelFront`); the tank in `lvl_pipeline_test`. **Blender: not yet verified.** Expected the same from Blender's `-Y`; confirm with a Blender test asset and replace this half. |
 | Art scale | **MagicaVoxel: verified,** 0.1 m per voxel (import option `voxel/size`). **Blender: not yet verified.** Expected: 1 Blender unit = 1 m with transforms applied. |
@@ -179,6 +179,19 @@ use the default. How much dust a kind of thing raises is its own resource's
 by storey, hangs on a hinge when it went on one side, and snaps where it lands
 (`docs/decisions/0014`). Buildings decide what falls by a chunk graph baked by the importer: a cut chunk splits along the cut, pieces break and crush by chunks, overloaded edges give way in stages, and the gravity gun tears chunks out (`docs/decisions/0027`).
 
+**Plants bend** (`docs/decisions/0032`, proposed). A vine or tree wrapper
+has a `Flex` node (`PlantFlex`) after its model: a spine built from its
+voxels, stepped by `FlexField`, drawn by `voxel_toon` from one shared texture,
+with its collision sections moved along (and carrying what stands on them).
+Wind, hits and the grapple push it; a cut softens it, and cut weak enough it
+gives way and falls over from the pose it was in. Hits on a bent body go
+through `VoxelBody.Bend` back to its voxels. A static `VoxelBody` with
+`WholeUntilChanged` draws its imported model (and coarse 2x/4x copies of its
+voxels further off, `CoarseFromMetres` in its stats) until anything about it
+changes, and only then meshes its sections: a forest of 200 vines draws in
+about 200-450 calls instead of 10,000. Its numbers are
+`resources/foliage/flex_vine.tres` / `flex_tree.tres` and `wind_default.tres`.
+
 **Nothing that scales with a model's voxels runs in the frame**
 (`docs/decisions/0015`): re-meshing, structural checks and splits go to
 `VoxelWorkers` from a copy of the cells and are carried out only if the grid's
@@ -236,6 +249,10 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_ship_hub.tscn flow             # ship, computer, contract taken, loaded, in orbit
 "$GODOT" --headless --path . --script scripts/debug/seedcheck.gd -- 20                                      # same seed, same planet; cube seams
 "$GODOT" --headless --path . --script scripts/debug/graphcheck.gd -- 40                                     # chunk graph vs a cell flood: what falls, what floats
+"$GODOT" --headless --path . --script scripts/debug/flexcheck.gd                                            # a plant's spine: its period, settling, a pull, a cut
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex          # a vine in the wind, rocketed, swung on, stood on, bitten and felled
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn forest        # 85 vines 100 m apart (prp_vine_forest) round the middle: spawn, edge, among them, a swing
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn forestab      # what the forest costs the GPU: shadows, ink, bending, the forest
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn collapse sink  # any mode + sink: pieces under the ground or with boxes off their voxels
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet 13 boxes nodust  # see what breaks: boxes (collision), wire, nodust
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn hordeab 25000

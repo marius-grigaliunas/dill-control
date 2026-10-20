@@ -39,3 +39,7 @@ Number them in order, `NNNN-short-title.md`.
 | [0026](0026-drop-and-extract-trial.md) | On trial: swing first; a contract is drop by pod, cull half and crack the jar, extract on foot; three clones, no bike; a 1 km arena of its own, dressed by hand |
 | [0027](0027-chunk-graph.md) | Buildings fall by a chunk graph baked at import: a cut chunk splits along the cut, pieces break and crush by chunks, overloaded edges give way in stages, the gravity gun tears chunks out |
 | [0028](0028-melee-strokes.md) | Melee is a stroke, not a clip: four poses, a ray then a sweep, a hit stops and a miss follows through |
+| [0029](0029-the-vine-hive.md) | Proposed: the colony grows on vines, 95% hanging and 5% workers; the pickles never strike first, harm anywhere alerts the whole colony, and it comes down over about 30 s |
+| [0030](0030-innocent-pickles.md) | Proposed: the pickles are innocent and the player is not one: cartoon look, scared faces, brine is theirs, whimpers capped and pooled, health and shield for the player |
+| [0031](0031-a-contracts-arc.md) | Proposed: scout first or drop in, both valid; random one-off drops within a contract (mechs, vehicles, weapons) up to the bike; persistent progression unchanged; both lasers |
+| [0032](0032-plants-bend.md) | Proposed: vines and trees bend: a spine of springs built from their voxels, drawn in the shader, collision moved along and carrying the player; wind, hits and the grapple push it; cut weak, it gives way and falls over |

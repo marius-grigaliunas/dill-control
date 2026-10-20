@@ -54,12 +54,35 @@ public partial class DustStats : Resource
     public float PuffScaleMax { get; set; } = 2.4f;
 
     [ExportGroup("Look")]
-    /// <summary>How opaque a puff is at its thickest.</summary>
-    [Export(PropertyHint.Range, "0,1,0.01")]
-    public float PeakOpacity { get; set; } = 0.75f;
+    /// <summary>How far each puff's outline bulges in and out, as a share
+    /// of its radius (fx_toon_puff). Round puffs read as soap bubbles.</summary>
+    [Export(PropertyHint.Range, "0,0.5,0.01")]
+    public float Lumpiness { get; set; } = 0.0f;
 
-    /// <summary>Share of its life a puff stays at its thickest before it
-    /// starts to thin. 0 thins from the moment it is full.</summary>
+    /// <summary>Bulges round one puff's outline.</summary>
+    [Export(PropertyHint.Range, "2,12,0.5")]
+    public float LumpCount { get; set; } = 5.0f;
+
+    /// <summary>Each cloud's lumpiness is <see cref="Lumpiness"/> give or
+    /// take this, so clouds side by side are not stamped from one mould.</summary>
+    [Export(PropertyHint.Range, "0,0.25,0.01")]
+    public float LumpinessSpread { get; set; } = 0.0f;
+
+    /// <summary>Each cloud's bulge count is <see cref="LumpCount"/> give or take this.</summary>
+    [Export(PropertyHint.Range, "0,4,0.5")]
+    public float LumpCountSpread { get; set; } = 0.0f;
+
+    /// <summary>Each puff's brightness, give or take this share: a cloud of
+    /// one flat colour reads as a cut-out (fx_toon_puff's shade_spread).</summary>
+    [Export(PropertyHint.Range, "0,0.3,0.01")]
+    public float ShadeSpread { get; set; } = 0.0f;
+
+    /// <summary>Each cloud's colour, lighter or darker by up to this share.</summary>
+    [Export(PropertyHint.Range, "0,0.3,0.01")]
+    public float TintSpread { get; set; } = 0.0f;
+
+    /// <summary>Share of its life a puff stays full size before it starts
+    /// to shrink away. 0 shrinks from the moment it is full.</summary>
     [Export(PropertyHint.Range, "0,0.9,0.01")]
     public float HoldFraction { get; set; } = 0.0f;
 

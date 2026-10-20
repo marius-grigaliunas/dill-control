@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="FlexStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/foliage/FlexStats.cs" id="1_script"]
+
+[resource]
+resource_name = "FlexTree"
+script = ExtResource("1_script")
+Segments = 8
+Taper = 1.0
+PeriodSeconds = 3.0
+MassKg = 2000.0
+Damping = 0.12
+MaxLeanDegrees = 10.0
+WindPush = 0.12
+KickPerDamage = 80.0
+LinePull = 1.0
+Weakening = 2.0
+RecountSeconds = 0.25
+FollowNearMetres = 60.0

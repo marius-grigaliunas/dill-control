@@ -417,6 +417,7 @@ public partial class Rocket : Node3D
             CraterRadius = _stats.CraterRadius,
             CraterDepth = _stats.CraterDepth,
             FireSeconds = _stats.FireSeconds,
+            Explosive = true,
         };
 
         // The direct hit lands first and separately. A rocket that struck a

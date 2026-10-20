@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="AirstrikeStats" format=3 uid="uid://cbbdbhi3lroyb"]
 
-[ext_resource type="Script" uid="uid://blkxsttd1afk3" path="res://scripts/weapons/AirstrikeStats.cs" id="1_dstat"]
+[ext_resource type="Script" uid="uid://clokmf5ggk7kj" path="res://scripts/weapons/AirstrikeStats.cs" id="1_dstat"]
 [ext_resource type="Resource" path="res://resources/weapons/wpn_strike_bomb.tres" id="2_bomb"]
 
 [resource]

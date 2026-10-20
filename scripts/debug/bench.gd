@@ -56,6 +56,9 @@ const PULSE_SECONDS := 0.15
 #   "@goto:x, y, z"          move the level's player there
 #   "@aim:Node:height"       turn the player to look at that node, raised by
 #                            height metres
+#   "@aimat:x, y, z"         turn the player to look at that point
+#   "@aimcall:Node/Child:method:arg"  look at the point that method returns
+#   "@gotocall:Node/Child:method:arg" put the player at the point it returns
 #   "@pitch:degrees"         set the camera pitch; negative looks down
 #   "@status"                toggle a line of the player's and the horde's state
 #                            twice a second
@@ -96,7 +99,7 @@ const LOOK_TIMELINE := [
 # Where the GPU's time goes in the level's own view: each part switched off
 # in turn, with a baseline phase between, so drift shows as drift.
 const GPUAB_TIMELINE := [
-	["base", [], [], 4.0],
+	["base", ["!mem"], [], 4.0],
 	["no sun shadows", ["!set:Sun:shadow_enabled=false"], [], 4.0],
 	["base again", ["!set:Sun:shadow_enabled=true"], [], 4.0],
 	["horde not drawn", ["!hide:Horde"], [], 4.0],
@@ -443,6 +446,90 @@ static func _vine_timeline(slot: String) -> Array:
 	timeline.append(["stop", ["!call:PerfRecorder:Stop"], [], 0.3])
 	return timeline
 
+# A vine that bends (docs/decisions/0032), from 45 m: the wind alone, one
+# few bazooka rockets into it, the line thrown into it and swung on, stood on
+# (its collision should carry the player as it sways), then a bite over half
+# through its foot: it leans to its limit, gives way there, and what is above
+# falls over from the pose it was drawn in. Every
+# plant's tip printed at each step.
+static func _flex_timeline(vine: String) -> Array:
+	var status := "!call:FlexField:PrintBenchStatus"
+	# A vine's stalk need not stand over its node: aim where its voxels are.
+	var stalk := "@aimcall:%s/Flex:BenchStalk:12" % vine
+	return [
+		["hold the horde off", ["!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
+			"@goto:-179, 0.2, 43"], [], 2.0],
+		["wind", ["@aim:%s:30" % vine, status], [], 4.0],
+		["wind shot", ["#flex_wind", status], [], 0.3],
+		["rifle out", [stalk, "slot_1"], [], 1.0],
+		["rifle", [stalk], ["fire"], 2.5],
+		["after the rifle", [status], [], 1.0],
+		["rockets", [stalk, "slot_3"], [], 0.6],
+		["rockets fire", [stalk], ["~fire"], 0.5],
+		["rocket flying", [], [], 0.4],
+		["shaking", [status], [], 0.6],
+		["shaking shot", ["#flex_hit", status], [], 0.3],
+		["ringing", [status], [], 3.0],
+		["ringing shot", ["#flex_ringing", status], [], 0.3],
+		["throw", ["@status", "@aim:%s:45" % vine], ["grapple"], 1.0],
+		["reel", [], ["grapple", "jump"], 1.2],
+		["swing", [status], ["grapple", "move_forward"], 3.0],
+		["swing shot", ["#flex_swing", status], ["grapple", "move_forward"], 0.3],
+		["swing back", [status], ["grapple", "move_back"], 3.0],
+		["let go", ["@status", status], [], 3.0],
+		["back off to see it whole", ["@goto:-179, 0.2, 110", "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:%s:50" % vine], [], 2.0],
+		["before the cut shot", ["#flex_before_cut", status], [], 0.3],
+		["stand on an arm", ["@gotocall:%s/Flex:BenchPerch:30" % vine, "@aimcall:%s/Flex:BenchStalk:40" % vine, "@status", status], [], 2.0],
+		["riding it in the wind", [status], [], 4.0],
+		["riding it shot", ["#flex_perch", "@status", status], [], 0.3],
+		["back off again", ["@goto:-179, 0.2, 110", "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:%s:50" % vine], [], 2.0],
+		["bite from the foot", ["!call:%s/Flex:BenchCarveFoot" % vine, status], [], 2.0],
+		["leaning", [status], [], 1.0],
+		["falling 1", ["!call:VoxelDebris:PrintBenchStatus"], [], 1.0],
+		["falling 2", ["!call:VoxelDebris:PrintBenchStatus"], [], 1.0],
+		["falling 3", ["!call:VoxelDebris:PrintBenchStatus"], [], 1.0],
+		["leaning shot", ["#flex_cut", status], [], 0.3],
+		["falling 4", ["!call:VoxelDebris:PrintBenchStatus"], [], 2.0],
+		["settled", [status, "!call:VoxelDebris:PrintBenchStatus"], [], 2.0],
+		["settled shot", ["#flex_settled", status], [], 0.3],
+	]
+
+# The vine forest (prp_vine_forest, 85 bending vines 100 m apart) round
+# lvl_horde_flats: seen from spawn, from its edge and among it, then a
+# swing in it. Memory printed at each step: every vine keeps its own cells,
+# meshes and boxes.
+const FOREST_STATUS := "!call:FlexField:PrintBenchSummary"
+const FOREST_TIMELINE := [
+	["hold the horde off", ["!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed", "!mem", "!bodies"], [], 2.0],
+	["from spawn", ["@aimat:370, 40, -20", FOREST_STATUS], [], 6.0],
+	["from spawn shot", ["#forest_spawn"], [], 0.3],
+	["at its edge", ["@goto:150, 0.2, -20", "!set:Player:velocity=Vector3(0, 0, 0)", "@aimat:370, 40, -20", "!mem"], [], 6.0],
+	["at its edge shot", ["#forest_edge", FOREST_STATUS], [], 0.3],
+	["in the middle", ["@goto:360, 0.2, -30", "!set:Player:velocity=Vector3(0, 0, 0)", "@aimat:520, 50, -20"], [], 6.0],
+	["in the middle shot", ["#forest_middle", FOREST_STATUS, "!mem"], [], 0.3],
+	["throw", ["@status", "@aimcall:Vine005/Flex:BenchStalk:45"], ["grapple"], 1.0],
+	["reel", [], ["grapple", "jump"], 1.2],
+	["swing", [], ["grapple", "move_forward"], 4.0],
+	["swing shot", ["#forest_swing", "@status", FOREST_STATUS], ["grapple", "move_forward"], 0.3],
+	["let go", [], [], 3.0],
+]
+
+# What the forest costs the GPU, from its middle: each thing switched off in
+# turn with the whole view between, so drift shows as drift.
+const FORESTAB_TIMELINE := [
+	["hold the horde off", ["!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed",
+		"@goto:360, 0.2, -30", "@aimat:520, 50, -20"], [], 3.0],
+	["base", ["!mem"], [], 4.0],
+	["no sun shadows", ["!set:Sun:shadow_enabled=false"], [], 4.0],
+	["base again", ["!set:Sun:shadow_enabled=true"], [], 4.0],
+	["no ink", ["!hide:ToonPass"], [], 4.0],
+	["base again 2", ["!show:ToonPass"], [], 4.0],
+	["no bending", ["!call:FlexField:BenchStill"], [], 4.0],
+	["base again 3", ["!call:FlexField:BenchStill"], [], 4.0],
+	["no forest", ["!hide:VineForest"], [], 4.0],
+	["base again 4", ["!show:VineForest"], [], 4.0],
+]
+
 # Airstrikes called on a tower as fast as the designator will take them, every
 # frame recorded and nothing printed meanwhile: the hitches of a strike spam.
 const STRIKE_TIMELINE := [
@@ -787,6 +874,9 @@ func _initialize() -> void:
 			float(args[3]) if args.size() > 3 else 13.0)
 		"tree": _timeline = _tree_timeline(args.size() > 2 and args[2] == "quiet")
 		"downtown": _timeline = _downtown_timeline(float(args[2]) if args.size() > 2 and args[2].is_valid_float() else 60.0)
+		"forest": _timeline = FOREST_TIMELINE
+		"forestab": _timeline = FORESTAB_TIMELINE
+		"flex": _timeline = _flex_timeline(args[2] if args.size() > 2 else "prp_vine_41051")
 		"vine": _timeline = _vine_timeline(args[2] if args.size() > 2 and args[2].begins_with("slot_") else "slot_1")
 		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
@@ -894,6 +984,42 @@ func _tap(action: String) -> void:
 			return
 		player_pitch.call("BenchSetPitch", float(action.substr(7)))
 		return
+	if action.begins_with("@aimcall:"):
+		# A method that returns the point to look at: "Node/Child:method:arg".
+		var spec := action.substr(9).split(":")
+		var where := spec[0].split("/", true, 1)
+		var owner := _find(where[0])
+		if owner != null and where.size() == 2:
+			owner = owner.get_node_or_null(where[1])
+		var looking := _player()
+		if owner == null or looking == null or spec.size() < 2:
+			print("[bench] cannot ", action)
+			return
+		looking.call("BenchLookAt", owner.call(spec[1], spec[2]) if spec.size() > 2 else owner.call(spec[1]))
+		return
+	if action.begins_with("@gotocall:"):
+		# A method that returns where to put the player: "Node/Child:method:arg".
+		var put := action.substr(10).split(":")
+		var put_where := put[0].split("/", true, 1)
+		var put_owner := _find(put_where[0])
+		if put_owner != null and put_where.size() == 2:
+			put_owner = put_owner.get_node_or_null(put_where[1])
+		var putting := _player() as Node3D
+		if put_owner == null or putting == null or put.size() < 2:
+			print("[bench] cannot ", action)
+			return
+		putting.global_position = put_owner.call(put[1], put[2]) if put.size() > 2 else put_owner.call(put[1])
+		if "velocity" in putting:
+			putting.velocity = Vector3.ZERO
+		return
+	if action.begins_with("@aimat:"):
+		var looker := _player()
+		var point = str_to_var("Vector3(%s)" % action.substr(7))
+		if looker != null and point is Vector3:
+			looker.call("BenchLookAt", point)
+		else:
+			print("[bench] cannot ", action)
+		return
 	if action.begins_with("@aim:"):
 		var parts := action.substr(5).split(":")
 		var target := _find(parts[0]) as Node3D
@@ -912,6 +1038,32 @@ func _tap(action: String) -> void:
 			node.set_indexed(pair[0], str_to_var(pair[1]))
 		else:
 			print("[bench] cannot ", action)
+		return
+	if action == "!bodies":
+		# Every physics body, by what it is part of: Jolt has a fixed maximum.
+		var counts := {}
+		var total := 0
+		for node in root.find_children("*", "CollisionObject3D", true, false):
+			var owner_name := "other"
+			var walk: Node = node
+			while walk != null and walk != current_scene:
+				if walk.get_parent() == current_scene or (walk.get_parent() != null and walk.get_parent().name in ["Props", "Spawns", "Geometry", "Trees", "Downtown", "Compound", "VineForest"]):
+					owner_name = String(walk.get_parent().name) if walk.get_parent().name in ["Trees", "Downtown", "Compound", "VineForest"] else String(walk.name)
+					break
+				walk = walk.get_parent()
+			counts[owner_name] = counts.get(owner_name, 0) + 1
+			total += 1
+		var parts := []
+		for key in counts:
+			parts.append("%s %d" % [key, counts[key]])
+		print("[bench]   bodies: %d of %d (%s)" % [total, ProjectSettings.get_setting("physics/jolt_physics_3d/limits/max_bodies", -1), ", ".join(parts)])
+		return
+	if action == "!mem":
+		print("[bench]   memory: static %.0f MB, video %.0f MB, objects %d, nodes %d; drawn %.2f M triangles" % [
+			Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
+			Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0,
+			Performance.get_monitor(Performance.OBJECT_COUNT), Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
+			Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000000.0])
 		return
 	if action == "!silent":
 		_silent = true

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="WindStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/foliage/WindStats.cs" id="1_script"]
+
+[resource]
+resource_name = "WindDefault"
+script = ExtResource("1_script")
+DirectionDegrees = 30.0
+Speed = 5.0
+GustSpeed = 4.0
+GustSeconds = 7.0
+Swirl = 0.35

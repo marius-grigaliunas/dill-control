@@ -611,6 +611,13 @@ public partial class HordeManager : Node3D
 
     public int KillCount { get; private set; }
 
+    /// <summary>
+    /// Agents of the base crowd killed and not brought back (with
+    /// <see cref="RespawnKilledAgents"/> off): whoever drives the count holds
+    /// it at its base less these, so the population falls.
+    /// </summary>
+    public int BaseLost { get; private set; }
+
     // ---------------- Opaque agent handles ----------------
     //
     // An agent is an index and a generation. Packed into one long, it can be
@@ -1199,6 +1206,7 @@ public partial class HordeManager : Node3D
 
         KillCount = 0;
         WeakPointKills = 0;
+        BaseLost = 0;
     }
 
     /// <summary>
@@ -1440,6 +1448,10 @@ public partial class HordeManager : Node3D
         {
             SpawnAgent(ref _agents[index], _seedCentre, _seedRadius);
             return;
+        }
+        if (!transient)
+        {
+            BaseLost++;
         }
 
         int last = _count - 1;

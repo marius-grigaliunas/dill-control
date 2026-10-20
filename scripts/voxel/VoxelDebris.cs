@@ -374,11 +374,13 @@ public partial class VoxelDebris : Node3D
         public readonly float DustScale;
         public readonly ulong Asked;
         public readonly VoxelChunkGraph Graph;
+        public readonly float AngularDamp;
 
         public Pending(VoxelGrid grid, Color[] palette, float[] emission, Material material, Transform3D at,
             Vector3 velocity, Vector3 spin, VoxelHinge? hinge, (MeshInstance3D[], Vector3)? meshes, ChunkBuild build,
-            SpawnBatch batch, float dustScale, VoxelChunkGraph graph = null)
+            SpawnBatch batch, float dustScale, VoxelChunkGraph graph = null, float angularDamp = -1.0f)
         {
+            AngularDamp = angularDamp;
             Graph = graph;
             DustScale = dustScale;
             Build = build;
@@ -417,10 +419,13 @@ public partial class VoxelDebris : Node3D
     /// build them as it is made.</param>
     /// <param name="dustScale">The dust of what it came off
     /// (<see cref="VoxelDestructionStats.DustScale"/>), which it keeps.</param>
+    /// <param name="angularDamp">Its own angular damping, or negative for the
+    /// stats': a tall plant let go nearly upright needs little, or it stalls
+    /// standing (docs/decisions/0032).</param>
     public void SpawnChunk(VoxelGrid grid, Color[] palette, float[] emission, Material material,
         Transform3D at, Vector3 velocity, Vector3? spin = null, VoxelHinge? hinge = null,
         (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null, SpawnBatch batch = null,
-        float dustScale = 1.0f, VoxelChunkGraph graph = null)
+        float dustScale = 1.0f, VoxelChunkGraph graph = null, float angularDamp = -1.0f)
     {
         SpawnedBy?.AddOrUpdate(grid, $"at y={at.Origin.Y:F2} " + System.Environment.StackTrace);
         if (batch != null)
@@ -449,7 +454,7 @@ public partial class VoxelDebris : Node3D
         // Made on the next physics tick, never in the frame that asked: that
         // frame has just split the thing it came from (VoxelPart.Apply).
         _pending.Enqueue(new Pending(grid, palette, emission, material, at, velocity, spin.Value, hinge, meshes, build, batch,
-            dustScale, graph));
+            dustScale, graph, angularDamp));
     }
 
     private readonly List<SpawnBatch> _batches = new();
@@ -552,6 +557,13 @@ public partial class VoxelDebris : Node3D
         using (FrameProfiler.Begin(VoxelPart.SectionChunkAdd))
         {
             AddChild(chunk);
+        }
+        // A plant's stalk (a damping of its own): it turns over, and does
+        // not crush down through what it lands on.
+        chunk.CrushesThrough = p.AngularDamp < 0.0f;
+        if (p.AngularDamp >= 0.0f)
+        {
+            chunk.AngularDamp = p.AngularDamp;
         }
         chunk.LinearVelocity = velocity;
         chunk.AngularVelocity = p.Spin;
@@ -838,6 +850,13 @@ public partial class VoxelDebris : Node3D
     /// a tower 33 m under the ground.</summary>
     private static float LowestY(VoxelChunk chunk)
     {
+        // Its boxes, not its bounds' corners: a long piece aslant has a
+        // corner of its bounds metres under the ground it lies on.
+        float boxes = chunk.LowestBox(Vector3.Up);
+        if (!float.IsNaN(boxes))
+        {
+            return boxes;
+        }
         if (chunk.Grid == null || !chunk.Grid.SolidBounds(out Aabb local))
         {
             return chunk.GlobalPosition.Y;

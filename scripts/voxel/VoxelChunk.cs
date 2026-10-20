@@ -51,6 +51,13 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
 
     public bool IsHinged => _hinge != null;
 
+    /// <summary>
+    /// Whether, landing hard, it crushes on through what it landed on, as a
+    /// storey does (0014). Off for a plant's stalk: it tips over its stump
+    /// and smashes where it lands rather than boring into the ground (0032).
+    /// </summary>
+    public bool CrushesThrough { get; set; } = true;
+
     // ---------------- Gravity gun ----------------
 
     /// <summary>Breaking on landing: its pieces are being worked out.</summary>
@@ -203,7 +210,8 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         }
         if (_age > 0.15f && !_breaking)
         {
-            if (_heavy && _hinge == null && _hangSoon == null && change > _stats.CrushThroughSpeed && CrushThrough(change))
+            if (_heavy && CrushesThrough && _hinge == null && _hangSoon == null && change > _stats.CrushThroughSpeed
+                && CrushThrough(change))
             {
                 _lastVelocity = LinearVelocity;
                 _lastSpin = AngularVelocity;

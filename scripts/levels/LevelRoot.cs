@@ -122,6 +122,20 @@ public partial class LevelRoot : Node3D
     /// <summary>True while a builder is still at work and the player has not been made.</summary>
     public bool Loading => _builder != null;
 
+    /// <summary>
+    /// A new player at the spawn, the old one freed: a clone (decision 0026).
+    /// Everything that listens for <see cref="PlayerSpawned"/> hears it again.
+    /// </summary>
+    public void RespawnPlayer()
+    {
+        if (Player != null && IsInstanceValid(Player))
+        {
+            Player.QueueFree();
+        }
+        Player = null;
+        SpawnPlayer();
+    }
+
     private void SpawnPlayer()
     {
         if (PlayerScene == null)

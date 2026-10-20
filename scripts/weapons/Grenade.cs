@@ -215,6 +215,7 @@ public partial class Grenade : RigidBody3D
         SelfImpulseScale = _stats.SelfImpulseScale,
         CraterRadius = _stats.CraterRadius,
         CraterDepth = _stats.CraterDepth,
+        Explosive = true,
     };
 
     private void SpawnExplosion(Vector3 centre)

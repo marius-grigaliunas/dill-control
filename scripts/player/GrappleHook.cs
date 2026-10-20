@@ -2,6 +2,7 @@ using System;
 using Godot;
 using DillControl.Audio;
 using DillControl.Core;
+using DillControl.Foliage;
 
 namespace DillControl.Player;
 
@@ -153,6 +154,13 @@ public partial class GrappleHook : Node3D
     /// line holds. A body that can move takes its point with it when it goes.
     /// </summary>
     private bool _anchorFixed;
+
+    /// <summary>
+    /// The plant the hook is in, when it bends. Its collision moves with it,
+    /// so the hook rides it like any moving body; the line's pull bends it.
+    /// </summary>
+    private PlantFlex _anchorFlex;
+    private Vector3 _lastRopeOrigin;
 
     private float _snapCheckTimer;
     private GrappleAim _aim = GrappleAim.None;
@@ -328,6 +336,7 @@ public partial class GrappleHook : Node3D
         HookState was = _state;
         _state = HookState.Idle;
         _anchorBody = null;
+        _anchorFlex = null;
         AnchorVelocity = Vector3.Zero;
         CurrentOrbit = null;
         _latched = false;
@@ -430,6 +439,9 @@ public partial class GrappleHook : Node3D
             _anchorLocalNormal = (inverse.Basis * normal).Normalized();
         }
 
+        _anchorFlex = PlantFlex.Of(body);
+        _lastRopeOrigin = ropeOrigin;
+
         AnchorPoint = point;
         AnchorNormal = normal;
         AnchorVelocity = Vector3.Zero;
@@ -500,6 +512,10 @@ public partial class GrappleHook : Node3D
             {
                 Transform3D frame = _anchorBody.GlobalTransform;
                 Vector3 point = frame * _anchorLocal;
+                if (_anchorFlex != null && IsInstanceValid(_anchorFlex))
+                {
+                    LoadPlant(dt, point, ropeOrigin);
+                }
                 Vector3 velocity = dt > 0.0f ? (point - AnchorPoint) / dt : Vector3.Zero;
 
                 AnchorVelocity = velocity.LimitLength(Tuning.GrappleAnchorMaxSpeed);
@@ -535,6 +551,31 @@ public partial class GrappleHook : Node3D
         {
             Release(true);
         }
+    }
+
+    /// <summary>
+    /// The player's weight on a plant, and what the swing adds to it: the
+    /// share of gravity along the line plus the pull that keeps the arc
+    /// round, while the line is taut. The plant bends under it.
+    /// </summary>
+    private void LoadPlant(float dt, Vector3 anchor, Vector3 ropeOrigin)
+    {
+        Vector3 velocity = dt > 0.0f ? (ropeOrigin - _lastRopeOrigin) / dt : Vector3.Zero;
+        _lastRopeOrigin = ropeOrigin;
+
+        Vector3 toPlayer = ropeOrigin - anchor;
+        float distance = toPlayer.Length();
+        if (distance < 0.5f || distance < RopeLength - 0.3f)
+        {
+            return;
+        }
+        Vector3 away = toPlayer / distance;
+        Vector3 gravity = WorldUp.GravityAt(ropeOrigin);
+        float g = gravity.Length();
+        Vector3 across = (velocity - AnchorVelocity).Slide(away);
+        float pull = Mathf.Max(0.0f, gravity.Dot(away)) + (across.LengthSquared() / distance);
+        pull = Mathf.Min(pull, g * Tuning.GrappleLoadMaxG);
+        _anchorFlex.Pull(anchor, away * (pull * Tuning.GrappleLoadKg));
     }
 
     /// <summary>

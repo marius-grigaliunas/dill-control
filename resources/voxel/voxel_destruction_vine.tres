@@ -7,3 +7,7 @@ resource_name = "VoxelDestructionVine"
 script = ExtResource("1_script")
 MinSupportFraction = 0.0
 DustScale = 0.0
+CoarseFromMetres = 60.0
+CoarsestFromMetres = 150.0
+CoarseShadows = false
+SectionEdge = 64

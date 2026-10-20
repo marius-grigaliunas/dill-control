@@ -19,14 +19,22 @@ namespace DillControl.Voxel;
 /// two dozen lost pieces in one frame, and that should be a few big clouds
 /// rather than two dozen small ones drawn over the same pixels.
 ///
-/// PLACEHOLDER look -- untextured radial billboards, as the explosion's own dust
-/// is. The pooling and the merging are the part worth keeping.
+/// Drawn as the explosion's smoke is (shaders/fx_toon_puff.gdshader): solid
+/// cartoon balls with a lit side and a cool shadow crescent, opaque, so the
+/// ink outlines every lobe and the cloud reads as part of the comic rather
+/// than a grey haze. Being solid it also hides completely what is swapped
+/// behind it, where soft dust only dimmed it, and it costs no blended
+/// overdraw. A puff pops in large, holds, and shrinks away instead of fading.
 /// </summary>
 public partial class DustField : Node3D
 {
     /// <summary>Every number about the clouds (<see cref="DustStats"/>).
     /// Read in <see cref="_Ready"/>: the pool is built from it.</summary>
     public DustStats Stats { get; set; }
+
+    private const string PuffShaderPath = "res://shaders/fx_toon_puff.gdshader";
+
+    private static readonly StringName TintParameter = "tint";
 
     private static readonly Color DustColour = new(0.58f, 0.53f, 0.44f);
 
@@ -37,18 +45,19 @@ public partial class DustField : Node3D
         public Color Colour;
         public Vector3 Velocity;
         public float Volume;
+        public float Amount;
     }
 
     private readonly List<Cluster> _pending = new();
     private readonly List<GpuParticles3D> _pool = new();
-    private readonly List<StandardMaterial3D> _materials = new();
+    private readonly List<ShaderMaterial> _materials = new();
     private readonly List<ParticleProcessMaterial> _processes = new();
     private int _next;
 
     public override void _Ready()
     {
         Stats ??= GD.Load<DustStats>(DustStats.DefaultPath) ?? new DustStats();
-        Texture2D puff = BuildPuffTexture();
+        Shader puff = GD.Load<Shader>(PuffShaderPath);
 
         for (int i = 0; i < Stats.PoolSize; i++)
         {
@@ -58,22 +67,11 @@ public partial class DustField : Node3D
             // cloud sinks depends on what it came from.
             ParticleProcessMaterial process = BuildProcessMaterial(Stats);
 
-            StandardMaterial3D material = new()
-            {
-                AlbedoTexture = puff,
-                AlbedoColor = DustColour,
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                VertexColorUseAsAlbedo = true,
-                BillboardMode = BaseMaterial3D.BillboardModeEnum.Particles,
-                BillboardKeepScale = true,
-                DisableReceiveShadows = true,
-                // Drawn after the ink (ToonPass, priority 0), which otherwise
-                // comes last of the transparents: a cloud covers the outlines
-                // behind it, and a piece swapped for dust in the middle of
-                // one does not leave its ink line blinking out.
-                RenderPriority = 1,
-            };
+            ShaderMaterial material = new() { Shader = puff };
+            material.SetShaderParameter(TintParameter, DustColour);
+            material.SetShaderParameter("lumpiness", Stats.Lumpiness);
+            material.SetShaderParameter("lump_count", Stats.LumpCount);
+            material.SetShaderParameter("shade_spread", Stats.ShadeSpread);
 
             GpuParticles3D emitter = new()
             {
@@ -110,8 +108,14 @@ public partial class DustField : Node3D
     /// </summary>
     /// <param name="velocity">What the piece was doing as it left -- a collapse reports its fall.</param>
     /// <param name="size">Edge length of the piece lost, in metres.</param>
-    public void Request(Vector3 position, Vector3 up, Vector3 velocity, Color colour, float size)
+    /// <param name="amount">How wide the cloud is against the usual, after
+    /// the size cap (<see cref="VoxelDestructionStats.DustScale"/>).</param>
+    public void Request(Vector3 position, Vector3 up, Vector3 velocity, Color colour, float size, float amount = 1.0f)
     {
+        if (amount <= 0.0f)
+        {
+            return;
+        }
         Cluster incoming = new()
         {
             Position = position,
@@ -119,6 +123,7 @@ public partial class DustField : Node3D
             Velocity = velocity,
             Colour = colour,
             Volume = size * size * size,
+            Amount = amount,
         };
 
         if (!MergeInto(_pending, incoming, Stats.MergeDistance))
@@ -199,6 +204,7 @@ public partial class DustField : Node3D
             cluster.Position = cluster.Position.Lerp(incoming.Position, t);
             cluster.Colour = cluster.Colour.Lerp(incoming.Colour, t);
             cluster.Velocity = cluster.Velocity.Lerp(incoming.Velocity, t);
+            cluster.Amount = Mathf.Lerp(cluster.Amount, incoming.Amount, t);
             cluster.Volume = volume;
             clusters[i] = cluster;
             return true;
@@ -214,7 +220,8 @@ public partial class DustField : Node3D
 
         GpuParticles3D emitter = _pool[slot];
 
-        float scale = Mathf.Clamp(Mathf.Pow(cluster.Volume, 1.0f / 3.0f) * Stats.SizeScale, Stats.MinScale, Stats.MaxScale);
+        float scale = Mathf.Clamp(Mathf.Pow(cluster.Volume, 1.0f / 3.0f) * Stats.SizeScale, Stats.MinScale, Stats.MaxScale)
+            * cluster.Amount;
         emitter.GlobalTransform = new Transform3D(BasisFromUp(cluster.Up).Scaled(Vector3.One * scale), cluster.Position);
         emitter.Lifetime = Stats.CloudLifetime + (Mathf.Max(0.0f, scale - 1.0f) * Stats.LifetimePerScale);
 
@@ -224,9 +231,17 @@ public partial class DustField : Node3D
         float fall = Mathf.Max(0.0f, -cluster.Velocity.Dot(cluster.Up));
         _processes[slot].Gravity = new Vector3(0.0f, -(Stats.BaseSink + (fall * Stats.SinkPerFallSpeed)) / scale, 0.0f);
 
+        // A little of each cloud its own: lighter or darker, lumpier or
+        // smoother, more bulges or fewer, round the stats' own values.
         Color tint = cluster.Colour.Lerp(DustColour, Stats.DustBlend);
-        tint.A = 1.0f;
-        _materials[slot].AlbedoColor = tint;
+        float shade = 1.0f + Stats.TintSpread * (GD.Randf() * 2.0f - 1.0f);
+        tint = new Color(tint.R * shade, tint.G * shade, tint.B * shade, 1.0f);
+        ShaderMaterial material = _materials[slot];
+        material.SetShaderParameter(TintParameter, tint);
+        material.SetShaderParameter("lumpiness",
+            Mathf.Clamp(Stats.Lumpiness + Stats.LumpinessSpread * (GD.Randf() * 2.0f - 1.0f), 0.0f, 0.5f));
+        material.SetShaderParameter("lump_count",
+            Mathf.Max(2.0f, Stats.LumpCount + Stats.LumpCountSpread * (GD.Randf() * 2.0f - 1.0f)));
 
         emitter.Visible = true;
         emitter.Restart();
@@ -234,20 +249,21 @@ public partial class DustField : Node3D
 
     private static ParticleProcessMaterial BuildProcessMaterial(DustStats stats)
     {
-        // Opaque almost at once: the structure is gone the frame the cloud
-        // starts, and a cloud that fades in shows the gap first. Then it holds
-        // while pieces are being swapped inside it, and thins.
-        float peak = stats.PeakOpacity;
-        float hold = Mathf.Clamp(0.06f + stats.HoldFraction, 0.07f, 0.95f);
+        // The ramp's alpha is a puff's size within its quad (fx_toon_puff):
+        // it starts more than half grown, because the structure is gone the
+        // frame the cloud starts and a cloud that swells from nothing shows
+        // the gap first; it holds while pieces are swapped inside it, then
+        // shrinks away. The colour greys a little as it settles.
+        float hold = Mathf.Clamp(0.08f + stats.HoldFraction, 0.09f, 0.95f);
         Gradient fade = new()
         {
-            Offsets = new[] { 0.0f, 0.06f, hold, 1.0f },
+            Offsets = new[] { 0.0f, 0.08f, hold, 1.0f },
             Colors = new[]
             {
-                new Color(1, 1, 1, 0.0f),
-                new Color(1, 1, 1, peak),
-                new Color(1, 1, 1, peak),
-                new Color(0.85f, 0.85f, 0.85f, 0.0f),
+                new Color(1.0f, 1.0f, 1.0f, 0.6f),
+                new Color(1.0f, 1.0f, 1.0f, 1.0f),
+                new Color(0.94f, 0.93f, 0.94f, 1.0f),
+                new Color(0.82f, 0.81f, 0.86f, 0.0f),
             },
         };
 
@@ -275,29 +291,6 @@ public partial class DustField : Node3D
             ScaleCurve = new CurveTexture { Curve = grow },
             ColorRamp = new GradientTexture1D { Gradient = fade },
             LifetimeRandomness = 0.35f,
-        };
-    }
-
-    /// <summary>
-    /// The explosion scene's own soft disc, built in code because this pool is.
-    /// An untextured quad is a visible square at close range.
-    /// </summary>
-    private static Texture2D BuildPuffTexture()
-    {
-        Gradient gradient = new()
-        {
-            Offsets = new[] { 0.0f, 0.42f, 1.0f },
-            Colors = new[] { new Color(1, 1, 1, 1), new Color(1, 1, 1, 0.72f), new Color(1, 1, 1, 0) },
-        };
-
-        return new GradientTexture2D
-        {
-            Gradient = gradient,
-            Width = 64,
-            Height = 64,
-            Fill = GradientTexture2D.FillEnum.Radial,
-            FillFrom = new Vector2(0.5f, 0.5f),
-            FillTo = new Vector2(1.0f, 0.5f),
         };
     }
 

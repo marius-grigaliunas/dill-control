@@ -1,0 +1,608 @@
+{
+  "tool": "dill-control-vine",
+  "version": 3,
+  "seed": 1,
+  "voxelSize": 0.5,
+  "kinds": [
+    {
+      "name": "Heart",
+      "weight": 1,
+      "zone": [
+        0,
+        0
+      ],
+      "pool": 2,
+      "ranges": {
+        "heightM": [
+          100,
+          110
+        ],
+        "ringCount": [
+          11,
+          12
+        ],
+        "bareStalkM": [
+          28,
+          32
+        ],
+        "wobbleM": [
+          1,
+          3
+        ],
+        "wobbleFrequency": [
+          1.6,
+          1.6
+        ],
+        "leanDeg": [
+          -3,
+          3
+        ],
+        "helixTurns": [
+          0,
+          0
+        ],
+        "trellisRadiusM": [
+          4,
+          4
+        ],
+        "tipNodDeg": [
+          10,
+          30
+        ],
+        "irregularity": [
+          0.4,
+          0.6
+        ],
+        "baseRadiusM": [
+          3.4,
+          3.8
+        ],
+        "tipRadiusM": [
+          1.1,
+          1.3
+        ],
+        "shellVoxels": [
+          2,
+          2
+        ],
+        "knuckleBulge": [
+          0.4,
+          0.4
+        ],
+        "knuckleWidth": [
+          3,
+          3
+        ],
+        "armsPerRing": [
+          4,
+          4
+        ],
+        "armLengthM": [
+          20,
+          23
+        ],
+        "armRiseDeg": [
+          38,
+          44
+        ],
+        "armSag": [
+          1.3,
+          1.5
+        ],
+        "armThickness": [
+          0.32,
+          0.36
+        ],
+        "podsPerRing": [
+          18,
+          20
+        ],
+        "podTwistDeg": [
+          35,
+          45
+        ],
+        "pedicelM": [
+          2,
+          2.5
+        ],
+        "leavesPerRing": [
+          0,
+          0
+        ],
+        "leavesPerArm": [
+          0,
+          0
+        ],
+        "leafSizeM": [
+          9,
+          10
+        ],
+        "leafTiltDeg": [
+          28,
+          28
+        ],
+        "leafDroopDeg": [
+          34,
+          34
+        ],
+        "tendrilCount": [
+          16,
+          22
+        ],
+        "tendrilLengthM": [
+          6,
+          6
+        ],
+        "tendrilCurl": [
+          2.5,
+          2.5
+        ]
+      },
+      "chances": {
+        "armTipLeaf": 1,
+        "tendrils": 1
+      }
+    },
+    {
+      "name": "Fruiting",
+      "weight": 4,
+      "zone": [
+        0.05,
+        0.6
+      ],
+      "pool": 4,
+      "ranges": {
+        "heightM": [
+          84,
+          96
+        ],
+        "ringCount": [
+          12,
+          14
+        ],
+        "bareStalkM": [
+          20,
+          26
+        ],
+        "wobbleM": [
+          1,
+          4
+        ],
+        "wobbleFrequency": [
+          1.6,
+          1.6
+        ],
+        "leanDeg": [
+          0,
+          5
+        ],
+        "helixTurns": [
+          0,
+          0
+        ],
+        "trellisRadiusM": [
+          4,
+          4
+        ],
+        "tipNodDeg": [
+          20,
+          50
+        ],
+        "irregularity": [
+          0.4,
+          0.7
+        ],
+        "baseRadiusM": [
+          2.6,
+          3
+        ],
+        "tipRadiusM": [
+          0.9,
+          1.1
+        ],
+        "shellVoxels": [
+          2,
+          2
+        ],
+        "knuckleBulge": [
+          0.4,
+          0.4
+        ],
+        "knuckleWidth": [
+          3,
+          3
+        ],
+        "armsPerRing": [
+          3,
+          4
+        ],
+        "armLengthM": [
+          14,
+          18
+        ],
+        "armRiseDeg": [
+          36,
+          44
+        ],
+        "armSag": [
+          1.1,
+          1.4
+        ],
+        "armThickness": [
+          0.4,
+          0.4
+        ],
+        "podsPerRing": [
+          12,
+          16
+        ],
+        "podTwistDeg": [
+          30,
+          60
+        ],
+        "pedicelM": [
+          1.5,
+          2.25
+        ],
+        "leavesPerRing": [
+          0,
+          0
+        ],
+        "leavesPerArm": [
+          0,
+          0
+        ],
+        "leafSizeM": [
+          7,
+          9
+        ],
+        "leafTiltDeg": [
+          28,
+          28
+        ],
+        "leafDroopDeg": [
+          34,
+          34
+        ],
+        "tendrilCount": [
+          10,
+          16
+        ],
+        "tendrilLengthM": [
+          6,
+          6
+        ],
+        "tendrilCurl": [
+          2.5,
+          2.5
+        ]
+      },
+      "chances": {
+        "armTipLeaf": 1,
+        "tendrils": 0.8
+      }
+    },
+    {
+      "name": "Weeping",
+      "weight": 3,
+      "zone": [
+        0.45,
+        0.85
+      ],
+      "pool": 4,
+      "ranges": {
+        "heightM": [
+          70,
+          82
+        ],
+        "ringCount": [
+          9,
+          11
+        ],
+        "bareStalkM": [
+          22,
+          28
+        ],
+        "wobbleM": [
+          1,
+          4
+        ],
+        "wobbleFrequency": [
+          1.6,
+          1.6
+        ],
+        "leanDeg": [
+          4,
+          9
+        ],
+        "helixTurns": [
+          0,
+          0
+        ],
+        "trellisRadiusM": [
+          4,
+          4
+        ],
+        "tipNodDeg": [
+          20,
+          50
+        ],
+        "irregularity": [
+          0.5,
+          0.7
+        ],
+        "baseRadiusM": [
+          2.6,
+          3
+        ],
+        "tipRadiusM": [
+          0.9,
+          1.1
+        ],
+        "shellVoxels": [
+          2,
+          2
+        ],
+        "knuckleBulge": [
+          0.4,
+          0.4
+        ],
+        "knuckleWidth": [
+          3,
+          3
+        ],
+        "armsPerRing": [
+          4,
+          4
+        ],
+        "armLengthM": [
+          16,
+          20
+        ],
+        "armRiseDeg": [
+          36,
+          44
+        ],
+        "armSag": [
+          1.3,
+          1.5
+        ],
+        "armThickness": [
+          0.4,
+          0.4
+        ],
+        "podsPerRing": [
+          12,
+          16
+        ],
+        "podTwistDeg": [
+          30,
+          50
+        ],
+        "pedicelM": [
+          1.75,
+          2.25
+        ],
+        "leavesPerRing": [
+          0,
+          1
+        ],
+        "leavesPerArm": [
+          0,
+          1
+        ],
+        "leafSizeM": [
+          8,
+          10
+        ],
+        "leafTiltDeg": [
+          28,
+          28
+        ],
+        "leafDroopDeg": [
+          34,
+          34
+        ],
+        "tendrilCount": [
+          10,
+          16
+        ],
+        "tendrilLengthM": [
+          6,
+          6
+        ],
+        "tendrilCurl": [
+          2.5,
+          2.5
+        ]
+      },
+      "chances": {
+        "armTipLeaf": 1,
+        "tendrils": 0.7
+      }
+    },
+    {
+      "name": "Leafy",
+      "weight": 3,
+      "zone": [
+        0.8,
+        1
+      ],
+      "pool": 4,
+      "ranges": {
+        "heightM": [
+          50,
+          62
+        ],
+        "ringCount": [
+          6,
+          8
+        ],
+        "bareStalkM": [
+          10,
+          15
+        ],
+        "wobbleM": [
+          2,
+          5
+        ],
+        "wobbleFrequency": [
+          1.6,
+          1.6
+        ],
+        "leanDeg": [
+          10,
+          16
+        ],
+        "helixTurns": [
+          0,
+          0
+        ],
+        "trellisRadiusM": [
+          4,
+          4
+        ],
+        "tipNodDeg": [
+          30,
+          80
+        ],
+        "irregularity": [
+          0.5,
+          0.8
+        ],
+        "baseRadiusM": [
+          2.4,
+          2.9
+        ],
+        "tipRadiusM": [
+          0.8,
+          1
+        ],
+        "shellVoxels": [
+          2,
+          2
+        ],
+        "knuckleBulge": [
+          0.4,
+          0.4
+        ],
+        "knuckleWidth": [
+          3,
+          3
+        ],
+        "armsPerRing": [
+          2,
+          3
+        ],
+        "armLengthM": [
+          9,
+          13
+        ],
+        "armRiseDeg": [
+          25,
+          40
+        ],
+        "armSag": [
+          0.5,
+          0.9
+        ],
+        "armThickness": [
+          0.4,
+          0.4
+        ],
+        "podsPerRing": [
+          2,
+          5
+        ],
+        "podTwistDeg": [
+          60,
+          140
+        ],
+        "pedicelM": [
+          1,
+          1.5
+        ],
+        "leavesPerRing": [
+          1,
+          1
+        ],
+        "leavesPerArm": [
+          1,
+          2
+        ],
+        "leafSizeM": [
+          11,
+          14
+        ],
+        "leafTiltDeg": [
+          20,
+          40
+        ],
+        "leafDroopDeg": [
+          20,
+          40
+        ],
+        "tendrilCount": [
+          14,
+          22
+        ],
+        "tendrilLengthM": [
+          6,
+          6
+        ],
+        "tendrilCurl": [
+          2.5,
+          2.5
+        ]
+      },
+      "chances": {
+        "armTipLeaf": 1,
+        "tendrils": 1
+      }
+    }
+  ],
+  "nest": {
+    "radiusM": [
+      240,
+      260
+    ],
+    "heartCount": [
+      1,
+      1
+    ],
+    "courtM": [
+      30,
+      36
+    ],
+    "ringSpacingM": [
+      28,
+      31
+    ],
+    "vineSpacingM": [
+      26,
+      29
+    ],
+    "ringFill": [
+      0.9,
+      1
+    ],
+    "jitterM": [
+      1,
+      2.5
+    ],
+    "faceHeart": [
+      0.85,
+      1
+    ],
+    "avenues": [
+      3,
+      3
+    ],
+    "avenueWidthM": [
+      24,
+      28
+    ],
+    "swingReachM": 70,
+    "anchorShare": 0.7
+  }
+}

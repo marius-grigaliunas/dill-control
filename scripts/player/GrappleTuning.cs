@@ -203,4 +203,16 @@ public partial class GrappleTuning : Resource
     /// <summary>Climb and descend speed of W/S while orbiting a giant.</summary>
     [Export(PropertyHint.Range, "1,40,0.5,suffix:m/s")]
     public float GrappleOrbitClimb { get; set; } = 10.0f;
+
+    [ExportGroup("Load")]
+    /// <summary>
+    /// What the player weighs on the line, for what it hangs from: a vine or
+    /// a tree bends under this, times the swing (docs/decisions/0032).
+    /// </summary>
+    [Export(PropertyHint.Range, "0,1000,5,suffix:kg")]
+    public float GrappleLoadKg { get; set; } = 90.0f;
+
+    /// <summary>The most the swing multiplies that weight by, at the bottom of a hard arc.</summary>
+    [Export(PropertyHint.Range, "1,10,0.1")]
+    public float GrappleLoadMaxG { get; set; } = 4.0f;
 }

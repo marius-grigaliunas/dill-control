@@ -362,6 +362,24 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "8,2000,1")]
     public int RestingChunkBoxes { get; set; } = 256;
 
+    [ExportGroup("Drawn whole")]
+    /// <summary>
+    /// A model drawn whole until it changes (<see cref="VoxelBody.WholeUntilChanged"/>)
+    /// is drawn from its own voxels in 2x2x2 blocks past this distance...
+    /// Zero: always in full.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,2000,5,suffix:m")]
+    public float CoarseFromMetres { get; set; } = 90.0f;
+
+    /// <summary>Whether the 2x2x2 copy casts a shadow. Off for a stand of
+    /// many: a shadow from 60-140 m off is not missed in a forest.</summary>
+    [Export]
+    public bool CoarseShadows { get; set; } = true;
+
+    /// <summary>...and in 4x4x4 blocks past this one, without a shadow. Zero: never.</summary>
+    [Export(PropertyHint.Range, "0,4000,5,suffix:m")]
+    public float CoarsestFromMetres { get; set; } = 220.0f;
+
     [ExportGroup("Budget")]
     /// <summary>Edge of one re-meshed section, in voxels. A hit re-meshes the
     /// section it lands in, not the model.</summary>

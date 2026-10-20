@@ -5,3 +5,5 @@
 [resource]
 resource_name = "VoxelDestructionDefault"
 script = ExtResource("1_script")
+DustScale = 1.0
+TrailDustPoints = 2

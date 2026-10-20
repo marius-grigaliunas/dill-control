@@ -6,3 +6,4 @@
 resource_name = "VoxelDestructionTree"
 script = ExtResource("1_script")
 MinSupportFraction = 0.0
+DustScale = 0.5

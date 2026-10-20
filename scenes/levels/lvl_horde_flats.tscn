@@ -14,10 +14,24 @@
 [ext_resource type="PackedScene" path="res://scenes/vehicles/mch_field_fighter.tscn" id="12_fighter"]
 [ext_resource type="PackedScene" path="res://scenes/vehicles/mch_mobile_storage.tscn" id="13_storage"]
 [ext_resource type="Script" uid="uid://dmucf7smv5n8o" path="res://scripts/levels/ManipulatorBinding.cs" id="14_binding"]
+[ext_resource type="PackedScene" uid="uid://b5lbae1ec8qt1" path="res://art/voxels/prp_tree_small_a.vox" id="15_3aatu"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_tower_a.tscn" id="15_tower_a"]
+[ext_resource type="PackedScene" uid="uid://qlhkgutgdjsm" path="res://scenes/props/prp_tree_small_b.tscn" id="16_tmhn8"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_tower_b.tscn" id="16_tower_b"]
+[ext_resource type="PackedScene" uid="uid://c4dxvh5qnunot" path="res://scenes/props/prp_tree_small_c.tscn" id="17_srxke"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_tower_c.tscn" id="17_tower_c"]
 [ext_resource type="PackedScene" uid="uid://j3nja030bqkb" path="res://scenes/props/prp_tree_tall_a.tscn" id="18_ca6gp"]
+[ext_resource type="PackedScene" uid="uid://bd2xhlmhl3dw4" path="res://scenes/props/prp_tree_small_d.tscn" id="18_di5dw"]
+[ext_resource type="PackedScene" uid="uid://gpccog68au1x" path="res://scenes/props/prp_tree_small_e.tscn" id="19_ekdcc"]
+[ext_resource type="PackedScene" uid="uid://dyhlbin1lwkdp" path="res://scenes/props/prp_tree_tall_b.tscn" id="20_ayrk6"]
+[ext_resource type="PackedScene" uid="uid://bgwpipnjgm5pj" path="res://scenes/props/prp_tree_tall_c.tscn" id="21_4d8ml"]
+[ext_resource type="PackedScene" uid="uid://b248qnvhsql55" path="res://scenes/props/prp_tree_tall_d.tscn" id="22_tyqlc"]
+[ext_resource type="PackedScene" uid="uid://dejelddij8ggg" path="res://scenes/props/prp_tree_tall_e.tscn" id="23_60l8v"]
+[ext_resource type="PackedScene" uid="uid://7fca24rlt4ck" path="res://scenes/props/prp_vine_41051.tscn" id="24_ayrk6"]
+[ext_resource type="PackedScene" uid="uid://fd5827ugs3bj" path="res://scenes/props/prp_vine_44300.tscn" id="25_4d8ml"]
+[ext_resource type="PackedScene" uid="uid://b7k2n51522xq1" path="res://scenes/props/prp_vine_51522.tscn" id="26_tyqlc"]
+[ext_resource type="PackedScene" uid="uid://c4p8w31428q1a" path="res://scenes/props/prp_vine_3142857.tscn" id="27_60l8v"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_forest.tscn" id="28_forest"]
 
 [sub_resource type="BoxMesh" id="GroundMesh"]
 size = Vector3(1200, 2, 1200)
@@ -215,6 +229,50 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.938858, 0, 288.27142)
 
 [node name="prp_tree_tall_a2" parent="Props/Trees" unique_id=1649817828 instance=ExtResource("18_ca6gp")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 168.35934)
+
+[node name="prp_tree_small_a" parent="Props/Trees" unique_id=17547410 instance=ExtResource("15_3aatu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.674479, 0, 153.71645)
+
+[node name="prp_tree_small_b" parent="Props/Trees" unique_id=1882127785 instance=ExtResource("16_tmhn8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.382313, 7.6293945e-06, 171.59843)
+
+[node name="prp_tree_small_c" parent="Props/Trees" unique_id=709563017 instance=ExtResource("17_srxke")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.626495, 7.6293945e-06, 147.85716)
+
+[node name="prp_tree_small_d" parent="Props/Trees" unique_id=175672821 instance=ExtResource("18_di5dw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -43.95599, 0, 113.473206)
+
+[node name="prp_tree_small_e" parent="Props/Trees" unique_id=1628359117 instance=ExtResource("19_ekdcc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -84.76535, 7.6293945e-06, 189.784)
+
+[node name="prp_tree_tall_b" parent="Props/Trees" unique_id=734210897 instance=ExtResource("20_ayrk6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -81.05151, -7.6293945e-06, 195.56375)
+
+[node name="prp_tree_tall_c" parent="Props/Trees" unique_id=1798383552 instance=ExtResource("21_4d8ml")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -104.38498, 0, 289.5086)
+
+[node name="prp_tree_tall_d" parent="Props/Trees" unique_id=1732151323 instance=ExtResource("22_tyqlc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -151.63608, 0, 219.75732)
+
+[node name="prp_tree_tall_e" parent="Props/Trees" unique_id=528996001 instance=ExtResource("23_60l8v")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.4736, -7.6293945e-06, 175.23439)
+
+[node name="prp_tree_tall_d2" parent="Props/Trees" unique_id=1492949711 instance=ExtResource("22_tyqlc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -192.27802, 0, 203.72887)
+
+[node name="prp_vine_41051" parent="Props/Trees" unique_id=133866419 instance=ExtResource("24_ayrk6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -179.27338, -1.5258789e-05, -2.1609116)
+
+[node name="prp_vine_44300" parent="Props/Trees" unique_id=1281082489 instance=ExtResource("25_4d8ml")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -248.53363, 0, 42.52215)
+
+[node name="prp_vine_51522" parent="Props/Trees" unique_id=182396024 instance=ExtResource("26_tyqlc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -225.86023, 0, 141.73099)
+
+[node name="prp_vine_3142857" parent="Props/Trees" unique_id=1461444139 instance=ExtResource("27_60l8v")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -175.16225, -7.6293945e-06, 66.63972)
+
+[node name="VineForest" parent="Props" instance=ExtResource("28_forest")]
 
 [node name="Lighting" type="Node3D" parent="." unique_id=285727487]
 

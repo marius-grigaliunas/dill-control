@@ -48,6 +48,10 @@ uniform float roughness_value : hint_range(0.0, 1.0) = 0.94;
 uniform float planet_radius = 400.0;
 uniform float terrain_amplitude = 14.0;
 
+// An arena (decision 0026) is flat-world: up is +Y and planet_radius is the
+// height of "sea level" rather than a radius.
+uniform bool flat_ground = false;
+
 // How much the surface normal has to agree with up before the ground stops
 // being treated as cliff. 1.0 is flat, 0.0 is a vertical wall.
 uniform float rock_slope_start : hint_range(0.0, 1.0) = 0.965;
@@ -161,8 +165,8 @@ float value_noise(vec3 p) {
 void fragment() {
 	// One length() for both the up vector and the altitude, which were each
 	// taking their own square root of the same position.
-	float distance_from_centre = length(world_position);
-	vec3 up = world_position / max(distance_from_centre, 0.0001);
+	float distance_from_centre = flat_ground ? world_position.y : length(world_position);
+	vec3 up = flat_ground ? vec3(0.0, 1.0, 0.0) : world_position / max(distance_from_centre, 0.0001);
 	vec3 normal = normalize(world_normal);
 
 	// -1 at the deepest hollow, +1 at the highest ridge.

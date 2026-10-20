@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://gpccog68au1x"]
+
+[ext_resource type="Script" uid="uid://csjy6ff4bwc1m" path="res://scripts/voxel/VoxelBody.cs" id="1_p2038"]
+[ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_tree.tres" id="2_ml8in"]
+[ext_resource type="PackedScene" uid="uid://ce1bg325nsqu8" path="res://art/voxels/prp_tree_small_e.vox" id="3_4nrcj"]
+[ext_resource type="Script" path="res://scripts/foliage/PlantFlex.cs" id="90_flex"]
+[ext_resource type="Resource" path="res://resources/foliage/flex_tree.tres" id="91_flexstats"]
+
+[node name="prp_tree_small_e" type="Node3D" unique_id=174060837]
+
+[node name="Voxels" type="Node" parent="." unique_id=1790007313 node_paths=PackedStringArray("Model")]
+script = ExtResource("1_p2038")
+Model = NodePath("../Model")
+Stats = ExtResource("2_ml8in")
+Static = true
+WholeUntilChanged = true
+
+[node name="Model" parent="." unique_id=374371308 instance=ExtResource("3_4nrcj")]
+
+[node name="Flex" type="Node" parent="." node_paths=PackedStringArray("Body")]
+script = ExtResource("90_flex")
+Body = NodePath("../Voxels")
+Stats = ExtResource("91_flexstats")

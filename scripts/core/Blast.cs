@@ -126,6 +126,15 @@ public static class Blast
         /// </summary>
         public bool NoCrater { get; init; }
 
+        /// <summary>
+        /// A detonation: a rocket's warhead, a grenade, a bomb. Not a slam, a
+        /// burst of shot, a flame or a beam that reuses this path for its area.
+        /// What it hits is told (<see cref="DamageInfo.IsExplosive"/>): an
+        /// explosion shakes a tree, a rifle round or a knife only bites it
+        /// (docs/decisions/0032).
+        /// </summary>
+        public bool Explosive { get; init; }
+
         /// <summary>Damage share at a given distance from the centre.</summary>
         public float MultiplierAt(float distance) => FalloffMultiplier(distance, InnerRadius, Radius, MinMultiplier);
     }
@@ -330,6 +339,7 @@ public static class Blast
             Distance = hit.Distance,
             Source = blast.Source,
             IsSplash = true,
+            IsExplosive = blast.Explosive,
         };
 
         if (hit.Box != null)

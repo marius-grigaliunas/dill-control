@@ -1,5 +1,7 @@
 # 0023 The horde keeps to its nest until provoked, and roams it
 
+*Its aggro by distance is superseded by 0029 (proposed): the pickles never strike first.*
+
 *10 October 2026. Builds on 0008 and 0020. Changes the pitch's "the horde
 hunts you the whole time".*
 

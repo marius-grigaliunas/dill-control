@@ -3,6 +3,8 @@
 [ext_resource type="Script" uid="uid://csjy6ff4bwc1m" path="res://scripts/voxel/VoxelBody.cs" id="2_voxels"]
 [ext_resource type="PackedScene" uid="uid://ddcb15nkarpub" path="res://art/voxels/prp_tree_tall_a.vox" id="2_yc0yj"]
 [ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_tree.tres" id="3_tree"]
+[ext_resource type="Script" path="res://scripts/foliage/PlantFlex.cs" id="90_flex"]
+[ext_resource type="Resource" path="res://resources/foliage/flex_tree.tres" id="91_flexstats"]
 
 [node name="prp_tree_tall_a" type="Node3D" unique_id=174060837]
 
@@ -11,5 +13,11 @@ script = ExtResource("2_voxels")
 Model = NodePath("../Model")
 Stats = ExtResource("3_tree")
 Static = true
+WholeUntilChanged = true
 
 [node name="Model" parent="." unique_id=374371308 instance=ExtResource("2_yc0yj")]
+
+[node name="Flex" type="Node" parent="." node_paths=PackedStringArray("Body")]
+script = ExtResource("90_flex")
+Body = NodePath("../Voxels")
+Stats = ExtResource("91_flexstats")
