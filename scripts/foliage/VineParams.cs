@@ -4,14 +4,13 @@ using System.Collections.Generic;
 namespace DillControl.Foliage;
 
 /// <summary>
-/// One vine's settings, as <c>tools/vine-gen/js/vine.js</c> names them: a vine
-/// is these numbers and its seed. Rolled from a <see cref="VineKind"/>'s ranges,
-/// grown by <see cref="VineGenerator"/>. Every value is a double, as in the
-/// browser, so the same settings grow the same voxels.
+/// One vine's settings: a vine is these numbers and its seed. Rolled from a
+/// <see cref="VineKind"/>'s ranges, grown by <see cref="VineGenerator"/>.
 /// </summary>
 public sealed class VineParams
 {
-    public double Seed = 1;
+    // The first seed whose vine at these settings gives every pod its drop.
+    public double Seed = 3;
     public double HeightM = 80;
     public double VoxelSize = 0.5;
     public double RingCount = 10;
@@ -67,10 +66,10 @@ public sealed class VineParams
     private static Field B(string key, bool fallback, Func<VineParams, bool> get, Action<VineParams, bool> set) =>
         new() { Key = key, Bool = true, Min = 0, Max = 1, Fallback = fallback ? 1 : 0, Get = p => get(p) ? 1 : 0, Set = (p, v) => set(p, v != 0) };
 
-    /// <summary><c>VG.FIELDS</c>, in its order.</summary>
+    /// <summary>Every setting, in roll order.</summary>
     public static readonly IReadOnlyList<Field> Fields = new[]
     {
-        F("seed", 0, 9999999, 1, 1, p => p.Seed, (p, v) => p.Seed = v, integer: true),
+        F("seed", 0, 9999999, 1, 3, p => p.Seed, (p, v) => p.Seed = v, integer: true),
         F("heightM", 16, 120, 1, 80, p => p.HeightM, (p, v) => p.HeightM = v),
         F("voxelSize", 0.1, 1, 0.05, 0.5, p => p.VoxelSize, (p, v) => p.VoxelSize = v, global: true),
         F("ringCount", 1, 40, 1, 10, p => p.RingCount, (p, v) => p.RingCount = v, integer: true),
@@ -126,7 +125,7 @@ public sealed class VineParams
         return null;
     }
 
-    /// <summary><c>VG.clampParams</c>: every value inside its field, integers whole.</summary>
+    /// <summary>Every value inside its field, integers whole.</summary>
     public VineParams Clamped()
     {
         var clamped = Copy();
@@ -138,7 +137,7 @@ public sealed class VineParams
             if (!double.IsFinite(n))
                 n = f.Fallback;
             if (f.Integer)
-                n = JsMath.Round(n);
+                n = VineMath.Round(n);
             if (n < f.Min)
                 n = f.Min;
             if (n > f.Max)
@@ -150,61 +149,19 @@ public sealed class VineParams
 }
 
 /// <summary>
-/// The few places JavaScript's maths is not .NET's, done JavaScript's way so
-/// the port grows the browser's voxels exactly.
+/// The generator's maths. The trigonometry is fdlibm's, not .NET's, which
+/// differs in the last bit between runtimes and machines: the same seed grows
+/// the same vine everywhere.
 /// </summary>
-public static class JsMath
+public static class VineMath
 {
-    /// <summary><c>Math.round</c>: halves go up, -0.5 to -0.</summary>
-    public static double Round(double x)
-    {
-        double c = Math.Ceiling(x);
-        return c - 0.5 > x ? c - 1.0 : c;
-    }
+    /// <summary>Halves go up: 2.5 to 3, -2.5 to -2.</summary>
+    public static double Round(double x) => Math.Floor(x + 0.5);
 
-    /// <summary>V8's <c>Math.hypot</c>: scaled by the largest, Kahan-summed.
-    /// A plain square root differs in the last bit a third of the time.</summary>
-    public static double Hypot(double a, double b)
-    {
-        a = Math.Abs(a);
-        b = Math.Abs(b);
-        double max = Math.Max(a, b);
-        if (max == 0)
-            return 0;
-        double sum = 0, compensation = 0;
-        Kahan(a / max, ref sum, ref compensation);
-        Kahan(b / max, ref sum, ref compensation);
-        return Math.Sqrt(sum) * max;
-    }
+    public static double Hypot(double a, double b) => Math.Sqrt(a * a + b * b);
 
-    public static double Hypot(double a, double b, double c)
-    {
-        a = Math.Abs(a);
-        b = Math.Abs(b);
-        c = Math.Abs(c);
-        double max = a;
-        if (b > max)
-            max = b;
-        if (c > max)
-            max = c;
-        if (max == 0)
-            return 0;
-        double sum = 0, compensation = 0;
-        Kahan(a / max, ref sum, ref compensation);
-        Kahan(b / max, ref sum, ref compensation);
-        Kahan(c / max, ref sum, ref compensation);
-        return Math.Sqrt(sum) * max;
-    }
+    public static double Hypot(double a, double b, double c) => Math.Sqrt(a * a + b * b + c * c);
 
-    private static void Kahan(double n, ref double sum, ref double compensation)
-    {
-        double summand = n * n - compensation;
-        double preliminary = sum + summand;
-        compensation = (preliminary - sum) - summand;
-        sum = preliminary;
-    }
-
-    // V8's trigonometry is fdlibm's; .NET's differs in the last bit.
     public static double Sin(double x) => Fdlibm.Sin(x);
     public static double Cos(double x) => Fdlibm.Cos(x);
     public static double Tan(double x) => Fdlibm.Tan(x);

@@ -2,11 +2,11 @@
 
 [ext_resource type="Script" path="res://scripts/voxel/VoxelBody.cs" id="1_voxels"]
 [ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_vine.tres" id="2_stats"]
-[ext_resource type="PackedScene" path="res://art/voxels/prp_vine_weeping_7474758.vox" id="3_model"]
+[ext_resource type="PackedScene" path="res://art/voxels/prp_vine_heart_8349791.vox" id="3_model"]
 [ext_resource type="Script" path="res://scripts/foliage/PlantFlex.cs" id="4_flex"]
 [ext_resource type="Resource" path="res://resources/foliage/flex_vine.tres" id="5_flexstats"]
 
-[node name="prp_vine_weeping_7474758" type="Node3D"]
+[node name="prp_vine_heart_8349791" type="Node3D"]
 
 [node name="Voxels" type="Node" parent="." node_paths=PackedStringArray("Model")]
 script = ExtResource("1_voxels")

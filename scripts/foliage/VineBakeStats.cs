@@ -13,7 +13,7 @@ public partial class VineBakeStats : Resource
 {
     public const string DefaultPath = "res://resources/foliage/vine_bake.tres";
 
-    /// <summary>The seed pool seeds are drawn from (kinds.js poolSeed).</summary>
+    /// <summary>The seed pool seeds are drawn from (<see cref="VineKind.PoolSeed"/>).</summary>
     [Export(PropertyHint.Range, "0,9999999,1")] public int ArchetypeSeed { get; set; } = 1;
 
     /// <summary>Every vine's voxel, written into its .vox.import as <c>voxel/size</c>.</summary>

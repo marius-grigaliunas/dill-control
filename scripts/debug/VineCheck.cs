@@ -11,18 +11,21 @@ using Godot;
 namespace DillControl.Debug;
 
 /// <summary>
-/// Checks the vine generator headless: it grows what the browser prototype
-/// grows for the same settings (<c>tools/vine-gen/golden/golden.json</c>,
-/// written by <c>make-golden.js</c>), its vines pass the prototype's own
-/// checks, the .vox it writes reads back with the foot on the origin, and
+/// Checks the vine generator headless: the same seed grows the same voxels
+/// and pods as when the golden vines were recorded
+/// (<c>scripts/debug/vine_golden.json</c>), its vines pass the generator's
+/// own checks, the .vox it writes reads back with the foot on the origin, and
 /// every baked vine scene is the wrapper a vine needs. <c>vinecheck.gd</c>
-/// runs it; <c>vinecheck.gd -- dump name</c> writes one vine's voxels for a
-/// diff against <c>make-golden.js dump name</c>.
+/// runs it; <c>vinecheck.gd -- record</c> re-records the golden vines after a
+/// change meant to move them; <c>vinecheck.gd -- dump name</c> writes one
+/// golden vine's voxels for a diff.
 /// </summary>
 [GlobalClass]
 public partial class VineCheck : Node
 {
-    private const string GoldenPath = "res://tools/vine-gen/golden/golden.json";
+    private const string GoldenPath = "res://scripts/debug/vine_golden.json";
+    /// <summary>Pool vines recorded per kind.</summary>
+    private const int GoldenPool = 3;
 
     private StringBuilder _report;
     private bool _pass;
@@ -45,9 +48,9 @@ public partial class VineCheck : Node
         if (stats == null)
             return "FAIL\n" + _report;
 
-        _report.AppendLine("Against the browser:");
+        _report.AppendLine("Against the golden vines:");
         Golden(kinds, stats);
-        _report.AppendLine("The prototype's checks:");
+        _report.AppendLine("The generator's checks:");
         Prototype(kinds, stats);
         _report.AppendLine("Written and read back:");
         Written(stats);
@@ -86,7 +89,7 @@ public partial class VineCheck : Node
         return p;
     }
 
-    // FNV-1a over each voxel as x, y, z (two bytes each, little end) and colour, as make-golden.js.
+    // FNV-1a over each voxel as x, y, z (two bytes each, little end) and colour.
     private static uint VoxelHash(List<VineGenerator.Voxel> voxels)
     {
         uint h = 2166136261;
@@ -107,7 +110,7 @@ public partial class VineCheck : Node
         string path = ProjectSettings.GlobalizePath(GoldenPath);
         if (!File.Exists(path))
         {
-            Check("golden file", false, $"{path} missing: node tools/vine-gen/make-golden.js");
+            Check("golden file", false, $"{path} missing: vinecheck.gd -- record");
             return;
         }
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path));
@@ -119,13 +122,13 @@ public partial class VineCheck : Node
             string name = g.GetProperty("name").GetString();
             VineParams p = ParamsOf(g.GetProperty("params"));
 
-            // A pool vine: its seed and every rolled setting must be the browser's, exactly.
+            // A pool vine: its seed and every rolled setting must be as recorded, exactly.
             int underscore = name.IndexOf('_');
             string kindName = underscore > 0 ? char.ToUpperInvariant(name[0]) + name.Substring(1, underscore - 1) : null;
             if (kindName != null && kinds.TryGetValue(kindName, out VineKind kind))
             {
                 int seed = int.Parse(name.Substring(underscore + 1));
-                bool inPool = Enumerable.Range(0, 3).Any(i => kind.PoolSeed(archetypeSeed, i) == seed);
+                bool inPool = Enumerable.Range(0, GoldenPool).Any(i => kind.PoolSeed(archetypeSeed, i) == seed);
                 VineParams rolled = kind.Roll(seed, Math.Round((double)stats.VoxelSize, 6));
                 var differ = VineParams.Fields.Where(f => f.Get(rolled) != f.Get(p)).Select(f => $"{f.Key} {f.Get(rolled)} vs {f.Get(p)}").ToList();
                 Check($"{name}: pool seed and rolled settings", inPool && differ.Count == 0, string.Join("; ", differ));
@@ -149,8 +152,8 @@ public partial class VineCheck : Node
                 Check($"{name}: same voxels and pods", true, $"{vine.Counts.Total} voxels, {ours.Count} pods, {ms} ms");
                 continue;
             }
-            // Not exact: a porting bug (the trigonometry is fdlibm's, as V8's).
-            // How far off, layer by layer, says where to diff (dump).
+            // Not exact: something moved the generator. If it was meant to,
+            // re-record; how far off, layer by layer, says where to look (dump).
             int[] layers = g.GetProperty("layers").EnumerateArray().Select(e => e.GetInt32()).ToArray();
             var mine = new int[Math.Max(layers.Length, vine.BoundsZ)];
             foreach (VineGenerator.Voxel v in vine.Voxels)
@@ -166,7 +169,81 @@ public partial class VineCheck : Node
             Check($"{name}: voxels differ", false,
                 $"{vine.Counts.Total} vs {wantTotal} voxels, {off} off by layer from z {firstLayer}, pods {(markersSame ? "same" : $"differ ({ours.Count} vs {markers.Count})")}");
         }
-        _report.AppendLine($"  {exact} of {total} vines exactly the browser's");
+        _report.AppendLine($"  {exact} of {total} vines exactly as recorded");
+    }
+
+    /// <summary>Writes the golden file: the fixed-setting vines already in it
+    /// keep their settings and are regrown, and each kind's first pool vines
+    /// are rolled afresh. Returns what was written.</summary>
+    public string Record()
+    {
+        var stats = GD.Load<VineBakeStats>(VineBakeStats.DefaultPath);
+        Dictionary<string, VineKind> kinds = LoadKinds();
+        string path = ProjectSettings.GlobalizePath(GoldenPath);
+        var presets = new List<(string Name, VineParams Params)>();
+        if (File.Exists(path))
+        {
+            using JsonDocument old = JsonDocument.Parse(File.ReadAllText(path));
+            foreach (JsonElement g in old.RootElement.GetProperty("vines").EnumerateArray())
+            {
+                string name = g.GetProperty("name").GetString();
+                if (!name.Contains('_') || !char.IsDigit(name[^1]))
+                    presets.Add((name, ParamsOf(g.GetProperty("params"))));
+            }
+        }
+        if (presets.Count == 0)
+            presets.Add(("default", new VineParams().Clamped()));
+
+        double vs = Math.Round((double)stats.VoxelSize, 6);
+        var all = new List<(string Name, VineParams Params)>(presets);
+        foreach (VineKind kind in kinds.Values.OrderBy(k => k.KindName))
+        {
+            for (int i = 0; i < GoldenPool; i++)
+            {
+                int seed = kind.PoolSeed(stats.ArchetypeSeed, i);
+                all.Add(($"{kind.Slug}_{seed}", kind.Roll(seed, vs)));
+            }
+        }
+
+        var vines = new Godot.Collections.Array();
+        var lines = new StringBuilder();
+        foreach ((string name, VineParams p) in all)
+        {
+            VineGenerator.Result vine = VineGenerator.Generate(p);
+            var settings = new Godot.Collections.Dictionary();
+            foreach (VineParams.Field field in VineParams.Fields)
+            {
+                double v = field.Get(p);
+                settings[field.Key] = field.Bool ? v != 0 : v;
+            }
+            var layers = new int[vine.BoundsZ];
+            foreach (VineGenerator.Voxel v in vine.Voxels)
+                layers[v.Z]++;
+            var markers = new Godot.Collections.Array();
+            foreach (VineGenerator.Marker m in vine.Markers)
+                markers.Add(new Godot.Collections.Array { m.Name, m.X, m.Y, m.Z });
+            vines.Add(new Godot.Collections.Dictionary
+            {
+                ["name"] = name,
+                ["params"] = settings,
+                ["ok"] = vine.Ok,
+                ["counts"] = new Godot.Collections.Dictionary { ["total"] = vine.Counts.Total },
+                ["bounds"] = new Godot.Collections.Array { vine.BoundsX, vine.BoundsY, vine.BoundsZ },
+                ["hash"] = VoxelHash(vine.Voxels),
+                ["layers"] = new Godot.Collections.Array(layers.Select(n => Variant.From(n))),
+                ["markers"] = markers,
+            });
+            lines.AppendLine($"  {name}: {vine.Counts.Total} voxels, {vine.Markers.Count} pods{(vine.Ok ? "" : "  (" + vine.Error + ")")}");
+        }
+        var data = new Godot.Collections.Dictionary
+        {
+            ["tool"] = VineBaker.Tool,
+            ["version"] = VineBaker.Version,
+            ["archetypeSeed"] = stats.ArchetypeSeed,
+            ["vines"] = vines,
+        };
+        File.WriteAllText(path, Json.Stringify(data, "  ", sortKeys: false) + "\n");
+        return $"Recorded {vines.Count} golden vines to {GoldenPath}\n{lines}";
     }
 
     private void Prototype(Dictionary<string, VineKind> kinds, VineBakeStats stats)

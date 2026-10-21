@@ -3,12 +3,11 @@ using System;
 namespace DillControl.Foliage;
 
 /// <summary>
-/// sin, cos, tan, atan2 and exp as fdlibm computes them, which is what V8's
-/// <c>Math</c> does (src/base/ieee754.cc), so the vine generator grows the
-/// browser prototype's voxels bit for bit. .NET's own differ in the last bit
-/// on 2-18 % of inputs, and a vine's voxels sit on floor() thresholds.
-/// Only the range the generator uses is ported (|x| under 2^19 pi/2);
-/// past it, .NET's answer. Bake-time only (docs/decisions/0033).
+/// sin, cos, tan, atan2 and exp as fdlibm computes them (the port follows
+/// V8's src/base/ieee754.cc), so a seed grows the same vine on every machine
+/// and runtime. .NET's own differ in the last bit on 2-18 % of inputs between
+/// versions, and a vine's voxels sit on floor() thresholds. Only the range the
+/// generator uses is ported (|x| under 2^19 pi/2); past it, .NET's answer.
 /// </summary>
 public static class Fdlibm
 {

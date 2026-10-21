@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://ceyoimqda02q0"
-path="res://.godot/imported/prp_vine_leafy_7103694.vox-9e87fedf021be742658f677878f15788.scn"
+uid="uid://b2fa8tarvyaaf"
+path="res://.godot/imported/prp_vine_fruiting_4532344.vox-f1b790ff421065a91a5d31de232fbfc7.scn"
 
 [deps]
 
-source_file="res://art/voxels/prp_vine_leafy_7103694.vox"
-dest_files=["res://.godot/imported/prp_vine_leafy_7103694.vox-9e87fedf021be742658f677878f15788.scn"]
+source_file="res://art/voxels/prp_vine_fruiting_4532344.vox"
+dest_files=["res://.godot/imported/prp_vine_fruiting_4532344.vox-f1b790ff421065a91a5d31de232fbfc7.scn"]
 
 [params]
 

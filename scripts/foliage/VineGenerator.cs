@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using DillControl.Core;
 
 namespace DillControl.Foliage;
 
 /// <summary>
 /// A giant pickle vine as voxels, in MagicaVoxel space: X and Y across, Z up.
-/// A port of <c>tools/vine-gen/js/vine.js</c>, function for function and in
-/// its order, so the same settings grow the same voxels (checked by
-/// <c>scripts/debug/vinecheck.gd</c> against the browser's own output).
+/// The same settings grow the same voxels on every machine: rolls go through
+/// <see cref="SeededRandom"/> streams and the trigonometry is fdlibm's
+/// (<c>scripts/debug/vinecheck.gd</c> holds it to its recorded golden vines).
 ///
 /// The whole shape is one object: Godot turns each MagicaVoxel object into
 /// its own destructible part, and a static part is held by the bottom layer
@@ -65,7 +66,7 @@ public static class VineGenerator
     {
         public int Shell, Knuckle, Core, Leaf, Tendril, Bridged, Stranded, Total, Markers, PodsBlocked, PodsGrounded;
         public double PodSpacingM;
-        // Not in the browser's counts: bodies at the vine's section edge.
+        // Bodies at the vine's section edge.
         public int Bodies;
     }
 
@@ -95,7 +96,7 @@ public static class VineGenerator
     private static V3 Scale(V3 a, double s) => new(a.X * s, a.Y * s, a.Z * s);
     private static double Dot(V3 a, V3 b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
     private static V3 Cross(V3 a, V3 b) => new(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
-    private static double Len(V3 a) => JsMath.Hypot(a.X, a.Y, a.Z);
+    private static double Len(V3 a) => VineMath.Hypot(a.X, a.Y, a.Z);
 
     private static V3 Norm(V3 a)
     {
@@ -105,8 +106,8 @@ public static class VineGenerator
 
     private static V3 RotateAround(V3 v, V3 axis, double ang)
     {
-        double c = JsMath.Cos(ang);
-        double s = JsMath.Sin(ang);
+        double c = VineMath.Cos(ang);
+        double s = VineMath.Sin(ang);
         double k = Dot(axis, v);
         V3 cr = Cross(axis, v);
         return new V3(
@@ -183,11 +184,11 @@ public static class VineGenerator
         public V3 End, Out;
     }
 
-    private static Func<double, double> Noise1D(VineRandom rng)
+    private static Func<double, double> Noise1D(SeededRandom rng)
     {
         var table = new float[256];
         for (int i = 0; i < 256; i++)
-            table[i] = (float)(rng.Next() * 2 - 1);
+            table[i] = (float)(rng.NextDouble() * 2 - 1);
         return x =>
         {
             double i = Math.Floor(x);
@@ -240,10 +241,10 @@ public static class VineGenerator
 
     private static Samples BuildSamples(VineParams p, double heightV, double baseV, double tipV)
     {
-        VineRandom rng = VineRandom.Stream((int)p.Seed, "centerline");
+        SeededRandom rng = SeededRandom.Stream((uint)p.Seed, "vine:centerline");
         Func<double, double> noiseX = Noise1D(rng);
         Func<double, double> noiseY = Noise1D(rng);
-        double lean = JsMath.Tan(p.LeanDeg * Math.PI / 180);
+        double lean = VineMath.Tan(p.LeanDeg * Math.PI / 180);
         double radius = p.HelixTurns == 0 ? 0 : p.TrellisRadiusM / p.VoxelSize;
         double wobble = p.WobbleM / p.VoxelSize;
         int steps = (int)Math.Max(16, Math.Ceiling(heightV * 4));
@@ -255,8 +256,8 @@ public static class VineGenerator
             double z = t * heightV;
             double fade = FadeIn(t, fadeSpan);
             double theta = p.HelixTurns * Tau * t;
-            double x = radius * (JsMath.Cos(theta) - 1);
-            double y = radius * JsMath.Sin(theta);
+            double x = radius * (VineMath.Cos(theta) - 1);
+            double y = radius * VineMath.Sin(theta);
             x += fade * wobble * noiseX(t * p.WobbleFrequency);
             y += fade * wobble * noiseY(t * p.WobbleFrequency + 19);
             x += z * lean;
@@ -280,7 +281,7 @@ public static class VineGenerator
         normal = Norm(normal);
 
         double bare = Math.Min(total * 0.8, p.BareStalkM / p.VoxelSize);
-        List<Ring> rings = PlaceRings((int)p.RingCount, bare, total, VineRandom.Stream((int)p.Seed, "rings"), p.Irregularity);
+        List<Ring> rings = PlaceRings((int)p.RingCount, bare, total, SeededRandom.Stream((uint)p.Seed, "vine:rings"), p.Irregularity);
         var list = new List<Sample>(pts.Count);
         for (int i = 0; i < pts.Count; i++)
         {
@@ -290,7 +291,7 @@ public static class VineGenerator
                 double s = Len(axis);
                 double c = Math.Max(-1, Math.Min(1, Dot(tangents[i - 1], tangents[i])));
                 if (s > 1e-6)
-                    normal = RotateAround(normal, Scale(axis, 1 / s), JsMath.Atan2(s, c));
+                    normal = RotateAround(normal, Scale(axis, 1 / s), VineMath.Atan2(s, c));
                 normal = Sub(normal, Scale(tangents[i], Dot(normal, tangents[i])));
                 normal = Len(normal) < 1e-6 ? new V3(1, 0, 0) : Norm(normal);
             }
@@ -358,9 +359,9 @@ public static class VineGenerator
     {
         if (p.TipNodDeg <= 0)
             return;
-        VineRandom rng = VineRandom.Stream((int)p.Seed, "nod");
-        double heading = rng.Next() * Tau;
-        var axis = new V3(-JsMath.Sin(heading), JsMath.Cos(heading), 0);
+        SeededRandom rng = SeededRandom.Stream((uint)p.Seed, "vine:nod");
+        double heading = rng.NextDouble() * Tau;
+        var axis = new V3(-VineMath.Sin(heading), VineMath.Cos(heading), 0);
         double max = p.TipNodDeg * Math.PI / 180;
         const double from = 0.72;
         V3 prevOld = raw[0];
@@ -378,12 +379,12 @@ public static class VineGenerator
 
     // Rings share the stalk above the bare foot. Irregularity moves each by up
     // to a third of the spacing, so rings never cross and pods keep their order.
-    private static List<Ring> PlaceRings(int count, double bare, double total, VineRandom rng, double irregularity)
+    private static List<Ring> PlaceRings(int count, double bare, double total, SeededRandom rng, double irregularity)
     {
         var rings = new List<Ring>(count);
         for (int i = 0; i < count; i++)
         {
-            double jitter = (rng.Next() - 0.5) * 0.66 * irregularity;
+            double jitter = (rng.NextDouble() - 0.5) * 0.66 * irregularity;
             rings.Add(new Ring { Index = i, Arc = bare + ((i + 0.5 + jitter) / count) * (total - bare) });
         }
         return rings;
@@ -530,7 +531,7 @@ public static class VineGenerator
         var arms = new List<Arm>();
         if (p.ArmsPerRing <= 0)
             return arms;
-        VineRandom rng = VineRandom.Stream((int)p.Seed, "arms");
+        SeededRandom rng = SeededRandom.Stream((uint)p.Seed, "vine:arms");
         double vs = p.VoxelSize;
         double twist = p.PodTwistDeg * Math.PI / 180;
         double slot = Tau / p.ArmsPerRing;
@@ -542,11 +543,11 @@ public static class VineGenerator
             Sample sample = ring.Sample;
             for (int a = 0; a < p.ArmsPerRing; a++)
             {
-                double angle = i * twist + a * slot + (rng.Next() - 0.5) * 0.9 * irr;
-                double lengthV = (p.ArmLengthM / vs) * (1 + (rng.Next() - 0.5) * 0.7 * irr);
-                double rise = (p.ArmRiseDeg + (rng.Next() - 0.5) * 30 * irr) * Math.PI / 180;
-                double sag = p.ArmSag * (1 + (rng.Next() - 0.5) * 0.6 * irr);
-                double swing = (rng.Next() - 0.5) * 0.6 * irr;
+                double angle = i * twist + a * slot + (rng.NextDouble() - 0.5) * 0.9 * irr;
+                double lengthV = (p.ArmLengthM / vs) * (1 + (rng.NextDouble() - 0.5) * 0.7 * irr);
+                double rise = (p.ArmRiseDeg + (rng.NextDouble() - 0.5) * 30 * irr) * Math.PI / 180;
+                double sag = p.ArmSag * (1 + (rng.NextDouble() - 0.5) * 0.6 * irr);
+                double swing = (rng.NextDouble() - 0.5) * 0.6 * irr;
                 V3 outward = DirectionAt(sample, angle);
                 outward = Norm(new V3(outward.X, outward.Y, 0));
                 var across = new V3(-outward.Y, outward.X, 0);
@@ -556,8 +557,8 @@ public static class VineGenerator
                 for (int s = 0; s <= steps; s++)
                 {
                     double u = (double)s / steps;
-                    double reach = sample.Radius * 0.5 + lengthV * JsMath.Cos(rise) * u * (1 - 0.18 * u);
-                    double lift = lengthV * (JsMath.Sin(rise) * u - sag * u * u * 0.6);
+                    double reach = sample.Radius * 0.5 + lengthV * VineMath.Cos(rise) * u * (1 - 0.18 * u);
+                    double lift = lengthV * (VineMath.Sin(rise) * u - sag * u * u * 0.6);
                     raw.Add(Add(root, Add(Scale(outward, reach), Add(Scale(across, swing * lengthV * u * u), new V3(0, 0, lift)))));
                 }
                 double r0 = Math.Max(1, ring.MidRadius * p.ArmThickness);
@@ -584,7 +585,7 @@ public static class VineGenerator
                 arm[0].H = 0;
                 for (int k = 1; k < arm.Count; k++)
                 {
-                    reachSum += JsMath.Hypot(arm[k].X - arm[k - 1].X, arm[k].Y - arm[k - 1].Y);
+                    reachSum += VineMath.Hypot(arm[k].X - arm[k - 1].X, arm[k].Y - arm[k - 1].Y);
                     arm[k].H = reachSum;
                 }
                 for (int k = 0; k < arm.Count; k++)
@@ -622,7 +623,7 @@ public static class VineGenerator
     // other voxel is down, so a leaf cannot sit on one.
     private static List<Pod> HangPods(Cells cells, Samples samples, List<Arm> arms, VineParams p)
     {
-        VineRandom rng = VineRandom.Stream((int)p.Seed, "pods");
+        SeededRandom rng = SeededRandom.Stream((uint)p.Seed, "vine:pods");
         List<Ring> rings = samples.Rings;
         double twist = p.PodTwistDeg * Math.PI / 180;
         double slot = Tau / p.PodsPerRing;
@@ -642,7 +643,7 @@ public static class VineGenerator
                     {
                         double gap = share == 1 ? 0.3 : 0.6 / (share - 1);
                         double u = share == 1 ? 0.75 : 0.38 + gap * j;
-                        Sample at = SampleAtH(mine[a].Samples, Math.Min(1, u + (rng.Next() - 0.5) * gap * 0.5 * p.Irregularity));
+                        Sample at = SampleAtH(mine[a].Samples, Math.Min(1, u + (rng.NextDouble() - 0.5) * gap * 0.5 * p.Irregularity));
                         var top = new V3(at.X, at.Y, at.Z - at.Radius);
                         var end = new V3(top.X, top.Y, top.Z - stem);
                         if (stem > 0)
@@ -655,7 +656,7 @@ public static class VineGenerator
             {
                 for (int s = 0; s < podsPerRing; s++)
                 {
-                    double angle = i * twist + s * slot + (rng.Next() - 0.5) * 0.5 * p.Irregularity;
+                    double angle = i * twist + s * slot + (rng.NextDouble() - 0.5) * 0.5 * p.Irregularity;
                     V3 dir = DirectionAt(sample, angle);
                     V3 surface = Add(sample.P, Scale(dir, sample.Radius + 1));
                     V3 end = Add(surface, new V3(dir.X * Math.Min(2, stem * 0.3), dir.Y * Math.Min(2, stem * 0.3), -stem));
@@ -694,12 +695,12 @@ public static class VineGenerator
                 d -= Tau;
             if (d < -Math.PI)
                 d += Tau;
-            double g = JsMath.Exp(-(d * d) / (2 * w * w));
+            double g = VineMath.Exp(-(d * d) / (2 * w * w));
             double v = amp * g;
             if (v > r)
                 r = v;
         }
-        double back = Math.Max(0, -JsMath.Cos(theta));
+        double back = Math.Max(0, -VineMath.Cos(theta));
         return r * (1 - 0.5 * back * back);
     }
 
@@ -720,7 +721,7 @@ public static class VineGenerator
 
     private static void PlotLine(Cells cells, V3 a, V3 b, int colour)
     {
-        int steps = (int)Math.Max(1, Math.Ceiling(JsMath.Hypot(b.X - a.X, b.Y - a.Y, b.Z - a.Z) * 2));
+        int steps = (int)Math.Max(1, Math.Ceiling(VineMath.Hypot(b.X - a.X, b.Y - a.Y, b.Z - a.Z) * 2));
         for (int i = 0; i <= steps; i++)
         {
             double t = (double)i / steps;
@@ -733,11 +734,11 @@ public static class VineGenerator
     }
 
     private static V3 DirectionAt(Sample sample, double angle) =>
-        Norm(Add(Scale(sample.N, JsMath.Cos(angle)), Scale(sample.B, JsMath.Sin(angle))));
+        Norm(Add(Scale(sample.N, VineMath.Cos(angle)), Scale(sample.B, VineMath.Sin(angle))));
 
     private static void AddLeaves(Cells cells, Samples samples, List<Arm> arms, VineParams p)
     {
-        VineRandom rng = VineRandom.Stream((int)p.Seed, "leaves");
+        SeededRandom rng = SeededRandom.Stream((uint)p.Seed, "vine:leaves");
         double lengthV = p.LeafSizeM / p.VoxelSize;
         double droop = p.LeafDroopDeg * Math.PI / 180;
         double tilt = p.LeafTiltDeg * Math.PI / 180;
@@ -750,7 +751,7 @@ public static class VineGenerator
             Sample sample = rings[i].Sample;
             for (int leaf = 0; leaf < p.LeavesPerRing; leaf++)
             {
-                double angle = i * twist + (leaf + 0.5) * slot + (rng.Next() - 0.5) * 0.3;
+                double angle = i * twist + (leaf + 0.5) * slot + (rng.NextDouble() - 0.5) * 0.3;
                 V3 outward = DirectionAt(sample, angle);
                 V3 origin = Add(sample.P, Scale(outward, sample.Radius));
                 DrawLeaf(cells, origin, outward, lengthV, droop, tilt);
@@ -766,9 +767,9 @@ public static class VineGenerator
             for (int k = 0; k < p.LeavesPerArm; k++)
             {
                 int side = k % 2 == 0 ? 1 : -1;
-                Sample at = SampleAtH(tube, 0.22 + 0.7 * (k + 0.5) / p.LeavesPerArm + (rng.Next() - 0.5) * 0.08);
+                Sample at = SampleAtH(tube, 0.22 + 0.7 * (k + 0.5) / p.LeavesPerArm + (rng.NextDouble() - 0.5) * 0.08);
                 V3 outward = Norm(Add(Add(Scale(across, side), Scale(armOut, 0.45)), new V3(0, 0, 0.25)));
-                DrawLeaf(cells, Add(at.P, Scale(outward, at.Radius)), outward, lengthV * (0.75 + rng.Next() * 0.25), droop, tilt);
+                DrawLeaf(cells, Add(at.P, Scale(outward, at.Radius)), outward, lengthV * (0.75 + rng.NextDouble() * 0.25), droop, tilt);
             }
             if (!p.ArmTipLeaf)
                 continue;
@@ -780,13 +781,13 @@ public static class VineGenerator
 
     private static void DrawLeaf(Cells cells, V3 origin, V3 outward, double lengthV, double droop, double tilt)
     {
-        V3 midrib = Norm(Add(Scale(outward, JsMath.Cos(droop)), new V3(0, 0, -JsMath.Sin(droop))));
+        V3 midrib = Norm(Add(Scale(outward, VineMath.Cos(droop)), new V3(0, 0, -VineMath.Sin(droop))));
         V3 side = Cross(midrib, new V3(0, 0, 1));
         if (Len(side) < 1e-4)
             side = Cross(midrib, new V3(1, 0, 0));
         side = Norm(side);
         V3 normal = Norm(Cross(side, midrib));
-        side = Norm(Add(Scale(side, JsMath.Cos(tilt)), Scale(normal, JsMath.Sin(tilt))));
+        side = Norm(Add(Scale(side, VineMath.Cos(tilt)), Scale(normal, VineMath.Sin(tilt))));
 
         double reach = lengthV * 0.72;
         V3 center = Add(origin, Scale(midrib, lengthV * 0.28));
@@ -797,8 +798,8 @@ public static class VineGenerator
         {
             for (double v = -reach; v <= reach; v += step)
             {
-                double theta = JsMath.Atan2(v, u);
-                double rho = JsMath.Hypot(u, v);
+                double theta = VineMath.Atan2(v, u);
+                double rho = VineMath.Hypot(u, v);
                 if (rho > LobeRadius(theta) * reach)
                     continue;
                 V3 point = Add(center, Add(Scale(midrib, u), Scale(side, v)));
@@ -810,7 +811,7 @@ public static class VineGenerator
     // Tendrils curl off the stalk, or off the arms' last third when there are arms.
     private static void AddTendrils(Cells cells, Samples samples, List<Arm> arms, VineParams p)
     {
-        VineRandom rng = VineRandom.Stream((int)p.Seed, "tendrils");
+        SeededRandom rng = SeededRandom.Stream((uint)p.Seed, "vine:tendrils");
         List<Ring> rings = samples.Rings;
         double slot = Tau / p.PodsPerRing;
         double twist = p.PodTwistDeg * Math.PI / 180;
@@ -818,13 +819,13 @@ public static class VineGenerator
         int usable = Math.Max(1, rings.Count - 1);
         for (int n = 0; n < p.TendrilCount; n++)
         {
-            Ring ring = rings[(int)Math.Floor(rng.Next() * usable)];
+            Ring ring = rings[(int)Math.Floor(rng.NextDouble() * usable)];
             Sample sample = ring.Sample;
-            V3 outward = DirectionAt(sample, ring.Index * twist + (Math.Floor(rng.Next() * p.PodsPerRing) + 0.5) * slot);
+            V3 outward = DirectionAt(sample, ring.Index * twist + (Math.Floor(rng.NextDouble() * p.PodsPerRing) + 0.5) * slot);
             if (arms.Count > 0)
             {
-                Arm arm = arms[(int)Math.Floor(rng.Next() * arms.Count)];
-                sample = SampleAtU(arm.Samples, 0.65 + rng.Next() * 0.35);
+                Arm arm = arms[(int)Math.Floor(rng.NextDouble() * arms.Count)];
+                sample = SampleAtU(arm.Samples, 0.65 + rng.NextDouble() * 0.35);
                 outward = Norm(Add(arm.Out, new V3(0, 0, 0.6)));
             }
             V3 side = Norm(Cross(outward, sample.T));
@@ -838,8 +839,8 @@ public static class VineGenerator
                 double curl = 0.35 + t * 2.4;
                 V3 point = Add(start, Add(
                     Scale(outward, t * lengthV * 0.55),
-                    Add(Scale(side, JsMath.Cos(ang) * curl),
-                        Add(Scale(sample.T, JsMath.Sin(ang) * curl), new V3(0, 0, -t * lengthV * 0.18)))));
+                    Add(Scale(side, VineMath.Cos(ang) * curl),
+                        Add(Scale(sample.T, VineMath.Sin(ang) * curl), new V3(0, 0, -t * lengthV * 0.18)))));
                 PlotLine(cells, prev, point, Tendril);
                 prev = point;
             }
@@ -1149,7 +1150,7 @@ public static class VineGenerator
         {
             for (int j = i + 1; j < markers.Count; j++)
             {
-                double d = JsMath.Hypot(markers[i].X - markers[j].X, markers[i].Y - markers[j].Y, markers[i].Z - markers[j].Z);
+                double d = VineMath.Hypot(markers[i].X - markers[j].X, markers[i].Y - markers[j].Y, markers[i].Z - markers[j].Z);
                 if (d < nearest)
                     nearest = d;
             }

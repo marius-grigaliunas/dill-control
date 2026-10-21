@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://usbnwoglan37"
-path="res://.godot/imported/prp_vine_heart_6303521.vox-c39e2ede518830fc72b4d24216f51ab1.scn"
+uid="uid://es1l5p7c8lk3"
+path="res://.godot/imported/prp_vine_leafy_4045241.vox-b151391e30778e68ecfc49cc382833d7.scn"
 
 [deps]
 
-source_file="res://art/voxels/prp_vine_heart_6303521.vox"
-dest_files=["res://.godot/imported/prp_vine_heart_6303521.vox-c39e2ede518830fc72b4d24216f51ab1.scn"]
+source_file="res://art/voxels/prp_vine_leafy_4045241.vox"
+dest_files=["res://.godot/imported/prp_vine_leafy_4045241.vox-b151391e30778e68ecfc49cc382833d7.scn"]
 
 [params]
 

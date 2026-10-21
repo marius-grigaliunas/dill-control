@@ -92,8 +92,7 @@ with no body to ask `GetGravity()` asks `WorldUp`, never `Vector3.Up`. See
 
 **Generation draws from authored pools and one seed.** A contract is a seed;
 every roll goes through `SeededRandom` with a named stream, never `GD.Randi`
-or `System.Random` (the one exception is bake-time: the vine generator keeps
-the browser prototype's own streams, `docs/decisions/0033`). A planet rolls inside a `PlanetArchetype`'s ranges and
+or `System.Random`. A planet rolls inside a `PlanetArchetype`'s ranges and
 wears a `PlanetBiome`; a range widens only after `bench.gd planets` holds at
 it. See `docs/decisions/0018`. A compound is a seeded layout of authored
 cluster scenes from a `CompoundKit`: the seed decides where, never what
@@ -199,9 +198,11 @@ proposed). The Vines dock (`addons/vine_gen`) rolls a vine from a kind
 `art/voxels/prp_vine_<kind>_<seed>.vox` and `scenes/props/prp_vine_<kind>_<seed>.tscn`,
 the wrapper above, with the stalk's foot on the scene origin. Its palette is
 `vine_palette.tres` (deep greens, never neon), its checks and voxel size
-`vine_bake.tres`. `VineGenerator` matches `tools/vine-gen` voxel for voxel
-until the prototype retires: after changing either, `node make-golden.js`
-there and run `vinecheck.gd`. What comes next (the main-screen Vines tool,
+`vine_bake.tres`. A seed grows the same vine on every machine: its rolls are
+`SeededRandom` streams and its trigonometry is `Fdlibm`'s, never .NET's.
+`vinecheck.gd` holds the generator to its recorded golden vines
+(`scripts/debug/vine_golden.json`); a change meant to move them re-records
+with `vinecheck.gd -- record`. What comes next (the main-screen Vines tool,
 nests generated on the planet, pods that regrow per `docs/decisions/0034`)
 is `docs/handoffs/vine-tool.md`.
 
@@ -263,10 +264,11 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --headless --path . --script scripts/debug/seedcheck.gd -- 20                                      # same seed, same planet; cube seams
 "$GODOT" --headless --path . --script scripts/debug/graphcheck.gd -- 40                                     # chunk graph vs a cell flood: what falls, what floats
 "$GODOT" --headless --path . --script scripts/debug/flexcheck.gd                                            # a plant's spine: its period, settling, a pull, a cut
-"$GODOT" --headless --path . --script scripts/debug/vinecheck.gd                                            # vine generator vs the browser's golden vines; every baked vine's wrapper and foot
+"$GODOT" --headless --path . --script scripts/debug/vinecheck.gd                                            # vine generator vs its golden vines; every baked vine's wrapper and foot
+"$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- record                                  # re-record the golden vines, only after a change meant to move them
 "$GODOT" --headless --path . --script scripts/debug/vinebake.gd -- fruiting pool:0                          # bake a vine as the dock does (then --editor --quit to import)
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex          # a vine in the wind, rocketed, swung on, stood on, bitten and felled
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex prp_vine_fruiting_2101677 40  # any vine by name; shots at 40 m keep it standing
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex prp_vine_fruiting_4532344 40  # any vine by name; shots at 40 m keep it standing
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn forest        # 85 vines 100 m apart (prp_vine_forest) round the middle: spawn, edge, among them, a swing
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn forestab      # what the forest costs the GPU: shadows, ink, bending, the forest
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn collapse sink  # any mode + sink: pieces under the ground or with boxes off their voxels

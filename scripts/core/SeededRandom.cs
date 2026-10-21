@@ -50,6 +50,9 @@ public sealed class SeededRandom
     /// <summary>Uniform in [0, 1).</summary>
     public float NextFloat() => (NextULong() >> 40) / (float)(1UL << 24);
 
+    /// <summary>Uniform in [0, 1), all 53 bits of a double.</summary>
+    public double NextDouble() => (NextULong() >> 11) * (1.0 / (1UL << 53));
+
     /// <summary>Uniform in [min, max].</summary>
     public float Range(float min, float max) => min + ((max - min) * NextFloat());
 

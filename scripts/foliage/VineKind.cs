@@ -1,4 +1,5 @@
 using System;
+using DillControl.Core;
 using Godot;
 
 namespace DillControl.Foliage;
@@ -8,7 +9,7 @@ namespace DillControl.Foliage;
 /// named stream, so widening one range never reshuffles the others. A kind's
 /// pool is a handful of seeds; each baked vine is one of them
 /// (docs/decisions/0018, 0033). A range is (least, most); a pinned setting
-/// has both the same. <c>tools/vine-gen/js/kinds.js</c> is where these began.
+/// has both the same.
 /// </summary>
 [GlobalClass, Tool]
 public partial class VineKind : Resource
@@ -90,15 +91,16 @@ public partial class VineKind : Resource
     }
 
     /// <summary>The seed of the pool's <paramref name="index"/>th vine.</summary>
-    public int PoolSeed(int archetypeSeed, int index) => VineRandom.PoolSeed(archetypeSeed, KindName, index);
+    public int PoolSeed(int archetypeSeed, int index) =>
+        (int)(SeededRandom.Hash((uint)archetypeSeed, $"vine:pool:{KindName}#{index}") % 10_000_000UL);
 
-    /// <summary><c>kinds.js rollVine</c>: one vine's settings, each inside its range.</summary>
+    /// <summary>One vine's settings, each inside its range.</summary>
     public VineParams Roll(int seed, double voxelSize)
     {
         var p = new VineParams { Seed = seed, VoxelSize = voxelSize };
         foreach (VineParams.Field field in VineParams.RangeFields)
         {
-            double t = VineRandom.Stream(seed, "roll:" + field.Key).Next();
+            double t = SeededRandom.Stream((uint)seed, "vine:roll:" + field.Key).NextDouble();
             if (field.Bool)
             {
                 field.Set(p, t < ChanceOf(field.Key) ? 1 : 0);
@@ -113,14 +115,14 @@ public partial class VineKind : Resource
             {
                 double v = lo + (hi - lo) * t;
                 if (field.Step > 0)
-                    v = Math.Min(hi, Math.Max(lo, JsMath.Round(v / field.Step) * field.Step));
-                field.Set(p, JsMath.Round(v * 1000) / 1000);
+                    v = Math.Min(hi, Math.Max(lo, VineMath.Round(v / field.Step) * field.Step));
+                field.Set(p, VineMath.Round(v * 1000) / 1000);
             }
         }
         return p.Clamped();
     }
 
-    /// <summary><c>kinds.js clampKind</c>'s range: inside the field, whole for
+    /// <summary>A setting's range: inside the field, whole for
     /// integers, least first. A float only carries six or so digits, so each
     /// end is read back as the decimal it was written as.</summary>
     public (double lo, double hi) RangeOf(VineParams.Field field)
@@ -130,8 +132,8 @@ public partial class VineKind : Resource
         double hi = Math.Clamp(Math.Round((double)pair.Y, 6), field.Min, field.Max);
         if (field.Integer)
         {
-            lo = JsMath.Round(lo);
-            hi = JsMath.Round(hi);
+            lo = VineMath.Round(lo);
+            hi = VineMath.Round(hi);
         }
         return hi < lo ? (hi, lo) : (lo, hi);
     }

@@ -3,6 +3,16 @@
 *21 October 2026. Proposed. Builds on 0018, 0029 and 0032. Step 1 (the
 generator, the dock and the bake) is built; steps 2 and 3 are planned.*
 
+> **Amended 21 October 2026:** the browser prototype is retired and
+> `tools/vine-gen` deleted. Vine rolls go through `SeededRandom` named
+> streams (`vine:<stage>`); `VineRandom` and V8's `hypot` are gone, fdlibm
+> stays so a seed grows the same vine on every machine. The golden vines are
+> recorded from C# (`scripts/debug/vine_golden.json`, `vinecheck.gd --
+> record`). Every seed now grows a different vine than before, so the baked
+> vines were re-baked. Whether a nest is generated at load or picked from
+> saved nests is reopened (`docs/handoffs/vine-tool.md`); this record is
+> rewritten when that is measured.
+
 ## Context
 
 The vines of 0029 came from a browser prototype, `tools/vine-gen/`: settings

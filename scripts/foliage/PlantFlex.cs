@@ -252,25 +252,55 @@ public partial class PlantFlex : Node, IVoxelBend
         return Foot + (Up * metres);
     }
 
-    // The middle of what is solid in one layer, and the radius of a disc as big.
+    // The middle of the stalk in one layer, and the radius of a disc as big.
+    // Followed up from the foot, each layer counting only what is near the
+    // last one's middle: a whole layer's middle is pulled off the stalk, into
+    // the air, by an arm or a leaf on one side.
     private static bool StalkAt(VoxelPart part, float height, out Vector3 centre, out float radius)
     {
         VoxelGrid grid = part.Grid;
-        int z = Math.Clamp(Mathf.RoundToInt(height / grid.VoxelSize), 0, grid.Size.Z - 1);
-        Vector3 sum = Vector3.Zero;
-        int count = 0;
-        for (int y = 0; y < grid.Size.Y; y++)
+        int top = Math.Clamp(Mathf.RoundToInt(height / grid.VoxelSize), 0, grid.Size.Z - 1);
+        float cx = 0.0f, cy = 0.0f, reach = float.MaxValue, footReach = float.MaxValue;
+        int count = 0, z = 0;
+        for (; z <= top; z++)
         {
-            for (int x = 0; x < grid.Size.X; x++)
+            float sx = 0.0f, sy = 0.0f;
+            int n = 0;
+            for (int y = 0; y < grid.Size.Y; y++)
             {
-                if (grid.Cells[grid.Index(x, y, z)] != 0)
+                for (int x = 0; x < grid.Size.X; x++)
                 {
-                    sum += grid.CellCentre(x, y, z);
-                    count++;
+                    if (grid.Cells[grid.Index(x, y, z)] == 0)
+                    {
+                        continue;
+                    }
+                    float dx = x + 0.5f - cx, dy = y + 0.5f - cy;
+                    if (reach < float.MaxValue && (dx * dx) + (dy * dy) > reach * reach)
+                    {
+                        continue;
+                    }
+                    sx += x + 0.5f;
+                    sy += y + 0.5f;
+                    n++;
                 }
             }
+            if (n == 0)
+            {
+                break;
+            }
+            cx = sx / n;
+            cy = sy / n;
+            count = n;
+            // A little more than the stalk is wide, never more than the foot allows.
+            float r = Mathf.Sqrt(n / Mathf.Pi);
+            if (footReach == float.MaxValue)
+            {
+                footReach = (r * 1.5f) + (2.0f / grid.VoxelSize);
+            }
+            reach = Mathf.Min(r + (2.0f / grid.VoxelSize), footReach);
         }
-        centre = count > 0 ? part.GlobalTransform * (sum / count) : Vector3.Zero;
+        z = Math.Min(z, top);
+        centre = count > 0 ? part.GlobalTransform * grid.CellCentre(Mathf.FloorToInt(cx), Mathf.FloorToInt(cy), z) : Vector3.Zero;
         radius = Mathf.Sqrt(count / Mathf.Pi) * grid.VoxelSize;
         return count > 0;
     }

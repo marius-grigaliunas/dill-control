@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bduobttnt7jls"
-path="res://.godot/imported/prp_vine_weeping_7474758.vox-8590ed34402c5bf5e63cb8e0e4e3cad4.scn"
+uid="uid://def1xqooeokb6"
+path="res://.godot/imported/prp_vine_weeping_8056125.vox-2a277db25db60636b81b6754c22e4ea7.scn"
 
 [deps]
 
-source_file="res://art/voxels/prp_vine_weeping_7474758.vox"
-dest_files=["res://.godot/imported/prp_vine_weeping_7474758.vox-8590ed34402c5bf5e63cb8e0e4e3cad4.scn"]
+source_file="res://art/voxels/prp_vine_weeping_8056125.vox"
+dest_files=["res://.godot/imported/prp_vine_weeping_8056125.vox-2a277db25db60636b81b6754c22e4ea7.scn"]
 
 [params]
 
