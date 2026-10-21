@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_arch")
 DisplayName = "Rock"
-RadiusMin = 1000.0
-RadiusMax = 1400.0
+RadiusMin = 1260.0
+RadiusMax = 1260.0
 AmplitudeMin = 14.0
 AmplitudeMax = 32.0
 FrequencyMin = 3.0
