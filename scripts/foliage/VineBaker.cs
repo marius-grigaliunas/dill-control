@@ -20,6 +20,13 @@ public static class VineBaker
 {
     public const string Tool = "dill-control-vine";
     public const int Version = 3;
+    /// <summary>What a vine is drawn in and broken by, and how its import
+    /// chunks it: the .vox.import a bake writes and a vine made in memory
+    /// (<see cref="VineFactory"/>) both use these.</summary>
+    public const string Material = "res://art/materials/mat_voxel_toon.tres";
+    public const string DestructionPath = "res://resources/voxel/voxel_destruction_vine.tres";
+    public const int ChunkSize = 8;
+    public const int ChunkJitter = 2;
 
     public sealed class Baked
     {
@@ -182,9 +189,9 @@ public static class VineBaker
             _subresources={"{}"}
             voxel/size={size}
             voxel/pivot_index=255
-            voxel/material="res://art/materials/mat_voxel_toon.tres"
-            voxel/chunk_size=8
-            voxel/chunk_jitter=2
+            voxel/material="{Material}"
+            voxel/chunk_size={ChunkSize}
+            voxel/chunk_jitter={ChunkJitter}
 
             """);
     }
@@ -192,7 +199,7 @@ public static class VineBaker
     /// <summary>The wrapper of prp_vine_41051, the reference vine.</summary>
     private static string Wrapper(string name, string voxPath, VineBakeStats stats)
     {
-        string destruction = stats.Destruction?.ResourcePath ?? "res://resources/voxel/voxel_destruction_vine.tres";
+        string destruction = stats.Destruction?.ResourcePath ?? DestructionPath;
         string flex = stats.Flex?.ResourcePath ?? FlexStats.VinePath;
         return $"""
             [gd_scene format=3]

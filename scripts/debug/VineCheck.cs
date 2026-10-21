@@ -394,6 +394,52 @@ public partial class VineCheck : Node
         Check("a pod sits on its cell's centre", podAt.IsEqualApprox(cellAt), $"{podAt} vs {cellAt}");
     }
 
+    /// <summary>A vine made in memory (<see cref="VineFactory"/>) against its
+    /// baked, imported self: the same nodes in the same places, and every
+    /// voxel and chunk field the same, so the game can grow what the editor bakes.</summary>
+    private void SameInMemory(string name, Node3D baked, VineBakeStats stats)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(name, @"^prp_vine_([a-z]+)_(\d+)$");
+        VineKind kind = LoadKinds().Values.FirstOrDefault(k => k.Slug == match.Groups[1].Value);
+        if (!match.Success || kind == null)
+            return;
+        long managed0 = GC.GetTotalMemory(true);
+        VineFactory.Data data = VineFactory.BuildData(kind, int.Parse(match.Groups[2].Value), stats);
+        long managed1 = GC.GetTotalMemory(true);
+        if (data.Model == null)
+        {
+            Check($"{name}: grows in memory", false, data.Vine.Error);
+            return;
+        }
+        Node3D made = VoxModelBuilder.Instantiate(data.Model, "Model", VoxModelBuilder.MeshInstances(null));
+        var differ = new List<string>();
+        foreach (string key in new[] { VoxelMeta.VoxelSize, VoxelMeta.Palette, VoxelMeta.Emission })
+        {
+            if (!GD.VarToBytes(made.GetMeta(key)).SequenceEqual(GD.VarToBytes(baked.GetMeta(key))))
+                differ.Add("root " + key);
+        }
+        var bakedChildren = baked.GetChildren().OfType<Node3D>().ToList();
+        var madeChildren = made.GetChildren().OfType<Node3D>().ToList();
+        if (bakedChildren.Count != madeChildren.Count)
+            differ.Add($"{madeChildren.Count} nodes vs {bakedChildren.Count}");
+        for (int i = 0; i < Math.Min(bakedChildren.Count, madeChildren.Count); i++)
+        {
+            Node3D a = bakedChildren[i], b = madeChildren[i];
+            if (a.Name != b.Name || !a.Transform.IsEqualApprox(b.Transform))
+                differ.Add($"node {i} {b.Name} vs {a.Name}");
+            foreach (StringName key in a.GetMetaList())
+            {
+                if (!b.HasMeta(key) || !GD.VarToBytes(a.GetMeta(key)).SequenceEqual(GD.VarToBytes(b.GetMeta(key))))
+                    differ.Add($"{a.Name} {key}");
+            }
+        }
+        made.Free();
+        Check($"{name}: made in memory, the same voxels and chunks", differ.Count == 0,
+            differ.Count > 0 ? string.Join(", ", differ.Take(6))
+                : string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                    $"generate {data.GenerateMs:F0} ms, mesh and chunks {data.ModelMs:F0} ms, {(managed1 - managed0) / 1048576.0:F1} MB"));
+    }
+
     private static int FindChunk(byte[] bytes, string id)
     {
         for (int i = 20; i + 12 < bytes.Length; i++)
@@ -455,6 +501,7 @@ public partial class VineCheck : Node
             Check($"{name}: foot on the origin, {markers} pods", vs > 0 && Mathf.Abs(foot.X) <= vs * 0.5f + 1e-3f
                 && Mathf.Abs(foot.Z) <= vs * 0.5f + 1e-3f && Mathf.Abs(foot.Y) < 1e-3f && markers > 0,
                 $"foot {foot}, voxel {vs} m");
+            SameInMemory(name, model, stats);
             root.Free();
         }
         _report.AppendLine($"  {found} baked vine scenes");

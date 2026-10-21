@@ -825,6 +825,10 @@ var _phase_started := 0.0
 var _vp: RID
 var _timeline: Array = []
 var _path := ""
+# "flex mem:<kind>:<seed>": a vine made in memory (VineFactory), stood where
+# MEM_VINE_REPLACES stands in its place.
+var _mem_vine := PackedStringArray()
+const MEM_VINE_REPLACES := "prp_vine_fruiting_4532344"
 var _held: Array[String] = []
 
 var _settled := false
@@ -881,7 +885,12 @@ func _initialize() -> void:
 		"downtown": _timeline = _downtown_timeline(float(args[2]) if args.size() > 2 and args[2].is_valid_float() else 60.0)
 		"forest": _timeline = FOREST_TIMELINE
 		"forestab": _timeline = FORESTAB_TIMELINE
-		"flex": _timeline = _flex_timeline(args[2] if args.size() > 2 else "prp_vine_41051", args[3] if args.size() > 3 else "12")
+		"flex":
+			var flex_vine: String = args[2] if args.size() > 2 else "prp_vine_41051"
+			if flex_vine.begins_with("mem:"):
+				_mem_vine = flex_vine.split(":")
+				flex_vine = "mem_%s_%s" % [_mem_vine[1], _mem_vine[2]]
+			_timeline = _flex_timeline(flex_vine, args[3] if args.size() > 3 else "12")
 		"vine": _timeline = _vine_timeline(args[2] if args.size() > 2 and args[2].begins_with("slot_") else "slot_1")
 		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)
@@ -901,6 +910,11 @@ func _initialize() -> void:
 	var level: Node = load(path).instantiate()
 	root.add_child(level)
 	current_scene = level
+	if _mem_vine.size() == 3:
+		var grower = load("res://scripts/debug/VineBake.cs").new()
+		root.add_child(grower)
+		print(grower.call("Place", _mem_vine[1], _mem_vine[2], level, MEM_VINE_REPLACES))
+		grower.queue_free()
 
 	_vp = root.get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(_vp, true)
