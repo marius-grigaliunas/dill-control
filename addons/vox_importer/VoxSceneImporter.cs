@@ -1,5 +1,4 @@
 #if TOOLS
-using System.Collections.Generic;
 using DillControl.Voxel;
 using Godot;
 
@@ -11,17 +10,10 @@ namespace DillControl.Editor;
 /// <c>.tscn</c> instances the result and owns everything added to it.
 ///
 /// The MagicaVoxel scene graph comes across as nodes, so a model built of
-/// parts arrives as parts that code can move:
-///
-/// - a group becomes a <c>Node3D</c>, named after it;
-/// - an object becomes a mesh node, named after it (unnamed ones are
-///   <c>Model0</c>, <c>Model1</c> ...);
-/// - an object whose name starts with <c>@</c> becomes a <c>Marker3D</c> at the
-///   centre of its voxels and draws nothing: <c>@Seat</c>, <c>@Muzzle</c>;
-/// - a voxel painted in the pivot index (255 unless set otherwise) is not
-///   drawn, and its centre becomes the object's origin: the hinge a leg turns
-///   about. Without one, the origin is the object's centre;
-/// - hidden objects and hidden layers are left out.
+/// parts arrives as parts that code can move: <c>@Seat</c> and <c>@Muzzle</c>
+/// become markers, a voxel in the pivot index (255 unless set otherwise) is
+/// the hinge a leg turns about. How is <see cref="VoxModelBuilder"/>, which
+/// the game uses too, to build a vine in memory as its .vox would import.
 ///
 /// Every mesh gets <c>mat_voxel_toon</c>: colour per vertex, so every model
 /// shares it whatever its palette. See docs/decisions/0009.
@@ -72,198 +64,28 @@ public partial class VoxSceneImporter : EditorSceneFormatImporter
             return null;
         }
 
-        var context = new Context
+        var build = new VoxModelBuilder.Options
         {
-            File = file,
             VoxelSize = Option(options, VoxelSizeOption, 0.1f),
             PivotIndex = Option(options, PivotIndexOption, 255),
-            Material = GD.Load<Material>(Option(options, MaterialOption, "res://art/materials/mat_voxel_toon.tres")),
             Path = path,
             ChunkSize = Option(options, ChunkSizeOption, 8),
             ChunkJitter = Option(options, ChunkJitterOption, 2),
         };
-
-        var root = new Node3D { Name = path.GetFile().GetBaseName() };
-        if (file.HasSceneGraph)
-        {
-            WalkTransform(context, 0, root, isRoot: true);
-        }
-        else
-        {
-            for (int i = 0; i < file.Models.Count; i++)
-                AddShape(context, i, null, $"Model{i}", root);
-        }
+        var material = GD.Load<Material>(Option(options, MaterialOption, "res://art/materials/mat_voxel_toon.tres"));
 
         // The voxels themselves travel with the scene, so a destructible body
         // can carve, re-mesh and break the model at runtime (VoxelBody).
-        root.SetMeta(VoxelMeta.VoxelSize, context.VoxelSize);
-        root.SetMeta(VoxelMeta.Palette, file.Palette);
-        root.SetMeta(VoxelMeta.Emission, file.Emission);
+        VoxModelBuilder.Model model = VoxModelBuilder.Build(file, build);
+        Node3D root = VoxModelBuilder.Instantiate(model, path.GetFile().GetBaseName(), (name, arrays, transform) =>
+        {
+            var mesh = new ImporterMesh { ResourceName = name };
+            mesh.AddSurface(Mesh.PrimitiveType.Triangles, arrays, material: material, name: "voxel");
+            return new ImporterMeshInstance3D { Name = name, Mesh = mesh, Transform = transform };
+        });
 
         SetOwner(root, root);
         return root;
-    }
-
-    private sealed class Context
-    {
-        public VoxFile File;
-        public float VoxelSize;
-        public int PivotIndex;
-        public Material Material;
-        public string Path;
-        public int Unnamed;
-        public int ChunkSize;
-        public int ChunkJitter;
-    }
-
-    private static void WalkTransform(Context ctx, int id, Node3D parent, bool isRoot = false)
-    {
-        if (!ctx.File.Transforms.TryGetValue(id, out VoxFile.TransformNode trn))
-            return;
-        if (trn.Hidden || ctx.File.HiddenLayers.Contains(trn.Layer))
-            return;
-
-        if (ctx.File.Groups.TryGetValue(trn.Child, out VoxFile.GroupNode group))
-        {
-            Node3D target = parent;
-            if (!isRoot)
-            {
-                target = new Node3D
-                {
-                    Name = trn.Name.Length > 0 ? trn.Name : $"Group{id}",
-                    Transform = new Transform3D(VoxSpace.ToGodot(trn.Rotation), VoxSpace.ToGodot(trn.Translation) * ctx.VoxelSize),
-                };
-                parent.AddChild(target, forceReadableName: true);
-            }
-            foreach (int child in group.Children)
-                WalkTransform(ctx, child, target);
-        }
-        else if (ctx.File.Shapes.TryGetValue(trn.Child, out VoxFile.ShapeNode shape))
-        {
-            string name = trn.Name.Length > 0 ? trn.Name : $"Model{ctx.Unnamed++}";
-            AddShape(ctx, shape.Model, trn, name, parent);
-        }
-    }
-
-    private static void AddShape(Context ctx, int modelIndex, VoxFile.TransformNode trn, string name, Node3D parent)
-    {
-        if (modelIndex < 0 || modelIndex >= ctx.File.Models.Count)
-            return;
-
-        VoxFile.Model model = ctx.File.Models[modelIndex];
-        bool marker = name.StartsWith('@');
-        Vector3 origin = marker ? VoxelCentre(model, -1) : PivotOrCentre(ctx, model, name);
-
-        // The node sits where MagicaVoxel puts the chosen origin: the model is
-        // centred on floor(size / 2), then rotated and translated.
-        VoxRotation rotation = trn?.Rotation ?? VoxRotation.Identity;
-        Vector3 translation = trn?.Translation ?? Vector3I.Zero;
-        Vector3 placed = translation + rotation.Apply(origin - VoxSpace.Centre(model.Size));
-        var transform = new Transform3D(VoxSpace.ToGodot(rotation), VoxSpace.ToGodot(placed) * ctx.VoxelSize);
-
-        if (marker)
-        {
-            parent.AddChild(new Marker3D { Name = name.Substring(1), Transform = transform }, forceReadableName: true);
-            return;
-        }
-
-        Godot.Collections.Array arrays = VoxMesher.Build(
-            model, ctx.File.Palette, ctx.File.Emission, origin, ctx.VoxelSize, ctx.PivotIndex);
-        if (arrays == null)
-            return;
-
-        var mesh = new ImporterMesh { ResourceName = name };
-        mesh.AddSurface(Mesh.PrimitiveType.Triangles, arrays, material: ctx.Material, name: "voxel");
-        var node = new ImporterMeshInstance3D { Name = name, Mesh = mesh, Transform = transform };
-
-        // The pivot voxel is a marker, never material: it does not travel.
-        byte[] cells = (byte[])model.Cells.Clone();
-        if (ctx.PivotIndex >= 1)
-        {
-            for (int i = 0; i < cells.Length; i++)
-            {
-                if (cells[i] == ctx.PivotIndex)
-                {
-                    cells[i] = 0;
-                }
-            }
-        }
-        node.SetMeta(VoxelMeta.Cells, cells);
-        node.SetMeta(VoxelMeta.Dims, model.Size);
-        node.SetMeta(VoxelMeta.Origin, origin);
-        WriteChunks(ctx, node, cells, model.Size, origin);
-        parent.AddChild(node, forceReadableName: true);
-    }
-
-    /// <summary>Chunks, their as-built contacts and boxes, after the pivot
-    /// voxel is gone so it is not a chunk of its own.</summary>
-    private static void WriteChunks(Context ctx, Node node, byte[] cells, Vector3I size, Vector3 origin)
-    {
-        if (ctx.ChunkSize * ctx.ChunkSize * ctx.ChunkSize > VoxChunker.GrabWarnVoxels)
-        {
-            GD.PushWarning($"VoxSceneImporter: {ctx.Path}: chunk_size {ctx.ChunkSize} makes a full chunk heavier than the gravity gun can tear out ({VoxChunker.GrabWarnVoxels} voxels).");
-        }
-        ChunkBake bake = VoxChunker.Build(
-            cells, size, VoxChunker.KindOf(ctx.File.MaterialType), ctx.ChunkSize, ctx.ChunkJitter,
-            VoxChunker.SeedOf(ctx.Path), origin, ctx.VoxelSize);
-        if (bake == null)
-        {
-            return;
-        }
-        node.SetMeta(VoxelMeta.ChunkVersion, VoxChunker.FormatVersion);
-        node.SetMeta(VoxelMeta.ChunkCells, bake.CellChunk);
-        node.SetMeta(VoxelMeta.ChunkCount, bake.Count);
-        node.SetMeta(VoxelMeta.ChunkSolid, bake.Solid);
-        node.SetMeta(VoxelMeta.ChunkMin, bake.Min);
-        node.SetMeta(VoxelMeta.ChunkMax, bake.Max);
-        node.SetMeta(VoxelMeta.ChunkLayers, bake.Layers);
-        node.SetMeta(VoxelMeta.ChunkLayerCount, bake.LayerCount);
-        node.SetMeta(VoxelMeta.ChunkLayerSumX, bake.LayerSumX);
-        node.SetMeta(VoxelMeta.ChunkLayerSumY, bake.LayerSumY);
-        node.SetMeta(VoxelMeta.ChunkEdgeA, bake.EdgeA);
-        node.SetMeta(VoxelMeta.ChunkEdgeB, bake.EdgeB);
-        node.SetMeta(VoxelMeta.ChunkEdgeFaces, bake.EdgeFaces);
-        node.SetMeta(VoxelMeta.ChunkBoxOffset, bake.BoxOffset);
-        node.SetMeta(VoxelMeta.ChunkBoxCentre, bake.BoxCentre);
-        node.SetMeta(VoxelMeta.ChunkBoxSize, bake.BoxSize);
-        node.SetMeta(VoxelMeta.ChunkGround, bake.GroundCells);
-    }
-
-    private static Vector3 PivotOrCentre(Context ctx, VoxFile.Model model, string name)
-    {
-        if (ctx.PivotIndex < 1)
-            return VoxSpace.Centre(model.Size);
-
-        var pivots = new List<Vector3>();
-        for (int z = 0; z < model.Size.Z; z++)
-            for (int y = 0; y < model.Size.Y; y++)
-                for (int x = 0; x < model.Size.X; x++)
-                    if (model.Cells[model.Index(x, y, z)] == ctx.PivotIndex)
-                        pivots.Add(new Vector3(x + 0.5f, y + 0.5f, z + 0.5f));
-
-        if (pivots.Count == 0)
-            return VoxSpace.Centre(model.Size);
-        if (pivots.Count > 1)
-            GD.PushWarning($"VoxSceneImporter: {ctx.Path}: '{name}' has {pivots.Count} pivot voxels (index {ctx.PivotIndex}); using the first.");
-        return pivots[0];
-    }
-
-    /// <summary>The mean of a model's voxel centres, ignoring one index.</summary>
-    private static Vector3 VoxelCentre(VoxFile.Model model, int ignore)
-    {
-        Vector3 sum = Vector3.Zero;
-        int count = 0;
-        for (int z = 0; z < model.Size.Z; z++)
-            for (int y = 0; y < model.Size.Y; y++)
-                for (int x = 0; x < model.Size.X; x++)
-                {
-                    byte c = model.Cells[model.Index(x, y, z)];
-                    if (c == 0 || c == ignore)
-                        continue;
-                    sum += new Vector3(x + 0.5f, y + 0.5f, z + 0.5f);
-                    count++;
-                }
-        return count > 0 ? sum / count : VoxSpace.Centre(model.Size);
     }
 
     private static T Option<[MustBeVariant] T>(Godot.Collections.Dictionary options, string key, T fallback) =>
