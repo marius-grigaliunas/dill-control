@@ -32,12 +32,18 @@ pickles thins the colony; only destroying pods, or whole vines, ends it.**
 
   They are tuned in play.
 
+- **What wins the contract.** Both of these must hold:
+  - **every pod destroyed**, which is the hard rule;
+  - **at most 20 % of the starting pickles still alive** (from 100, no more
+    than 20 remain).
+
+  Killing them all, 100 %, earns a bonus. A colony with no pods cannot
+  regrow, so the remainder is a mop-up, not a moving target.
+
 ## Still to settle
 
-- What wins the contract: every pod destroyed, or no pickle left and nothing
-  able to regrow one.
-- Whether regrowth speeds up, slows down or stops as the colony is wakened (0029's
-  30-second alarm).
+- Whether regrowth speeds up, slows down or stops as the colony is wakened
+  (0029's 30-second alarm). Settled in play.
 
 ## What it costs
 
