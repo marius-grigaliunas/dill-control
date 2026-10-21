@@ -122,7 +122,7 @@ scripts/        core/ player/ weapons/ enemies/ horde/ voxel/ planet/
 resources/      mirrors scripts/
 shaders/
 tools/          project-board/, vox-tools/ (and voxel-bench/ from M2). .gdignore'd.
-docs/           pitch.md, plan.md, decisions/, project_board.json
+docs/           pitch.md, plan.md, decisions/, handoffs/, project_board.json
 perflogs/       recordings and bench screenshots. Gitignored.
 ```
 
@@ -201,8 +201,9 @@ the wrapper above, with the stalk's foot on the scene origin. Its palette is
 `vine_palette.tres` (deep greens, never neon), its checks and voxel size
 `vine_bake.tres`. `VineGenerator` matches `tools/vine-gen` voxel for voxel
 until the prototype retires: after changing either, `node make-golden.js`
-there and run `vinecheck.gd`. Nests are laid out in the editor from baked
-vines and saved; contracts place saved nests.
+there and run `vinecheck.gd`. What comes next (the main-screen Vines tool,
+nests generated on the planet, pods that regrow per `docs/decisions/0034`)
+is `docs/handoffs/vine-tool.md`.
 
 **Nothing that scales with a model's voxels runs in the frame**
 (`docs/decisions/0015`): re-meshing, structural checks and splits go to
@@ -317,3 +318,8 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 
 Commit at every point where the project builds and runs. Short, factual
 messages.
+
+**Handoffs live in the repo, always.** A handoff, plan or brief written for
+another session is saved in `docs/handoffs/<topic>.md` and committed. Never
+save one outside the project: not in a session scratchpad, temp folder or
+home directory, where the next session cannot find it.

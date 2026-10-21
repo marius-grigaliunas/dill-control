@@ -1,0 +1,225 @@
+{
+  "version": 1,
+  "title": "Dill Control — vertical slice",
+  "nextNumber": 12,
+  "columns": [
+    {
+      "id": "cmvhxnwyec",
+      "name": "Backlog",
+      "wip": 0,
+      "done": false,
+      "cards": [
+        "kmvhxwwex1v",
+        "kmvhxxa0e1w",
+        "kmvhxxzbg1y",
+        "kmvhxyep21z",
+        "kmvine11tool"
+      ]
+    },
+    {
+      "id": "cmvhxnwyee",
+      "name": "In progress",
+      "wip": 3,
+      "done": false,
+      "cards": [
+        "kmvhxs3nk1q",
+        "kmvhxtecb1r",
+        "kmvhxv0oj1s"
+      ]
+    },
+    {
+      "id": "cmvhxnwyef",
+      "name": "Verify",
+      "wip": 0,
+      "done": false,
+      "cards": [
+        "kmvhxxr9x1x"
+      ]
+    },
+    {
+      "id": "cmvhxnwyeg",
+      "name": "Done",
+      "wip": 0,
+      "done": true,
+      "cards": []
+    },
+    {
+      "id": "cmvhxr74w1p",
+      "name": "Issues",
+      "wip": 0,
+      "done": false,
+      "cards": []
+    }
+  ],
+  "cards": {
+    "kmvhxs3nk1q": {
+      "id": "kmvhxs3nk1q",
+      "number": 1,
+      "title": "Vine generator",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-21T09:55:25.952Z",
+      "updated": "2026-10-21T09:56:09.013Z"
+    },
+    "kmvhxtecb1r": {
+      "id": "kmvhxtecb1r",
+      "number": 2,
+      "title": "Nest generator/sandbox",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": null,
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-21T09:56:26.459Z",
+      "updated": "2026-10-21T09:56:26.459Z"
+    },
+    "kmvhxv0oj1s": {
+      "id": "kmvhxv0oj1s",
+      "number": 3,
+      "title": "Vine Lab, space for tuning the vine parameters, marking them good or bad",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": null,
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-21T09:57:42.067Z",
+      "updated": "2026-10-21T09:57:42.067Z"
+    },
+    "kmvhxwwex1v": {
+      "id": "kmvhxwwex1v",
+      "number": 6,
+      "title": "Procedural mech animations",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": null,
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-21T09:59:09.849Z",
+      "updated": "2026-10-21T09:59:09.849Z"
+    },
+    "kmvhxxa0e1w": {
+      "id": "kmvhxxa0e1w",
+      "number": 7,
+      "title": "Procedural/handmade weapon animations",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": null,
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-21T09:59:27.470Z",
+      "updated": "2026-10-21T09:59:27.470Z"
+    },
+    "kmvhxxr9x1x": {
+      "id": "kmvhxxr9x1x",
+      "number": 8,
+      "title": "60 fps, 1080p",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": null,
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-21T09:59:49.845Z",
+      "updated": "2026-10-21T09:59:49.845Z"
+    },
+    "kmvhxxzbg1y": {
+      "id": "kmvhxxzbg1y",
+      "number": 9,
+      "title": "Mining?",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [
+        "lmvhxp4co1m"
+      ],
+      "milestone": null,
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-21T10:00:00.268Z",
+      "updated": "2026-10-21T10:00:07.421Z"
+    },
+    "kmvhxyep21z": {
+      "id": "kmvhxyep21z",
+      "number": 10,
+      "title": "Weapon redesign",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": null,
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-21T10:00:20.198Z",
+      "updated": "2026-10-21T10:00:20.198Z"
+    },
+    "kmvine11tool": {
+      "id": "kmvine11tool",
+      "number": 11,
+      "title": "Vines tool: nest generator, sandbox and range lab (main-screen extension)",
+      "body": "Turn addons/vine_gen into a main-screen editor plugin: generate a nest on the 1,260 m planet, see it in the viewport, Play straight into it (horde on/off), mark Good/Bad, Save good nests. Range lab for tuning vine kinds; single-vine Bake kept.\n\nHandoff: docs/handoffs/vine-tool.md. Decisions: 0033 (open), 0034 (pods regrow).\n\nBuild order: 1 cleanup (delete tools/vine-gen, SeededRandom, planet 1,260 m); 2 vine built in memory; 3 valid-only generation; 4 leaves out of the voxel body; 5 colour/size ranges; 6 NestKit + NestBuilder on the planet; 7 pods and hanging pickles (0034); 8 the main-screen tool; 9 decide 0033.",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-21T15:00:00.000Z",
+      "updated": "2026-10-21T15:00:00.000Z"
+    }
+  },
+  "labels": [
+    {
+      "id": "lmvhxp4co1m",
+      "name": "idea",
+      "color": "#00ff59"
+    },
+    {
+      "id": "lmvhxp8x01n",
+      "name": "label",
+      "color": "#6f8f7a"
+    }
+  ],
+  "milestones": [
+    {
+      "id": "mmuz89xk91",
+      "name": "Vertical slice",
+      "due": "2026-11-27"
+    }
+  ],
+  "settings": {
+    "theme": "system",
+    "groupBy": "none"
+  }
+}
