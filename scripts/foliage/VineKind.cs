@@ -10,7 +10,7 @@ namespace DillControl.Foliage;
 /// (docs/decisions/0018, 0033). A range is (least, most); a pinned setting
 /// has both the same. <c>tools/vine-gen/js/kinds.js</c> is where these began.
 /// </summary>
-[GlobalClass]
+[GlobalClass, Tool]
 public partial class VineKind : Resource
 {
     public const string Folder = "res://resources/foliage";

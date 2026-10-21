@@ -9,7 +9,7 @@ namespace DillControl.Foliage;
 /// cut shows. Judged under the game's toon lighting (bench <c>look</c>), not
 /// a flat render. Changing it needs a re-bake, not a rebuild.
 /// </summary>
-[GlobalClass]
+[GlobalClass, Tool]
 public partial class VinePalette : Resource
 {
     public const string DefaultPath = "res://resources/foliage/vine_palette.tres";

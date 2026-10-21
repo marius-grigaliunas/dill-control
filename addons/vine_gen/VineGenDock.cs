@@ -41,7 +41,8 @@ public partial class VineGenDock : EditorDock
     private MeshInstance3D _mesh;
     private MultiMeshInstance3D _pods;
     private Material _material;
-    private float _yaw = 0.7f, _pitch = 0.2f, _distance = 160.0f, _height = 50.0f;
+    private SubViewportContainer _previewBox;
+    private float _yaw = 0.7f, _pitch = 0.2f, _distance = 160.0f, _height = 50.0f, _lookAt = 25.0f;
 
     public override void _Ready()
     {
@@ -122,8 +123,10 @@ public partial class VineGenDock : EditorDock
 
     private Control BuildPreview()
     {
-        var container = new SubViewportContainer { Stretch = true, CustomMinimumSize = new Vector2(0, 360), SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            TooltipText = "Drag to turn, wheel to zoom. The grey disc is the scene origin: the foot stands on it." };
+        var container = new SubViewportContainer { Stretch = true, CustomMinimumSize = new Vector2(0, 420), SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            MouseFilter = MouseFilterEnum.Stop,
+            TooltipText = "Drag: turn. Wheel: zoom. Right-drag: up and down the vine. Double-click: the whole vine.\nThe grey disc (60 m) is the scene origin: the foot stands on it. Orange: pods." };
+        _previewBox = container;
         _viewport = new SubViewport { OwnWorld3D = true, Msaa3D = Viewport.Msaa.Msaa2X };
         container.AddChild(_viewport);
         container.GuiInput += PreviewInput;
@@ -161,25 +164,51 @@ public partial class VineGenDock : EditorDock
 
     private void PreviewInput(InputEvent e)
     {
-        if (e is InputEventMouseMotion motion && (motion.ButtonMask & MouseButtonMask.Left) != 0)
+        // Claimed here, or the dock's scroll container takes the wheel.
+        if (e is InputEventMouseMotion motion)
         {
-            _yaw -= motion.Relative.X * 0.01f;
-            _pitch = Mathf.Clamp(_pitch + motion.Relative.Y * 0.01f, -0.2f, 1.4f);
+            if ((motion.ButtonMask & MouseButtonMask.Left) != 0)
+            {
+                _yaw -= motion.Relative.X * 0.01f;
+                _pitch = Mathf.Clamp(_pitch + motion.Relative.Y * 0.01f, -0.3f, 1.5f);
+            }
+            else if ((motion.ButtonMask & MouseButtonMask.Right) != 0)
+            {
+                _lookAt = Mathf.Clamp(_lookAt + motion.Relative.Y * _distance * 0.003f, 0, _height * 1.2f);
+            }
+            else
+            {
+                return;
+            }
             PlaceCamera();
+            _previewBox.AcceptEvent();
         }
         else if (e is InputEventMouseButton button && button.Pressed)
         {
             if (button.ButtonIndex == MouseButton.WheelUp)
-                _distance = Mathf.Max(10, _distance * 0.9f);
+                _distance = Mathf.Max(5, _distance * 0.85f);
             else if (button.ButtonIndex == MouseButton.WheelDown)
-                _distance = Mathf.Min(1000, _distance * 1.1f);
+                _distance = Mathf.Min(2000, _distance / 0.85f);
+            else if (button.ButtonIndex == MouseButton.Left && button.DoubleClick)
+                Frame();
+            else if (button.ButtonIndex != MouseButton.Left && button.ButtonIndex != MouseButton.Right)
+                return;
             PlaceCamera();
+            _previewBox.AcceptEvent();
         }
+    }
+
+    /// <summary>The whole vine in view, from the side.</summary>
+    private void Frame()
+    {
+        _lookAt = _height * 0.5f;
+        _distance = Mathf.Max(20, _height * 1.6f);
+        _pitch = 0.15f;
     }
 
     private void PlaceCamera()
     {
-        var target = new Vector3(0, _height * 0.5f, 0);
+        var target = new Vector3(0, _lookAt, 0);
         var offset = new Vector3(Mathf.Sin(_yaw) * Mathf.Cos(_pitch), Mathf.Sin(_pitch), Mathf.Cos(_yaw) * Mathf.Cos(_pitch));
         _camera.Position = target + offset * _distance;
         _camera.LookAt(target);
@@ -230,6 +259,8 @@ public partial class VineGenDock : EditorDock
             if (kind.KindName == selected)
                 _kind.Selected = _kinds.Count - 1;
         }
+        if (_kinds.Count == 0 || _stats == null)
+            GD.PushWarning($"Vines dock: read {_kinds.Count} kinds and {(_stats == null ? "no" : "the")} bake settings. Build the project, then Reload.");
         if (_kinds.Count > 0 && _stats != null && _seed.Value == 0)
             _seed.SetValueNoSignal(_kinds[_kind.Selected < 0 ? 0 : _kind.Selected].PoolSeed(_stats.ArchetypeSeed, 0));
         Reroll();
@@ -357,7 +388,7 @@ public partial class VineGenDock : EditorDock
         if (Mathf.Abs(height - _height) > 1.0f)
         {
             _height = height;
-            _distance = height * 1.5f;
+            Frame();
         }
         PlaceCamera();
     }

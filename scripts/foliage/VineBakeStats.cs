@@ -8,7 +8,7 @@ namespace DillControl.Foliage;
 /// resource for the bake; the vine's own look is <see cref="VinePalette"/> and
 /// its shape a <see cref="VineKind"/>. See docs/decisions/0033.
 /// </summary>
-[GlobalClass]
+[GlobalClass, Tool]
 public partial class VineBakeStats : Resource
 {
     public const string DefaultPath = "res://resources/foliage/vine_bake.tres";
@@ -33,8 +33,12 @@ public partial class VineBakeStats : Resource
     [Export(PropertyHint.Range, "1,200,1")] public int BodiesWarnAbove { get; set; } = 20;
 
     [ExportGroup("Wrapper")]
-    [Export] public Voxel.VoxelDestructionStats Destruction { get; set; }
-    [Export] public FlexStats Flex { get; set; }
+    // Read by the editor, where game resources without [Tool] load as
+    // placeholders: held as plain resources, read by property name.
+    /// <summary>The wrapper's VoxelDestructionStats (voxel_destruction_vine.tres).</summary>
+    [Export] public Resource Destruction { get; set; }
+    /// <summary>The wrapper's FlexStats (flex_vine.tres).</summary>
+    [Export] public Resource Flex { get; set; }
     [Export] public VinePalette Palette { get; set; }
     [Export(PropertyHint.Dir)] public string VoxelFolder { get; set; } = "res://art/voxels";
     [Export(PropertyHint.Dir)] public string SceneFolder { get; set; } = "res://scenes/props";
@@ -45,6 +49,7 @@ public partial class VineBakeStats : Resource
         AxisLimit = AxisLimit,
         PickleHeightM = System.Math.Round((double)PickleHeightM, 6),
         PodSpacingM = System.Math.Round((double)PodSpacingM, 6),
-        SectionEdge = Destruction?.SectionEdge ?? 64,
+        SectionEdge = Destruction != null && Destruction.Get("SectionEdge").VariantType == Variant.Type.Int
+            ? Destruction.Get("SectionEdge").AsInt32() : 64,
     };
 }
