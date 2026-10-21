@@ -40,10 +40,10 @@ pickles thins the colony; only destroying pods, or whole vines, ends it.**
   Killing them all, 100 %, earns a bonus. A colony with no pods cannot
   regrow, so the remainder is a mop-up, not a moving target.
 
-## Still to settle
-
-- Whether regrowth speeds up, slows down or stops as the colony is wakened
-  (0029's 30-second alarm). Settled in play.
+- **Regrowth starts with the fight.** A pod regrows only once it is empty,
+  and a calm colony's pods are all full. Nothing regrows until the colony is
+  aggravated (0029) and its pickles drop to fight, or are killed on their
+  pods. How fast regrowth runs is a tuning number, not a rule.
 
 ## What it costs
 
