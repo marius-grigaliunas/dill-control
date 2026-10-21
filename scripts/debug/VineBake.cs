@@ -24,12 +24,16 @@ public partial class VineBake : Node
 
         VineBaker.Baked baked = VineBaker.Bake(kind, value, stats);
         VineGenerator.Result vine = baked.Vine;
-        string head = vine.Ok ? $"OK {baked.Name}" : $"FAIL {baked.Name}: {vine.Error}";
+        VineGrower.Grown grown = baked.Grown;
+        string head = grown.Ok ? $"OK {baked.Name}" : $"FAIL {baked.Name}: {string.Join(" ", grown.Verdict.Details)}";
+        if (grown.Attempt > 0)
+            head += $"\n  attempt {grown.Attempt} (seed {(int)vine.Params.Seed}); skipped: "
+                + string.Join("; ", grown.Rejected.ConvertAll(r => string.Join(",", r.Reasons)));
         string lines = $"{head}\n  {vine.Counts.Total} voxels, {vine.Counts.Markers} pods, {vine.Counts.Bodies} bodies, "
             + string.Create(CultureInfo.InvariantCulture, $"{vine.BoundsX}x{vine.BoundsY}x{vine.BoundsZ} ({vine.BoundsZ * vine.VoxelSize:F1} m tall)");
         foreach (string w in vine.Warnings)
             lines += "\n  warning: " + w;
-        if (vine.Ok)
+        if (grown.Ok)
             lines += $"\n  wrote {baked.VoxPath}, {baked.JsonPath}" + (baked.SceneWritten ? $", {baked.ScenePath}" : $" (kept {baked.ScenePath})");
         return lines;
     }
@@ -51,7 +55,7 @@ public partial class VineBake : Node
         Node3D vine = VineFactory.MakeNodes(data, stats);
         double nodesMs = clock.Elapsed.TotalMilliseconds;
         if (vine == null)
-            return $"[flex] FAIL {data.Name}: {data.Vine.Error}";
+            return $"[flex] FAIL {data.Name}: {string.Join(" ", data.Grown.Verdict.Details)}";
 
         var old = level.FindChild(replace, true, false) as Node3D;
         Node parent = old?.GetParent() ?? level;

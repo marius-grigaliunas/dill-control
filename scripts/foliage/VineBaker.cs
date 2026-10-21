@@ -19,7 +19,7 @@ namespace DillControl.Foliage;
 public static class VineBaker
 {
     public const string Tool = "dill-control-vine";
-    public const int Version = 3;
+    public const int Version = 4;
     /// <summary>What a vine is drawn in and broken by, and how its import
     /// chunks it: the .vox.import a bake writes and a vine made in memory
     /// (<see cref="VineFactory"/>) both use these.</summary>
@@ -36,7 +36,8 @@ public static class VineBaker
         public string JsonPath;
         public string ScenePath;
         public bool SceneWritten;
-        public VineGenerator.Result Vine;
+        public VineGrower.Grown Grown;
+        public VineGenerator.Result Vine => Grown.Vine;
     }
 
     /// <summary>A vine's name regrows it: its kind and seed, and a <c>c</c>
@@ -44,29 +45,29 @@ public static class VineBaker
     public static string NameOf(VineKind kind, int seed, bool changed = false) =>
         $"prp_vine_{kind?.Slug ?? "vine"}_{seed}{(changed ? "c" : "")}";
 
-    /// <summary>Grows a vine from <paramref name="kind"/> and <paramref name="seed"/>,
-    /// or from <paramref name="settings"/>, and writes it. A vine that fails
-    /// its hard checks is not written: <see cref="Baked.Vine"/> says why.</summary>
+    /// <summary>Grows the vine <paramref name="seed"/> means (<see cref="VineGrower"/>),
+    /// or one from <paramref name="settings"/>, and writes it. A vine that is
+    /// not valid is not written: <see cref="Baked.Grown"/> says why.</summary>
     public static Baked Bake(VineKind kind, int seed, VineBakeStats stats, VineParams settings = null, bool changed = false)
     {
-        VineParams p = settings ?? kind.Roll(seed, Math.Round((double)stats.VoxelSize, 6));
-        VineGenerator.Result vine = VineGenerator.Generate(p, stats.Limits());
-        string name = NameOf(kind, (int)vine.Params.Seed, changed);
+        VineGrower.Grown grown = settings != null ? VineGrower.FromSettings(settings, stats) : VineGrower.Grow(kind, seed, stats);
+        VineGenerator.Result vine = grown.Vine;
+        string name = NameOf(kind, seed, changed);
         var baked = new Baked
         {
             Name = name,
-            Vine = vine,
+            Grown = grown,
             VoxPath = $"{stats.VoxelFolder}/{name}.vox",
             ImportPath = $"{stats.VoxelFolder}/{name}.vox.import",
             JsonPath = $"{stats.VoxelFolder}/{name}.json",
             ScenePath = $"{stats.SceneFolder}/{name}.tscn",
         };
-        if (!vine.Ok)
+        if (!grown.Ok)
             return baked;
 
         WriteBytes(baked.VoxPath, Encode(vine, stats.Palette));
         WriteImport(baked.ImportPath, baked.VoxPath, stats.VoxelSize);
-        WriteText(baked.JsonPath, Describe(kind, vine, changed));
+        WriteText(baked.JsonPath, Describe(kind, grown, changed));
         // Re-baking changes the model and keeps the wrapper: whatever was set
         // on it in the editor, and its uid, survive.
         if (!FileAccess.FileExists(baked.ScenePath))
@@ -231,8 +232,9 @@ public static class VineBaker
 
     /// <summary>What the vine was grown from and what it came to, beside it,
     /// for the nest step and for whoever wonders where a vine came from.</summary>
-    public static string Describe(VineKind kind, VineGenerator.Result vine, bool changed = false)
+    public static string Describe(VineKind kind, VineGrower.Grown grown, bool changed = false)
     {
+        VineGenerator.Result vine = grown.Vine;
         var settings = new Godot.Collections.Dictionary();
         foreach (VineParams.Field field in VineParams.Fields)
         {
@@ -249,13 +251,17 @@ public static class VineBaker
             ["version"] = Version,
             ["kind"] = kind?.KindName ?? "",
             ["changedByHand"] = changed,
-            ["seed"] = (int)vine.Params.Seed,
+            ["seed"] = grown.Seed,
+            // A seed that failed the checks was rolled again: which attempt
+            // grew this one, and the seed that attempt rolled from.
+            ["attempt"] = grown.Attempt,
+            ["rolledSeed"] = (int)vine.Params.Seed,
             ["params"] = settings,
             ["counts"] = new Godot.Collections.Dictionary
             {
                 ["total"] = c.Total, ["shell"] = c.Shell, ["knuckle"] = c.Knuckle, ["core"] = c.Core,
                 ["leaf"] = c.Leaf, ["tendril"] = c.Tendril, ["bridged"] = c.Bridged, ["stranded"] = c.Stranded,
-                ["pods"] = c.Markers, ["podsBlocked"] = c.PodsBlocked, ["podsGrounded"] = c.PodsGrounded,
+                ["pods"] = c.Markers, ["podsBlocked"] = c.PodsBlocked, ["podsGrounded"] = c.PodsGrounded, ["podsCrowded"] = c.PodsCrowded,
                 ["podSpacingM"] = c.PodSpacingM, ["bodies"] = c.Bodies,
             },
             ["bounds"] = new Godot.Collections.Array { vine.BoundsX, vine.BoundsY, vine.BoundsZ },

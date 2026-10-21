@@ -23,27 +23,29 @@ public static class VineFactory
     public sealed class Data
     {
         public string Name;
-        public VineGenerator.Result Vine;
-        /// <summary>Null when the vine failed its hard checks: <see cref="Vine"/> says why.</summary>
+        public VineGrower.Grown Grown;
+        public VineGenerator.Result Vine => Grown.Vine;
+        /// <summary>Null when no valid vine grew: <see cref="Grown"/> says why.</summary>
         public VoxModelBuilder.Model Model;
         public double GenerateMs;
         public double ModelMs;
     }
 
-    /// <summary>Grows the vine and builds its model: meshing and chunk graph.
+    /// <summary>Grows the vine the seed means (<see cref="VineGrower"/>) and
+    /// builds its model: meshing and chunk graph.
     /// Pure; any thread.</summary>
     public static Data BuildData(VineKind kind, int seed, VineBakeStats stats, VineParams settings = null, bool changed = false)
     {
         var clock = Stopwatch.StartNew();
-        VineParams p = settings ?? kind.Roll(seed, System.Math.Round((double)stats.VoxelSize, 6));
-        VineGenerator.Result vine = VineGenerator.Generate(p, stats.Limits());
+        VineGrower.Grown grown = settings != null ? VineGrower.FromSettings(settings, stats) : VineGrower.Grow(kind, seed, stats);
+        VineGenerator.Result vine = grown.Vine;
         var data = new Data
         {
-            Name = VineBaker.NameOf(kind, (int)vine.Params.Seed, changed),
-            Vine = vine,
+            Name = VineBaker.NameOf(kind, seed, changed),
+            Grown = grown,
             GenerateMs = clock.Elapsed.TotalMilliseconds,
         };
-        if (!vine.Ok)
+        if (!grown.Ok)
             return data;
 
         clock.Restart();

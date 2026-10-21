@@ -32,6 +32,8 @@ public sealed class VineParams
     public double ArmRiseDeg = 40;
     public double ArmSag = 1.4;
     public double ArmThickness = 0.4;
+    /// <summary>How much shorter the top ring's arms are than the bottom's, a share.</summary>
+    public double ArmTaper = 0;
     public bool ArmTipLeaf = true;
     public double PodsPerRing = 16;
     public double PodTwistDeg = 40;
@@ -93,6 +95,7 @@ public sealed class VineParams
         F("armRiseDeg", -30, 70, 1, 40, p => p.ArmRiseDeg, (p, v) => p.ArmRiseDeg = v),
         F("armSag", 0, 1.5, 0.05, 1.4, p => p.ArmSag, (p, v) => p.ArmSag = v),
         F("armThickness", 0.15, 0.8, 0.05, 0.4, p => p.ArmThickness, (p, v) => p.ArmThickness = v),
+        F("armTaper", 0, 0.8, 0.05, 0, p => p.ArmTaper, (p, v) => p.ArmTaper = v),
         B("armTipLeaf", true, p => p.ArmTipLeaf, (p, v) => p.ArmTipLeaf = v),
 
         F("podsPerRing", 1, 30, 1, 16, p => p.PodsPerRing, (p, v) => p.PodsPerRing = v, integer: true),

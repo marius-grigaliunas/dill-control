@@ -30,7 +30,30 @@ public partial class VineBakeStats : Resource
     [Export(PropertyHint.Range, "0.1,4,0.05,suffix:m")] public float PodSpacingM { get; set; } = 0.9f;
     /// <summary>Jolt's body limit shared by the whole world; a vine at rest
     /// holds about one per occupied section of its destruction stats.</summary>
-    [Export(PropertyHint.Range, "1,200,1")] public int BodiesWarnAbove { get; set; } = 20;
+    [Export(PropertyHint.Range, "1,200,1")] public int BodiesMax { get; set; } = 20;
+
+    /// <summary>A seed whose vine fails a check is grown again from the seed
+    /// and an attempt number, up to this many times, so a seed still means one
+    /// vine (<see cref="VineGrower"/>). Past it, the kind's ranges are broken.</summary>
+    [ExportGroup("Validity")]
+    [Export(PropertyHint.Range, "1,64,1")] public int MaxAttempts { get; set; } = 16;
+    /// <summary>The share of its grown pods a vine may leave out (no drop
+    /// below them, or crowded) and still be valid.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MaxPodsLeftOut { get; set; } = 0.1f;
+    /// <summary>Arms, leaves and tendrils stay this far above the ground.</summary>
+    [Export(PropertyHint.Range, "0,20,0.5,suffix:m")] public float GroundClearanceM { get; set; } = 3.0f;
+    /// <summary>The tip's lean from the foot.</summary>
+    [Export(PropertyHint.Range, "0,60,0.5,suffix:deg")] public float MaxLeanDeg { get; set; } = 25.0f;
+    /// <summary>How much wider than the ring below a ring may be (the stalk tapers).</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")] public float StalkWidening { get; set; } = 0.1f;
+    /// <summary>How much longer or thicker the top's arms may be than the bottom's,
+    /// on the line fitted through them (arms shorten and thin upward).</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")] public float ArmGrowth { get; set; } = 0.05f;
+    /// <summary>The most any joint of the vine's spine bends under the weight
+    /// it carries off the stalk (<see cref="VineValidator"/>).</summary>
+    [Export(PropertyHint.Range, "0,30,0.1,suffix:deg")] public float MaxKinkDeg { get; set; } = 3.0f;
+    /// <summary>How far its tip would sag under that weight.</summary>
+    [Export(PropertyHint.Range, "0,40,0.5,suffix:m")] public float MaxSagM { get; set; } = 8.0f;
 
     [ExportGroup("Wrapper")]
     // Read by the editor, where game resources without [Tool] load as

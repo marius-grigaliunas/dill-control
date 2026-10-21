@@ -62,9 +62,27 @@ public static class VineGenerator
         internal Sample Sample;
     }
 
+    /// <summary>One arm as grown, for the checks: where it leaves the stalk and how big it is.</summary>
+    public struct ArmInfo
+    {
+        public int Ring;
+        /// <summary>Where it leaves the stalk, above the foot.</summary>
+        public double HeightM;
+        /// <summary>Along the arm, root to tip.</summary>
+        public double LengthM;
+        /// <summary>Its radius where it leaves the stalk.</summary>
+        public double RootRadiusM;
+        /// <summary>The lowest its tube comes, above the foot.</summary>
+        public double LowestM;
+    }
+
     public sealed class Counts
     {
-        public int Shell, Knuckle, Core, Leaf, Tendril, Bridged, Stranded, Total, Markers, PodsBlocked, PodsGrounded;
+        public int Shell, Knuckle, Core, Leaf, Tendril, Bridged, Stranded, Total, Markers;
+        /// <summary>Pods grown but left out: no drop below them (into the vine,
+        /// into the ground), or too close to a kept one.</summary>
+        public int PodsBlocked, PodsGrounded, PodsCrowded;
+        public int PodsLeftOut => PodsBlocked + PodsGrounded + PodsCrowded;
         public double PodSpacingM;
         // Bodies at the vine's section edge.
         public int Bodies;
@@ -81,6 +99,7 @@ public static class VineGenerator
         public List<Marker> Markers = new();
         public List<Ring> Rings = new();
         public Counts Counts = new();
+        public List<ArmInfo> Arms = new();
         public int BoundsX, BoundsY, BoundsZ;
         public double FootX, FootY;
     }
@@ -236,7 +255,34 @@ public static class VineGenerator
         if (p.Tendrils && p.TendrilCount > 0)
             AddTendrils(cells, samples, arms, p);
 
-        return Pack(cells, samples, pods, p, limits);
+        Result result = Pack(cells, samples, pods, p, limits);
+        result.Arms = ArmInfos(arms, p.VoxelSize);
+        return result;
+    }
+
+    private static List<ArmInfo> ArmInfos(List<Arm> arms, double vs)
+    {
+        var infos = new List<ArmInfo>(arms.Count);
+        foreach (Arm arm in arms)
+        {
+            List<Sample> tube = arm.Samples;
+            double length = 0, lowest = double.MaxValue;
+            for (int k = 0; k < tube.Count; k++)
+            {
+                if (k > 0)
+                    length += VineMath.Hypot(tube[k].X - tube[k - 1].X, tube[k].Y - tube[k - 1].Y, tube[k].Z - tube[k - 1].Z);
+                lowest = Math.Min(lowest, tube[k].Z - tube[k].Radius);
+            }
+            infos.Add(new ArmInfo
+            {
+                Ring = arm.Ring,
+                HeightM = tube[0].Z * vs,
+                LengthM = length * vs,
+                RootRadiusM = tube[0].Radius * vs,
+                LowestM = lowest * vs,
+            });
+        }
+        return infos;
     }
 
     private static Samples BuildSamples(VineParams p, double heightV, double baseV, double tipV)
@@ -544,7 +590,8 @@ public static class VineGenerator
             for (int a = 0; a < p.ArmsPerRing; a++)
             {
                 double angle = i * twist + a * slot + (rng.NextDouble() - 0.5) * 0.9 * irr;
-                double lengthV = (p.ArmLengthM / vs) * (1 + (rng.NextDouble() - 0.5) * 0.7 * irr);
+                double lengthV = (p.ArmLengthM / vs) * (1 + (rng.NextDouble() - 0.5) * 0.7 * irr)
+                    * (1 - p.ArmTaper * i / Math.Max(1, rings.Count - 1));
                 double rise = (p.ArmRiseDeg + (rng.NextDouble() - 0.5) * 30 * irr) * Math.PI / 180;
                 double sag = p.ArmSag * (1 + (rng.NextDouble() - 0.5) * 0.6 * irr);
                 double swing = (rng.NextDouble() - 0.5) * 0.6 * irr;
@@ -877,8 +924,8 @@ public static class VineGenerator
         if (voxels.Count == 0)
             return EmptyResult(p, "The vine produced no voxels.");
 
-        List<Marker> markers = PlaceMarkers(pods, cells);
-        (int blocked, int grounded, double spacingM) = HangCheck(markers, cells, p, limits);
+        (List<Marker> markers, int blocked, int grounded, int crowded, double spacingM) =
+            KeepHanging(PlaceMarkers(pods, cells), cells, p, limits);
         for (int i = 0; i < voxels.Count; i++)
         {
             Voxel v = voxels[i];
@@ -929,7 +976,7 @@ public static class VineGenerator
         {
             Shell = shell + knuckle, Knuckle = knuckle, Core = core, Leaf = leaf, Tendril = tendril,
             Bridged = bridged, Stranded = stranded, Total = total, Markers = markers.Count,
-            PodsBlocked = blocked, PodsGrounded = grounded, PodSpacingM = spacingM,
+            PodsBlocked = blocked, PodsGrounded = grounded, PodsCrowded = crowded, PodSpacingM = spacingM,
             Bodies = sections.Count,
         };
 
@@ -940,10 +987,8 @@ public static class VineGenerator
             warnings.Add(string.Create(CultureInfo.InvariantCulture, $"{stranded} voxels float more than {BridgeReach} voxels clear of the vine. In the game they hold until the first shot anywhere on it, then fall."));
         if (core == 0)
             warnings.Add("No core. The stalk is thinner than twice the shell, so a carve will not reveal anything.");
-        if (blocked + grounded > 0)
-            warnings.Add(string.Create(CultureInfo.InvariantCulture, $"{blocked + grounded} of {markers.Count} pods have no {limits.PickleHeightM} m drop below them ({blocked} into the vine, {grounded} into the ground). Lengthen the arms, raise their rise, or shorten the stems."));
-        if (markers.Count > 1 && spacingM < limits.PodSpacingM)
-            warnings.Add(string.Create(CultureInfo.InvariantCulture, $"Two pods are {spacingM:F2} m apart; hanging pickles overlap under {limits.PodSpacingM} m. Fewer pods per ring, or more arms."));
+        if (blocked + grounded + crowded > 0)
+            warnings.Add(string.Create(CultureInfo.InvariantCulture, $"{blocked + grounded + crowded} of {markers.Count + blocked + grounded + crowded} pods left out: {blocked} with the vine in their {limits.PickleHeightM} m drop, {grounded} too low, {crowded} under {limits.PodSpacingM} m from another."));
         if (result.BoundsX > limits.AxisLimit || result.BoundsY > limits.AxisLimit || result.BoundsZ > limits.AxisLimit)
         {
             result.Error = string.Create(CultureInfo.InvariantCulture, $"The vine is {result.BoundsX} × {result.BoundsY} × {result.BoundsZ} voxels. MagicaVoxel stores each axis in a byte, so a model stops at {limits.AxisLimit}. Raise voxel size, or lower the height, lean, wobble, or leaves.");
@@ -1118,43 +1163,70 @@ public static class VineGenerator
         return markers;
     }
 
-    // Can a pickle hang from each pod? Its body runs PickleHeightM straight
-    // down; it is blocked by a voxel or another pod in that column, or by the ground.
-    private static (int blocked, int grounded, double spacingM) HangCheck(List<Marker> markers, Cells cells, VineParams p, Limits limits)
+    // Only pods a pickle can hang from are kept. Its body runs PickleHeightM
+    // straight down; a pod is left out when a voxel or a kept pod is in that
+    // column, when the ground is (blocked, grounded), or when it is closer
+    // than PodSpacingM to a kept pod (crowded). The rest are named again in
+    // order, @Pod01 up, so the names have no gaps.
+    private static (List<Marker> kept, int blocked, int grounded, int crowded, double spacingM) KeepHanging(
+        List<Marker> markers, Cells cells, VineParams p, Limits limits)
     {
         int drop = (int)Math.Ceiling(limits.PickleHeightM / p.VoxelSize);
-        var pods = new HashSet<long>();
-        foreach (Marker m in markers)
-            pods.Add(KeyOf(m.X, m.Y, m.Z));
-        int blocked = 0;
-        int grounded = 0;
+        double spacing = limits.PodSpacingM / p.VoxelSize;
+        var kept = new List<Marker>(markers.Count);
+        var at = new HashSet<long>();
+        int blocked = 0, grounded = 0, crowded = 0;
         foreach (Marker m in markers)
         {
-            for (int z = m.Z - 1; z >= m.Z - drop; z--)
+            bool free = true;
+            for (int z = m.Z - 1; z >= m.Z - drop && free; z--)
             {
                 if (z < 0)
                 {
                     grounded++;
-                    break;
+                    free = false;
                 }
-                long key = KeyOf(m.X, m.Y, z);
-                if (cells.Has(key) || pods.Contains(key))
+                else if (cells.Has(KeyOf(m.X, m.Y, z)) || at.Contains(KeyOf(m.X, m.Y, z)))
                 {
                     blocked++;
+                    free = false;
+                }
+            }
+            if (!free)
+                continue;
+            bool near = false;
+            foreach (Marker k in kept)
+            {
+                if (VineMath.Hypot(m.X - k.X, m.Y - k.Y, m.Z - k.Z) < spacing - 1e-9)
+                {
+                    near = true;
                     break;
                 }
             }
+            if (near)
+            {
+                crowded++;
+                continue;
+            }
+            kept.Add(m);
+            at.Add(KeyOf(m.X, m.Y, m.Z));
+        }
+        for (int i = 0; i < kept.Count; i++)
+        {
+            Marker m = kept[i];
+            m.Name = PodName(i + 1);
+            kept[i] = m;
         }
         double nearest = double.PositiveInfinity;
-        for (int i = 0; i < markers.Count; i++)
+        for (int i = 0; i < kept.Count; i++)
         {
-            for (int j = i + 1; j < markers.Count; j++)
+            for (int j = i + 1; j < kept.Count; j++)
             {
-                double d = VineMath.Hypot(markers[i].X - markers[j].X, markers[i].Y - markers[j].Y, markers[i].Z - markers[j].Z);
+                double d = VineMath.Hypot(kept[i].X - kept[j].X, kept[i].Y - kept[j].Y, kept[i].Z - kept[j].Z);
                 if (d < nearest)
                     nearest = d;
             }
         }
-        return (blocked, grounded, double.IsFinite(nearest) ? nearest * p.VoxelSize : 0);
+        return (kept, blocked, grounded, crowded, double.IsFinite(nearest) ? nearest * p.VoxelSize : 0);
     }
 }

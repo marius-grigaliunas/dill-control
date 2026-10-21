@@ -1,9 +1,11 @@
 {
   "tool": "dill-control-vine",
-  "version": 3,
+  "version": 4,
   "kind": "Heart",
   "changedByHand": false,
   "seed": 8349791,
+  "attempt": 0,
+  "rolledSeed": 8349791,
   "params": {
     "seed": 8349791.0,
     "heightM": 107.0,
@@ -27,6 +29,7 @@
     "armRiseDeg": 42.0,
     "armSag": 1.35,
     "armThickness": 0.35,
+    "armTaper": 0.2,
     "armTipLeaf": true,
     "podsPerRing": 19.0,
     "podTwistDeg": 43.0,
@@ -42,25 +45,28 @@
     "tendrilCurl": 2.5
   },
   "counts": {
-    "total": 30303,
-    "shell": 17142,
+    "total": 29801,
+    "shell": 16646,
     "knuckle": 2217,
     "core": 7716,
-    "leaf": 4725,
-    "tendril": 720,
-    "bridged": 177,
+    "leaf": 4693,
+    "tendril": 746,
+    "bridged": 185,
     "stranded": 0,
-    "pods": 209,
+    "pods": 208,
     "podsBlocked": 0,
     "podsGrounded": 0,
+    "podsCrowded": 1,
     "podSpacingM": 1.11803398874989,
-    "bodies": 15
+    "bodies": 13
   },
   "bounds": [
-    94,
     93,
+    91,
     218
   ],
   "heightM": 109.0,
-  "warnings": []
+  "warnings": [
+    "1 of 209 pods left out: 0 with the vine in their 1.8 m drop, 0 too low, 1 under 0.9 m from another."
+  ]
 }

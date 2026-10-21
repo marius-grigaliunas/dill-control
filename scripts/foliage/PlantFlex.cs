@@ -644,31 +644,9 @@ public partial class PlantFlex : Node, IVoxelBend
 
     private void Profile(int[] bins, out float[] mass, out float[] section)
     {
-        int n = Rod.Segments;
-        float length = Rod.SegmentLength;
-        mass = new float[n];
-        section = new float[n];
-        for (int b = 0; b < _bins; b++)
-        {
-            float height = (b + 0.5f) * _binSize;
-            int s = Math.Clamp((int)(height / length), 0, n - 1);
-            mass[s] += bins[b] * _massPerVoxel;
-        }
-        for (int j = 0; j < n; j++)
-        {
-            // The thinnest layer within half a segment of the joint: a cut a
-            // voxel thick is what decides how much is left to bend on.
-            float from = (j - 0.5f) * length, to = (j + 0.5f) * length;
-            int thinnest = int.MaxValue;
-            for (int b = Math.Max(0, (int)(from / _binSize)); b < _bins && b * _binSize < to; b++)
-            {
-                if (_builtBins[b] > 0)
-                {
-                    thinnest = Math.Min(thinnest, bins[b]);
-                }
-            }
-            section[j] = thinnest == int.MaxValue ? 0.0f : thinnest;
-        }
+        mass = new float[Rod.Segments];
+        section = new float[Rod.Segments];
+        RodProfile.From(bins, _builtBins, _binSize, Rod.Segments, Rod.SegmentLength, _massPerVoxel, mass, section);
         _segmentMass = mass;
     }
 

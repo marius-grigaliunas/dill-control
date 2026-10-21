@@ -53,6 +53,8 @@ public partial class VineKind : Resource
     [Export] public Vector2 ArmRiseDeg { get; set; } = new(40, 40);
     [Export] public Vector2 ArmSag { get; set; } = new(1.4f, 1.4f);
     [Export] public Vector2 ArmThickness { get; set; } = new(0.4f, 0.4f);
+    /// <summary>How much shorter the top ring's arms are than the bottom's, a share.</summary>
+    [Export] public Vector2 ArmTaper { get; set; } = new(0, 0);
     /// <summary>Chance a vine of this kind has a leaf at each arm's tip.</summary>
     [Export(PropertyHint.Range, "0,1,0.01")] public float ArmTipLeafChance { get; set; } = 1.0f;
 

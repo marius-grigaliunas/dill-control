@@ -56,6 +56,10 @@ public partial class VineCheck : Node
         Written(stats);
         _report.AppendLine("Baked scenes:");
         BakedScenes(stats);
+        _report.AppendLine("Valid vines, 200 seeds a kind:");
+        string rejections = Rejections(200);
+        Check("every seed of every kind grows a valid vine", rejections.StartsWith("PASS"));
+        _report.Append(rejections.Substring(rejections.IndexOf('\n') + 1));
         return (_pass ? "PASS\n" : "FAIL\n") + _report;
     }
 
@@ -78,7 +82,12 @@ public partial class VineCheck : Node
         var p = new VineParams();
         foreach (VineParams.Field field in VineParams.Fields)
         {
-            JsonElement v = json.GetProperty(field.Key);
+            // A setting added after the file was recorded grows as its default did.
+            if (!json.TryGetProperty(field.Key, out JsonElement v))
+            {
+                field.Set(p, field.Fallback);
+                continue;
+            }
             field.Set(p, v.ValueKind switch
             {
                 JsonValueKind.True => 1,
@@ -252,16 +261,30 @@ public partial class VineCheck : Node
         VineGenerator.Result vine = VineGenerator.Generate(defaults);
         int podCount = (int)(defaults.RingCount * defaults.PodsPerRing);
         Check("default vine builds", vine.Ok && vine.Error == null);
-        Check("default vine has no warnings", vine.Warnings.Count == 0, string.Join(" ", vine.Warnings));
+        VineValidator.Verdict verdict = VineValidator.Check(VineGenerator.Generate(defaults, stats.Limits()), stats);
+        Check("the default vine is valid", verdict.Ok, string.Join(" ", verdict.Details));
         Check("every voxel reaches the ground face to face", Grounded(vine));
-        Check($"{podCount} pod markers", vine.Markers.Count == podCount && vine.Counts.Markers == podCount);
+        int lost = vine.Counts.PodsLeftOut;
+        Check($"{podCount} pods grown, every one kept or left out", vine.Markers.Count + lost == podCount && vine.Counts.Markers == vine.Markers.Count,
+            $"{vine.Markers.Count} kept, {lost} left out");
         var names = new HashSet<string>(vine.Markers.Select(m => m.Name));
-        Check("marker names are unique @ names", names.Count == podCount && names.All(n => n.StartsWith('@')));
-        Check("first and last pod", names.Contains("@Pod01") && names.Contains("@Pod" + podCount));
+        Check("marker names are unique @ names", names.Count == vine.Markers.Count && names.All(n => n.StartsWith('@')));
+        Check("pods named with no gaps", names.Contains("@Pod01") && names.Contains(VineGenerator.PodName(vine.Markers.Count)));
         var occupied = new HashSet<(int, int, int)>(vine.Voxels.Select(v => (v.X, v.Y, v.Z)));
         Check("markers are not stalk voxels", vine.Markers.All(m => !occupied.Contains((m.X, m.Y, m.Z))));
-        Check("no two pods share a cell", vine.Markers.Select(m => (m.X, m.Y, m.Z)).Distinct().Count() == podCount);
-        Check("every pod has a pickle's drop", vine.Counts.PodsBlocked == 0 && vine.Counts.PodsGrounded == 0);
+        Check("no two pods share a cell", vine.Markers.Select(m => (m.X, m.Y, m.Z)).Distinct().Count() == vine.Markers.Count);
+        // Counted here afresh, not taken from the generator's own counts.
+        int drop = (int)Math.Ceiling(stats.PickleHeightM / vine.VoxelSize);
+        var podCells = new HashSet<(int, int, int)>(vine.Markers.Select(m => (m.X, m.Y, m.Z)));
+        bool hanging = vine.Markers.All(m => Enumerable.Range(1, drop).All(d => m.Z - d >= 0
+            && !occupied.Contains((m.X, m.Y, m.Z - d)) && !podCells.Contains((m.X, m.Y, m.Z - d))));
+        Check("every kept pod has a pickle's drop", hanging);
+        double closest = double.MaxValue;
+        for (int i = 0; i < vine.Markers.Count; i++)
+            for (int j = i + 1; j < vine.Markers.Count; j++)
+                closest = Math.Min(closest, Math.Sqrt(Math.Pow(vine.Markers[i].X - vine.Markers[j].X, 2)
+                    + Math.Pow(vine.Markers[i].Y - vine.Markers[j].Y, 2) + Math.Pow(vine.Markers[i].Z - vine.Markers[j].Z, 2)) * vine.VoxelSize);
+        Check("every kept pod has room", closest >= stats.PodSpacingM - 1e-6, $"nearest two {closest:0.00} m");
         Check("pods hang above the bare stalk", vine.Markers.Min(m => m.Z * vine.VoxelSize) > defaults.BareStalkM * 0.5);
         Check("palette indices 0 and 255 unused", vine.Voxels.All(v => v.C >= 1 && v.C <= 6));
         Check("a core sits inside the shell", vine.Counts.Core > 0);
@@ -289,7 +312,7 @@ public partial class VineCheck : Node
         bareParams.ArmsPerRing = 0;
         bareParams.PedicelM = 0;
         VineGenerator.Result bare = VineGenerator.Generate(bareParams);
-        Check("no arms puts the pods on the stalk", bare.Ok && bare.Markers.Count == podCount);
+        Check("no arms puts the pods on the stalk", bare.Ok && bare.Markers.Count + bare.Counts.PodsLeftOut == podCount && bare.Markers.Count > 0);
 
         if (kinds.Count == 0)
             return;
@@ -332,7 +355,7 @@ public partial class VineCheck : Node
         Check("a leafy vine is mostly leaf, a fruiting one mostly pods",
             leafy.Counts.Leaf > fruity.Counts.Leaf * 2 && fruity.Counts.Markers > leafy.Counts.Markers * 4,
             $"leaf {leafy.Counts.Leaf} vs {fruity.Counts.Leaf}, pods {leafy.Counts.Markers} vs {fruity.Counts.Markers}");
-        Check("a fruiting vine's collision bodies", fruity.Counts.Bodies <= stats.BodiesWarnAbove,
+        Check("a fruiting vine's collision bodies", fruity.Counts.Bodies <= stats.BodiesMax,
             $"{fruity.Counts.Bodies} at section edge {stats.Limits().SectionEdge}");
     }
 
@@ -408,7 +431,7 @@ public partial class VineCheck : Node
         long managed1 = GC.GetTotalMemory(true);
         if (data.Model == null)
         {
-            Check($"{name}: grows in memory", false, data.Vine.Error);
+            Check($"{name}: grows in memory", false, string.Join(" ", data.Grown.Verdict.Details));
             return;
         }
         Node3D made = VoxModelBuilder.Instantiate(data.Model, "Model", VoxModelBuilder.MeshInstances(null));
@@ -438,6 +461,136 @@ public partial class VineCheck : Node
             differ.Count > 0 ? string.Join(", ", differ.Take(6))
                 : string.Create(System.Globalization.CultureInfo.InvariantCulture,
                     $"generate {data.GenerateMs:F0} ms, mesh and chunks {data.ModelMs:F0} ms, {(managed1 - managed0) / 1048576.0:F1} MB"));
+    }
+
+    /// <summary>
+    /// Grows <paramref name="count"/> seeds of each kind and says how often a
+    /// seed's own roll is valid, how many attempts it takes, why rolls fail,
+    /// and how each measure spreads over the first rolls: a kind that fails
+    /// often has ranges to narrow. A kind that cannot grow a seed within
+    /// <see cref="VineBakeStats.MaxAttempts"/> fails the check.
+    /// </summary>
+    public string Rejections(int count)
+    {
+        var stats = GD.Load<VineBakeStats>(VineBakeStats.DefaultPath);
+        var text = new StringBuilder();
+        bool pass = true;
+        foreach (VineKind kind in LoadKinds().Values.OrderBy(k => k.KindName))
+        {
+            var rng = Core.SeededRandom.Stream(1, "vinecheck:rejections:" + kind.KindName);
+            int firstOk = 0, failed = 0, attempts = 0;
+            var reasons = new Dictionary<string, int>();
+            var lean = new List<double>();
+            var kink = new List<double>();
+            var sag = new List<double>();
+            var widen = new List<double>();
+            var armLength = new List<double>();
+            var armThick = new List<double>();
+            ulong t0 = Time.GetTicksMsec();
+            for (int i = 0; i < count; i++)
+            {
+                int seed = rng.RangeInt(0, 9_999_999);
+                VineGrower.Grown grown = VineGrower.Grow(kind, seed, stats);
+                attempts += grown.Attempt + 1;
+                if (!grown.Ok)
+                    failed++;
+                else if (grown.Attempt == 0)
+                    firstOk++;
+                foreach (VineGrower.Rejection r in grown.Rejected)
+                {
+                    foreach (string reason in r.Reasons)
+                        reasons[reason] = reasons.GetValueOrDefault(reason) + 1;
+                }
+                // The seed's own roll, valid or not: how the kind's ranges land.
+                VineValidator.Verdict first = grown.Attempt == 0 ? grown.Verdict
+                    : VineValidator.Check(VineGenerator.Generate(kind.Roll(seed, Math.Round((double)stats.VoxelSize, 6)), stats.Limits()), stats);
+                lean.Add(first.LeanDeg);
+                kink.Add(first.KinkDeg);
+                sag.Add(first.SagM);
+                widen.Add(first.WideningShare);
+                armLength.Add(first.ArmLengthGrowth);
+                armThick.Add(first.ArmThicknessGrowth);
+            }
+            int rolls = reasons.Values.Sum();
+            string Spread(List<double> v)
+            {
+                v.Sort();
+                double At(double q) => v[Math.Min(v.Count - 1, (int)(q * v.Count))];
+                return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{At(0.1):0.##}/{At(0.5):0.##}/{At(0.9):0.##}/{v[^1]:0.##}");
+            }
+            text.AppendLine(string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                $"  {kind.KindName}: {firstOk * 100.0 / count:0}% valid on the seed's own roll, {attempts / (double)count:0.00} rolls a seed, {failed} seeds with no valid vine, {Time.GetTicksMsec() - t0} ms"));
+            if (reasons.Count > 0)
+            {
+                text.AppendLine("    rejected for: " + string.Join(", ", reasons.OrderByDescending(r => r.Value)
+                    .Select(r => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{r.Key} {r.Value * 100.0 / rolls:0}%"))));
+            }
+            text.AppendLine($"    first rolls p10/p50/p90/max: lean {Spread(lean)} deg, kink {Spread(kink)} deg, sag {Spread(sag)} m, "
+                + $"knuckle widening {Spread(widen)}, arm length growth {Spread(armLength)}, arm thickness growth {Spread(armThick)}");
+            if (failed > 0)
+                pass = false;
+        }
+        return (pass ? "PASS\n" : "FAIL\n") + text;
+    }
+
+    /// <summary>The baked vine scenes the settle test stands up.</summary>
+    public string[] BakedVines()
+    {
+        var stats = GD.Load<VineBakeStats>(VineBakeStats.DefaultPath);
+        return DirAccess.GetFilesAt(stats.SceneFolder)
+            .Where(f => System.Text.RegularExpressions.Regex.IsMatch(f, @"^prp_vine_[a-z]+_[0-9]+c?[.]tscn$"))
+            .Select(f => $"{stats.SceneFolder}/{f}").ToArray();
+    }
+
+    /// <summary>
+    /// The settle test, with Jolt: a baked vine stood on flat ground with no
+    /// wind, player or shots. <c>vinecheck.gd</c> lets the physics run, then
+    /// asks <see cref="Settled"/>. Not a gate on growing (Jolt is not the same
+    /// to the bit on every machine): a vine that fails it says its kind's
+    /// ranges, or the game's physics, need looking at.
+    /// </summary>
+    public Node3D Stand(string scenePath)
+    {
+        FlexField.Wind = new WindStats { Speed = 0.0f, GustSpeed = 0.0f, Swirl = 0.0f };
+        var stage = new Node3D { Name = "Settle" };
+        var ground = new StaticBody3D { Name = "Ground", Position = new Vector3(0, -1, 0) };
+        ground.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = new Vector3(600, 2, 600) } });
+        stage.AddChild(ground);
+        stage.AddChild(GD.Load<PackedScene>(scenePath).Instantiate());
+        AddChild(stage);
+        _bodiesBefore = Bodies(GetTree().Root).Count;
+        return stage;
+    }
+
+    private int _bodiesBefore;
+
+    /// <summary>After the physics has run: what moved that should not have.
+    /// Frees the stage.</summary>
+    public string Settled(Node3D stage, float seconds)
+    {
+        Node vine = stage.GetChild(1);
+        var flex = vine.GetNodeOrNull<PlantFlex>("Flex");
+        Rod rod = flex?.Rod;
+        float tip = rod != null ? rod.Offset(rod.Segments).Length() : float.NaN;
+        List<RigidBody3D> bodies = Bodies(GetTree().Root);
+        int loose = bodies.Count - _bodiesBefore;
+        int sunk = bodies.Count(b => b.GlobalPosition.Y < -1.0f);
+        bool ok = rod != null && tip < 0.05f && !rod.Restless && loose <= 0 && sunk == 0;
+        string line = string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $"  {(ok ? "ok  " : "FAIL")} {vine.Name}: stands {seconds:0} s untouched  tip {tip:0.000} m, {(rod?.Restless == true ? "still moving" : "at rest")}, {Math.Max(0, loose)} pieces loose, {sunk} under the ground");
+        stage.QueueFree();
+        return line;
+    }
+
+    private static List<RigidBody3D> Bodies(Node root)
+    {
+        var list = new List<RigidBody3D>();
+        foreach (Node n in root.FindChildren("*", nameof(RigidBody3D), true, false))
+        {
+            if (n is RigidBody3D body)
+                list.Add(body);
+        }
+        return list;
     }
 
     private static int FindChunk(byte[] bytes, string id)

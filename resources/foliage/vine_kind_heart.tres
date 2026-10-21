@@ -29,6 +29,7 @@ ArmLengthM = Vector2(20.0, 23.0)
 ArmRiseDeg = Vector2(38.0, 44.0)
 ArmSag = Vector2(1.3, 1.5)
 ArmThickness = Vector2(0.32, 0.36)
+ArmTaper = Vector2(0.15, 0.35)
 ArmTipLeafChance = 1.0
 PodsPerRing = Vector2(18.0, 20.0)
 PodTwistDeg = Vector2(35.0, 45.0)

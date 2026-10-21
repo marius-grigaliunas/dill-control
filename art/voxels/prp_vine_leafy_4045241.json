@@ -1,9 +1,11 @@
 {
   "tool": "dill-control-vine",
-  "version": 3,
+  "version": 4,
   "kind": "Leafy",
   "changedByHand": false,
   "seed": 4045241,
+  "attempt": 0,
+  "rolledSeed": 4045241,
   "params": {
     "seed": 4045241.0,
     "heightM": 60.0,
@@ -27,6 +29,7 @@
     "armRiseDeg": 37.0,
     "armSag": 0.7,
     "armThickness": 0.4,
+    "armTaper": 0.35,
     "armTipLeaf": true,
     "podsPerRing": 2.0,
     "podTwistDeg": 85.0,
@@ -42,23 +45,24 @@
     "tendrilCurl": 2.5
   },
   "counts": {
-    "total": 18991,
-    "shell": 4911,
+    "total": 18892,
+    "shell": 4840,
     "knuckle": 964,
     "core": 1491,
-    "leaf": 12096,
-    "tendril": 493,
-    "bridged": 137,
+    "leaf": 12091,
+    "tendril": 470,
+    "bridged": 132,
     "stranded": 0,
     "pods": 14,
     "podsBlocked": 0,
     "podsGrounded": 0,
-    "podSpacingM": 6.87386354243376,
+    "podsCrowded": 0,
+    "podSpacingM": 5.3851648071345,
     "bodies": 5
   },
   "bounds": [
-    71,
-    66,
+    68,
+    65,
     121
   ],
   "heightM": 60.5,

@@ -1,9 +1,11 @@
 {
   "tool": "dill-control-vine",
-  "version": 3,
+  "version": 4,
   "kind": "Weeping",
   "changedByHand": false,
   "seed": 8056125,
+  "attempt": 0,
+  "rolledSeed": 8056125,
   "params": {
     "seed": 8056125.0,
     "heightM": 80.0,
@@ -27,6 +29,7 @@
     "armRiseDeg": 37.0,
     "armSag": 1.5,
     "armThickness": 0.4,
+    "armTaper": 0.2,
     "armTipLeaf": true,
     "podsPerRing": 14.0,
     "podTwistDeg": 41.0,
@@ -42,23 +45,24 @@
     "tendrilCurl": 2.5
   },
   "counts": {
-    "total": 15605,
-    "shell": 9341,
+    "total": 15315,
+    "shell": 9088,
     "knuckle": 1197,
     "core": 2384,
-    "leaf": 3492,
-    "tendril": 388,
-    "bridged": 103,
+    "leaf": 3456,
+    "tendril": 387,
+    "bridged": 134,
     "stranded": 0,
     "pods": 126,
     "podsBlocked": 0,
     "podsGrounded": 0,
-    "podSpacingM": 1.4142135623731,
-    "bodies": 10
+    "podsCrowded": 0,
+    "podSpacingM": 1.22474487139159,
+    "bodies": 9
   },
   "bounds": [
-    82,
-    81,
+    78,
+    80,
     161
   ],
   "heightM": 80.5,

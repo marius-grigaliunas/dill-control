@@ -23,6 +23,7 @@ public partial class VineGenDock : EditorDock
     private readonly List<VineKind> _kinds = new();
     private VineParams _params;
     private VineGenerator.Result _vine;
+    private VineGrower.Grown _grown;
     private bool _custom;
     private bool _filling;
 
@@ -279,7 +280,10 @@ public partial class VineGenDock : EditorDock
             return;
         }
         _pool.MaxValue = kind.PoolSize - 1;
-        _params = kind.Roll((int)_seed.Value, System.Math.Round((double)_stats.VoxelSize, 6));
+        ulong t0 = Time.GetTicksMsec();
+        _grown = VineGrower.Grow(kind, (int)_seed.Value, _stats);
+        _growMs = Time.GetTicksMsec() - t0;
+        _params = _grown.Vine.Params.Copy();
         _custom = false;
         _filling = true;
         foreach (VineParams.Field field in VineParams.RangeFields)
@@ -296,7 +300,7 @@ public partial class VineGenDock : EditorDock
             editor.Modulate = Colors.White;
         }
         _filling = false;
-        Grow();
+        Show();
     }
 
     private void Changed(VineParams.Field field, double value)
@@ -309,37 +313,55 @@ public partial class VineGenDock : EditorDock
         _regrow.Start();
     }
 
+    private ulong _growMs;
+
+    /// <summary>Settings changed by hand: grown and judged once, never re-rolled.</summary>
     private void Grow()
     {
         if (_params == null || _stats == null)
             return;
         ulong t0 = Time.GetTicksMsec();
-        _vine = VineGenerator.Generate(_params, _stats.Limits());
-        ulong ms = Time.GetTicksMsec() - t0;
-        _bake.Disabled = !_vine.Ok;
+        int asked = _grown?.Seed ?? (int)_seed.Value;
+        _grown = VineGrower.FromSettings(_params, _stats);
+        _grown.Seed = asked;
+        _growMs = Time.GetTicksMsec() - t0;
+        Show();
+    }
+
+    private void Show()
+    {
+        _vine = _grown.Vine;
+        // Only valid vines are baked (docs/handoffs/vine-tool.md).
+        _bake.Disabled = !_grown.Ok;
         _bake.Text = _custom ? "Bake (changed settings)" : "Bake";
-        _report.Text = Report(_vine, ms);
+        _report.Text = Report(_grown, _growMs);
         ShowVine();
     }
 
-    private string Report(VineGenerator.Result vine, ulong ms)
+    private string Report(VineGrower.Grown grown, ulong ms)
     {
+        VineGenerator.Result vine = grown.Vine;
         if (vine.Voxels.Count == 0)
             return vine.Error ?? "Nothing grew.";
         VineGenerator.Counts c = vine.Counts;
-        string name = VineBaker.NameOf(Kind(), (int)vine.Params.Seed, _custom);
+        VineValidator.Verdict verdict = grown.Verdict;
+        string name = VineBaker.NameOf(Kind(), grown.Seed, _custom);
         string text = string.Create(CultureInfo.InvariantCulture,
             $"{name}\n{c.Total:N0} voxels of {_stats.VoxelBudget:N0}, {c.Bodies} bodies at rest\n"
             + $"{vine.BoundsX}x{vine.BoundsY}x{vine.BoundsZ} voxels, {vine.BoundsZ * vine.VoxelSize:0.#} m tall\n"
-            + $"{c.Markers} pods: {c.PodsBlocked} blocked, {c.PodsGrounded} on the ground, nearest two {c.PodSpacingM:0.00} m apart\n"
+            + $"{c.Markers} pods ({c.PodsLeftOut} left out: {c.PodsBlocked} blocked, {c.PodsGrounded} too low, {c.PodsCrowded} crowded), nearest two {c.PodSpacingM:0.00} m apart\n"
             + $"core {c.Core:N0}, leaf {c.Leaf:N0}, tendril {c.Tendril:N0}, bridged {c.Bridged}\n"
+            + $"lean {verdict.LeanDeg:0.0} deg, spine bends {verdict.KinkDeg:0.00} deg at most, tip sags {verdict.SagM:0.0} m\n"
             + $"grown in {ms} ms");
-        if (c.Bodies > _stats.BodiesWarnAbove)
-            text += $"\nWarning: {c.Bodies} bodies; vine_bake.tres warns above {_stats.BodiesWarnAbove}.";
-        foreach (string w in vine.Warnings)
-            text += "\nWarning: " + w;
-        if (vine.Error != null)
-            text += "\nCannot bake: " + vine.Error;
+        if (grown.Attempt > 0)
+        {
+            text += string.Create(CultureInfo.InvariantCulture, $"\nAttempt {grown.Attempt} (rolled from seed {(int)vine.Params.Seed}); skipped: ")
+                + string.Join("; ", grown.Rejected.ConvertAll(r => string.Join(", ", r.Reasons)));
+        }
+        foreach (string detail in verdict.Details)
+            text += "\nNot valid: " + detail;
+        if (!grown.Ok)
+            text += _custom ? "\nCannot bake: change the settings back, or Reroll." : "\nCannot bake: no valid vine in this kind's attempts; its ranges need narrowing.";
         if (FileAccess.FileExists($"{_stats.VoxelFolder}/{name}.vox"))
             text += "\nBaked before: baking again replaces its .vox and keeps its scene.";
         return text;
@@ -396,12 +418,12 @@ public partial class VineGenDock : EditorDock
     private void Bake()
     {
         VineKind kind = Kind();
-        if (kind == null || _vine == null || !_vine.Ok)
+        if (kind == null || _grown == null || !_grown.Ok)
             return;
-        VineBaker.Baked baked = VineBaker.Bake(kind, (int)_params.Seed, _stats, _params, _custom);
-        if (!baked.Vine.Ok)
+        VineBaker.Baked baked = VineBaker.Bake(kind, _grown.Seed, _stats, _custom ? _params : null, _custom);
+        if (!baked.Grown.Ok)
         {
-            _status.Text = "Not baked: " + baked.Vine.Error;
+            _status.Text = "Not baked: " + string.Join(" ", baked.Grown.Verdict.Details);
             return;
         }
         _status.Text = $"Baked {baked.Name}: {baked.VoxPath}" + (baked.SceneWritten ? $" and {baked.ScenePath}." : $"; kept {baked.ScenePath}.");
@@ -414,7 +436,7 @@ public partial class VineGenDock : EditorDock
         }
         files.FilesystemChanged += Select;
         files.Scan();
-        _report.Text = Report(_vine, 0);
+        _report.Text = Report(_grown, 0);
     }
 }
 #endif

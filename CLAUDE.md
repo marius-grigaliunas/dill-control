@@ -202,7 +202,13 @@ the wrapper above, with the stalk's foot on the scene origin. Its palette is
 `SeededRandom` streams and its trigonometry is `Fdlibm`'s, never .NET's.
 `vinecheck.gd` holds the generator to its recorded golden vines
 (`scripts/debug/vine_golden.json`); a change meant to move them re-records
-with `vinecheck.gd -- record`. What comes next (the main-screen Vines tool,
+with `vinecheck.gd -- record`. **Only valid vines are baked or placed:**
+`VineGrower` rolls a seed that fails `VineValidator` (shape, pods, taper,
+lean, the spine's load; thresholds in `vine_bake.tres`) again from the seed
+and an attempt number, so a seed is always one valid vine; the generator
+keeps only pods a pickle can hang from. Jolt never decides a roll.
+`VineFactory` builds the same vine in memory, no files, through the
+importer's own `VoxModelBuilder`. What comes next (the main-screen Vines tool,
 nests generated on the planet, pods that regrow per `docs/decisions/0034`)
 is `docs/handoffs/vine-tool.md`.
 
@@ -266,9 +272,13 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --headless --path . --script scripts/debug/flexcheck.gd                                            # a plant's spine: its period, settling, a pull, a cut
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd                                            # vine generator vs its golden vines; every baked vine's wrapper and foot
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- record                                  # re-record the golden vines, only after a change meant to move them
+"$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- rejections 200                          # per kind: how often a seed's roll is valid, why not, how each measure spreads
+"$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- settle                                  # every baked vine stood 5 s with Jolt: no drift, nothing loose or sunk
+"$GODOT" --path . --script scripts/debug/vinelook.gd -- perflogs/vines.png                                   # every baked vine in a row, photographed
 "$GODOT" --headless --path . --script scripts/debug/vinebake.gd -- fruiting pool:0                          # bake a vine as the dock does (then --editor --quit to import)
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex          # a vine in the wind, rocketed, swung on, stood on, bitten and felled
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex prp_vine_fruiting_4532344 40  # any vine by name; shots at 40 m keep it standing
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex mem:fruiting:4532344 40  # the same, grown in memory in its place
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn forest        # 85 vines 100 m apart (prp_vine_forest) round the middle: spawn, edge, among them, a swing
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn forestab      # what the forest costs the GPU: shadows, ink, bending, the forest
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn collapse sink  # any mode + sink: pieces under the ground or with boxes off their voxels

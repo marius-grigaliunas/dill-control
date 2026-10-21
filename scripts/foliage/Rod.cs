@@ -531,6 +531,9 @@ public sealed class Rod
 
     public int Substeps => _substeps;
 
+    /// <summary>Joint <paramref name="joint"/>'s stiffness: N m per radian of bend.</summary>
+    public float Stiffness(int joint) => _stiffness[joint];
+
     /// <summary>The joint with least of its built section left, and how much: for the bench.</summary>
     public float Softest(out int joint)
     {
