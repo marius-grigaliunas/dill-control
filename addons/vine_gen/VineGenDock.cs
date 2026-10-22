@@ -379,7 +379,8 @@ public partial class VineGenDock : EditorDock
             _leaves = null;
             return;
         }
-        VoxFile file = VoxFile.Load(VineBaker.Encode(_vine, _stats.Palette));
+        VinePalette palette = VineBaker.PaletteFor(Kind(), _stats, _vine);
+        VoxFile file = VoxFile.Load(VineBaker.Encode(_vine, palette));
         VoxFile.Model model = file.Models[0];
         float vs = (float)_vine.VoxelSize;
         Vector3 centre = VoxSpace.Centre(model.Size);
@@ -411,7 +412,7 @@ public partial class VineGenDock : EditorDock
 
         // Leaves are meshes: drawn as the game draws them, from the same set.
         _leaves?.QueueFree();
-        _leaves = VineLeaves.Drawing(VineLeafSet.Of(_vine, Kind(), _stats.Palette),
+        _leaves = VineLeaves.Drawing(VineLeafSet.Of(_vine, Kind(), palette),
             GD.Load<Material>(VineLeaves.MaterialPath), 0.35f);
         _viewport.AddChild(_leaves);
 

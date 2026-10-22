@@ -50,7 +50,8 @@ public static class VineFactory
             return data;
 
         clock.Restart();
-        VoxFile file = VoxFile.Load(VineBaker.Encode(vine, stats.Palette));
+        VinePalette palette = VineBaker.PaletteFor(kind, stats, vine);
+        VoxFile file = VoxFile.Load(VineBaker.Encode(vine, palette));
         data.Model = VoxModelBuilder.Build(file, new VoxModelBuilder.Options
         {
             VoxelSize = stats.VoxelSize,
@@ -59,7 +60,7 @@ public static class VineFactory
             ChunkJitter = VineBaker.ChunkJitter,
             Path = $"{stats.VoxelFolder}/{data.Name}.vox",
         });
-        data.Leaves = VineLeafSet.Of(vine, kind, stats.Palette);
+        data.Leaves = VineLeafSet.Of(vine, kind, palette);
         data.ModelMs = clock.Elapsed.TotalMilliseconds;
         return data;
     }

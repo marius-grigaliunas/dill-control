@@ -119,9 +119,8 @@ public partial class VineLeaves : Node3D
         for (int i = 0; i < n; i++)
         {
             _blades[Set.Shape[i]].SetInstanceTransform(_slot[i], BladeAt(i));
-            _blades[Set.Shape[i]].SetInstanceColor(_slot[i], Colors.White);
+            _blades[Set.Shape[i]].SetInstanceCustomData(_slot[i], TintOf(Set, i));
             _stems.SetInstanceTransform(i, StemAt(i));
-            _stems.SetInstanceColor(i, Colors.White);
             Collide(i);
         }
         Body.Intercept = Take;
@@ -132,7 +131,7 @@ public partial class VineLeaves : Node3D
         var multi = new MultiMesh
         {
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-            UseColors = true,
+            UseCustomData = true,
             Mesh = mesh,
             InstanceCount = count,
             CustomAabb = bounds,
@@ -188,6 +187,13 @@ public partial class VineLeaves : Node3D
         return new Transform3D(new Basis(across, over, along), set.Attach[i]);
     }
 
+    // Its tint for leaf_toon, which multiplies by INSTANCE_CUSTOM when its alpha is set.
+    private static Color TintOf(VineLeafSet set, int i)
+    {
+        Color tint = i < set.Tint.Length ? set.Tint[i] : Colors.White;
+        return new Color(tint.R, tint.G, tint.B, 1.0f);
+    }
+
     /// <summary>The leaves drawn and nothing else, as they stand: the Vines
     /// dock's preview. A node per shape and one for the stems.</summary>
     public static Node3D Drawing(VineLeafSet set, Material material, float stemWidth)
@@ -205,11 +211,15 @@ public partial class VineLeaves : Node3D
             var multi = new MultiMesh
             {
                 TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+                UseCustomData = true,
                 Mesh = LeafMesh.Blade(set.ShapeAt(s), set.Blade, set.Vein),
                 InstanceCount = mine.Count,
             };
             for (int k = 0; k < mine.Count; k++)
+            {
                 multi.SetInstanceTransform(k, BladeOf(set, mine[k]));
+                multi.SetInstanceCustomData(k, TintOf(set, mine[k]));
+            }
             node.AddChild(new MultiMeshInstance3D { Multimesh = multi, MaterialOverride = material });
         }
         var stems = new MultiMesh

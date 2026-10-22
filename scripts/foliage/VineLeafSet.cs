@@ -23,6 +23,8 @@ public partial class VineLeafSet : Resource
     /// <summary>Across each blade, metres.</summary>
     [Export] public float[] Size { get; set; } = System.Array.Empty<float>();
     [Export] public int[] Shape { get; set; } = System.Array.Empty<int>();
+    /// <summary>Each leaf's colour against <see cref="Blade"/>, a multiplier near white.</summary>
+    [Export] public Color[] Tint { get; set; } = System.Array.Empty<Color>();
 
     /// <summary>The shapes, <see cref="LeafMesh.Shape"/> by index: lobes, teeth, notch, cup.</summary>
     [Export] public int[] ShapeLobes { get; set; } = System.Array.Empty<int>();
@@ -39,7 +41,8 @@ public partial class VineLeafSet : Resource
     public LeafMesh.Shape ShapeAt(int index) =>
         new(ShapeLobes[index], ShapeTeeth[index], ShapeNotch[index], ShapeCup[index]);
 
-    /// <summary>A grown vine's leaves, placed as its model is: the voxel point
+    /// <summary>A grown vine's leaves in <paramref name="palette"/> (its shade,
+    /// <see cref="VineBaker.PaletteFor"/>), placed as its model is: the voxel point
     /// q lands at (t + q - floor(size / 2)) times the voxel size, in Godot's
     /// axes, t the translation that stands the foot on the origin.</summary>
     public static VineLeafSet Of(VineGenerator.Result vine, VineKind kind, VinePalette palette)
@@ -55,7 +58,7 @@ public partial class VineLeafSet : Resource
         var set = new VineLeafSet
         {
             Attach = new Vector3[n], Centre = new Vector3[n], Midrib = new Vector3[n], Face = new Vector3[n],
-            Size = new float[n], Shape = new int[n],
+            Size = new float[n], Shape = new int[n], Tint = new Color[n],
         };
         for (int i = 0; i < n; i++)
         {
@@ -66,6 +69,7 @@ public partial class VineLeafSet : Resource
             set.Face[i] = Direction(l.NX, l.NY, l.NZ);
             set.Size[i] = (float)l.SizeM;
             set.Shape[i] = l.Shape;
+            set.Tint[i] = palette.LeafTint((int)vine.Params.Seed, i);
         }
         LeafMesh.Shape[] shapes = LeafMesh.ShapesOf(kind);
         set.ShapeLobes = new int[shapes.Length];

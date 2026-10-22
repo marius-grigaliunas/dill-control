@@ -375,6 +375,30 @@ public partial class VineCheck : Node
         var pool = Enumerable.Range(0, fruiting.PoolSize).Select(i => fruiting.Roll(fruiting.PoolSeed(stats.ArchetypeSeed, i), vs))
             .Select(p => string.Join(",", VineParams.Fields.Select(f => f.Get(p)))).ToList();
         Check("a pool's vines differ", pool.Distinct().Count() == pool.Count);
+
+        // Colour (step 5): every vine's shade, and every leaf's on top of it,
+        // inside its palette's green band; no two vines the same.
+        bool inBand = true;
+        var shades = new HashSet<Color>();
+        foreach (VineKind kind in kinds.Values)
+        {
+            VinePalette basePalette = kind.Palette ?? stats.Palette;
+            for (int s = 0; s < 100; s++)
+            {
+                VinePalette shade = basePalette.Shaded(s * 7919 + 1);
+                shades.Add(shade.Leaf);
+                inBand &= basePalette.Inside(shade.Shell) && basePalette.Inside(shade.Knuckle)
+                    && basePalette.Inside(shade.Leaf) && basePalette.Inside(shade.Petiole);
+                for (int leaf = 0; leaf < 8; leaf++)
+                {
+                    Color tint = shade.LeafTint(s, leaf);
+                    Color linear = shade.Leaf.SrgbToLinear();
+                    inBand &= basePalette.Inside(new Color(linear.R * tint.R, linear.G * tint.G, linear.B * tint.B).LinearToSrgb());
+                }
+            }
+        }
+        Check("every vine's shade and leaf tint stays in the green band", inBand);
+        Check("vines' shades differ", shades.Count > kinds.Count * 90, $"{shades.Count} leaf shades of {kinds.Count * 100}");
         VineGenerator.Result leafy = VineGenerator.Generate(leafyKind.Roll(leafyKind.PoolSeed(stats.ArchetypeSeed, 0), vs));
         VineGenerator.Result fruity = VineGenerator.Generate(before);
         double LeafArea(VineGenerator.Result v) => v.Leaves.Sum(l => l.SizeM * l.SizeM);

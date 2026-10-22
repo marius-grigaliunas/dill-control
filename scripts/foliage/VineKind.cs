@@ -76,6 +76,11 @@ public partial class VineKind : Resource
     /// <summary>The kind's leaf shapes (<see cref="VineGenerator.LeafShapes"/> of
     /// them) roll inside these: lobes each side, teeth round the edge, how deep
     /// the heart's notch is and how cupped the blade (LeafMesh).</summary>
+    /// <summary>The kind's own colours and how far each vine's shade strays;
+    /// none, the bake's (vine_bake.tres).</summary>
+    [ExportGroup("Look")]
+    [Export] public VinePalette Palette { get; set; }
+
     [ExportGroup("Leaf shape")]
     [Export] public Vector2 LeafLobes { get; set; } = new(0, 1);
     [Export] public Vector2 LeafTeeth { get; set; } = new(10, 16);

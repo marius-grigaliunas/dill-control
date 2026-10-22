@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="VineKind" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="VineKind" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/foliage/VineKind.cs" id="1_script"]
+[ext_resource type="Resource" path="res://resources/foliage/vine_palette_weeping.tres" id="9_palette"]
 
 [resource]
 resource_name = "VineKindWeeping"
@@ -40,3 +41,4 @@ LeafSizeM = Vector2(8.0, 11.0)
 LeafTiltDeg = Vector2(3.0, 8.0)
 LeafStemM = Vector2(2.0, 4.0)
 LeafStemRiseDeg = Vector2(20.0, 40.0)
+Palette = ExtResource("9_palette")

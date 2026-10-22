@@ -67,10 +67,11 @@ public static class VineBaker
         if (!grown.Ok)
             return baked;
 
-        WriteBytes(baked.VoxPath, Encode(vine, stats.Palette));
+        VinePalette palette = PaletteFor(kind, stats, vine);
+        WriteBytes(baked.VoxPath, Encode(vine, palette));
         WriteImport(baked.ImportPath, baked.VoxPath, stats.VoxelSize);
         WriteText(baked.JsonPath, Describe(kind, grown, changed));
-        Error saved = ResourceSaver.Save(VineLeafSet.Of(vine, kind, stats.Palette), baked.LeavesPath);
+        Error saved = ResourceSaver.Save(VineLeafSet.Of(vine, kind, palette), baked.LeavesPath);
         if (saved != Error.Ok)
             throw new InvalidOperationException($"Cannot write {baked.LeavesPath}: {saved}");
         // Re-baking changes the model and its leaves and keeps the wrapper:
@@ -83,6 +84,11 @@ public static class VineBaker
         }
         return baked;
     }
+
+    /// <summary>The colours a grown vine is written in: its kind's palette (or
+    /// the bake's) in the shade its seed rolls.</summary>
+    public static VinePalette PaletteFor(VineKind kind, VineBakeStats stats, VineGenerator.Result vine) =>
+        (kind?.Palette ?? stats.Palette ?? new VinePalette()).Shaded((int)vine.Params.Seed);
 
     /// <summary>The model's translation that stands the stalk's foot on the
     /// origin: a voxel corner p lands at t + p - floor(size / 2).</summary>

@@ -206,9 +206,11 @@ and a leaf whose stalk or arm is cut away falls. A baked vine's leaves are
 proposed). The Vines dock (`addons/vine_gen`) rolls a vine from a kind
 (`resources/foliage/vine_kind_*.tres`) and a seed, previews it and bakes
 `art/voxels/prp_vine_<kind>_<seed>.vox` and `scenes/props/prp_vine_<kind>_<seed>.tscn`,
-the wrapper above, with the stalk's foot on the scene origin. Its palette is
-`vine_palette.tres` (deep greens, never neon), its checks and voxel size
-`vine_bake.tres`. A seed grows the same vine on every machine: its rolls are
+the wrapper above, with the stalk's foot on the scene origin. Its colours are
+its kind's palette (`vine_palette_<kind>.tres`, else `vine_palette.tres`):
+deep greens, never neon or lime. Each vine rolls a shade of it from its seed
+and each leaf a little more, held inside the palette's green band. Its checks
+and voxel size are `vine_bake.tres`. A seed grows the same vine on every machine: its rolls are
 `SeededRandom` streams and its trigonometry is `Fdlibm`'s, never .NET's.
 `vinecheck.gd` holds the generator to its recorded golden vines
 (`scripts/debug/vine_golden.json`); a change meant to move them re-records
