@@ -1880,8 +1880,10 @@ public partial class VoxelPart : Node3D, IStrainHost
 
     /// <summary>Puts <paramref name="shape"/> on the body of the section
     /// <paramref name="localPoint"/> (the part's space) is in. Null for a part
-    /// with no section bodies.</summary>
-    public ExtraShape AddExtraShape(Vector3 localPoint, Shape3D shape, Transform3D local)
+    /// with no section bodies. With <paramref name="place"/> false it waits
+    /// for <see cref="PlaceExtraShapes"/>: a vine's forty leaves change each
+    /// section's body once, not forty times.</summary>
+    public ExtraShape AddExtraShape(Vector3 localPoint, Shape3D shape, Transform3D local, bool place = true)
     {
         if (CollisionOwner != null || SectionBody == null || Grid == null || _boxCount == null)
         {
@@ -1897,8 +1899,27 @@ public partial class VoxelPart : Node3D, IStrainHost
         var extra = new ExtraShape { Section = s, Shape = shape, Local = local };
         _extras ??= new List<ExtraShape>[_boxCount.Length];
         (_extras[s] ??= new List<ExtraShape>()).Add(extra);
-        PlaceExtras(s);
+        if (place)
+        {
+            PlaceExtras(s);
+        }
         return extra;
+    }
+
+    /// <summary>Every section with extra shapes, placed once.</summary>
+    public void PlaceExtraShapes()
+    {
+        if (_extras == null)
+        {
+            return;
+        }
+        for (int s = 0; s < _extras.Length; s++)
+        {
+            if (_extras[s] != null)
+            {
+                PlaceExtras(s);
+            }
+        }
     }
 
     public void RemoveExtraShape(ExtraShape extra)
@@ -1910,7 +1931,8 @@ public partial class VoxelPart : Node3D, IStrainHost
         PlaceExtras(extra.Section);
     }
 
-    // The section's extra shapes again, after its boxes.
+    // The section's extra shapes again, after its boxes: out of the space
+    // while they change, so Jolt builds the body's shape once (SetBoxes).
     private void PlaceExtras(int s)
     {
         CollisionObject3D body = SectionBodyOf(s, true);
@@ -1919,11 +1941,20 @@ public partial class VoxelPart : Node3D, IStrainHost
             return;
         }
         Rid rid = body.GetRid();
+        Rid space = PhysicsServer3D.BodyGetSpace(rid);
+        if (space.IsValid)
+        {
+            PhysicsServer3D.BodySetSpace(rid, default);
+        }
         for (int i = PhysicsServer3D.BodyGetShapeCount(rid) - 1; i >= _boxCount[s]; i--)
         {
             PhysicsServer3D.BodyRemoveShape(rid, i);
         }
         AddExtras(rid, s);
+        if (space.IsValid)
+        {
+            PhysicsServer3D.BodySetSpace(rid, space);
+        }
     }
 
     private void AddExtras(Rid rid, int s)

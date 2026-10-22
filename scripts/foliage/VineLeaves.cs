@@ -123,6 +123,10 @@ public partial class VineLeaves : Node3D
             _stems.SetInstanceTransform(i, StemAt(i));
             Collide(i);
         }
+        foreach (VoxelPart part in Body.Parts)
+        {
+            part.PlaceExtraShapes();
+        }
         Body.Intercept = Take;
     }
 
@@ -264,7 +268,7 @@ public partial class VineLeaves : Node3D
             blade.Origin - (Set.Face[i] * ((Stats.ThicknessM * 0.5f) - 0.1f)));
         Transform3D local = part.GlobalTransform.AffineInverse() * Model.GlobalTransform * frame;
         _part[i] = part;
-        _shape[i] = part.AddExtraShape(part.ToLocal(root), box, local);
+        _shape[i] = part.AddExtraShape(part.ToLocal(root), box, local, place: false);
     }
 
     private VoxelPart PartAt(Vector3 world)
