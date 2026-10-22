@@ -731,6 +731,12 @@ const NEST_TIMELINE := [
 	# Put 20 m under the ground: the planet stands the player back on it.
 	["under the ground", ["@gotocall:NestBuilder:BenchBesideHeart:-20", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 1.0],
 	["back on it", ["@status"], [], 1.0],
+	# The heart's vine has its ground blown out from under it: it falls.
+	["crater under the heart", ["@gotocall:NestBuilder:BenchBesideHeart:2", "!set:Player:velocity=Vector3(0, 0, 0)",
+		"@aimcall:NestBuilder:BenchHeart:30", "!call:NestBuilder:BenchCraterHeart", "!call:FlexField:PrintBenchStatus"], [], 2.0],
+	["unrooted shot", ["#nest_unrooted", "!call:FlexField:PrintBenchStatus", "!call:VoxelDebris:PrintBenchStatus"], [], 0.3],
+	["fallen", [], [], 5.0],
+	["fallen shot", ["@aimcall:NestBuilder:BenchHeart:5", "#nest_fallen", "!call:VoxelDebris:PrintBenchStatus"], [], 0.3],
 ]
 
 const GARRISON_TIMELINE := [

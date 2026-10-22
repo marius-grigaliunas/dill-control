@@ -188,6 +188,27 @@ public partial class PlantFlex : Node, IVoxelBend
     }
 
     /// <summary>
+    /// Its ground is gone from under it (a crater under its foot,
+    /// <c>NestBuilder</c>): the foot that stood in it is taken out, so nothing
+    /// of it stands on the ground any more and the integrity check lets it
+    /// fall over from the pose it was in.
+    /// </summary>
+    public void Unroot()
+    {
+        // Over the way its weight hangs, from its foot, as a plant that gives
+        // way goes (Release): let go upright it would stand in its crater.
+        _givingWay = 3.0f;
+        _gaveWayAt = 0.0f;
+        foreach (VoxelPart part in _parts)
+        {
+            if (IsInstanceValid(part) && part.Grid != null && StalkAt(part, 0.0f, out Vector3 centre, out float radius))
+            {
+                part.Carve(centre - (Up * radius * 0.3f), (radius * 1.5f) + part.Grid.VoxelSize);
+            }
+        }
+    }
+
+    /// <summary>
     /// For <c>bench.gd</c>: somewhere to stand, <paramref name="height"/>
     /// metres up or a little above: the top of the voxel furthest out from the
     /// stalk with nothing over it (an arm or a leaf), where it is drawn now,

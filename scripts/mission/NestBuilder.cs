@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Threading.Tasks;
@@ -21,6 +22,9 @@ namespace DillControl.Mission;
 /// - The planet asks <see cref="Placer"/> where they go and levels their pads.
 /// - Once the planet stands, the vines are planted a few a frame, and the
 ///   level is let in when the frames have settled.
+/// - A vine stands on its own foot, not on the ground: when a crater takes
+///   the ground from under its foot (<see cref="Kit"/>'s UnrootMarginM), the
+///   foot goes too and it falls (<see cref="PlantFlex.Unroot"/>).
 ///
 /// Its population and seed are the contract's, unless the command line says
 /// <c>pop=N</c>, <c>nest=SEED</c>; <c>horde=0</c> builds it without the horde,
@@ -82,6 +86,8 @@ public partial class NestBuilder : Node, ILevelBuilder
     private int _plantFrames;
     private double _plantProcessMs, _plantPhysicsMs;
     private ulong _nativeBefore;
+    // Each planted vine's spine and where its foot stands: a crater under it unroots it.
+    private readonly List<(PlantFlex Flex, Vector3 Foot)> _rooted = new();
 
     public override void _Ready()
     {
@@ -236,6 +242,7 @@ public partial class NestBuilder : Node, ILevelBuilder
                 // Placed before it enters: its spine and pads read where it stands.
                 node.Transform = Vines.GlobalTransform.AffineInverse() * places[Planted];
                 Vines.AddChild(node);
+                _rooted.Add((node.GetNodeOrNull<PlantFlex>("Flex"), places[Planted].Origin));
             }
             MakeSeconds += (t1 - t0) / (double)Stopwatch.Frequency;
             EnterSeconds += (Stopwatch.GetTimestamp() - t1) / (double)Stopwatch.Frequency;
@@ -247,6 +254,44 @@ public partial class NestBuilder : Node, ILevelBuilder
         if (Planted >= Layout.Vines.Count)
         {
             PlantSeconds = _clock.Elapsed.TotalSeconds - _plantStarted;
+            if (Contract.Planet != null)
+            {
+                Contract.Planet.TerrainDeformed += OnTerrainDeformed;
+            }
+        }
+    }
+
+    public override void _ExitTree()
+    {
+        if (Contract?.Planet != null && IsInstanceValid(Contract.Planet))
+        {
+            Contract.Planet.TerrainDeformed -= OnTerrainDeformed;
+        }
+    }
+
+    // A vine is held up by its own foot, not by the ground: when the ground
+    // under the foot is blown out from under it, the foot goes too and it falls.
+    private void OnTerrainDeformed(Vector3 centre, float radius)
+    {
+        Planet.PlanetHeightfield heights = Contract.Planet.Heights;
+        for (int i = _rooted.Count - 1; i >= 0; i--)
+        {
+            (PlantFlex flex, Vector3 foot) = _rooted[i];
+            if (flex == null || !IsInstanceValid(flex))
+            {
+                _rooted.RemoveAt(i);
+                continue;
+            }
+            if (foot.DistanceTo(centre) > radius + Kit.PadRadiusM)
+            {
+                continue;
+            }
+            float ground = heights.Radius + heights.SampleHeight(foot.Normalized());
+            if (ground < foot.Length() - Kit.UnrootMarginM)
+            {
+                flex.Unroot();
+                _rooted.RemoveAt(i);
+            }
         }
     }
 
@@ -269,6 +314,16 @@ public partial class NestBuilder : Node, ILevelBuilder
         float metres = float.Parse(up, CultureInfo.InvariantCulture);
         Planet.PlanetHeightfield heights = Contract?.Planet?.Heights;
         return (heights != null ? heights.SurfacePoint(heart) : heart * 1260.0f) + (heart * metres);
+    }
+
+    /// <summary>For bench.gd: a crater under the heart's vine, 14 m in radius and 8 m deep.</summary>
+    public void BenchCraterHeart()
+    {
+        Planet.PlanetHeightfield heights = Contract?.Planet?.Heights;
+        if (heights != null)
+        {
+            Contract.Planet.Crater(heights.SurfacePoint(Placer?.Heart ?? Vector3.Up), 14.0f, 8.0f);
+        }
     }
 
     /// <summary>For bench.gd: the same, 25 m to one side of the heart's stalk:

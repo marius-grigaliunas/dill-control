@@ -52,6 +52,9 @@ public partial class NestKit : Resource
     [Export(PropertyHint.Range, "0,40,0.5,suffix:m")] public float PadBlendM { get; set; } = 8.0f;
     /// <summary>How far each vine's foot is sunk into its pad: rooted, never floating.</summary>
     [Export(PropertyHint.Range, "0,5,0.1,suffix:m")] public float SinkM { get; set; } = 1.0f;
+    /// <summary>A vine falls when its ground drops this far below its foot
+    /// (a crater under it): nothing holds it up.</summary>
+    [Export(PropertyHint.Range, "0,10,0.1,suffix:m")] public float UnrootMarginM { get; set; } = 1.0f;
     /// <summary>The player starts this far outside the nest, at an avenue's mouth.</summary>
     [Export(PropertyHint.Range, "0,500,5,suffix:m")] public float SpawnOutsideM { get; set; } = 60.0f;
 
