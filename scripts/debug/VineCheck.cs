@@ -404,9 +404,12 @@ public partial class VineCheck : Node
         VineGenerator.Result leafy = VineGenerator.Generate(leafyKind.Roll(leafyKind.PoolSeed(stats.ArchetypeSeed, 0), vs));
         VineGenerator.Result fruity = VineGenerator.Generate(before);
         double LeafArea(VineGenerator.Result v) => v.Leaves.Sum(l => l.SizeM * l.SizeM);
+        // Leaf to a pod: every kind is leafy now (the canopy is the look), but
+        // a leafy vine is leaf with a few pods, a fruiting one pods among leaves.
+        double PerPod(VineGenerator.Result v) => LeafArea(v) / Math.Max(1, v.Counts.Markers);
         Check("a leafy vine is mostly leaf, a fruiting one mostly pods",
-            LeafArea(leafy) > LeafArea(fruity) * 1.5 && fruity.Counts.Markers > leafy.Counts.Markers * 4,
-            $"leaf area {LeafArea(leafy):0} vs {LeafArea(fruity):0} m2, pods {leafy.Counts.Markers} vs {fruity.Counts.Markers}");
+            PerPod(leafy) > PerPod(fruity) * 4 && fruity.Counts.Markers > leafy.Counts.Markers * 4,
+            $"leaf area {PerPod(leafy):0} vs {PerPod(fruity):0} m2 a pod, pods {leafy.Counts.Markers} vs {fruity.Counts.Markers}");
         Check("a fruiting vine's collision bodies", fruity.Counts.Bodies <= stats.BodiesMax,
             $"{fruity.Counts.Bodies} at section edge {stats.Limits().SectionEdge}");
     }

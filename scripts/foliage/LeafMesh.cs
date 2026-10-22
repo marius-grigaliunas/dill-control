@@ -27,15 +27,16 @@ public static class LeafMesh
     {
         float tip = theta > Mathf.Pi ? theta - Mathf.Tau : theta;
         float back = Mathf.Abs(tip) - Mathf.Pi;
-        // A heart: broad, drawn out to a point at the tip, two round lobes
-        // either side of a notch where the stem joins.
-        float r = 0.74f + (0.26f * Mathf.Exp(-(tip * tip) / (2.0f * 0.3f * 0.3f)));
+        // A cucumber leaf: broad, filling nearly its whole width, drawn out to
+        // a point at the tip, a notch where the stem joins.
+        float r = 0.9f + (0.1f * Mathf.Exp(-(tip * tip) / (2.0f * 0.3f * 0.3f)));
         r *= 1.0f - (shape.Notch * 1.6f * Mathf.Exp(-(back * back) / (2.0f * 0.2f * 0.2f)));
         if (shape.Lobes > 0)
         {
-            // Shallow lobes, symmetric about the midrib, none at the tip.
-            float lobe = 0.5f - (0.5f * Mathf.Cos(tip * ((2 * shape.Lobes) + 1)));
-            r *= 1.0f - (0.14f * lobe * Mathf.Min(1.0f, Mathf.Abs(tip)));
+            // Pointed lobes either side, symmetric about the midrib: a
+            // triangle wave, so their tips and the sinuses between are sharp.
+            float wave = Mathf.Acos(Mathf.Cos(tip * ((2 * shape.Lobes) + 1))) / Mathf.Pi;
+            r *= 1.0f - (0.24f * wave * Mathf.Min(1.0f, Mathf.Abs(tip) * 1.5f));
         }
         return r;
     }
@@ -91,7 +92,7 @@ public static class LeafMesh
             indices.AddRange(new[] { innerI, innerJ, outerJ });
             indices.AddRange(new[] { innerI, outerJ, outerI });
         }
-        mesh = Build(vertices, normals, colours, indices, $"leaf_{shape.Lobes}_{shape.Teeth}");
+        mesh = Build(vertices, normals, colours, indices, $"leaf_{shape.Lobes}_{shape.Teeth}", lods: true);
         Blades[(shape, blade, vein)] = mesh;
         return mesh;
     }
@@ -127,7 +128,8 @@ public static class LeafMesh
         return mesh;
     }
 
-    private static ArrayMesh Build(List<Vector3> vertices, List<Vector3> normals, List<Color> colours, List<int> indices, string name)
+    private static ArrayMesh Build(List<Vector3> vertices, List<Vector3> normals, List<Color> colours, List<int> indices, string name,
+        bool lods = false)
     {
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
@@ -142,10 +144,24 @@ public static class LeafMesh
         }
         arrays[(int)Mesh.ArrayType.TexUV] = uv;
         arrays[(int)Mesh.ArrayType.Index] = indices.ToArray();
-        var mesh = new ArrayMesh { ResourceName = name };
-        mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-        return mesh;
+        if (!lods)
+        {
+            var mesh = new ArrayMesh { ResourceName = name };
+            mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+            return mesh;
+        }
+        // Coarser copies for distance, as the importer gives a model: a nest
+        // draws thousands of blades, most of them a few pixels across.
+        var importer = new ImporterMesh { ResourceName = name };
+        importer.AddSurface(Mesh.PrimitiveType.Triangles, arrays, name: "leaf");
+        importer.GenerateLods(LodNormalMergeAngle, 0.0f, new Godot.Collections.Array());
+        ArrayMesh lodded = importer.GetMesh();
+        lodded.ResourceName = name;
+        return lodded;
     }
+
+    /// <summary>The LODs' normal merge angle, the importer's default.</summary>
+    private const float LodNormalMergeAngle = 60.0f;
 
     /// <summary>A kind's leaf shapes, each rolled inside its ranges from the
     /// kind's name: the same kind, the same shapes, everywhere.</summary>

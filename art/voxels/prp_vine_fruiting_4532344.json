@@ -34,11 +34,11 @@
     "podsPerRing": 17.0,
     "podTwistDeg": 55.0,
     "pedicelM": 1.75,
-    "leavesPerRing": 0.0,
-    "leavesPerArm": 0.0,
-    "leafSizeM": 7.0,
-    "leafTiltDeg": 3.0,
-    "leafStemM": 2.0,
+    "leavesPerRing": 2.0,
+    "leavesPerArm": 4.0,
+    "leafSizeM": 10.0,
+    "leafTiltDeg": 13.0,
+    "leafStemM": 1.0,
     "leafStemRiseDeg": 32.0
   },
   "counts": {
@@ -46,12 +46,12 @@
     "shell": 11584,
     "knuckle": 1996,
     "core": 3916,
-    "leaves": 52,
-    "leavesLeftOut": 0,
+    "leaves": 85,
+    "leavesLeftOut": 201,
     "bridged": 12,
     "stranded": 0,
-    "pods": 220,
-    "podsBlocked": 0,
+    "pods": 216,
+    "podsBlocked": 4,
     "podsGrounded": 0,
     "podsCrowded": 1,
     "podSpacingM": 1.0,
@@ -64,6 +64,6 @@
   ],
   "heightM": 88.0,
   "warnings": [
-    "1 of 221 pods left out: 0 with the vine in their 1.8 m drop, 0 too low, 1 under 0.9 m from another."
+    "5 of 221 pods left out: 4 with the vine in their 1.8 m drop, 0 too low, 1 under 0.9 m from another."
   ]
 }

@@ -283,7 +283,7 @@ public static class VineGenerator
         if (cells.Overflow)
             return EmptyResult(p, "The vine left the range the generator can place. Lower the arm length, wobble, lean, or helix.");
         List<Pod> pods = HangPods(cells, samples, arms, p);
-        (List<LeafPlace> leaves, int leftOut) = PlaceLeaves(cells, samples, arms, p, limits);
+        (List<LeafPlace> leaves, int leftOut) = PlaceLeaves(cells, samples, arms, pods, p, limits);
 
         Result result = Pack(cells, samples, pods, leaves, p, limits);
         result.Counts.LeavesLeftOut = leftOut;
@@ -792,9 +792,12 @@ public static class VineGenerator
     // Leaves at the rings, along the arms and at their tips, each on a stem
     // that rises out from where it grows, its blade held near level so it can
     // be stood on. A leaf whose blade would meet the stalk, an arm or a stem,
-    // or lie on a leaf below with too little air between, is left out.
-    private static (List<LeafPlace>, int) PlaceLeaves(Cells cells, Samples samples, List<Arm> arms, VineParams p, Limits limits)
+    // or lie on a leaf below with too little air between, or cross a pod's
+    // drop (the pod comes first: it is the game), is left out.
+    private static (List<LeafPlace>, int) PlaceLeaves(Cells cells, Samples samples, List<Arm> arms, List<Pod> pods,
+        VineParams p, Limits limits)
     {
+        int drop = (int)Math.Ceiling(limits.PickleHeightM / p.VoxelSize);
         SeededRandom rng = SeededRandom.Stream((uint)p.Seed, "vine:leaves");
         double vs = p.VoxelSize;
         double tilt = p.LeafTiltDeg * Math.PI / 180;
@@ -829,7 +832,8 @@ public static class VineGenerator
             double radius = size / vs * 0.5;
             V3 centre = Add(basePoint, Scale(midrib, radius));
 
-            if (Blocked(cells, centre, midrib, side, face, radius) || Crowded(leaves, centre, radius, limits.LeafGapM / vs, vs))
+            if (OverDrop(pods, centre, radius, drop) || Blocked(cells, centre, midrib, side, face, radius)
+                || Crowded(leaves, centre, radius, limits.LeafGapM / vs, vs))
             {
                 leftOut++;
                 return;
@@ -874,6 +878,20 @@ public static class VineGenerator
             Grow(tip.P, armOut, a, 0.7);
         }
         return (leaves, leftOut);
+    }
+
+    // Would a blade lie across a pod's drop, as KeepHanging judges it, with a
+    // voxel to spare?
+    private static bool OverDrop(List<Pod> pods, V3 centre, double radius, int drop)
+    {
+        double reach = (radius + 1) * (radius + 1);
+        foreach (Pod pod in pods)
+        {
+            double dx = pod.End.X - centre.X, dy = pod.End.Y - centre.Y;
+            if (dx * dx + dy * dy < reach && centre.Z <= pod.End.Z + 1.5 && centre.Z >= pod.End.Z - drop - 2)
+                return true;
+        }
+        return false;
     }
 
     // Does a blade, a disc in its plane, meet a voxel (stalk, arm or stem)
