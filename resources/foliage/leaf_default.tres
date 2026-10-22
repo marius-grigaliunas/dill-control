@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="LeafStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/foliage/LeafStats.cs" id="1_script"]
+
+[resource]
+resource_name = "LeafDefault"
+script = ExtResource("1_script")
+Health = 40.0
+SplashRadiusM = 6.0
+RecheckSeconds = 0.25
+MassKg = 120.0
+LooseDrag = 1.2
+LooseSpinDrag = 2.0
+LooseSeconds = 8.0
+DustScale = 0.5
+ThicknessM = 0.5
+StemWidthM = 0.35
+DrawMetres = 1200.0

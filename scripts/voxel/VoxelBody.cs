@@ -297,9 +297,20 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
     /// <summary>A point where it is drawn, where its voxels are.</summary>
     public Vector3 Built(Vector3 point) => Bend?.ToBuilt(point) ?? point;
 
+    /// <summary>
+    /// Asked about every hit before its voxels are: true when the hit was taken
+    /// by something that is not voxels, which then bites nothing. A plant's
+    /// leaves (<see cref="Foliage.VineLeaves"/>).
+    /// </summary>
+    public Func<DamageInfo, bool> Intercept { get; set; }
+
     public void ApplyDamage(DamageInfo info, Node3D target)
     {
         Damaged?.Invoke(info);
+        if (Intercept != null && Intercept(info))
+        {
+            return;
+        }
         if (Bend == null)
         {
             VoxelDamage.Apply(info, _parts, Stats, target);

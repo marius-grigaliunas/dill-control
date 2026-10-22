@@ -40,7 +40,13 @@ public partial class VineBakeStats : Resource
     /// <summary>The share of its grown pods a vine may leave out (no drop
     /// below them, or crowded) and still be valid.</summary>
     [Export(PropertyHint.Range, "0,1,0.01")] public float MaxPodsLeftOut { get; set; } = 0.1f;
-    /// <summary>Arms, leaves and tendrils stay this far above the ground.</summary>
+    /// <summary>The share of its leaves a vine may leave out for want of room.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")] public float MaxLeavesLeftOut { get; set; } = 0.5f;
+    /// <summary>How far from level a blade may be: leaves are platforms.</summary>
+    [Export(PropertyHint.Range, "0,60,0.5,suffix:deg")] public float MaxLeafTiltDeg { get; set; } = 15.0f;
+    /// <summary>Over a lower leaf, the air a leaf leaves (to stand on the lower one).</summary>
+    [Export(PropertyHint.Range, "0.5,10,0.1,suffix:m")] public float LeafGapM { get; set; } = 2.5f;
+    /// <summary>Arms and leaves stay this far above the ground.</summary>
     [Export(PropertyHint.Range, "0,20,0.5,suffix:m")] public float GroundClearanceM { get; set; } = 3.0f;
     /// <summary>The tip's lean from the foot.</summary>
     [Export(PropertyHint.Range, "0,60,0.5,suffix:deg")] public float MaxLeanDeg { get; set; } = 25.0f;
@@ -72,6 +78,7 @@ public partial class VineBakeStats : Resource
         AxisLimit = AxisLimit,
         PickleHeightM = System.Math.Round((double)PickleHeightM, 6),
         PodSpacingM = System.Math.Round((double)PodSpacingM, 6),
+        LeafGapM = System.Math.Round((double)LeafGapM, 6),
         SectionEdge = Destruction != null && Destruction.Get("SectionEdge").VariantType == Variant.Type.Int
             ? Destruction.Get("SectionEdge").AsInt32() : 64,
     };

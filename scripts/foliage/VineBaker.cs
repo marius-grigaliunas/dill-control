@@ -35,6 +35,7 @@ public static class VineBaker
         public string ImportPath;
         public string JsonPath;
         public string ScenePath;
+        public string LeavesPath;
         public bool SceneWritten;
         public VineGrower.Grown Grown;
         public VineGenerator.Result Vine => Grown.Vine;
@@ -61,6 +62,7 @@ public static class VineBaker
             ImportPath = $"{stats.VoxelFolder}/{name}.vox.import",
             JsonPath = $"{stats.VoxelFolder}/{name}.json",
             ScenePath = $"{stats.SceneFolder}/{name}.tscn",
+            LeavesPath = $"{stats.VoxelFolder}/{name}_leaves.tres",
         };
         if (!grown.Ok)
             return baked;
@@ -68,11 +70,15 @@ public static class VineBaker
         WriteBytes(baked.VoxPath, Encode(vine, stats.Palette));
         WriteImport(baked.ImportPath, baked.VoxPath, stats.VoxelSize);
         WriteText(baked.JsonPath, Describe(kind, grown, changed));
-        // Re-baking changes the model and keeps the wrapper: whatever was set
-        // on it in the editor, and its uid, survive.
-        if (!FileAccess.FileExists(baked.ScenePath))
+        Error saved = ResourceSaver.Save(VineLeafSet.Of(vine, kind, stats.Palette), baked.LeavesPath);
+        if (saved != Error.Ok)
+            throw new InvalidOperationException($"Cannot write {baked.LeavesPath}: {saved}");
+        // Re-baking changes the model and its leaves and keeps the wrapper:
+        // whatever was set on it in the editor, and its uid, survive. A
+        // wrapper from before leaves were meshes is written again.
+        if (!FileAccess.FileExists(baked.ScenePath) || !FileAccess.GetFileAsString(baked.ScenePath).Contains("name=\"Leaves\""))
         {
-            WriteText(baked.ScenePath, Wrapper(name, baked.VoxPath, stats));
+            WriteText(baked.ScenePath, Wrapper(name, baked.VoxPath, baked.LeavesPath, stats));
             baked.SceneWritten = true;
         }
         return baked;
@@ -103,7 +109,7 @@ public static class VineBaker
 
         // Index i is at (i - 1) * 4; everything unused, 255 included, stays empty.
         var rgba = new byte[256 * 4];
-        for (int index = VineGenerator.Shell; index <= VineGenerator.Tendril; index++)
+        for (int index = VineGenerator.Shell; index <= VineGenerator.Petiole; index++)
         {
             Color c = palette.Of(index);
             int o = (index - 1) * 4;
@@ -115,7 +121,7 @@ public static class VineBaker
         // Shell and core differ: a chunk graph never crosses a material type
         // (VoxChunker.KindOf), and the core is what a carve reveals.
         var materials = new List<(int, string)>();
-        for (int index = VineGenerator.Shell; index <= VineGenerator.Tendril; index++)
+        for (int index = VineGenerator.Shell; index <= VineGenerator.Petiole; index++)
             materials.Add((index, index == VineGenerator.Core ? "_glass" : "_diffuse"));
 
         return VoxWriter.Write("Stalk", vine.BoundsX, vine.BoundsY, vine.BoundsZ, cells,
@@ -197,8 +203,9 @@ public static class VineBaker
             """);
     }
 
-    /// <summary>The wrapper of prp_vine_41051, the reference vine.</summary>
-    private static string Wrapper(string name, string voxPath, VineBakeStats stats)
+    /// <summary>The wrapper every vine has: the reference vine's (prp_vine_41051)
+    /// and its leaves.</summary>
+    private static string Wrapper(string name, string voxPath, string leavesPath, VineBakeStats stats)
     {
         string destruction = stats.Destruction?.ResourcePath ?? DestructionPath;
         string flex = stats.Flex?.ResourcePath ?? FlexStats.VinePath;
@@ -210,6 +217,9 @@ public static class VineBaker
             [ext_resource type="PackedScene" path="{voxPath}" id="3_model"]
             [ext_resource type="Script" path="res://scripts/foliage/PlantFlex.cs" id="4_flex"]
             [ext_resource type="Resource" path="{flex}" id="5_flexstats"]
+            [ext_resource type="Script" path="res://scripts/foliage/VineLeaves.cs" id="6_leaves"]
+            [ext_resource type="Resource" path="{leavesPath}" id="7_set"]
+            [ext_resource type="Resource" path="{LeafStats.DefaultPath}" id="8_leafstats"]
 
             [node name="{name}" type="Node3D"]
 
@@ -226,6 +236,14 @@ public static class VineBaker
             script = ExtResource("4_flex")
             Body = NodePath("../Voxels")
             Stats = ExtResource("5_flexstats")
+
+            [node name="Leaves" type="Node3D" parent="." node_paths=PackedStringArray("Body", "Flex", "Model")]
+            script = ExtResource("6_leaves")
+            Set = ExtResource("7_set")
+            Body = NodePath("../Voxels")
+            Flex = NodePath("../Flex")
+            Model = NodePath("../Model")
+            Stats = ExtResource("8_leafstats")
 
             """;
     }
@@ -260,7 +278,7 @@ public static class VineBaker
             ["counts"] = new Godot.Collections.Dictionary
             {
                 ["total"] = c.Total, ["shell"] = c.Shell, ["knuckle"] = c.Knuckle, ["core"] = c.Core,
-                ["leaf"] = c.Leaf, ["tendril"] = c.Tendril, ["bridged"] = c.Bridged, ["stranded"] = c.Stranded,
+                ["leaves"] = c.Leaves, ["leavesLeftOut"] = c.LeavesLeftOut, ["bridged"] = c.Bridged, ["stranded"] = c.Stranded,
                 ["pods"] = c.Markers, ["podsBlocked"] = c.PodsBlocked, ["podsGrounded"] = c.PodsGrounded, ["podsCrowded"] = c.PodsCrowded,
                 ["podSpacingM"] = c.PodSpacingM, ["bodies"] = c.Bodies,
             },

@@ -96,17 +96,28 @@ public static class VineValidator
             verdict.Fail("no-pods", "No pod a pickle can hang from.");
         if (c.Markers > 1 && c.PodSpacingM < stats.PodSpacingM - 1e-6)
             verdict.Fail("pod-spacing", F($"Two pods {c.PodSpacingM:0.00} m apart: hanging pickles overlap under {stats.PodSpacingM:0.00} m."));
-        int clearance = (int)Math.Ceiling(stats.GroundClearanceM / vs);
-        int lowLeaf = 0;
-        foreach (VineGenerator.Voxel v in vine.Voxels)
+        // Leaves: kept clear of the stalk, the arms, the stems and each other
+        // by the generator, which leaves out any that are not; judged here on
+        // what is left. Too many left out says the kind crowds its leaves.
+        int lowLeaf = 0, tilted = 0;
+        double level = Math.Cos(stats.MaxLeafTiltDeg * Math.PI / 180);
+        foreach (VineGenerator.LeafPlace leaf in vine.Leaves)
         {
-            if (v.Z >= clearance)
-                break;
-            if (v.C == VineGenerator.Leaf || v.C == VineGenerator.Petiole || v.C == VineGenerator.Tendril)
+            double r = leaf.SizeM * 0.5;
+            double lowest = Math.Min(leaf.AZ * vs, leaf.CZ * vs - r * Math.Sqrt(Math.Max(0, 1 - leaf.NZ * leaf.NZ)));
+            if (lowest < stats.GroundClearanceM)
                 lowLeaf++;
+            if (leaf.NZ < level)
+                tilted++;
         }
         if (lowLeaf > 0)
-            verdict.Fail("leaf-low", F($"{lowLeaf} leaf or tendril voxels within {stats.GroundClearanceM:0.#} m of the ground."));
+            verdict.Fail("leaf-low", F($"{lowLeaf} leaves within {stats.GroundClearanceM:0.#} m of the ground."));
+        if (tilted > 0)
+            verdict.Fail("leaf-tilt", F($"{tilted} leaves tilted more than {stats.MaxLeafTiltDeg:0.#} deg from level: ramps, not platforms."));
+        int grownLeaves = c.Leaves + c.LeavesLeftOut;
+        double leavesLost = grownLeaves > 0 ? c.LeavesLeftOut / (double)grownLeaves : 0;
+        if (leavesLost > stats.MaxLeavesLeftOut + 1e-9)
+            verdict.Fail("leaves-left-out", F($"{c.LeavesLeftOut} of {grownLeaves} leaves left out for want of room, over {stats.MaxLeavesLeftOut:P0}."));
         double lowestArm = double.MaxValue;
         foreach (VineGenerator.ArmInfo arm in vine.Arms)
             lowestArm = Math.Min(lowestArm, arm.LowestM);

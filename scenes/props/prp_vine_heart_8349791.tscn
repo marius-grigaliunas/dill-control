@@ -5,6 +5,9 @@
 [ext_resource type="PackedScene" path="res://art/voxels/prp_vine_heart_8349791.vox" id="3_model"]
 [ext_resource type="Script" path="res://scripts/foliage/PlantFlex.cs" id="4_flex"]
 [ext_resource type="Resource" path="res://resources/foliage/flex_vine.tres" id="5_flexstats"]
+[ext_resource type="Script" path="res://scripts/foliage/VineLeaves.cs" id="6_leaves"]
+[ext_resource type="Resource" path="res://art/voxels/prp_vine_heart_8349791_leaves.tres" id="7_set"]
+[ext_resource type="Resource" path="res://resources/foliage/leaf_default.tres" id="8_leafstats"]
 
 [node name="prp_vine_heart_8349791" type="Node3D"]
 
@@ -21,3 +24,11 @@ WholeUntilChanged = true
 script = ExtResource("4_flex")
 Body = NodePath("../Voxels")
 Stats = ExtResource("5_flexstats")
+
+[node name="Leaves" type="Node3D" parent="." node_paths=PackedStringArray("Body", "Flex", "Model")]
+script = ExtResource("6_leaves")
+Set = ExtResource("7_set")
+Body = NodePath("../Voxels")
+Flex = NodePath("../Flex")
+Model = NodePath("../Model")
+Stats = ExtResource("8_leafstats")

@@ -332,6 +332,23 @@ public partial class PlantFlex : Node, IVoxelBend
     /// <summary>Its own copies of its material, bending by its row (FlexField).</summary>
     internal List<ShaderMaterial> OwnMaterials { get; } = new();
 
+    /// <summary>A copy of <paramref name="from"/> (a shader with the flex
+    /// uniforms) that bends as this plant does: what its leaves are drawn in.
+    /// Null before it has a spine.</summary>
+    internal ShaderMaterial BendMaterial(Material from)
+    {
+        if (Rod == null)
+        {
+            return null;
+        }
+        ShaderMaterial own = FlexField.MaterialFor(this, from);
+        if (own != null)
+        {
+            OwnMaterials.Add(own);
+        }
+        return own;
+    }
+
     public Vector3 ToBuilt(Vector3 drawn)
     {
         // The move depends on height, and height hardly moves: twice is plenty.

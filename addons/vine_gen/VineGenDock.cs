@@ -41,6 +41,7 @@ public partial class VineGenDock : EditorDock
     private Camera3D _camera;
     private MeshInstance3D _mesh;
     private MultiMeshInstance3D _pods;
+    private Node3D _leaves;
     private Material _material;
     private SubViewportContainer _previewBox;
     private float _yaw = 0.7f, _pitch = 0.2f, _distance = 160.0f, _height = 50.0f, _lookAt = 25.0f;
@@ -350,7 +351,7 @@ public partial class VineGenDock : EditorDock
             $"{name}\n{c.Total:N0} voxels of {_stats.VoxelBudget:N0}, {c.Bodies} bodies at rest\n"
             + $"{vine.BoundsX}x{vine.BoundsY}x{vine.BoundsZ} voxels, {vine.BoundsZ * vine.VoxelSize:0.#} m tall\n"
             + $"{c.Markers} pods ({c.PodsLeftOut} left out: {c.PodsBlocked} blocked, {c.PodsGrounded} too low, {c.PodsCrowded} crowded), nearest two {c.PodSpacingM:0.00} m apart\n"
-            + $"core {c.Core:N0}, leaf {c.Leaf:N0}, tendril {c.Tendril:N0}, bridged {c.Bridged}\n"
+            + $"core {c.Core:N0}, {c.Leaves} leaves ({c.LeavesLeftOut} left out), bridged {c.Bridged}\n"
             + $"lean {verdict.LeanDeg:0.0} deg, spine bends {verdict.KinkDeg:0.00} deg at most, tip sags {verdict.SagM:0.0} m\n"
             + $"grown in {ms} ms");
         if (grown.Attempt > 0)
@@ -374,6 +375,8 @@ public partial class VineGenDock : EditorDock
         {
             _mesh.Mesh = null;
             _pods.Multimesh = null;
+            _leaves?.QueueFree();
+            _leaves = null;
             return;
         }
         VoxFile file = VoxFile.Load(VineBaker.Encode(_vine, _stats.Palette));
@@ -405,6 +408,12 @@ public partial class VineGenDock : EditorDock
             pods.SetInstanceTransform(i, new Transform3D(Basis.Identity, VoxSpace.ToGodot(at) * vs));
         }
         _pods.Multimesh = pods;
+
+        // Leaves are meshes: drawn as the game draws them, from the same set.
+        _leaves?.QueueFree();
+        _leaves = VineLeaves.Drawing(VineLeafSet.Of(_vine, Kind(), _stats.Palette),
+            GD.Load<Material>(VineLeaves.MaterialPath), 0.35f);
+        _viewport.AddChild(_leaves);
 
         float height = _vine.BoundsZ * vs;
         if (Mathf.Abs(height - _height) > 1.0f)

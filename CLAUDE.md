@@ -192,6 +192,16 @@ changes, and only then meshes its sections: a forest of 200 vines draws in
 about 200-450 calls instead of 10,000. Its numbers are
 `resources/foliage/flex_vine.tres` / `flex_tree.tres` and `wind_default.tres`.
 
+**A vine's leaves are meshes, not voxels** (`VineLeaves`, the wrapper's
+`Leaves` node): a few heart-shaped blades a kind (`LeafMesh`), drawn as
+MultiMeshes in `mat_leaf_toon`, which bends by the same
+`shaders/flex_bend.gdshaderinc` as `voxel_toon`. Each leaf is one thin box on
+its section's existing body (`VoxelPart.AddExtraShape`): stood on, hooked,
+shot through `VoxelBody.Intercept`; torn off whole under the loose-piece cap,
+and a leaf whose stalk or arm is cut away falls. A baked vine's leaves are
+`art/voxels/prp_vine_<kind>_<seed>_leaves.tres`; their numbers
+`resources/foliage/leaf_default.tres`. Vines have no tendrils.
+
 **Vines are baked, never grown in the game** (`docs/decisions/0033`,
 proposed). The Vines dock (`addons/vine_gen`) rolls a vine from a kind
 (`resources/foliage/vine_kind_*.tres`) and a seed, previews it and bakes
@@ -275,6 +285,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- rejections 200                          # per kind: how often a seed's roll is valid, why not, how each measure spreads
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- settle                                  # every baked vine stood 5 s with Jolt: no drift, nothing loose or sunk
 "$GODOT" --path . --script scripts/debug/vinelook.gd -- perflogs/vines.png                                   # every baked vine in a row, photographed
+"$GODOT" --path . --script scripts/debug/vinelook.gd -- perflogs/vines_above.png 50                        # the same from 50 deg up; `leaves` instead of 50 lays out every kind's leaf shapes
 "$GODOT" --headless --path . --script scripts/debug/vinebake.gd -- fruiting pool:0                          # bake a vine as the dock does (then --editor --quit to import)
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex          # a vine in the wind, rocketed, swung on, stood on, bitten and felled
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex prp_vine_fruiting_4532344 40  # any vine by name; shots at 40 m keep it standing

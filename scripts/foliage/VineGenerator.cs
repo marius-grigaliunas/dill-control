@@ -19,7 +19,8 @@ namespace DillControl.Foliage;
 /// </summary>
 public static class VineGenerator
 {
-    public const int Shell = 1, Knuckle = 2, Core = 3, Leaf = 4, Petiole = 5, Tendril = 6;
+    // Leaf is a palette colour only: leaves are meshes, not voxels (LeafMesh).
+    public const int Shell = 1, Knuckle = 2, Core = 3, Leaf = 4, Petiole = 5;
 
     // How far a bridge reaches through empty cells to join a loose part.
     public const int BridgeReach = 24;
@@ -42,7 +43,34 @@ public static class VineGenerator
         public double PodSpacingM = 0.9;
         // VoxelDestructionStats.SectionEdge of the vine: a body per occupied section.
         public int SectionEdge = 64;
+        // Two leaves one over the other need this much air between them to
+        // stand on the lower one.
+        public double LeafGapM = 2.5;
     }
+
+    /// <summary>
+    /// One leaf, a mesh and not voxels: where its stem leaves the stalk or an
+    /// arm, where its blade's middle is, the blade's frame and its size.
+    /// Voxel space (Z up), shifted with the voxels.
+    /// </summary>
+    public struct LeafPlace
+    {
+        public double AX, AY, AZ;
+        public double CX, CY, CZ;
+        /// <summary>Along the midrib, base to tip, unit.</summary>
+        public double MX, MY, MZ;
+        /// <summary>The face, unit, upward.</summary>
+        public double NX, NY, NZ;
+        /// <summary>Across the blade, in metres.</summary>
+        public double SizeM;
+        /// <summary>Which of its kind's leaf shapes (<see cref="LeafShapes"/>).</summary>
+        public int Shape;
+        /// <summary>The arm it grows from, by its index in <see cref="Result.Arms"/>; -1 the stalk.</summary>
+        public int Arm;
+    }
+
+    /// <summary>How many leaf shapes a kind has; each leaf is one of them, turned and scaled.</summary>
+    public const int LeafShapes = 3;
 
     public struct Voxel
     {
@@ -78,7 +106,10 @@ public static class VineGenerator
 
     public sealed class Counts
     {
-        public int Shell, Knuckle, Core, Leaf, Tendril, Bridged, Stranded, Total, Markers;
+        public int Shell, Knuckle, Core, Bridged, Stranded, Total, Markers;
+        /// <summary>Leaves placed, and leaves left out for hitting the stalk, an
+        /// arm, a stem or a lower leaf too closely.</summary>
+        public int Leaves, LeavesLeftOut;
         /// <summary>Pods grown but left out: no drop below them (into the vine,
         /// into the ground), or too close to a kept one.</summary>
         public int PodsBlocked, PodsGrounded, PodsCrowded;
@@ -100,6 +131,7 @@ public static class VineGenerator
         public List<Ring> Rings = new();
         public Counts Counts = new();
         public List<ArmInfo> Arms = new();
+        public List<LeafPlace> Leaves = new();
         public int BoundsX, BoundsY, BoundsZ;
         public double FootX, FootY;
     }
@@ -251,11 +283,10 @@ public static class VineGenerator
         if (cells.Overflow)
             return EmptyResult(p, "The vine left the range the generator can place. Lower the arm length, wobble, lean, or helix.");
         List<Pod> pods = HangPods(cells, samples, arms, p);
-        AddLeaves(cells, samples, arms, p);
-        if (p.Tendrils && p.TendrilCount > 0)
-            AddTendrils(cells, samples, arms, p);
+        (List<LeafPlace> leaves, int leftOut) = PlaceLeaves(cells, samples, arms, p, limits);
 
-        Result result = Pack(cells, samples, pods, p, limits);
+        Result result = Pack(cells, samples, pods, leaves, p, limits);
+        result.Counts.LeavesLeftOut = leftOut;
         result.Arms = ArmInfos(arms, p.VoxelSize);
         return result;
     }
@@ -726,31 +757,6 @@ public static class VineGenerator
         return false;
     }
 
-    private static readonly (double A, double Amp, double W)[] Lobes =
-    {
-        (0, 1, 0.4), (0.62, 0.78, 0.32), (-0.62, 0.78, 0.32), (1.22, 0.5, 0.28), (-1.22, 0.5, 0.28),
-    };
-
-    // Five lobes, longest along the midrib, with a notch where the petiole joins.
-    private static double LobeRadius(double theta)
-    {
-        double r = 0.14;
-        foreach ((double a, double amp, double w) in Lobes)
-        {
-            double d = theta - a;
-            if (d > Math.PI)
-                d -= Tau;
-            if (d < -Math.PI)
-                d += Tau;
-            double g = VineMath.Exp(-(d * d) / (2 * w * w));
-            double v = amp * g;
-            if (v > r)
-                r = v;
-        }
-        double back = Math.Max(0, -VineMath.Cos(theta));
-        return r * (1 - 0.5 * back * back);
-    }
-
     private static void Paint(Cells cells, int x, int y, int z, int colour, bool overwrite)
     {
         if (z < 0 || x <= -Off || x >= Off || y <= -Off || y >= Off || z >= Off)
@@ -762,7 +768,7 @@ public static class VineGenerator
             cells.Set(key, new Cell { X = x, Y = y, Z = z, C = colour });
             return;
         }
-        if (overwrite && (prev.C == Petiole || prev.C == Tendril))
+        if (overwrite && prev.C == Petiole)
             prev.C = colour;
     }
 
@@ -783,15 +789,61 @@ public static class VineGenerator
     private static V3 DirectionAt(Sample sample, double angle) =>
         Norm(Add(Scale(sample.N, VineMath.Cos(angle)), Scale(sample.B, VineMath.Sin(angle))));
 
-    private static void AddLeaves(Cells cells, Samples samples, List<Arm> arms, VineParams p)
+    // Leaves at the rings, along the arms and at their tips, each on a stem
+    // that rises out from where it grows, its blade held near level so it can
+    // be stood on. A leaf whose blade would meet the stalk, an arm or a stem,
+    // or lie on a leaf below with too little air between, is left out.
+    private static (List<LeafPlace>, int) PlaceLeaves(Cells cells, Samples samples, List<Arm> arms, VineParams p, Limits limits)
     {
         SeededRandom rng = SeededRandom.Stream((uint)p.Seed, "vine:leaves");
-        double lengthV = p.LeafSizeM / p.VoxelSize;
-        double droop = p.LeafDroopDeg * Math.PI / 180;
+        double vs = p.VoxelSize;
         double tilt = p.LeafTiltDeg * Math.PI / 180;
-        // Midway between whatever leaves the stalk: arms when there are any, else pods.
+        double rise = p.LeafStemRiseDeg * Math.PI / 180;
         double slot = Tau / (arms.Count > 0 ? p.ArmsPerRing : p.PodsPerRing);
         double twist = p.PodTwistDeg * Math.PI / 180;
+        var leaves = new List<LeafPlace>();
+        int leftOut = 0;
+
+        void Grow(V3 attach, V3 outward, int arm, double scale)
+        {
+            // Every roll is taken whether the leaf is kept or not, so one
+            // left out does not reshuffle the rest.
+            double size = p.LeafSizeM * (0.8 + rng.NextDouble() * 0.2) * scale;
+            double stem = p.LeafStemM / vs * (0.85 + rng.NextDouble() * 0.3);
+            double yaw = (rng.NextDouble() - 0.5) * 0.6;
+            double pitch = (rng.NextDouble() - 0.5) * 2 * tilt;
+            double roll = (rng.NextDouble() - 0.5) * 2 * tilt;
+            int shape = (int)Math.Floor(rng.NextDouble() * LeafShapes);
+
+            var flat = Norm(new V3(outward.X, outward.Y, 0));
+            if (Len(flat) < 1e-6)
+                flat = new V3(1, 0, 0);
+            flat = RotateAround(flat, new V3(0, 0, 1), yaw);
+            V3 stemDir = Norm(Add(Scale(flat, VineMath.Cos(rise)), new V3(0, 0, VineMath.Sin(rise))));
+            V3 basePoint = Add(attach, Scale(stemDir, stem));
+            V3 midrib = Norm(Add(Scale(flat, VineMath.Cos(pitch)), new V3(0, 0, VineMath.Sin(pitch))));
+            V3 side = Norm(Cross(new V3(0, 0, 1), midrib));
+            V3 face = Norm(Cross(midrib, side));
+            side = Norm(Add(Scale(side, VineMath.Cos(roll)), Scale(face, VineMath.Sin(roll))));
+            face = Norm(Cross(midrib, side));
+            double radius = size / vs * 0.5;
+            V3 centre = Add(basePoint, Scale(midrib, radius));
+
+            if (Blocked(cells, centre, midrib, side, face, radius) || Crowded(leaves, centre, radius, limits.LeafGapM / vs, vs))
+            {
+                leftOut++;
+                return;
+            }
+            leaves.Add(new LeafPlace
+            {
+                AX = attach.X, AY = attach.Y, AZ = attach.Z,
+                CX = centre.X, CY = centre.Y, CZ = centre.Z,
+                MX = midrib.X, MY = midrib.Y, MZ = midrib.Z,
+                NX = face.X, NY = face.Y, NZ = face.Z,
+                SizeM = size, Shape = shape, Arm = arm,
+            });
+        }
+
         List<Ring> rings = samples.Rings;
         for (int i = 0; i < rings.Count && p.LeavesPerRing > 0; i++)
         {
@@ -800,112 +852,73 @@ public static class VineGenerator
             {
                 double angle = i * twist + (leaf + 0.5) * slot + (rng.NextDouble() - 0.5) * 0.3;
                 V3 outward = DirectionAt(sample, angle);
-                V3 origin = Add(sample.P, Scale(outward, sample.Radius));
-                DrawLeaf(cells, origin, outward, lengthV, droop, tilt);
+                Grow(Add(sample.P, Scale(outward, sample.Radius)), outward, -1, 1.0);
             }
         }
-        foreach (Arm arm in arms)
+        for (int a = 0; a < arms.Count; a++)
         {
-            List<Sample> tube = arm.Samples;
-            V3 armOut = arm.Out;
+            List<Sample> tube = arms[a].Samples;
+            V3 armOut = arms[a].Out;
             var across = new V3(-armOut.Y, armOut.X, 0);
-            // Along the arm, sides alternating, leaning out and up a little so
-            // the blade sits beside the fruit, not on it.
+            // Along the arm, sides alternating, leaning out along it.
             for (int k = 0; k < p.LeavesPerArm; k++)
             {
-                int side = k % 2 == 0 ? 1 : -1;
+                int sideOf = k % 2 == 0 ? 1 : -1;
                 Sample at = SampleAtH(tube, 0.22 + 0.7 * (k + 0.5) / p.LeavesPerArm + (rng.NextDouble() - 0.5) * 0.08);
-                V3 outward = Norm(Add(Add(Scale(across, side), Scale(armOut, 0.45)), new V3(0, 0, 0.25)));
-                DrawLeaf(cells, Add(at.P, Scale(outward, at.Radius)), outward, lengthV * (0.75 + rng.NextDouble() * 0.25), droop, tilt);
+                V3 outward = Norm(Add(Scale(across, sideOf), Scale(armOut, 0.45)));
+                Grow(Add(at.P, Scale(outward, at.Radius)), outward, a, 0.85);
             }
             if (!p.ArmTipLeaf)
                 continue;
             Sample tip = tube[tube.Count - 1];
-            V3 ahead = Norm(new V3(tip.T.X, tip.T.Y, Math.Max(tip.T.Z, -0.2)));
-            DrawLeaf(cells, tip.P, ahead, lengthV * 0.7, droop * 0.6, tilt);
+            Grow(tip.P, armOut, a, 0.7);
         }
+        return (leaves, leftOut);
     }
 
-    private static void DrawLeaf(Cells cells, V3 origin, V3 outward, double lengthV, double droop, double tilt)
+    // Does a blade, a disc in its plane, meet a voxel (stalk, arm or stem)
+    // there or a voxel either side of it?
+    private static bool Blocked(Cells cells, V3 centre, V3 midrib, V3 side, V3 face, double radius)
     {
-        V3 midrib = Norm(Add(Scale(outward, VineMath.Cos(droop)), new V3(0, 0, -VineMath.Sin(droop))));
-        V3 side = Cross(midrib, new V3(0, 0, 1));
-        if (Len(side) < 1e-4)
-            side = Cross(midrib, new V3(1, 0, 0));
-        side = Norm(side);
-        V3 normal = Norm(Cross(side, midrib));
-        side = Norm(Add(Scale(side, VineMath.Cos(tilt)), Scale(normal, VineMath.Sin(tilt))));
-
-        double reach = lengthV * 0.72;
-        V3 center = Add(origin, Scale(midrib, lengthV * 0.28));
-        PlotLine(cells, origin, center, Petiole);
-
-        const double step = 0.7;
-        for (double u = -reach; u <= reach; u += step)
+        double step = Math.Max(1.0, radius / 5);
+        for (double u = -radius; u <= radius; u += step)
         {
-            for (double v = -reach; v <= reach; v += step)
+            for (double v = -radius; v <= radius; v += step)
             {
-                double theta = VineMath.Atan2(v, u);
-                double rho = VineMath.Hypot(u, v);
-                if (rho > LobeRadius(theta) * reach)
+                if (u * u + v * v > radius * radius * 0.85)
                     continue;
-                V3 point = Add(center, Add(Scale(midrib, u), Scale(side, v)));
-                Paint(cells, (int)Math.Floor(point.X), (int)Math.Floor(point.Y), (int)Math.Floor(point.Z), Leaf, true);
+                V3 at = Add(centre, Add(Scale(midrib, u), Scale(side, v)));
+                for (int d = -1; d <= 1; d++)
+                {
+                    V3 q = Add(at, Scale(face, d));
+                    if (q.Z < 0 || cells.Has(KeyOf((int)Math.Floor(q.X), (int)Math.Floor(q.Y), (int)Math.Floor(q.Z))))
+                        return true;
+                }
             }
         }
+        return false;
     }
 
-    // Tendrils curl off the stalk, or off the arms' last third when there are arms.
-    private static void AddTendrils(Cells cells, Samples samples, List<Arm> arms, VineParams p)
+    // Two blades that overlap seen from above need gap voxels of air between them.
+    private static bool Crowded(List<LeafPlace> leaves, V3 centre, double radius, double gap, double vs)
     {
-        SeededRandom rng = SeededRandom.Stream((uint)p.Seed, "vine:tendrils");
-        List<Ring> rings = samples.Rings;
-        double slot = Tau / p.PodsPerRing;
-        double twist = p.PodTwistDeg * Math.PI / 180;
-        double lengthV = p.TendrilLengthM / p.VoxelSize;
-        int usable = Math.Max(1, rings.Count - 1);
-        for (int n = 0; n < p.TendrilCount; n++)
+        foreach (LeafPlace l in leaves)
         {
-            Ring ring = rings[(int)Math.Floor(rng.NextDouble() * usable)];
-            Sample sample = ring.Sample;
-            V3 outward = DirectionAt(sample, ring.Index * twist + (Math.Floor(rng.NextDouble() * p.PodsPerRing) + 0.5) * slot);
-            if (arms.Count > 0)
-            {
-                Arm arm = arms[(int)Math.Floor(rng.NextDouble() * arms.Count)];
-                sample = SampleAtU(arm.Samples, 0.65 + rng.NextDouble() * 0.35);
-                outward = Norm(Add(arm.Out, new V3(0, 0, 0.6)));
-            }
-            V3 side = Norm(Cross(outward, sample.T));
-            V3 start = Add(sample.P, Scale(outward, sample.Radius + 0.8));
-            int steps = (int)Math.Max(4, Math.Ceiling(lengthV * 3));
-            V3 prev = start;
-            for (int i = 1; i <= steps; i++)
-            {
-                double t = (double)i / steps;
-                double ang = t * p.TendrilCurl * Tau;
-                double curl = 0.35 + t * 2.4;
-                V3 point = Add(start, Add(
-                    Scale(outward, t * lengthV * 0.55),
-                    Add(Scale(side, VineMath.Cos(ang) * curl),
-                        Add(Scale(sample.T, VineMath.Sin(ang) * curl), new V3(0, 0, -t * lengthV * 0.18)))));
-                PlotLine(cells, prev, point, Tendril);
-                prev = point;
-            }
+            double other = l.SizeM / vs * 0.5;
+            double dx = l.CX - centre.X, dy = l.CY - centre.Y;
+            double reach = (other + radius) * 0.9;
+            if (dx * dx + dy * dy < reach * reach && Math.Abs(l.CZ - centre.Z) < gap)
+                return true;
         }
+        return false;
     }
 
-    public static string PodName(int index)
-    {
-        string text = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        return "@Pod" + (text.Length < 2 ? "0" + text : text);
-    }
-
-    private static Result Pack(Cells cells, Samples samples, List<Pod> pods, VineParams p, Limits limits)
+    private static Result Pack(Cells cells, Samples samples, List<Pod> pods, List<LeafPlace> leaves, VineParams p, Limits limits)
     {
         (int bridged, int stranded) = Connect(cells);
 
         int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue, maxZ = 0;
-        int shell = 0, knuckle = 0, core = 0, leaf = 0, tendril = 0;
+        int shell = 0, knuckle = 0, core = 0;
         var voxels = new List<Voxel>(cells.Count);
         foreach (Cell cell in cells.Values)
         {
@@ -918,14 +931,12 @@ public static class VineGenerator
             if (cell.C == Shell) shell++;
             else if (cell.C == Knuckle) knuckle++;
             else if (cell.C == Core) core++;
-            else if (cell.C == Leaf || cell.C == Petiole) leaf++;
-            else if (cell.C == Tendril) tendril++;
         }
         if (voxels.Count == 0)
             return EmptyResult(p, "The vine produced no voxels.");
 
         (List<Marker> markers, int blocked, int grounded, int crowded, double spacingM) =
-            KeepHanging(PlaceMarkers(pods, cells), cells, p, limits);
+            KeepHanging(PlaceMarkers(pods, cells), cells, leaves, p, limits);
         for (int i = 0; i < voxels.Count; i++)
         {
             Voxel v = voxels[i];
@@ -942,6 +953,15 @@ public static class VineGenerator
         }
         voxels.Sort((a, b) => a.Z != b.Z ? a.Z - b.Z : a.Y != b.Y ? a.Y - b.Y : a.X != b.X ? a.X - b.X : a.C - b.C);
         markers.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+        for (int i = 0; i < leaves.Count; i++)
+        {
+            LeafPlace l = leaves[i];
+            l.AX -= minX;
+            l.AY -= minY;
+            l.CX -= minX;
+            l.CY -= minY;
+            leaves[i] = l;
+        }
 
         var result = new Result
         {
@@ -949,6 +969,7 @@ public static class VineGenerator
             VoxelSize = p.VoxelSize,
             Voxels = voxels,
             Markers = markers,
+            Leaves = leaves,
             BoundsX = maxX - minX + 1,
             BoundsY = maxY - minY + 1,
             BoundsZ = maxZ + 1,
@@ -974,7 +995,7 @@ public static class VineGenerator
         int total = voxels.Count;
         result.Counts = new Counts
         {
-            Shell = shell + knuckle, Knuckle = knuckle, Core = core, Leaf = leaf, Tendril = tendril,
+            Shell = shell + knuckle, Knuckle = knuckle, Core = core, Leaves = leaves.Count,
             Bridged = bridged, Stranded = stranded, Total = total, Markers = markers.Count,
             PodsBlocked = blocked, PodsGrounded = grounded, PodsCrowded = crowded, PodSpacingM = spacingM,
             Bodies = sections.Count,
@@ -1163,13 +1184,19 @@ public static class VineGenerator
         return markers;
     }
 
+    public static string PodName(int index)
+    {
+        string text = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return "@Pod" + (text.Length < 2 ? "0" + text : text);
+    }
+
     // Only pods a pickle can hang from are kept. Its body runs PickleHeightM
     // straight down; a pod is left out when a voxel or a kept pod is in that
     // column, when the ground is (blocked, grounded), or when it is closer
     // than PodSpacingM to a kept pod (crowded). The rest are named again in
     // order, @Pod01 up, so the names have no gaps.
     private static (List<Marker> kept, int blocked, int grounded, int crowded, double spacingM) KeepHanging(
-        List<Marker> markers, Cells cells, VineParams p, Limits limits)
+        List<Marker> markers, Cells cells, List<LeafPlace> leaves, VineParams p, Limits limits)
     {
         int drop = (int)Math.Ceiling(limits.PickleHeightM / p.VoxelSize);
         double spacing = limits.PodSpacingM / p.VoxelSize;
@@ -1187,6 +1214,18 @@ public static class VineGenerator
                     free = false;
                 }
                 else if (cells.Has(KeyOf(m.X, m.Y, z)) || at.Contains(KeyOf(m.X, m.Y, z)))
+                {
+                    blocked++;
+                    free = false;
+                }
+            }
+            // A leaf's blade across the drop blocks it too.
+            for (int l = 0; l < leaves.Count && free; l++)
+            {
+                LeafPlace leaf = leaves[l];
+                double r = leaf.SizeM / p.VoxelSize * 0.5;
+                double dx = leaf.CX - (m.X + 0.5), dy = leaf.CY - (m.Y + 0.5);
+                if (dx * dx + dy * dy < r * r && leaf.CZ <= m.Z + 0.5 && leaf.CZ >= m.Z - drop - 1)
                 {
                     blocked++;
                     free = false;

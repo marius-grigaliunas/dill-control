@@ -459,6 +459,7 @@ static func _vine_timeline(slot: String) -> Array:
 # bite have no vine. 40 m keeps it standing for the rest of the timeline.
 static func _flex_timeline(vine: String, shot_height: String = "12") -> Array:
 	var status := "!call:FlexField:PrintBenchStatus"
+	var leaves := "!call:%s/Leaves:PrintBenchStatus" % vine
 	# A vine's stalk need not stand over its node: aim where its voxels are.
 	var stalk := "@aimcall:%s/Flex:BenchStalk:%s" % [vine, shot_height]
 	return [
@@ -487,6 +488,19 @@ static func _flex_timeline(vine: String, shot_height: String = "12") -> Array:
 		["stand on an arm", ["@gotocall:%s/Flex:BenchPerch:30" % vine, "@aimcall:%s/Flex:BenchStalk:40" % vine, "@status", status], [], 2.0],
 		["riding it in the wind", [status], [], 4.0],
 		["riding it shot", ["#flex_perch", "@status", status], [], 0.3],
+		# Its leaves (step 4): stood on as it sways, hooked, shot off.
+		["stand on a leaf", ["@gotocall:%s/Leaves:BenchLeafTop:35" % vine, "!set:Player:velocity=Vector3(0, 0, 0)",
+			"@aimcall:%s/Flex:BenchStalk:40" % vine, "@status", leaves], [], 3.0],
+		["on the leaf shot", ["#flex_leaf", "@status", leaves], [], 0.3],
+		["hook a leaf", ["@gotorel:%s:0, 0.2, 45" % vine, "!set:Player:velocity=Vector3(0, 0, 0)",
+			"@aimcall:%s/Leaves:BenchLeafCentre:30" % vine], ["grapple"], 1.0],
+		["reel to the leaf", [status], ["grapple", "jump"], 1.5],
+		["let go of the leaf", ["@status", status], [], 2.0],
+		["shoot a leaf", ["@gotorel:%s:0, 0.2, 45" % vine, "!set:Player:velocity=Vector3(0, 0, 0)",
+			"@aimcall:%s/Leaves:BenchLeafCentre:20" % vine, "slot_1"], [], 1.0],
+		["shooting the leaf", ["@aimcall:%s/Leaves:BenchLeafCentre:20" % vine], ["fire"], 2.5],
+		["leaf torn", [leaves], [], 2.0],
+		["leaf torn shot", ["#flex_leaf_torn", leaves], [], 0.3],
 		["back off again", ["@gotorel:%s:0, 0.2, 112" % vine, "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:%s:50" % vine], [], 2.0],
 		["bite from the foot", ["!call:%s/Flex:BenchCarveFoot" % vine, status], [], 2.0],
 		["leaning", [status], [], 1.0],
@@ -495,8 +509,8 @@ static func _flex_timeline(vine: String, shot_height: String = "12") -> Array:
 		["falling 3", ["!call:VoxelDebris:PrintBenchStatus"], [], 1.0],
 		["leaning shot", ["#flex_cut", status], [], 0.3],
 		["falling 4", ["!call:VoxelDebris:PrintBenchStatus"], [], 2.0],
-		["settled", [status, "!call:VoxelDebris:PrintBenchStatus"], [], 2.0],
-		["settled shot", ["#flex_settled", status], [], 0.3],
+		["settled", [status, "!call:VoxelDebris:PrintBenchStatus", leaves], [], 2.0],
+		["settled shot", ["#flex_settled", status, leaves], [], 0.3],
 	]
 
 # The vine forest (prp_vine_forest, 85 bending vines 100 m apart) round

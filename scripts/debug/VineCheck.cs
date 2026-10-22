@@ -114,6 +114,25 @@ public partial class VineCheck : Node
         return h;
     }
 
+    // FNV-1a over each leaf's numbers to a thousandth.
+    private static uint LeafHash(List<VineGenerator.LeafPlace> leaves)
+    {
+        uint h = 2166136261;
+        foreach (VineGenerator.LeafPlace l in leaves)
+        {
+            foreach (double v in new[] { l.AX, l.AY, l.AZ, l.CX, l.CY, l.CZ, l.MX, l.MY, l.MZ, l.NX, l.NY, l.NZ, l.SizeM, l.Shape, l.Arm })
+            {
+                long n = (long)Math.Round(v * 1000);
+                for (int b = 0; b < 8; b++)
+                {
+                    h ^= (uint)((n >> (8 * b)) & 255);
+                    h *= 16777619;
+                }
+            }
+        }
+        return h;
+    }
+
     private void Golden(Dictionary<string, VineKind> kinds, VineBakeStats stats)
     {
         string path = ProjectSettings.GlobalizePath(GoldenPath);
@@ -149,12 +168,18 @@ public partial class VineCheck : Node
             int wantTotal = g.GetProperty("counts").GetProperty("total").GetInt32();
             uint wantHash = g.GetProperty("hash").GetUInt32();
             uint hash = VoxelHash(vine.Voxels);
+            bool leavesSame = !g.TryGetProperty("leaves", out JsonElement wantLeaves) || wantLeaves.GetUInt32() == LeafHash(vine.Leaves);
 
             var markers = g.GetProperty("markers").EnumerateArray().Select(m =>
                 $"{m[0].GetString()} {m[1].GetInt32()} {m[2].GetInt32()} {m[3].GetInt32()}").ToList();
             var ours = vine.Markers.Select(m => $"{m.Name} {m.X} {m.Y} {m.Z}").ToList();
             bool markersSame = markers.SequenceEqual(ours);
 
+            if (hash == wantHash && markersSame && !leavesSame)
+            {
+                Check($"{name}: same leaves", false, $"{vine.Leaves.Count} leaves differ");
+                continue;
+            }
             if (hash == wantHash && markersSame)
             {
                 exact++;
@@ -239,6 +264,7 @@ public partial class VineCheck : Node
                 ["counts"] = new Godot.Collections.Dictionary { ["total"] = vine.Counts.Total },
                 ["bounds"] = new Godot.Collections.Array { vine.BoundsX, vine.BoundsY, vine.BoundsZ },
                 ["hash"] = VoxelHash(vine.Voxels),
+                ["leaves"] = LeafHash(vine.Leaves),
                 ["layers"] = new Godot.Collections.Array(layers.Select(n => Variant.From(n))),
                 ["markers"] = markers,
             });
@@ -305,7 +331,6 @@ public partial class VineCheck : Node
         overParams.LeanDeg = 0;
         overParams.WobbleM = 0;
         overParams.LeavesPerRing = 0;
-        overParams.Tendrils = false;
         VineGenerator.Result over = VineGenerator.Generate(overParams);
         Check("a model past 256 is refused", !over.Ok && over.BoundsZ > 256);
         VineParams bareParams = defaults.Copy();
@@ -352,9 +377,10 @@ public partial class VineCheck : Node
         Check("a pool's vines differ", pool.Distinct().Count() == pool.Count);
         VineGenerator.Result leafy = VineGenerator.Generate(leafyKind.Roll(leafyKind.PoolSeed(stats.ArchetypeSeed, 0), vs));
         VineGenerator.Result fruity = VineGenerator.Generate(before);
+        double LeafArea(VineGenerator.Result v) => v.Leaves.Sum(l => l.SizeM * l.SizeM);
         Check("a leafy vine is mostly leaf, a fruiting one mostly pods",
-            leafy.Counts.Leaf > fruity.Counts.Leaf * 2 && fruity.Counts.Markers > leafy.Counts.Markers * 4,
-            $"leaf {leafy.Counts.Leaf} vs {fruity.Counts.Leaf}, pods {leafy.Counts.Markers} vs {fruity.Counts.Markers}");
+            LeafArea(leafy) > LeafArea(fruity) * 1.5 && fruity.Counts.Markers > leafy.Counts.Markers * 4,
+            $"leaf area {LeafArea(leafy):0} vs {LeafArea(fruity):0} m2, pods {leafy.Counts.Markers} vs {fruity.Counts.Markers}");
         Check("a fruiting vine's collision bodies", fruity.Counts.Bodies <= stats.BodiesMax,
             $"{fruity.Counts.Bodies} at section edge {stats.Limits().SectionEdge}");
     }
@@ -420,7 +446,7 @@ public partial class VineCheck : Node
     /// <summary>A vine made in memory (<see cref="VineFactory"/>) against its
     /// baked, imported self: the same nodes in the same places, and every
     /// voxel and chunk field the same, so the game can grow what the editor bakes.</summary>
-    private void SameInMemory(string name, Node3D baked, VineBakeStats stats)
+    private void SameInMemory(string name, Node3D baked, VineLeafSet bakedLeaves, VineBakeStats stats)
     {
         var match = System.Text.RegularExpressions.Regex.Match(name, @"^prp_vine_([a-z]+)_(\d+)$");
         VineKind kind = LoadKinds().Values.FirstOrDefault(k => k.Slug == match.Groups[1].Value);
@@ -457,7 +483,12 @@ public partial class VineCheck : Node
             }
         }
         made.Free();
-        Check($"{name}: made in memory, the same voxels and chunks", differ.Count == 0,
+        foreach (string property in new[] { "Attach", "Centre", "Midrib", "Face", "Size", "Shape", "ShapeLobes", "ShapeTeeth", "ShapeNotch", "ShapeCup", "Blade", "Vein", "Stem" })
+        {
+            if (bakedLeaves == null || !GD.VarToBytes(bakedLeaves.Get(property)).SequenceEqual(GD.VarToBytes(data.Leaves.Get(property))))
+                differ.Add("leaves " + property);
+        }
+        Check($"{name}: made in memory, the same voxels, chunks and leaves", differ.Count == 0,
             differ.Count > 0 ? string.Join(", ", differ.Take(6))
                 : string.Create(System.Globalization.CultureInfo.InvariantCulture,
                     $"generate {data.GenerateMs:F0} ms, mesh and chunks {data.ModelMs:F0} ms, {(managed1 - managed0) / 1048576.0:F1} MB"));
@@ -486,6 +517,8 @@ public partial class VineCheck : Node
             var widen = new List<double>();
             var armLength = new List<double>();
             var armThick = new List<double>();
+            var leaves = new List<double>();
+            var leavesOut = new List<double>();
             ulong t0 = Time.GetTicksMsec();
             for (int i = 0; i < count; i++)
             {
@@ -510,6 +543,8 @@ public partial class VineCheck : Node
                 widen.Add(first.WideningShare);
                 armLength.Add(first.ArmLengthGrowth);
                 armThick.Add(first.ArmThicknessGrowth);
+                leaves.Add(grown.Vine.Counts.Leaves);
+                leavesOut.Add(grown.Vine.Counts.LeavesLeftOut);
             }
             int rolls = reasons.Values.Sum();
             string Spread(List<double> v)
@@ -526,11 +561,45 @@ public partial class VineCheck : Node
                     .Select(r => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{r.Key} {r.Value * 100.0 / rolls:0}%"))));
             }
             text.AppendLine($"    first rolls p10/p50/p90/max: lean {Spread(lean)} deg, kink {Spread(kink)} deg, sag {Spread(sag)} m, "
-                + $"knuckle widening {Spread(widen)}, arm length growth {Spread(armLength)}, arm thickness growth {Spread(armThick)}");
+                + $"knuckle widening {Spread(widen)}, arm length growth {Spread(armLength)}, arm thickness growth {Spread(armThick)}, leaves {Spread(leaves)} ({Spread(leavesOut)} left out)");
             if (failed > 0)
                 pass = false;
         }
         return (pass ? "PASS\n" : "FAIL\n") + text;
+    }
+
+    /// <summary>For <c>vinelook.gd leaves</c>: every kind's leaf shapes laid
+    /// in a row each, 12 m across and 16 m apart, a stem under each.</summary>
+    public Node3D LeafSheet()
+    {
+        var stats = GD.Load<VineBakeStats>(VineBakeStats.DefaultPath);
+        VinePalette palette = stats.Palette ?? new VinePalette();
+        var sheet = new Node3D { Name = "LeafSheet" };
+        var material = GD.Load<Material>(VineLeaves.MaterialPath);
+        int row = 0;
+        foreach (VineKind kind in LoadKinds().Values.OrderBy(k => k.KindName))
+        {
+            LeafMesh.Shape[] shapes = LeafMesh.ShapesOf(kind);
+            for (int s = 0; s < shapes.Length; s++)
+            {
+                var at = new Vector3((s - 1) * 16.0f, 0.5f, (row - 1.5f) * 16.0f);
+                sheet.AddChild(new MeshInstance3D
+                {
+                    Name = $"{kind.KindName}{s}",
+                    Mesh = LeafMesh.Blade(shapes[s], palette.Leaf.SrgbToLinear(), palette.Knuckle.SrgbToLinear()),
+                    MaterialOverride = material,
+                    Transform = new Transform3D(Basis.Identity.Scaled(new Vector3(6, 6, 6)), at),
+                });
+                sheet.AddChild(new MeshInstance3D
+                {
+                    Mesh = LeafMesh.Stem(palette.Petiole.SrgbToLinear()),
+                    MaterialOverride = material,
+                    Transform = new Transform3D(new Basis(Vector3.Right * 0.35f, Vector3.Up * 0.35f, Vector3.Back * 4.0f), at - new Vector3(0, 0, 8.5f)),
+                });
+            }
+            row++;
+        }
+        return sheet;
     }
 
     /// <summary>The baked vine scenes the settle test stands up.</summary>
@@ -622,9 +691,11 @@ public partial class VineCheck : Node
             var body = root.GetNodeOrNull<VoxelBody>("Voxels");
             var flex = root.GetNodeOrNull<PlantFlex>("Flex");
             var model = root.GetNodeOrNull<Node3D>("Model");
-            Check($"{name}: Voxels, Model, Flex wired", body != null && flex != null && model != null
+            var leaves = root.GetNodeOrNull<VineLeaves>("Leaves");
+            Check($"{name}: Voxels, Model, Flex, Leaves wired", body != null && flex != null && model != null
                 && body.Static && body.WholeUntilChanged && body.Stats != null && body.Model == model
-                && flex.Body == body && flex.Stats != null);
+                && flex.Body == body && flex.Stats != null
+                && leaves != null && leaves.Set != null && leaves.Body == body && leaves.Flex == flex && leaves.Model == model && leaves.Stats != null);
             var mesh = model?.GetNodeOrNull<Node3D>("Stalk");
             int markers = model?.GetChildren().Count(c => c is Marker3D) ?? 0;
             if (mesh == null || !mesh.HasMeta(VoxelMeta.Cells))
@@ -654,7 +725,7 @@ public partial class VineCheck : Node
             Check($"{name}: foot on the origin, {markers} pods", vs > 0 && Mathf.Abs(foot.X) <= vs * 0.5f + 1e-3f
                 && Mathf.Abs(foot.Z) <= vs * 0.5f + 1e-3f && Mathf.Abs(foot.Y) < 1e-3f && markers > 0,
                 $"foot {foot}, voxel {vs} m");
-            SameInMemory(name, model, stats);
+            SameInMemory(name, model, leaves?.Set, stats);
             root.Free();
         }
         _report.AppendLine($"  {found} baked vine scenes");

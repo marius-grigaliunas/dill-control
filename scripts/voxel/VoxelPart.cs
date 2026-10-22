@@ -1812,7 +1812,7 @@ public partial class VoxelPart : Node3D, IStrainHost
         {
             // A section's own body: its shapes straight on the server, no
             // shape owners to keep in step.
-            CollisionObject3D body = SectionBodyOf(s, boxes.Count > 0);
+            CollisionObject3D body = SectionBodyOf(s, boxes.Count > 0 || (_extras?[s]?.Count ?? 0) > 0);
             if (body == null)
             {
                 return;
@@ -1832,6 +1832,7 @@ public partial class VoxelPart : Node3D, IStrainHost
             {
                 PhysicsServer3D.BodyAddShape(rid, Box(size).GetRid(), new Transform3D(Basis.Identity, centre));
             }
+            AddExtras(rid, s);
             if (space.IsValid)
             {
                 PhysicsServer3D.BodySetSpace(rid, space);
@@ -1858,6 +1859,84 @@ public partial class VoxelPart : Node3D, IStrainHost
     }
 
     private int _outOfSpace;
+
+    // ---------------- Shapes that are not voxels ----------------
+
+    /// <summary>
+    /// A shape something else keeps on a section's body, after its boxes: a
+    /// plant's leaf. It rides the section's bend and carries what stands on
+    /// it, it is put back each time the section is re-boxed, and hits on it
+    /// reach the body like any other.
+    /// </summary>
+    public sealed class ExtraShape
+    {
+        public int Section;
+        public Shape3D Shape;
+        /// <summary>In the part's space, as built.</summary>
+        public Transform3D Local;
+    }
+
+    private List<ExtraShape>[] _extras;
+
+    /// <summary>Puts <paramref name="shape"/> on the body of the section
+    /// <paramref name="localPoint"/> (the part's space) is in. Null for a part
+    /// with no section bodies.</summary>
+    public ExtraShape AddExtraShape(Vector3 localPoint, Shape3D shape, Transform3D local)
+    {
+        if (CollisionOwner != null || SectionBody == null || Grid == null || _boxCount == null)
+        {
+            return null;
+        }
+        Vector3 v = Grid.ToVox(localPoint);
+        int edge = Math.Max(4, _stats.SectionEdge);
+        var cell = new Vector3I(
+            Math.Clamp((int)Math.Floor(v.X), 0, Grid.Size.X - 1),
+            Math.Clamp((int)Math.Floor(v.Y), 0, Grid.Size.Y - 1),
+            Math.Clamp((int)Math.Floor(v.Z), 0, Grid.Size.Z - 1)) / edge;
+        int s = cell.X + (_sectionCount.X * (cell.Y + (_sectionCount.Y * cell.Z)));
+        var extra = new ExtraShape { Section = s, Shape = shape, Local = local };
+        _extras ??= new List<ExtraShape>[_boxCount.Length];
+        (_extras[s] ??= new List<ExtraShape>()).Add(extra);
+        PlaceExtras(s);
+        return extra;
+    }
+
+    public void RemoveExtraShape(ExtraShape extra)
+    {
+        if (extra == null || _extras?[extra.Section] == null || !_extras[extra.Section].Remove(extra))
+        {
+            return;
+        }
+        PlaceExtras(extra.Section);
+    }
+
+    // The section's extra shapes again, after its boxes.
+    private void PlaceExtras(int s)
+    {
+        CollisionObject3D body = SectionBodyOf(s, true);
+        if (body == null)
+        {
+            return;
+        }
+        Rid rid = body.GetRid();
+        for (int i = PhysicsServer3D.BodyGetShapeCount(rid) - 1; i >= _boxCount[s]; i--)
+        {
+            PhysicsServer3D.BodyRemoveShape(rid, i);
+        }
+        AddExtras(rid, s);
+    }
+
+    private void AddExtras(Rid rid, int s)
+    {
+        if (_extras?[s] == null)
+        {
+            return;
+        }
+        foreach (ExtraShape extra in _extras[s])
+        {
+            PhysicsServer3D.BodyAddShape(rid, extra.Shape.GetRid(), extra.Local);
+        }
+    }
     private Rid _ownerSpace;
     private Vector3 _ownerVelocity;
 

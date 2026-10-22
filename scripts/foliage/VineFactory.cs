@@ -27,6 +27,7 @@ public static class VineFactory
         public VineGenerator.Result Vine => Grown.Vine;
         /// <summary>Null when no valid vine grew: <see cref="Grown"/> says why.</summary>
         public VoxModelBuilder.Model Model;
+        public VineLeafSet Leaves;
         public double GenerateMs;
         public double ModelMs;
     }
@@ -58,13 +59,14 @@ public static class VineFactory
             ChunkJitter = VineBaker.ChunkJitter,
             Path = $"{stats.VoxelFolder}/{data.Name}.vox",
         });
+        data.Leaves = VineLeafSet.Of(vine, kind, stats.Palette);
         data.ModelMs = clock.Elapsed.TotalMilliseconds;
         return data;
     }
 
     /// <summary>The wrapper's nodes, on the main thread: <c>Voxels</c> (a static
-    /// <see cref="VoxelBody"/> drawn whole until changed), <c>Model</c> and
-    /// <c>Flex</c>, named after the vine. Null if the vine failed.</summary>
+    /// <see cref="VoxelBody"/> drawn whole until changed), <c>Model</c>,
+    /// <c>Flex</c> and <c>Leaves</c>, named after the vine. Null if the vine failed.</summary>
     public static Node3D MakeNodes(Data data, VineBakeStats stats, bool lods = true)
     {
         if (data.Model == null)
@@ -90,6 +92,15 @@ public static class VineFactory
         root.AddChild(flex);
         voxels.Model = model;
         flex.Body = voxels;
+        root.AddChild(new VineLeaves
+        {
+            Name = "Leaves",
+            Set = data.Leaves,
+            Body = voxels,
+            Flex = flex,
+            Model = model,
+            Stats = GD.Load<LeafStats>(LeafStats.DefaultPath),
+        });
         return root;
     }
 

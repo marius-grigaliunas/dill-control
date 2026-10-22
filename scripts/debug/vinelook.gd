@@ -3,6 +3,12 @@
 # not part of the game. Needs a window (not --headless).
 #
 #   Godot..._console.exe --path . --script scripts/debug/vinelook.gd -- perflogs/vines.png
+#   Godot..._console.exe --path . --script scripts/debug/vinelook.gd -- perflogs/vines_above.png 50
+#
+#   Godot..._console.exe --path . --script scripts/debug/vinelook.gd -- perflogs/leaves.png leaves
+#
+# The number is the camera's elevation in degrees (default 6: eye height);
+# `leaves` lays every kind's leaf shapes out instead, a row a kind, from above.
 extends SceneTree
 
 const SPACING := 80.0
@@ -10,6 +16,8 @@ const SPACING := 80.0
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var out: String = args[0] if args.size() > 0 else "perflogs/vines.png"
+	var sheet := args.size() > 1 and args[1] == "leaves"
+	var elevation: float = float(args[1]) if args.size() > 1 and not sheet else 6.0
 	var stage := Node3D.new()
 	root.add_child(stage)
 
@@ -34,6 +42,16 @@ func _initialize() -> void:
 	ground.material_override = dirt
 	stage.add_child(ground)
 
+	if sheet:
+		var check = load("res://scripts/debug/VineCheck.cs").new()
+		root.add_child(check)
+		stage.add_child(check.call("LeafSheet"))
+		var top := Camera3D.new()
+		top.fov = 50
+		stage.add_child(top)
+		top.look_at_from_position(Vector3(0, 75, 22), Vector3(0, 0, 0))
+		await _shoot(out)
+		return
 	var files := DirAccess.get_files_at("res://scenes/props")
 	var names: Array[String] = []
 	for f in files:
@@ -56,13 +74,19 @@ func _initialize() -> void:
 	var camera := Camera3D.new()
 	camera.fov = 50
 	stage.add_child(camera)
-	camera.look_at_from_position(Vector3(0, 55, width * 0.5 + 90), Vector3(0, 45, 0))
+	var target := Vector3(0, 45, 0)
+	var distance := width * 0.5 + 90.0
+	var eye := target + Vector3(0, sin(deg_to_rad(elevation)), cos(deg_to_rad(elevation))) * distance
+	camera.look_at_from_position(eye, target)
 
+	await _shoot(out)
+
+func _shoot(out: String) -> void:
 	for i in 30:
 		await process_frame
 	var image := root.get_viewport().get_texture().get_image()
 	var path := ProjectSettings.globalize_path("res://" + out) if not out.is_absolute_path() else out
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	image.save_png(path)
-	print("[vinelook] ", names.size(), " vines -> ", path)
+	print("[vinelook] -> ", path)
 	quit(0)

@@ -66,16 +66,21 @@ public partial class VineKind : Resource
     [ExportGroup("Leaves")]
     [Export] public Vector2 LeavesPerRing { get; set; } = new(0, 0);
     [Export] public Vector2 LeavesPerArm { get; set; } = new(0, 0);
-    [Export] public Vector2 LeafSizeM { get; set; } = new(5, 5);
-    [Export] public Vector2 LeafTiltDeg { get; set; } = new(28, 28);
-    [Export] public Vector2 LeafDroopDeg { get; set; } = new(34, 34);
+    /// <summary>Across the blade: 6-14 m, so a leaf is something to land on.</summary>
+    [Export] public Vector2 LeafSizeM { get; set; } = new(9, 9);
+    /// <summary>How far a blade may be from level: platforms, not ramps.</summary>
+    [Export] public Vector2 LeafTiltDeg { get; set; } = new(6, 6);
+    [Export] public Vector2 LeafStemM { get; set; } = new(3, 3);
+    [Export] public Vector2 LeafStemRiseDeg { get; set; } = new(30, 30);
 
-    /// <summary>Chance a vine of this kind has tendrils at all.</summary>
-    [ExportGroup("Tendrils")]
-    [Export(PropertyHint.Range, "0,1,0.01")] public float TendrilsChance { get; set; } = 1.0f;
-    [Export] public Vector2 TendrilCount { get; set; } = new(14, 14);
-    [Export] public Vector2 TendrilLengthM { get; set; } = new(6, 6);
-    [Export] public Vector2 TendrilCurl { get; set; } = new(2.5f, 2.5f);
+    /// <summary>The kind's leaf shapes (<see cref="VineGenerator.LeafShapes"/> of
+    /// them) roll inside these: lobes each side, teeth round the edge, how deep
+    /// the heart's notch is and how cupped the blade (LeafMesh).</summary>
+    [ExportGroup("Leaf shape")]
+    [Export] public Vector2 LeafLobes { get; set; } = new(0, 1);
+    [Export] public Vector2 LeafTeeth { get; set; } = new(10, 16);
+    [Export] public Vector2 LeafNotch { get; set; } = new(0.15f, 0.3f);
+    [Export] public Vector2 LeafCup { get; set; } = new(0.08f, 0.16f);
 
     /// <summary>The file name's part for this kind: lower case, letters and digits.</summary>
     public string Slug

@@ -12,12 +12,12 @@
     "voxelSize": 0.5,
     "ringCount": 7.0,
     "bareStalkM": 13.0,
-    "wobbleM": 4.5,
+    "wobbleM": 3.5,
     "wobbleFrequency": 1.6,
-    "leanDeg": 11.0,
+    "leanDeg": 5.0,
     "helixTurns": 0.0,
     "trellisRadiusM": 4.0,
-    "tipNodDeg": 43.0,
+    "tipNodDeg": 28.0,
     "irregularity": 0.7,
     "baseRadiusM": 2.5,
     "tipRadiusM": 1.0,
@@ -37,34 +37,33 @@
     "leavesPerRing": 1.0,
     "leavesPerArm": 2.0,
     "leafSizeM": 14.0,
-    "leafTiltDeg": 39.0,
-    "leafDroopDeg": 32.0,
-    "tendrils": true,
-    "tendrilCount": 21.0,
-    "tendrilLengthM": 6.0,
-    "tendrilCurl": 2.5
+    "leafTiltDeg": 10.0,
+    "leafStemM": 2.5,
+    "leafStemRiseDeg": 28.0
   },
   "counts": {
-    "total": 18892,
-    "shell": 4840,
-    "knuckle": 964,
-    "core": 1491,
-    "leaf": 12091,
-    "tendril": 470,
-    "bridged": 132,
+    "total": 6309,
+    "shell": 4784,
+    "knuckle": 969,
+    "core": 1475,
+    "leaves": 32,
+    "leavesLeftOut": 17,
+    "bridged": 6,
     "stranded": 0,
-    "pods": 14,
-    "podsBlocked": 0,
+    "pods": 13,
+    "podsBlocked": 1,
     "podsGrounded": 0,
     "podsCrowded": 0,
-    "podSpacingM": 5.3851648071345,
-    "bodies": 5
+    "podSpacingM": 5.40832691319598,
+    "bodies": 2
   },
   "bounds": [
-    68,
-    65,
-    121
+    34,
+    30,
+    122
   ],
-  "heightM": 60.5,
-  "warnings": []
+  "heightM": 61.0,
+  "warnings": [
+    "1 of 14 pods left out: 1 with the vine in their 1.8 m drop, 0 too low, 0 under 0.9 m from another."
+  ]
 }

@@ -22,9 +22,8 @@ public partial class VinePalette : Resource
     [Export] public Color Leaf { get; set; } = Color.Color8(30, 70, 40);
     /// <summary>Pod and leaf stems.</summary>
     [Export] public Color Petiole { get; set; } = Color.Color8(22, 50, 30);
-    [Export] public Color Tendril { get; set; } = Color.Color8(64, 96, 54);
 
-    /// <summary>The colour of a generator palette index, 1 to 6.</summary>
+    /// <summary>The colour of a generator palette index, 1 to 5.</summary>
     public Color Of(int index) => index switch
     {
         VineGenerator.Shell => Shell,
@@ -32,7 +31,6 @@ public partial class VinePalette : Resource
         VineGenerator.Core => Core,
         VineGenerator.Leaf => Leaf,
         VineGenerator.Petiole => Petiole,
-        VineGenerator.Tendril => Tendril,
         _ => Colors.Magenta,
     };
 }

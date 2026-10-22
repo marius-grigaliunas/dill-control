@@ -40,13 +40,11 @@ public sealed class VineParams
     public double PedicelM = 2;
     public double LeavesPerRing = 0;
     public double LeavesPerArm = 0;
-    public double LeafSizeM = 5;
-    public double LeafTiltDeg = 28;
-    public double LeafDroopDeg = 34;
-    public bool Tendrils = true;
-    public double TendrilCount = 14;
-    public double TendrilLengthM = 6;
-    public double TendrilCurl = 2.5;
+    public double LeafSizeM = 9;
+    /// <summary>How far a blade may be from level, either way.</summary>
+    public double LeafTiltDeg = 6;
+    public double LeafStemM = 3;
+    public double LeafStemRiseDeg = 30;
 
     public VineParams Copy() => (VineParams)MemberwiseClone();
 
@@ -104,14 +102,11 @@ public sealed class VineParams
 
         F("leavesPerRing", 0, 2, 1, 0, p => p.LeavesPerRing, (p, v) => p.LeavesPerRing = v, integer: true),
         F("leavesPerArm", 0, 6, 1, 0, p => p.LeavesPerArm, (p, v) => p.LeavesPerArm = v, integer: true),
-        F("leafSizeM", 1, 24, 0.5, 5, p => p.LeafSizeM, (p, v) => p.LeafSizeM = v),
-        F("leafTiltDeg", 0, 80, 1, 28, p => p.LeafTiltDeg, (p, v) => p.LeafTiltDeg = v),
-        F("leafDroopDeg", 0, 80, 1, 34, p => p.LeafDroopDeg, (p, v) => p.LeafDroopDeg = v),
+        F("leafSizeM", 1, 24, 0.5, 9, p => p.LeafSizeM, (p, v) => p.LeafSizeM = v),
+        F("leafTiltDeg", 0, 40, 1, 6, p => p.LeafTiltDeg, (p, v) => p.LeafTiltDeg = v),
+        F("leafStemM", 0.5, 10, 0.25, 3, p => p.LeafStemM, (p, v) => p.LeafStemM = v),
+        F("leafStemRiseDeg", 0, 80, 1, 30, p => p.LeafStemRiseDeg, (p, v) => p.LeafStemRiseDeg = v),
 
-        B("tendrils", true, p => p.Tendrils, (p, v) => p.Tendrils = v),
-        F("tendrilCount", 0, 40, 1, 14, p => p.TendrilCount, (p, v) => p.TendrilCount = v, integer: true),
-        F("tendrilLengthM", 1, 16, 0.5, 6, p => p.TendrilLengthM, (p, v) => p.TendrilLengthM = v),
-        F("tendrilCurl", 0, 6, 0.1, 2.5, p => p.TendrilCurl, (p, v) => p.TendrilCurl = v),
     };
 
     /// <summary>What a kind rolls: everything but the seed and the voxel size.</summary>
