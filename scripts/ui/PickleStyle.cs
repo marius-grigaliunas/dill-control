@@ -32,12 +32,10 @@ public static class PickleStyle
 
     /// <summary>
     /// The display face: bold comic lettering for every number, title and
-    /// stamp the game draws. Its body-text sibling, the same family at regular
-    /// weight, is the project's default theme font
-    /// (<c>gui/theme/custom_font</c> = resources/ui/font_body.tres), so every
-    /// Label and Button in the game -- menus, prompts, panels -- is the same
-    /// family, and nothing is the system sans. Both are SystemFont resources
-    /// asking for a comic face by name, data rather than code.
+    /// stamp the game draws: resources/ui/font_display.tres, a SystemFont
+    /// asking for a comic face by name, data rather than code. Labels and
+    /// Buttons still use the theme's default font: no project theme font is
+    /// set yet.
     /// </summary>
     public static Font Font => _font ??= GD.Load<Font>("res://resources/ui/font_display.tres")
         ?? new SystemFont { FontNames = new[] { "Comic Sans MS" }, FontWeight = 800 };

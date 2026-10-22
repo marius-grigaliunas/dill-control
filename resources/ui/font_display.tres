@@ -1,0 +1,6 @@
+[gd_resource type="SystemFont" format=3]
+
+[resource]
+resource_name = "FontDisplay"
+font_names = PackedStringArray("Comic Sans MS", "Comic Neue", "Chalkboard SE")
+font_weight = 800
