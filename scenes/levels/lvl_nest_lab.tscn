@@ -11,6 +11,8 @@
 [ext_resource type="Resource" path="res://resources/planet/biomes/biome_rust_dunes.tres" id="27_rust"]
 [ext_resource type="Resource" path="res://resources/planet/biomes/biome_vinegar_frost.tres" id="28_frost"]
 [ext_resource type="Material" path="res://art/materials/mat_planet_sky.tres" id="32_sky"]
+[ext_resource type="Script" path="res://scripts/planet/SolarSystem.cs" id="30_system"]
+[ext_resource type="Resource" path="res://resources/planet/system_stats_default.tres" id="31_sysstats"]
 
 [ext_resource type="Script" path="res://scripts/mission/SystemBuilder.cs" id="43_builder"]
 [ext_resource type="Resource" path="res://resources/mission/contract_pools_default.tres" id="44_pools"]
@@ -93,6 +95,15 @@ directional_shadow_max_distance = 140.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Lighting"]
 environment = SubResource("Env")
+
+[node name="SolarSystem" type="Node3D" parent="Lighting" node_paths=PackedStringArray("Planet", "Environment", "Sun", "Level")]
+script = ExtResource("30_system")
+Stats = ExtResource("31_sysstats")
+Planet = NodePath("../../Geometry/Planet")
+Environment = NodePath("../WorldEnvironment")
+Sun = NodePath("../Sun")
+Level = NodePath("../..")
+StartOnBike = false
 
 [node name="Audio" type="Node3D" parent="."]
 

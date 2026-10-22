@@ -18,6 +18,10 @@ namespace DillControl.Planet;
 ///
 /// The other bodies are scenery: discs in the sky shader, unreachable
 /// (<c>docs/decisions/0017</c>: only the contract planet is a place).
+///
+/// A level that starts on the ground (lvl_nest_lab) leaves the ship, the
+/// bike and the spawn empty: it keeps the sky, the air and space, and has
+/// no arrival.
 /// </summary>
 [GlobalClass]
 public partial class SolarSystem : Node3D
