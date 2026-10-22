@@ -23,9 +23,20 @@ public partial class ManipulatorBinding : Node
     {
         if (Level != null)
         {
-            Level.PlayerSpawned += _ => Bind();
+            Level.PlayerSpawned += OnPlayerSpawned;
         }
     }
+
+    // Freed with its horde (a nest lab without one), it must not be called.
+    public override void _ExitTree()
+    {
+        if (Level != null && IsInstanceValid(Level))
+        {
+            Level.PlayerSpawned -= OnPlayerSpawned;
+        }
+    }
+
+    private void OnPlayerSpawned(Node3D player) => Bind();
 
     private void Bind()
     {
