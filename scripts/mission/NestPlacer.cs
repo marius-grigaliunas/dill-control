@@ -7,10 +7,10 @@ namespace DillControl.Mission;
 
 /// <summary>
 /// Lays a planned nest (<see cref="NestLayout"/>) on the planet, as a site
-/// chooser after the compound's (<see cref="PlanetTerrain.MoreSiteChoosers"/>):
+/// chooser (<see cref="PlanetTerrain.MoreSiteChoosers"/>):
 ///
-/// - its heart away from the compound by the compound's pad, the kit's gap
-///   and the nest's own radius, on the flattest of a few bearings;
+/// - its heart at the flattest of a few seeded places on the planet, judged
+///   across the nest's own radius;
 /// - each vine at its distance and bearing from the heart along the ground,
 ///   on a small levelled pad, standing on its own up, turned so the way it
 ///   leans points at the heart, its foot sunk into the pad;
@@ -22,7 +22,6 @@ namespace DillControl.Mission;
 public partial class NestPlacer : Node, IPlanetSiteChooser
 {
     [Export] public NestKit Kit { get; set; }
-    [Export] public CompoundPlacer Compound { get; set; }
     /// <summary>The player's spawn: a <see cref="PlanetSite"/> in the planet's sites.</summary>
     [Export] public PlanetSite Spawn { get; set; }
 
@@ -49,16 +48,13 @@ public partial class NestPlacer : Node, IPlanetSiteChooser
             return;
         }
 
-        Vector3 compound = Compound?.Direction ?? Vector3.Up;
-        float pad = Compound?.Kit?.PadRadius ?? 0.0f;
-        float arc = (pad + Kit.CompoundGapM + _layout.RadiusM + Kit.PadRadiusM) / heights.Radius;
-        Vector3 east = Tangent(compound);
         SeededRandom random = SeededRandom.Stream(seed, "nest:heart");
+        float reach = Mathf.Max(_layout.RadiusM + Kit.PadRadiusM, 50.0f);
         float best = float.MaxValue;
         for (int i = 0; i < Math.Max(1, Kit.HeartCandidates); i++)
         {
-            Vector3 candidate = Along(compound, east.Rotated(compound, random.Range(0.0f, Mathf.Tau)), arc);
-            float spread = Spread(heights, candidate, Mathf.Max(_layout.RadiusM, 50.0f));
+            Vector3 candidate = random.OnSphere();
+            float spread = Spread(heights, candidate, reach);
             if (spread < best)
             {
                 best = spread;

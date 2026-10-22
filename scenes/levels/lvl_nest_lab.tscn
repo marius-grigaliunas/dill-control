@@ -2,10 +2,6 @@
 
 [ext_resource type="Script" uid="uid://br5rfr1owyw11" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
-[ext_resource type="Script" uid="uid://bqbn1xwbwb346" path="res://scripts/horde/HordeDirector.cs" id="7_horde"]
-[ext_resource type="Resource" path="res://resources/horde/horde_stats_default.tres" id="8_stats"]
-[ext_resource type="Resource" path="res://resources/enemies/nme_composition_default.tres" id="9_comp"]
-[ext_resource type="Script" uid="uid://dmucf7smv5n8o" path="res://scripts/levels/ManipulatorBinding.cs" id="14_binding"]
 [ext_resource type="Script" path="res://scripts/planet/PlanetTerrain.cs" id="20_planet"]
 [ext_resource type="Script" path="res://scripts/planet/PlanetSite.cs" id="21_site"]
 [ext_resource type="Resource" path="res://resources/planet/planet_streaming_default.tres" id="23_stream"]
@@ -15,10 +11,6 @@
 [ext_resource type="Resource" path="res://resources/planet/biomes/biome_rust_dunes.tres" id="27_rust"]
 [ext_resource type="Resource" path="res://resources/planet/biomes/biome_vinegar_frost.tres" id="28_frost"]
 [ext_resource type="Material" path="res://art/materials/mat_planet_sky.tres" id="32_sky"]
-
-[ext_resource type="Script" path="res://scripts/mission/CompoundPlacer.cs" id="40_placer"]
-[ext_resource type="Resource" path="res://resources/mission/kit_graybox_compound.tres" id="41_kit"]
-[ext_resource type="Resource" path="res://resources/horde/tier_infested.tres" id="42_tier"]
 
 [ext_resource type="Script" path="res://scripts/mission/SystemBuilder.cs" id="43_builder"]
 [ext_resource type="Resource" path="res://resources/mission/contract_pools_default.tres" id="44_pools"]
@@ -56,34 +48,29 @@ LoadingOverlayScene = ExtResource("45_overlay")
 
 [node name="Geometry" type="Node3D" parent="."]
 
-[node name="Planet" type="Node3D" parent="Geometry" node_paths=PackedStringArray("Sites", "SiteChooser", "MoreSiteChoosers", "Environment", "Sun")]
+[node name="Planet" type="Node3D" parent="Geometry" node_paths=PackedStringArray("Sites", "MoreSiteChoosers", "Environment", "Sun")]
 script = ExtResource("20_planet")
 Archetype = ExtResource("25_arch")
 Biomes = [ExtResource("26_brine"), ExtResource("27_rust"), ExtResource("28_frost")]
 Seed = 1
 Stats = ExtResource("23_stream")
 TerrainMaterial = ExtResource("24_terrain")
-Sites = [NodePath("../../Props/CompoundSite"), NodePath("../../Spawns/PlayerSpawn")]
-SiteChooser = NodePath("../../Props/CompoundPlacer")
+Sites = [NodePath("../../Spawns/PlayerSpawn")]
 MoreSiteChoosers = [NodePath("../../Props/NestPlacer")]
 Environment = NodePath("../../Lighting/WorldEnvironment")
 Sun = NodePath("../../Lighting/Sun")
 BuildOnReady = false
 
-[node name="SystemBuilder" type="Node" parent="Geometry" node_paths=PackedStringArray("Planet", "Placer", "Horde")]
+[node name="SystemBuilder" type="Node" parent="Geometry" node_paths=PackedStringArray("Planet")]
 script = ExtResource("43_builder")
 Planet = NodePath("../Planet")
-Placer = NodePath("../../Props/CompoundPlacer")
-Horde = NodePath("../../Spawns/Horde")
 FallbackPools = ExtResource("44_pools")
 
-[node name="NestBuilder" type="Node" parent="Geometry" node_paths=PackedStringArray("Contract", "Placer", "Vines", "Horde", "Compound")]
+[node name="NestBuilder" type="Node" parent="Geometry" node_paths=PackedStringArray("Contract", "Placer", "Vines")]
 script = ExtResource("46_nestbuilder")
 Contract = NodePath("../SystemBuilder")
 Placer = NodePath("../../Props/NestPlacer")
 Vines = NodePath("../../Foliage")
-Horde = NodePath("../../Spawns/Horde")
-Compound = NodePath("../../Props/CompoundPlacer")
 Kit = ExtResource("48_nestkit")
 
 [node name="Water" type="Node3D" parent="."]
@@ -92,24 +79,9 @@ Kit = ExtResource("48_nestkit")
 
 [node name="Props" type="Node3D" parent="."]
 
-[node name="CompoundSite" type="Marker3D" parent="Props"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1200, 0)
-script = ExtResource("21_site")
-PadRadius = 150.0
-PadBlend = 60.0
-KeepColliderRadius = 220.0
-
-[node name="CompoundPlacer" type="Node" parent="Props" node_paths=PackedStringArray("Site", "Horde")]
-script = ExtResource("40_placer")
-Kit = ExtResource("41_kit")
-Tier = ExtResource("42_tier")
-Site = NodePath("../CompoundSite")
-Horde = NodePath("../../Spawns/Horde")
-
-[node name="NestPlacer" type="Node" parent="Props" node_paths=PackedStringArray("Compound", "Spawn")]
+[node name="NestPlacer" type="Node" parent="Props" node_paths=PackedStringArray("Spawn")]
 script = ExtResource("47_nestplacer")
 Kit = ExtResource("48_nestkit")
-Compound = NodePath("../CompoundPlacer")
 Spawn = NodePath("../../Spawns/PlayerSpawn")
 
 [node name="Lighting" type="Node3D" parent="."]
@@ -131,18 +103,5 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1300, 0)
 script = ExtResource("21_site")
 Lift = 1.5
 KeepColliderRadius = 120.0
-
-[node name="Horde" type="Node3D" parent="Spawns" node_paths=PackedStringArray("Level", "GroundProvider")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1222, 0)
-script = ExtResource("7_horde")
-Stats = ExtResource("8_stats")
-Composition = ExtResource("9_comp")
-Level = NodePath("../..")
-GroundProvider = NodePath("../../Geometry/Planet")
-
-[node name="ManipulatorBinding" type="Node" parent="Spawns/Horde" node_paths=PackedStringArray("Horde", "Level")]
-script = ExtResource("14_binding")
-Horde = NodePath("..")
-Level = NodePath("../../..")
 
 [node name="Navigation" type="Node3D" parent="."]

@@ -11,8 +11,9 @@ namespace DillControl.Mission;
 
 /// <summary>
 /// Builds a level with a vine nest, behind its loading screen
-/// (docs/handoffs/vine-tool.md, step 6): the contract's planet, compound and
-/// horde by <see cref="Contract"/>, and the nest round them.
+/// (docs/handoffs/vine-tool.md, step 6): the contract's planet by
+/// <see cref="Contract"/>, and the nest on it. No compound: the nest is the
+/// place.
 ///
 /// - Once the contract is known, the nest is planned and its vines grown and
 ///   built on all cores (<see cref="NestLayout"/>) while the planet generates:
@@ -22,7 +23,8 @@ namespace DillControl.Mission;
 ///   level is let in when the frames have settled.
 ///
 /// Its population and seed are the contract's, unless the command line says
-/// <c>pop=N</c>, <c>nest=SEED</c>; <c>horde=0</c> builds it without the horde.
+/// <c>pop=N</c>, <c>nest=SEED</c>; <c>horde=0</c> builds it without the horde,
+/// as does a level with none (the nest lab, until the pods are its horde).
 /// The load is timed by stage, and the memory it took printed: the numbers
 /// that decide docs/decisions/0033.
 /// </summary>
@@ -30,13 +32,12 @@ namespace DillControl.Mission;
 public partial class NestBuilder : Node, ILevelBuilder
 {
     [ExportGroup("Scene Wiring")]
-    /// <summary>Builds the contract's planet, compound and horde.</summary>
+    /// <summary>Builds the contract's planet.</summary>
     [Export] public SystemBuilder Contract { get; set; }
     [Export] public NestPlacer Placer { get; set; }
     /// <summary>Where the vines go: the level's Foliage.</summary>
     [Export] public Node3D Vines { get; set; }
     [Export] public HordeDirector Horde { get; set; }
-    [Export] public CompoundPlacer Compound { get; set; }
 
     [Export] public NestKit Kit { get; set; }
 
@@ -93,15 +94,13 @@ public partial class NestBuilder : Node, ILevelBuilder
         }
         if (!WithHorde && Horde != null)
         {
-            // Before anything asks it: the compound's placer sets it up, the
-            // system waits for it to route.
+            // Before the system waits for it to route.
             if (Contract != null)
                 Contract.Horde = null;
-            if (Compound != null)
-                Compound.Horde = null;
             Horde.QueueFree();
             Horde = null;
         }
+        WithHorde = Horde != null;
         _clock.Start();
         _managedBefore = GC.GetTotalMemory(false);
         _nativeBefore = OS.GetStaticMemoryUsage();

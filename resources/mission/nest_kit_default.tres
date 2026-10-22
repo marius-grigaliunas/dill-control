@@ -21,7 +21,6 @@ Jitter = 0.22
 MaxRadiusM = 900.0
 Avenues = Vector2i(2, 4)
 AvenueWidthM = 60.0
-CompoundGapM = 150.0
 HeartCandidates = 16
 PadRadiusM = 6.0
 PadBlendM = 8.0

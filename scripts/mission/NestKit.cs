@@ -43,8 +43,6 @@ public partial class NestKit : Resource
     [Export(PropertyHint.Range, "0,200,1,suffix:m")] public float AvenueWidthM { get; set; } = 60.0f;
 
     [ExportGroup("Placement")]
-    /// <summary>Between the compound's pad and the nest's edge, along the ground.</summary>
-    [Export(PropertyHint.Range, "0,1000,10,suffix:m")] public float CompoundGapM { get; set; } = 150.0f;
     /// <summary>Hearts tried, the flattest kept.</summary>
     [Export(PropertyHint.Range, "1,64,1")] public int HeartCandidates { get; set; } = 16;
     /// <summary>The ground levelled under each vine, and the blend back to the terrain.</summary>
