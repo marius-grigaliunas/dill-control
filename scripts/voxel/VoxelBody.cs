@@ -58,6 +58,13 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
     /// drew whole. A plant gives them its bending material.</summary>
     public IReadOnlyList<MeshInstance3D> WholeDrawn => _whole;
 
+    /// <summary>While it draws whole, how far off its shadow is cast: past
+    /// it only shadowless coarse copies draw it. Zero: as far as it is drawn,
+    /// as its sections are once they take over.</summary>
+    public float WholeShadowsMetres => _whole.Count > 0 ? _wholeShadows : 0.0f;
+
+    private float _wholeShadows;
+
     private readonly List<MeshInstance3D> _whole = new();
 
     private readonly List<VoxelPart> _parts = new();
@@ -173,7 +180,7 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
     // with fading off Godot treats a margin as hysteresis, and two hidden
     // neighbours each waiting on the far side of their own margin drew
     // nothing between them (a vine's leaves left hanging 56-64 m off).
-    private const float HandoverOverlapM = 1.0f;
+    public const float HandoverOverlapM = 1.0f;
 
     /// <summary>
     /// The model as imported near, and coarse copies of its voxels further
@@ -190,6 +197,7 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
             host.VisibilityRangeEnd = coarse + HandoverOverlapM;
             host.VisibilityRangeEndMargin = 0.0f;
             float until = coarsest > coarse ? coarsest : 0.0f;
+            _wholeShadows = Stats.CoarseShadows ? until : coarse;
             AddCoarse(host, grid, palette, emission, material, 2, coarse, until, Stats.CoarseShadows, drawn);
             if (until > 0.0f)
             {

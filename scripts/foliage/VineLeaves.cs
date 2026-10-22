@@ -11,7 +11,9 @@ namespace DillControl.Foliage;
 ///
 /// - Drawn as one MultiMesh per leaf shape and one for the stems, in a copy
 ///   of <c>mat_leaf_toon</c> that bends as the vine's <see cref="PlantFlex"/>
-///   does. No sag of their own.
+///   does. No sag of their own. They cast shadows as far as the stalk does
+///   (<see cref="VoxelBody.WholeShadowsMetres"/>): each MultiMesh is drawn
+///   by a near instance that casts and a far one that does not.
 /// - Each leaf is one thin box on the vine's section body where its stem
 ///   joins (<see cref="VoxelPart.AddExtraShape"/>): no new bodies, it rides
 ///   the bend and carries whoever stands on it, and the grapple pulls the
@@ -44,6 +46,8 @@ public partial class VineLeaves : Node3D
     private int[] _slot;
     private MultiMesh[] _blades;
     private MultiMesh _stems;
+    /// <summary>The far instances, shadowless while the stalk's far copies are.</summary>
+    private readonly List<MultiMeshInstance3D> _far = new();
     private Material _plain;
     private bool _ready;
     private int _version = int.MinValue;
@@ -69,6 +73,15 @@ public partial class VineLeaves : Node3D
             _ready = true;
             Build();
             return;
+        }
+        if (_far.Count > 0 && Body != null && Body.WholeShadowsMetres <= 0.0f)
+        {
+            // Its sections have taken over, and they cast at any distance.
+            foreach (MultiMeshInstance3D far in _far)
+            {
+                far.CastShadow = GeometryInstance3D.ShadowCastingSetting.On;
+            }
+            _far.Clear();
         }
         _recheck -= (float)delta;
         if (_recheck > 0.0f || Set == null || Body == null)
@@ -140,14 +153,31 @@ public partial class VineLeaves : Node3D
             InstanceCount = count,
             CustomAabb = bounds,
         };
+        float shadows = Body.WholeShadowsMetres;
+        bool split = shadows > 0.0f && shadows < Stats.DrawMetres;
         AddChild(new MultiMeshInstance3D
         {
             Name = name,
             Multimesh = multi,
             MaterialOverride = material,
-            VisibilityRangeEnd = Stats.DrawMetres,
+            VisibilityRangeEnd = split ? shadows + VoxelBody.HandoverOverlapM : Stats.DrawMetres,
             Transform = Model.Transform,
         });
+        if (split)
+        {
+            var far = new MultiMeshInstance3D
+            {
+                Name = name + "Far",
+                Multimesh = multi,
+                MaterialOverride = material,
+                VisibilityRangeBegin = shadows,
+                VisibilityRangeEnd = Stats.DrawMetres,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                Transform = Model.Transform,
+            };
+            AddChild(far);
+            _far.Add(far);
+        }
         return multi;
     }
 

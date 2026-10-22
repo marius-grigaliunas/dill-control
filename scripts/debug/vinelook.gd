@@ -14,6 +14,7 @@
 # `close` stands one vine alone and photographs it from the ground, looking up
 # into its canopy, once from each distance in metres (close_30.png, ...):
 # either side of its coarse copies' distances, are the leaves on the vine?
+# A fifth number looks down from that many degrees up instead: its shadow.
 extends SceneTree
 
 const SPACING := 80.0
@@ -37,6 +38,8 @@ func _initialize() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-50, 30, 0)
 	sun.shadow_enabled = true
+	# As every level has it.
+	sun.directional_shadow_max_distance = 140.0
 	stage.add_child(sun)
 	var ground := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
@@ -48,7 +51,7 @@ func _initialize() -> void:
 	stage.add_child(ground)
 
 	if args.size() > 3 and args[1] == "close":
-		await _close(stage, out, args[2], args[3])
+		await _close(stage, out, args[2], args[3], float(args[4]) if args.size() > 4 else -1.0)
 		return
 	if sheet:
 		var check = load("res://scripts/debug/VineCheck.cs").new()
@@ -89,7 +92,7 @@ func _initialize() -> void:
 
 	await _shoot(out)
 
-func _close(stage: Node3D, out: String, vine_name: String, distances: String) -> void:
+func _close(stage: Node3D, out: String, vine_name: String, distances: String, elevation: float) -> void:
 	var vine: Node3D = load("res://scenes/props/%s.tscn" % vine_name).instantiate()
 	stage.add_child(vine)
 	var camera := Camera3D.new()
@@ -106,7 +109,12 @@ func _close(stage: Node3D, out: String, vine_name: String, distances: String) ->
 	var target := Vector3(0, top * 0.7, 0)
 	for d in distances.split(","):
 		var metres := float(d)
-		camera.look_at_from_position(Vector3(metres * 0.3, 2.0, metres), target)
+		if elevation >= 0.0:
+			# From above, at the vine's foot and middle: its shadow on the ground.
+			var eye := Vector3(0, sin(deg_to_rad(elevation)), cos(deg_to_rad(elevation))) * metres
+			camera.look_at_from_position(eye, Vector3(0, top * 0.3, 0))
+		else:
+			camera.look_at_from_position(Vector3(metres * 0.3, 2.0, metres), target)
 		await _shoot(out.get_basename() + "_" + d + "." + out.get_extension(), false)
 	quit(0)
 
