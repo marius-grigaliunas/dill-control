@@ -23,7 +23,8 @@ public partial class LeafStats : Resource
     [Export(PropertyHint.Range, "0.05,2,0.05,suffix:s")] public float RecheckSeconds { get; set; } = 0.25f;
 
     [ExportGroup("Torn off")]
-    [Export(PropertyHint.Range, "1,2000,1,suffix:kg")] public float MassKg { get; set; } = 120.0f;
+    /// <summary>Light: it lands on what it falls on without shoving it.</summary>
+    [Export(PropertyHint.Range, "1,2000,1,suffix:kg")] public float MassKg { get; set; } = 12.0f;
     /// <summary>Air drag on a torn leaf: it sails down, it does not drop like a stone.</summary>
     [Export(PropertyHint.Range, "0,10,0.05")] public float LooseDrag { get; set; } = 1.2f;
     [Export(PropertyHint.Range, "0,10,0.05")] public float LooseSpinDrag { get; set; } = 2.0f;

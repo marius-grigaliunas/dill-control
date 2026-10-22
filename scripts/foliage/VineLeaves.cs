@@ -443,8 +443,9 @@ public partial class VineLeaves : Node3D
             Mass = Stats.MassKg,
             LinearDamp = Stats.LooseDrag,
             AngularDamp = Stats.LooseSpinDrag,
-            CollisionLayer = GameLayers.Mask(GameLayers.Prop),
-            CollisionMask = GameLayers.Mask(GameLayers.World, GameLayers.Prop),
+            // Never on anything the player collides with: see GameLayers.Litter.
+            CollisionLayer = GameLayers.Mask(GameLayers.Litter),
+            CollisionMask = GameLayers.Mask(GameLayers.World, GameLayers.Prop, GameLayers.Litter),
         };
         body.AddChild(new MeshInstance3D
         {

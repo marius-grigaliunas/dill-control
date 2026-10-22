@@ -276,6 +276,7 @@ look_down={
 3d_physics/layer_7="Projectile"
 3d_physics/layer_8="HordeHitbox"
 3d_physics/layer_9="Structure"
+3d_physics/layer_10="Litter"
 
 [physics]
 

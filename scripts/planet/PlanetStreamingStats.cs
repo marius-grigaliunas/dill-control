@@ -71,6 +71,15 @@ public partial class PlanetStreamingStats : Resource
     [Export(PropertyHint.Range, "1.1,6,0.05")]
     public float GravityFieldMultiplier { get; set; } = 1.8f;
 
+    /// <summary>A character found this far under the ground (shoved through
+    /// it, or fallen through a collider not yet built) is stood back on it.</summary>
+    [Export(PropertyHint.Range, "0.5,50,0.5,suffix:m")]
+    public float UnderGroundRescueM { get; set; } = 3.0f;
+
+    /// <summary>How far over the surface a rescued character is put.</summary>
+    [Export(PropertyHint.Range, "0,10,0.1,suffix:m")]
+    public float RescueLiftM { get; set; } = 1.5f;
+
     [ExportGroup("Craters")]
     /// <summary>A blast that names no crater digs one this share of its radius.</summary>
     [Export(PropertyHint.Range, "0,2,0.01")]

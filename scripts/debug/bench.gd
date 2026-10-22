@@ -708,7 +708,8 @@ const GARRISON_SPREAD := "!call:Spawns/Horde:PrintBenchSpread"
 # spawn at an avenue's mouth, then on the ground under the heart's vine
 # looking up (are the leaves on it?), then inside the canopy over the heart, then
 # 400 m above it looking down, then 900 m up with the fog off for its plan
-# (one clump round the heart?). NestBuilder prints the load by stage and its
+# (one clump round the heart?), then 20 m under the ground, to be stood back
+# on it. NestBuilder prints the load by stage and its
 # memory when it lets the player in.
 const NEST_TIMELINE := [
 	["on the ground", ["@status"], [], 4.0],
@@ -724,6 +725,9 @@ const NEST_TIMELINE := [
 	["plan", ["@gotocall:NestBuilder:BenchHeart:900", "@aimcall:NestBuilder:BenchHeart:0", "!set:Player:velocity=Vector3(0, 0, 0)", "!set:WorldEnvironment:environment:fog_enabled=false"], [], 1.0],
 	["plan shot", ["#nest_plan", "@gotocall:NestBuilder:BenchHeart:900", "@aimcall:NestBuilder:BenchHeart:0", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 0.3],
 	["plan done", ["!set:WorldEnvironment:environment:fog_enabled=true"], [], 0.1],
+	# Put 20 m under the ground: the planet stands the player back on it.
+	["under the ground", ["@gotocall:NestBuilder:BenchBesideHeart:-20", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 1.0],
+	["back on it", ["@status"], [], 1.0],
 ]
 
 const GARRISON_TIMELINE := [

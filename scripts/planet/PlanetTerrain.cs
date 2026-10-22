@@ -159,6 +159,9 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
     private PlanetGround _hordeGround;
     private FlowField _hordeFlow;
 
+    // The characters in the gravity well (the player): kept over the ground.
+    private readonly List<CharacterBody3D> _walkers = new();
+
     private int _sectionRebuild;
     private int _sectionStream;
     private int _sectionCrater;
@@ -554,15 +557,52 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
             // areas on World, and a planet-sized field there would swallow
             // every shot fired inside it.
             CollisionLayer = 0,
-            CollisionMask = GameLayers.Mask(GameLayers.Player, GameLayers.Enemy, GameLayers.Prop, GameLayers.Projectile),
+            CollisionMask = GameLayers.Mask(GameLayers.Player, GameLayers.Enemy, GameLayers.Prop, GameLayers.Litter, GameLayers.Projectile),
             Monitorable = false,
         };
+        _walkers.Clear();
+        _gravityField.BodyEntered += body =>
+        {
+            if (body is CharacterBody3D walker && (walker.CollisionLayer & GameLayers.Mask(GameLayers.Player)) != 0 && !_walkers.Contains(walker))
+            {
+                _walkers.Add(walker);
+            }
+        };
+        _gravityField.BodyExited += body => _walkers.Remove(body as CharacterBody3D);
         _gravityField.AddChild(new CollisionShape3D
         {
             Name = "Collision",
             Shape = new SphereShape3D { Radius = Heights.Radius * _stats.GravityFieldMultiplier },
         });
         AddChild(_gravityField);
+    }
+
+    /// <summary>
+    /// A character more than <see cref="PlanetStreamingStats.UnderGroundRescueM"/>
+    /// under the ground is stood back on it, its fall stopped: whatever put
+    /// it there (a falling body shoving it through the ground's one-sided
+    /// collider, a collider not built yet), it would fall forever.
+    /// </summary>
+    public override void _PhysicsProcess(double delta)
+    {
+        for (int i = _walkers.Count - 1; i >= 0; i--)
+        {
+            CharacterBody3D walker = _walkers[i];
+            if (!IsInstanceValid(walker))
+            {
+                _walkers.RemoveAt(i);
+                continue;
+            }
+            Vector3 at = walker.GlobalPosition;
+            Vector3 up = at.Normalized();
+            float under = Heights.Radius + Heights.SampleHeight(up) - at.Length();
+            if (under > _stats.UnderGroundRescueM)
+            {
+                walker.GlobalPosition = Heights.SurfacePoint(up) + (up * _stats.RescueLiftM);
+                walker.Velocity = walker.Velocity.Slide(up);
+                GD.Print(System.FormattableString.Invariant($"[planet] {walker.Name} was {under:F1} m under the ground: stood back on it"));
+            }
+        }
     }
 
     // ---------------- Chunk geometry ----------------

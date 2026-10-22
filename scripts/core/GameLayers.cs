@@ -39,6 +39,13 @@ public static class GameLayers
     /// </summary>
     public const int Structure = 9;
 
+    /// <summary>
+    /// Light loose things that fall and come to rest but never push the
+    /// player: torn leaves. On Prop, a leaf landing on the player shoved it
+    /// through the planet's ground. The planet's gravity field watches it.
+    /// </summary>
+    public const int Litter = 10;
+
     /// <summary>Converts 1-based layer indices into a Godot collision mask.</summary>
     public static uint Mask(params int[] layers)
     {
