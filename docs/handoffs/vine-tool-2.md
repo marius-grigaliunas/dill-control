@@ -1,5 +1,52 @@
 # Handoff: the Vines tool, part 2 — fix what playing the nest showed, then pods and the tool
 
+## Status, 2026-10-22 (second session): the eight fixes are done; step 7 is next
+
+Decided with the user (saved to memory, `nest-clumped-no-city`):
+- **Clump:** vines 55-70 m apart, a hard 400 m radius, more pods a vine
+  before more room. Fruiting and weeping vines now roll 16-20 pods a ring.
+  `NestLayout` leans on high-pod kinds by pods², then pods⁴, then pods⁸ only
+  as far as a population needs. 25,000 is 117 vines, 393 m out, none short
+  (mostly fruiting and heart); 15,000 keeps all three heavy kinds.
+- **No horde in `lvl_nest_lab` until step 7** makes the pods the horde.
+- **Pods (step 7) before the tool (step 8).**
+- **Leaf damage:** holes where the hits land (a texture per vine, read by
+  `leaf_toon`), torn when badly holed or shot where the stem joins.
+
+What each fix turned out to be (commits fd31257..c3b991c):
+1. City out: no compound or horde in the lab; `NestPlacer` picks its own heart.
+2. Clump: as above. The `nest` bench adds a plan view from 900 m.
+3. **Floating leaves were a drawing gap, not the leaves.** A model and its
+   coarse copies handed over with 4 m hysteresis margins: arriving from
+   afar and stopping 56-64 m off, neither was drawn, and the leaves (drawn to
+   600 m) hung in the air. In a nest at 55-70 m spacing that is everywhere.
+   Fixed in `VoxelBody` (no margins, 1 m overlap). `vinecheck` now holds every
+   leaf's stem to a solid cell as well (baked, in memory, at nest sizes).
+4. Shadows: leaves cast as far as the stalk does (two MultiMeshInstances
+   sharing one MultiMesh; the far one shadowless while the stalk's is).
+5. Torn leaves on a new `Litter` layer (10), 12 kg; the planet stands a
+   character found 3 m under its ground back on it. Holes as decided.
+6. Sky: the lab has `SolarSystem`, with no ship or arrival.
+7. Kick 200 to 40, at most 8,000 N s a blast. The flex bench prints a
+   plant's peak tip: a volley's ringing peak 9.1 m before, 6.5-7.7 m now,
+   5.1 m from the wind alone. **The user has not yet judged it by eye.**
+8. A crater under a vine's foot unroots it (`PlantFlex.Unroot`), and it
+   goes over the way its weight hangs. The `nest` bench craters the heart.
+
+Open:
+- **Frame time at 25,000 is over budget:** ground 18.8 ms, canopy 17.3 ms,
+  400 m above 20.8 ms (GPU 15.9 ms), plugged in. The first run of the
+  session, before any change and at the old 706 m layout, already read
+  18.0 ms on the ground (the handoff below had 12.9 ms): pair a bench on a
+  cool machine before blaming a change. The clump puts more vines in view
+  from above (about 860 draws).
+- A felled vine sheds every leaf, which then sails down for seconds.
+- `scripts/mission/NestBuilder.cs` had an uncommitted edit of the user's to
+  the loading screen's text; it was left out of every commit.
+- `lvl_horde_flats`'s horde wanders into the flex bench mid-run.
+
+---
+
 Read `CLAUDE.md` first, then `docs/handoffs/vine-tool.md` (the original task,
 its settled decisions and its build order). This file is what happened since
 and what to do next. **Work only inside `C:\Projects\dill-control`.** Same

@@ -104,14 +104,18 @@ whether to keep that or pick saved nests is `docs/decisions/0033`). A
 layout; `NestBuilder`, the level's builder over `SystemBuilder`, plans the
 nest from the contract's seed and population (one pod per pickle) and grows
 and builds its vines on all cores while the planet generates; `NestPlacer`, a
-second site chooser (`PlanetTerrain.MoreSiteChoosers`), puts it beside the
-compound on levelled pads. `lvl_nest_lab` is a contract level with a nest, no
-ship: `pop=N`, `nest=SEED`, `horde=0` after `--`.
+site chooser (`PlanetTerrain.MoreSiteChoosers`), lays it at the flattest of
+a few places on levelled pads. **A nest is one clump**: vines 55-70 m apart
+inside 400 m, more pods a vine before more room. No compound or city goes
+with a nest. `lvl_nest_lab` is a contract level with a nest, no ship, no
+compound and no horde until the pods are it: `pop=N`, `nest=SEED` after `--`.
+A vine stands on its own foot; a crater under it unroots it (`PlantFlex.Unroot`).
 
 **Static voxel bodies are on World and Structure, never Prop.** The planet's
 gravity field watches Prop for loose pieces; watching a nest's 64,000 static
 boxes too cost Jolt 16 ms a tick. A query that looks for props looks for
-Structure too (`GameLayers`).
+Structure too (`GameLayers`). Torn leaves are on Litter: they fall and rest
+but never push the player.
 
 **`Session` is the third autoload and carries state only**: the offers and the
 accepted contract, across scene changes. A level built after it loads names a
