@@ -242,7 +242,7 @@ public partial class Manipulator : Node
     {
         PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(
             origin, origin + (forward * Range));
-        query.CollisionMask = GameLayers.Mask(GameLayers.Prop);
+        query.CollisionMask = GameLayers.Mask(GameLayers.Prop, GameLayers.Structure);
         query.CollideWithAreas = false;
         query.CollideWithBodies = true;
 
@@ -282,7 +282,7 @@ public partial class Manipulator : Node
         {
             Shape = new SphereShape3D { Radius = AssistRadius },
             Transform = new Transform3D(Basis.Identity, centre),
-            CollisionMask = GameLayers.Mask(GameLayers.Prop),
+            CollisionMask = GameLayers.Mask(GameLayers.Prop, GameLayers.Structure),
             CollideWithAreas = false,
             CollideWithBodies = true,
         };
@@ -448,7 +448,7 @@ public partial class Manipulator : Node
         {
             Shape = new SphereShape3D { Radius = PuntRadius },
             Transform = new Transform3D(Basis.Identity, centre),
-            CollisionMask = GameLayers.Mask(GameLayers.Prop, GameLayers.Hitbox, GameLayers.HordeHitbox, GameLayers.Enemy),
+            CollisionMask = GameLayers.Mask(GameLayers.Prop, GameLayers.Structure, GameLayers.Hitbox, GameLayers.HordeHitbox, GameLayers.Enemy),
             CollideWithAreas = true,
             CollideWithBodies = true,
         };

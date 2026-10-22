@@ -153,7 +153,7 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
                 part.SectionBody = () => new VoxelCollider
                 {
                     Body = this,
-                    CollisionLayer = GameLayers.Mask(GameLayers.World, GameLayers.Prop),
+                    CollisionLayer = GameLayers.Mask(GameLayers.World, GameLayers.Structure),
                     CollisionMask = 0,
                 };
             }

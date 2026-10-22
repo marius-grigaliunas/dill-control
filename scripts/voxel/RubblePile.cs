@@ -253,7 +253,7 @@ public partial class RubblePile : Node3D, IDamageable, IBlastSurface
                     {
                         Pile = this,
                         Name = $"Collision{t}",
-                        CollisionLayer = GameLayers.Mask(GameLayers.World, GameLayers.Prop),
+                        CollisionLayer = GameLayers.Mask(GameLayers.World, GameLayers.Structure),
                         CollisionMask = 0,
                         Position = new Vector3(tx * Tile + Tile * 0.5f - (n - 1) * 0.5f, 0.0f,
                             -(ty * Tile + Tile * 0.5f - (n - 1) * 0.5f)) * voxel,

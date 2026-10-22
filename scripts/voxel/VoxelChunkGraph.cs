@@ -95,6 +95,9 @@ public sealed class VoxelChunkGraph
     private readonly List<int> _orphans = new();
     private readonly HashSet<int> _fling = new();
     private float _strainTick;
+    // Some edge is weakening: only then is every edge walked each frame. A
+    // nest of vines holds a hundred graphs that never strain (0024).
+    private bool _straining;
     private float _shedWait;
 
     public int Count => _count;
@@ -363,6 +366,10 @@ public sealed class VoxelChunkGraph
             _strainTick = 0.25f;
             ConsiderStrain(stats);
         }
+        if (!_straining)
+        {
+            return;
+        }
         bool any = false;
         for (int c = 0; c < _count; c++)
         {
@@ -397,6 +404,7 @@ public sealed class VoxelChunkGraph
         }
         if (!any)
         {
+            _straining = false;
             return;
         }
         _shedWait -= dt;
@@ -990,6 +998,7 @@ public sealed class VoxelChunkGraph
                 link.Weaken = stats.StressSeconds;
                 _links[c][i] = link;
                 Mirror(c, link);
+                _straining = true;
             }
         }
     }

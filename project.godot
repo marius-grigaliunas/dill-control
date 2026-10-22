@@ -275,6 +275,7 @@ look_down={
 3d_physics/layer_6="Prop"
 3d_physics/layer_7="Projectile"
 3d_physics/layer_8="HordeHitbox"
+3d_physics/layer_9="Structure"
 
 [physics]
 

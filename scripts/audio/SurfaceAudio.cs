@@ -38,10 +38,10 @@ public static class SurfaceAudio
             return Sfx.ImpactFlesh;
         }
 
-        // Prop is checked before World because a VoxelBuilding is on both, and
-        // a wall should sound like a wall rather than like the hillside it
-        // stands on.
-        if ((layer & GameLayers.Mask(GameLayers.Prop)) != 0)
+        // Prop and Structure are checked before World because a building is
+        // on World too, and a wall should sound like a wall rather than like
+        // the hillside it stands on.
+        if ((layer & GameLayers.Mask(GameLayers.Prop, GameLayers.Structure)) != 0)
         {
             return Sfx.ImpactStone;
         }

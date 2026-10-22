@@ -29,6 +29,16 @@ public static class GameLayers
     /// </summary>
     public const int HordeHitbox = 8;
 
+    /// <summary>
+    /// What stands still and breaks: a static voxel body's sections (buildings,
+    /// vines) and rubble heaps, with World. Not Prop, because a planet's
+    /// gravity field (an Area3D the size of the planet) watches Prop for the
+    /// loose pieces it pulls down, and watching a nest's static shapes too
+    /// cost Jolt over 16 ms a tick: 144 vines are 64,000 boxes. Every query
+    /// that looks for props looks for these as well.
+    /// </summary>
+    public const int Structure = 9;
+
     /// <summary>Converts 1-based layer indices into a Godot collision mask.</summary>
     public static uint Mask(params int[] layers)
     {
@@ -41,7 +51,7 @@ public static class GameLayers
     }
 
     /// <summary>Everything a bullet should be able to stop against or register on.</summary>
-    public static uint HitscanMask => Mask(World, Enemy, Prop, Hitbox, HordeHitbox);
+    public static uint HitscanMask => Mask(World, Enemy, Prop, Structure, Hitbox, HordeHitbox);
 
     /// <summary>Every kind of hitbox, the horde's included.</summary>
     public static uint AnyHitboxMask => Mask(Hitbox, HordeHitbox);
@@ -51,16 +61,16 @@ public static class GameLayers
     /// plus the horde's hitboxes, because a thrown body or a flame cone hits
     /// an agent directly rather than through AreaBlast.
     /// </summary>
-    public static uint DirectAreaMask => Mask(Enemy, Prop, Hitbox, HordeHitbox);
+    public static uint DirectAreaMask => Mask(Enemy, Prop, Structure, Hitbox, HordeHitbox);
 
     /// <summary>
     /// What an explosion's overlap query looks for. World is deliberately
     /// absent: the sphere query finds victims, and a separate ray per victim
     /// finds the walls between them and the blast.
     /// </summary>
-    public static uint ExplosionMask => Mask(Enemy, Prop, Hitbox);
+    public static uint ExplosionMask => Mask(Enemy, Prop, Structure, Hitbox);
 
     /// <summary>What a thrown projectile bounces off. Not the player, so a
     /// grenade at your own feet does not become something you trip over.</summary>
-    public static uint ProjectileMask => Mask(World, Prop);
+    public static uint ProjectileMask => Mask(World, Prop, Structure);
 }
