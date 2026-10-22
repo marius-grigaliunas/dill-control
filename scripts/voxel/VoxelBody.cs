@@ -169,6 +169,12 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
     // instance of one vine shares them.
     private static readonly Dictionary<(Mesh, int), ArrayMesh> Coarse = new();
 
+    // How far each nearer copy is drawn past where the next begins. No margin:
+    // with fading off Godot treats a margin as hysteresis, and two hidden
+    // neighbours each waiting on the far side of their own margin drew
+    // nothing between them (a vine's leaves left hanging 56-64 m off).
+    private const float HandoverOverlapM = 1.0f;
+
     /// <summary>
     /// The model as imported near, and coarse copies of its voxels further
     /// off (<see cref="VoxelDestructionStats.CoarseFromMetres"/>), each drawn
@@ -181,8 +187,8 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
         float coarse = Stats.CoarseFromMetres, coarsest = Stats.CoarsestFromMetres;
         if (coarse > 0.0f)
         {
-            host.VisibilityRangeEnd = coarse;
-            host.VisibilityRangeEndMargin = 4.0f;
+            host.VisibilityRangeEnd = coarse + HandoverOverlapM;
+            host.VisibilityRangeEndMargin = 0.0f;
             float until = coarsest > coarse ? coarsest : 0.0f;
             AddCoarse(host, grid, palette, emission, material, 2, coarse, until, Stats.CoarseShadows, drawn);
             if (until > 0.0f)
@@ -211,9 +217,7 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
             Name = $"Coarse{block}",
             Mesh = mesh,
             VisibilityRangeBegin = from,
-            VisibilityRangeBeginMargin = 4.0f,
-            VisibilityRangeEnd = until,
-            VisibilityRangeEndMargin = until > 0.0f ? 4.0f : 0.0f,
+            VisibilityRangeEnd = until > 0.0f ? until + HandoverOverlapM : 0.0f,
             CastShadow = shadows ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off,
         };
         host.AddChild(instance);
