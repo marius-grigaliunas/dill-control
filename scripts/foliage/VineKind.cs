@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DillControl.Core;
 using Godot;
 
@@ -107,7 +108,32 @@ public partial class VineKind : Resource
         (int)(SeededRandom.Hash((uint)archetypeSeed, $"vine:pool:{KindName}#{index}") % 10_000_000UL);
 
     /// <summary>One vine's settings, each inside its range.</summary>
-    public VineParams Roll(int seed, double voxelSize)
+    /// <summary>A kind's ranges and chances, read once on the main thread so
+    /// rolls on worker threads never call into the engine (<see cref="VineGrower.Context"/>).</summary>
+    public sealed class Ranges
+    {
+        public readonly Dictionary<string, (double lo, double hi)> Range = new();
+        public readonly Dictionary<string, double> Chance = new();
+    }
+
+    public Ranges ReadRanges()
+    {
+        var ranges = new Ranges();
+        foreach (VineParams.Field field in VineParams.RangeFields)
+        {
+            if (field.Bool)
+                ranges.Chance[field.Key] = ChanceOf(field.Key);
+            else
+                ranges.Range[field.Key] = RangeOf(field);
+        }
+        return ranges;
+    }
+
+    public VineParams Roll(int seed, double voxelSize) => Roll(seed, voxelSize, null);
+
+    /// <summary>One vine's settings, from <paramref name="ranges"/> when given
+    /// (any thread), else read from the kind (main thread).</summary>
+    public VineParams Roll(int seed, double voxelSize, Ranges ranges)
     {
         var p = new VineParams { Seed = seed, VoxelSize = voxelSize };
         foreach (VineParams.Field field in VineParams.RangeFields)
@@ -115,10 +141,10 @@ public partial class VineKind : Resource
             double t = SeededRandom.Stream((uint)seed, "vine:roll:" + field.Key).NextDouble();
             if (field.Bool)
             {
-                field.Set(p, t < ChanceOf(field.Key) ? 1 : 0);
+                field.Set(p, t < (ranges != null ? ranges.Chance[field.Key] : ChanceOf(field.Key)) ? 1 : 0);
                 continue;
             }
-            (double lo, double hi) = RangeOf(field);
+            (double lo, double hi) = ranges != null ? ranges.Range[field.Key] : RangeOf(field);
             if (field.Integer)
             {
                 field.Set(p, Math.Min(hi, lo + Math.Floor(t * (hi - lo + 1))));

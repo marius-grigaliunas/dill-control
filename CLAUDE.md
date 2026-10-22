@@ -98,6 +98,21 @@ it. See `docs/decisions/0018`. A compound is a seeded layout of authored
 cluster scenes from a `CompoundKit`: the seed decides where, never what
 (`docs/decisions/0020`).
 
+**A vine nest is grown at load** (`docs/handoffs/vine-tool.md`, step 6;
+whether to keep that or pick saved nests is `docs/decisions/0033`). A
+`NestKit` (`resources/mission/nest_kit_default.tres`) names the kinds and the
+layout; `NestBuilder`, the level's builder over `SystemBuilder`, plans the
+nest from the contract's seed and population (one pod per pickle) and grows
+and builds its vines on all cores while the planet generates; `NestPlacer`, a
+second site chooser (`PlanetTerrain.MoreSiteChoosers`), puts it beside the
+compound on levelled pads. `lvl_nest_lab` is a contract level with a nest, no
+ship: `pop=N`, `nest=SEED`, `horde=0` after `--`.
+
+**Static voxel bodies are on World and Structure, never Prop.** The planet's
+gravity field watches Prop for loose pieces; watching a nest's 64,000 static
+boxes too cost Jolt 16 ms a tick. A query that looks for props looks for
+Structure too (`GameLayers`).
+
 **`Session` is the third autoload and carries state only**: the offers and the
 accepted contract, across scene changes. A level built after it loads names a
 `Builder` on its `LevelRoot`; a loading screen covers it and the player is
@@ -278,6 +293,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planets 10 1   # ten seeds from 1: build, ground, heights
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_contract.tscn descent          # from the ship in orbit down to the compound
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_contract.tscn garrison         # the horde at home: spread round its nest, 40 s
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_nest_lab.tscn nest pop=25000  # a nest for 25,000: ground, canopy, above; load by stage and memory (horde=0 without the horde)
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_ship_hub.tscn flow             # ship, computer, contract taken, loaded, in orbit
 "$GODOT" --headless --path . --script scripts/debug/seedcheck.gd -- 20                                      # same seed, same planet; cube seams
 "$GODOT" --headless --path . --script scripts/debug/graphcheck.gd -- 40                                     # chunk graph vs a cell flood: what falls, what floats

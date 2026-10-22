@@ -68,7 +68,7 @@ public static class VineValidator
 
     /// <summary>Judges a grown vine. <paramref name="full"/> measures everything;
     /// otherwise the spine, the dearest check, is skipped once anything else has failed.</summary>
-    public static Verdict Check(VineGenerator.Result vine, VineBakeStats stats, bool full = true)
+    public static Verdict Check(VineGenerator.Result vine, VineBakeStats stats, bool full = true, Spine? spine = null)
     {
         var verdict = new Verdict();
         if (!vine.Ok || vine.Voxels.Count == 0)
@@ -149,7 +149,7 @@ public static class VineValidator
             verdict.Fail("lean", F($"The tip leans {verdict.LeanDeg:0.0} deg from the foot, over {stats.MaxLeanDeg:0.#}."));
         if (!full && !verdict.Ok)
             return verdict;
-        Load(vine, layers, Spine.Of(stats.Flex), verdict);
+        Load(vine, layers, spine ?? Spine.Of(stats.Flex), verdict);
         if (double.IsNaN(verdict.KinkDeg) || double.IsNaN(verdict.SagM))
             verdict.Fail("spine", "Its spine would not build: a joint with nothing across it.");
         else

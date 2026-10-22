@@ -79,6 +79,12 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
     [Export]
     public Node SiteChooser { get; set; }
 
+    /// <summary>More <see cref="IPlanetSiteChooser"/>s, asked after
+    /// <see cref="SiteChooser"/> in order: a vine nest, placed once it knows
+    /// where the compound is. Each levels its own ground in ChooseSites.</summary>
+    [Export]
+    public Godot.Collections.Array<Node> MoreSiteChoosers { get; set; } = new();
+
     /// <summary>Build in <c>_Ready</c>. Off when something else (a loading stage) calls <see cref="Build"/>.</summary>
     [Export]
     public bool BuildOnReady { get; set; } = true;
@@ -268,6 +274,10 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
         {
             GD.PushError($"PlanetTerrain '{Name}': SiteChooser '{SiteChooser.Name}' is not an IPlanetSiteChooser.");
         }
+        foreach (Node more in MoreSiteChoosers)
+        {
+            (more as IPlanetSiteChooser)?.ChooseSites(Heights, seed);
+        }
         foreach (PlanetSite site in Sites)
         {
             if (site != null && site.PadRadius > 0.0f)
@@ -302,6 +312,10 @@ public partial class PlanetTerrain : Node3D, IHordeGroundProvider
 
         PlaceSites();
         (SiteChooser as IPlanetSiteChooser)?.SitesPlaced();
+        foreach (Node more in MoreSiteChoosers)
+        {
+            (more as IPlanetSiteChooser)?.SitesPlaced();
+        }
 
         // Painted after the sites stand, because the sun's elevation is
         // measured over the first of them: the compound.

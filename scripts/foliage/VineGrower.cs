@@ -13,6 +13,37 @@ namespace DillControl.Foliage;
 /// </summary>
 public static class VineGrower
 {
+    /// <summary>
+    /// Everything a grow reads from resources, read once on the main thread:
+    /// many vines can then grow at once on worker threads (a nest) without
+    /// calling into the engine.
+    /// </summary>
+    public sealed class Context
+    {
+        public VineBakeStats Stats;
+        public VineGenerator.Limits Limits;
+        public VineValidator.Spine Spine;
+        public double VoxelSize;
+        public readonly Dictionary<VineKind, VineKind.Ranges> Kinds = new();
+
+        public static Context For(VineBakeStats stats, IEnumerable<VineKind> kinds)
+        {
+            var context = new Context
+            {
+                Stats = stats,
+                Limits = stats.Limits(),
+                Spine = VineValidator.Spine.Of(stats.Flex),
+                VoxelSize = Math.Round((double)stats.VoxelSize, 6),
+            };
+            foreach (VineKind kind in kinds)
+            {
+                if (kind != null && !context.Kinds.ContainsKey(kind))
+                    context.Kinds[kind] = kind.ReadRanges();
+            }
+            return context;
+        }
+    }
+
     public sealed class Rejection
     {
         public int Attempt;
@@ -39,17 +70,26 @@ public static class VineGrower
     /// <summary>The first valid vine from <paramref name="seed"/>; if none in
     /// <see cref="VineBakeStats.MaxAttempts"/>, the last tried, not
     /// <see cref="Grown.Ok"/>.</summary>
-    public static Grown Grow(VineKind kind, int seed, VineBakeStats stats)
+    public static Grown Grow(VineKind kind, int seed, VineBakeStats stats) =>
+        Grow(kind, seed, Context.For(stats, new[] { kind }));
+
+    /// <summary>The same, from a <see cref="Context"/>: any thread. A
+    /// <paramref name="scale"/> other than 1 grows it that much taller (a
+    /// nest's size jitter), within the setting's range.</summary>
+    public static Grown Grow(VineKind kind, int seed, Context context, float scale = 1.0f)
     {
-        double vs = Math.Round((double)stats.VoxelSize, 6);
-        VineGenerator.Limits limits = stats.Limits();
+        VineBakeStats stats = context.Stats;
+        context.Kinds.TryGetValue(kind, out VineKind.Ranges ranges);
         var grown = new Grown { Seed = seed };
         int attempts = Math.Max(1, stats.MaxAttempts);
         for (int a = 0; a < attempts; a++)
         {
             int rolled = AttemptSeed(seed, a);
-            VineGenerator.Result vine = VineGenerator.Generate(kind.Roll(rolled, vs), limits);
-            VineValidator.Verdict verdict = VineValidator.Check(vine, stats, full: false);
+            VineParams p = kind.Roll(rolled, context.VoxelSize, ranges);
+            if (scale != 1.0f)
+                p.HeightM = Math.Round(p.HeightM * scale, 3);
+            VineGenerator.Result vine = VineGenerator.Generate(p, context.Limits);
+            VineValidator.Verdict verdict = VineValidator.Check(vine, stats, full: false, context.Spine);
             grown.Attempt = a;
             grown.Vine = vine;
             grown.Verdict = verdict;

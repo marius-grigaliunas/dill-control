@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="NestKit" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/mission/NestKit.cs" id="1_script"]
+[ext_resource type="Resource" path="res://resources/foliage/vine_kind_heart.tres" id="2_heart"]
+[ext_resource type="Resource" path="res://resources/foliage/vine_kind_fruiting.tres" id="3_fruiting"]
+[ext_resource type="Resource" path="res://resources/foliage/vine_kind_weeping.tres" id="4_weeping"]
+[ext_resource type="Resource" path="res://resources/foliage/vine_kind_leafy.tres" id="5_leafy"]
+[ext_resource type="Resource" path="res://resources/foliage/vine_bake.tres" id="6_bake"]
+
+[resource]
+resource_name = "NestKitDefault"
+script = ExtResource("1_script")
+DisplayName = "Vine nest"
+Kinds = [ExtResource("2_heart"), ExtResource("3_fruiting"), ExtResource("4_weeping"), ExtResource("5_leafy")]
+Bake = ExtResource("6_bake")
+SizeJitter = Vector2(0.88, 1.12)
+PopulationClamp = Vector2i(1000, 25000)
+DefaultPopulation = 5000
+SpacingM = Vector2(85, 110)
+Jitter = 0.22
+MaxRadiusM = 900.0
+Avenues = Vector2i(2, 4)
+AvenueWidthM = 60.0
+CompoundGapM = 150.0
+HeartCandidates = 16
+PadRadiusM = 6.0
+PadBlendM = 8.0
+SinkM = 1.0
+SpawnOutsideM = 60.0

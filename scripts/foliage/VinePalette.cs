@@ -69,13 +69,19 @@ public partial class VinePalette : Resource
         float dh = rng.Range(-HueSpread, HueSpread);
         float ds = rng.Range(-SaturationSpread, SaturationSpread);
         float dv = rng.Range(-ValueSpread, ValueSpread);
-        var shaded = (VinePalette)Duplicate();
-        shaded.Shell = InBand(Shell, dh, ds, dv);
-        shaded.Knuckle = InBand(Knuckle, dh, ds, dv);
-        shaded.Leaf = InBand(Leaf, dh, ds, dv);
-        shaded.Petiole = InBand(Petiole, dh, ds, dv);
-        shaded.Core = Color.FromHsv(Core.H, Core.S, Mathf.Clamp(Core.V * (1 + dv), 0, 1));
-        return shaded;
+        // Made, not Duplicate()d: a nest shades its vines on worker threads,
+        // and Duplicate calls back into the script from the engine.
+        return new VinePalette
+        {
+            Shell = InBand(Shell, dh, ds, dv),
+            Knuckle = InBand(Knuckle, dh, ds, dv),
+            Core = Color.FromHsv(Core.H, Core.S, Mathf.Clamp(Core.V * (1 + dv), 0, 1)),
+            Leaf = InBand(Leaf, dh, ds, dv),
+            Petiole = InBand(Petiole, dh, ds, dv),
+            HueSpread = HueSpread, SaturationSpread = SaturationSpread, ValueSpread = ValueSpread,
+            LeafHueSpread = LeafHueSpread, LeafValueSpread = LeafValueSpread,
+            HueMin = HueMin, HueMax = HueMax, SaturationMax = SaturationMax, ValueMax = ValueMax,
+        };
     }
 
     /// <summary>Leaf <paramref name="leaf"/>'s colour, as a multiplier on the

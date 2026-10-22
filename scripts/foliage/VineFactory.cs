@@ -39,17 +39,23 @@ public static class VineFactory
     {
         var clock = Stopwatch.StartNew();
         VineGrower.Grown grown = settings != null ? VineGrower.FromSettings(settings, stats) : VineGrower.Grow(kind, seed, stats);
+        double generateMs = clock.Elapsed.TotalMilliseconds;
+        Data data = BuildData(grown, kind, stats, VineBaker.NameOf(kind, seed, changed));
+        data.GenerateMs = generateMs;
+        return data;
+    }
+
+    /// <summary>The model of a vine already grown, named <paramref name="name"/>
+    /// (its chunk jitter is seeded from the path a bake of that name would
+    /// write). Any thread.</summary>
+    public static Data BuildData(VineGrower.Grown grown, VineKind kind, VineBakeStats stats, string name)
+    {
         VineGenerator.Result vine = grown.Vine;
-        var data = new Data
-        {
-            Name = VineBaker.NameOf(kind, seed, changed),
-            Grown = grown,
-            GenerateMs = clock.Elapsed.TotalMilliseconds,
-        };
+        var data = new Data { Name = name, Grown = grown };
         if (!grown.Ok)
             return data;
 
-        clock.Restart();
+        var clock = Stopwatch.StartNew();
         VinePalette palette = VineBaker.PaletteFor(kind, stats, vine);
         VoxFile file = VoxFile.Load(VineBaker.Encode(vine, palette));
         data.Model = VoxModelBuilder.Build(file, new VoxModelBuilder.Options

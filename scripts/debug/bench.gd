@@ -703,6 +703,22 @@ const DESCENT_TIMELINE := [
 # garrison stands round its compound is printed as it settles. With a roam
 # radius it spreads over the compound; without, it piles into one cell.
 const GARRISON_SPREAD := "!call:Spawns/Horde:PrintBenchSpread"
+# A vine nest (lvl_nest_lab, docs/handoffs/vine-tool.md step 6), loaded with
+# "pop=N" (and "horde=0", "nest=SEED") after the mode: from the player's
+# spawn at an avenue's mouth, then inside the canopy over the heart, then
+# 400 m above it looking down. NestBuilder prints the load by stage and its
+# memory when it lets the player in.
+const NEST_TIMELINE := [
+	["on the ground", ["@status"], [], 4.0],
+	["ground shot", ["#nest_ground", "@status"], [], 0.3],
+	["into the canopy", ["@gotocall:NestBuilder:BenchBesideHeart:60", "@aimcall:NestBuilder:BenchHeart:40", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 0.5],
+	["in the canopy", ["@gotocall:NestBuilder:BenchBesideHeart:60", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 3.0],
+	["canopy shot", ["#nest_canopy"], [], 0.3],
+	["above", ["@gotocall:NestBuilder:BenchHeart:400", "@aimcall:NestBuilder:BenchHeart:0", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 0.5],
+	["above it", ["@gotocall:NestBuilder:BenchHeart:400", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 2.5],
+	["above shot", ["#nest_above"], [], 0.3],
+]
+
 const GARRISON_TIMELINE := [
 	["arrive", [GARRISON_SPREAD], [], 5.0],
 	["10 s", [GARRISON_SPREAD], [], 10.0],
@@ -838,6 +854,8 @@ var _phase := -1
 var _phase_started := 0.0
 var _vp: RID
 var _timeline: Array = []
+# Seconds the level spent behind its loading screen before the warm-up.
+var _loading := 0.0
 var _path := ""
 # "flex mem:<kind>:<seed>": a vine made in memory (VineFactory), stood where
 # MEM_VINE_REPLACES stands in its place.
@@ -913,6 +931,7 @@ func _initialize() -> void:
 		"planetab": _timeline = _planetab_timeline()
 		"descent": _timeline = DESCENT_TIMELINE
 		"garrison": _timeline = GARRISON_TIMELINE
+		"nest": _timeline = NEST_TIMELINE
 		"flow": _timeline = FLOW_TIMELINE
 		"planets": _timeline = _planets_timeline(int(args[2]) if args.size() > 2 else 10, int(args[3]) if args.size() > 3 else 1)
 		_: _timeline = IDLE_TIMELINE
@@ -1198,13 +1217,20 @@ func _process(delta: float) -> bool:
 	_elapsed += delta
 
 	if not _settled:
+		# A level still building behind its loading screen is not settling:
+		# its time does not count against the warm-up.
+		if current_scene != null and "Loading" in current_scene and current_scene.Loading:
+			_loading += delta
+			_steady_since = _elapsed
+			return false
 		var draws := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
 		if _steady_draws <= 0.0 or absf(draws - _steady_draws) > _steady_draws * SETTLE_TOLERANCE:
 			_steady_draws = draws
 			_steady_since = _elapsed
-		if (_elapsed - _steady_since >= SETTLE_HOLD and _elapsed > SETTLE_MIN) or _elapsed > WARMUP_MAX:
+		var warm := _elapsed - _loading
+		if (_elapsed - _steady_since >= SETTLE_HOLD and warm > SETTLE_MIN) or warm > WARMUP_MAX:
 			_settled = true
-			print("=== settled after %.1fs at %d draws ===" % [_elapsed, int(draws)])
+			print("=== settled after %.1fs at %d draws (%.1fs of it loading) ===" % [_elapsed, int(draws), _loading])
 		return false
 
 	# Every frame, not a sample of them.
