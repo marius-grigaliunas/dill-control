@@ -185,9 +185,13 @@ public partial class FlexField : Node
             Rod rod = plant.Rod;
             Vector2 tip = rod.Offset(rod.Segments);
             line.Append(System.FormattableString.Invariant(
-                $"\n[flex]   {plant.GetParent()?.Name,-22} h={rod.Height,5:F1} tip={tip.Length(),5:F2} m drop={rod.Drop(rod.Segments):F2} hits={plant.Hits} shaken={plant.Kicks} pulls={plant.Pulls} recounts={plant.Recounts} gave way={plant.GaveWay} released={plant.Released} stiffness left={rod.Softest(out int joint):P0} at joint {joint} kinked {Mathf.RadToDeg(rod.Kink(joint)):F1} deg substeps={rod.Substeps}"));
+                $"\n[flex]   {plant.GetParent()?.Name,-22} h={rod.Height,5:F1} tip={tip.Length(),5:F2} m peak={plant.PeakTip,5:F2} m drop={rod.Drop(rod.Segments):F2} hits={plant.Hits} shaken={plant.Kicks} pulls={plant.Pulls} recounts={plant.Recounts} gave way={plant.GaveWay} released={plant.Released} stiffness left={rod.Softest(out int joint):P0} at joint {joint} kinked {Mathf.RadToDeg(rod.Kink(joint)):F1} deg substeps={rod.Substeps}"));
         }
         GD.Print(line.ToString());
+        foreach (PlantFlex plant in Plants)
+        {
+            plant.PeakTip = 0.0f;
+        }
     }
 
     private static void Write(PlantFlex plant)

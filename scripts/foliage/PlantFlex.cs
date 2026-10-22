@@ -460,6 +460,9 @@ public partial class PlantFlex : Node, IVoxelBend
     /// <summary>For the bench: explosions that shook it.</summary>
     internal int Kicks { get; private set; }
 
+    /// <summary>For the bench: the furthest its tip has been since it was last reported.</summary>
+    internal float PeakTip { get; set; }
+
     internal int Recounts { get; private set; }
 
     private Vector2 Flat(Vector3 v) => new(v.Dot(AxisX), v.Dot(AxisZ));
@@ -491,6 +494,10 @@ public partial class PlantFlex : Node, IVoxelBend
             return;
         }
         float impulse = Stats.KickPerDamage * info.Amount;
+        if (Stats.MaxKick > 0.0f)
+        {
+            impulse = Mathf.Min(impulse, Stats.MaxKick);
+        }
         Rod.AddImpulse((info.Position - Foot).Dot(Up), flat.Normalized() * impulse);
     }
 
@@ -526,6 +533,7 @@ public partial class PlantFlex : Node, IVoxelBend
             Rod.SetSegmentForce(s, blowing * (push * aloft * SegmentMass(s)));
         }
         Rod.Step(dt);
+        PeakTip = Mathf.Max(PeakTip, Rod.Offset(Rod.Segments).Length());
         GiveWay(dt);
         Follow(dt);
     }

@@ -54,6 +54,11 @@ public partial class FlexStats : Resource
     [Export(PropertyHint.Range, "0,200,0.5")]
     public float KickPerDamage { get; set; } = 6.0f;
 
+    /// <summary>The most one blast can give it, N s, however big: a heavy
+    /// warhead shakes it, it does not fling it. Zero: no limit.</summary>
+    [Export(PropertyHint.Range, "0,100000,100")]
+    public float MaxKick { get; set; } = 0.0f;
+
     /// <summary>Scales the pull of a grapple line hanging from it.</summary>
     [Export(PropertyHint.Range, "0,20,0.05")]
     public float LinePull { get; set; } = 1.0f;
