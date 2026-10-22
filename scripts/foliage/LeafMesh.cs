@@ -129,6 +129,13 @@ public static class LeafMesh
         arrays[(int)Mesh.ArrayType.Vertex] = vertices.ToArray();
         arrays[(int)Mesh.ArrayType.Normal] = normals.ToArray();
         arrays[(int)Mesh.ArrayType.Color] = colours.ToArray();
+        // Its own across and along: where on the blade a hole is (leaf_toon).
+        var uv = new Vector2[vertices.Count];
+        for (int i = 0; i < uv.Length; i++)
+        {
+            uv[i] = new Vector2(vertices[i].X, vertices[i].Z);
+        }
+        arrays[(int)Mesh.ArrayType.TexUV] = uv;
         arrays[(int)Mesh.ArrayType.Index] = indices.ToArray();
         var mesh = new ArrayMesh { ResourceName = name };
         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);

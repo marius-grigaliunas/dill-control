@@ -5,7 +5,11 @@
 [resource]
 resource_name = "LeafDefault"
 script = ExtResource("1_script")
-Health = 40.0
+Health = 250.0
+StemZoneShare = 0.3
+HoleRadiusM = 0.3
+HoleReferenceDamage = 32.0
+HolesPerLeaf = 12
 SplashRadiusM = 6.0
 RecheckSeconds = 0.25
 MassKg = 12.0

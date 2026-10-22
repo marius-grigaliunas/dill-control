@@ -15,6 +15,8 @@
 # into its canopy, once from each distance in metres (close_30.png, ...):
 # either side of its coarse copies' distances, are the leaves on the vine?
 # A fifth number looks down from that many degrees up instead: its shadow.
+# `holes <vine>` puts six rifle hits in its leaf nearest 20 m up and
+# photographs it from 7 m, both faces (holes_front.png, holes_back.png).
 extends SceneTree
 
 const SPACING := 80.0
@@ -50,6 +52,9 @@ func _initialize() -> void:
 	ground.material_override = dirt
 	stage.add_child(ground)
 
+	if args.size() > 2 and args[1] == "holes":
+		await _holes(stage, out, args[2])
+		return
 	if args.size() > 3 and args[1] == "close":
 		await _close(stage, out, args[2], args[3], float(args[4]) if args.size() > 4 else -1.0)
 		return
@@ -116,6 +121,21 @@ func _close(stage: Node3D, out: String, vine_name: String, distances: String, el
 		else:
 			camera.look_at_from_position(Vector3(metres * 0.3, 2.0, metres), target)
 		await _shoot(out.get_basename() + "_" + d + "." + out.get_extension(), false)
+	quit(0)
+
+func _holes(stage: Node3D, out: String, vine_name: String) -> void:
+	var vine: Node3D = load("res://scenes/props/%s.tscn" % vine_name).instantiate()
+	stage.add_child(vine)
+	var camera := Camera3D.new()
+	camera.fov = 50
+	stage.add_child(camera)
+	for i in 30:
+		await process_frame
+	var leaf: Transform3D = vine.get_node("Leaves").call("BenchHoleLeaf", "20")
+	var face := leaf.basis.y.normalized()
+	for side in [["front", 1.0], ["back", -1.0]]:
+		camera.look_at_from_position(leaf.origin + face * 7.0 * side[1] + leaf.basis.z.normalized() * 0.5, leaf.origin)
+		await _shoot(out.get_basename() + "_" + side[0] + "." + out.get_extension(), false)
 	quit(0)
 
 func _shoot(out: String, done := true) -> void:

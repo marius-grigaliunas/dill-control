@@ -18,9 +18,12 @@ namespace DillControl.Foliage;
 ///   joins (<see cref="VoxelPart.AddExtraShape"/>): no new bodies, it rides
 ///   the bend and carries whoever stands on it, and the grapple pulls the
 ///   vine through it.
-/// - A hit inside a leaf takes its health (<see cref="VoxelBody.Intercept"/>);
-///   at none it tears off whole, a loose body under the loose-piece cap, and
-///   puffs into dust. A leaf whose stalk or arm is cut away falls with it.
+/// - A hit inside a leaf (<see cref="VoxelBody.Intercept"/>) holes it where
+///   it lands and takes its health; at none, badly holed, it tears off whole,
+///   a loose body under the loose-piece cap, and puffs into dust. A hit where
+///   the stem joins shoots it through at once. A leaf whose stalk or arm is
+///   cut away falls with it. The holes are a small texture made on the first
+///   hit, a row per leaf, read by <c>leaf_toon</c>.
 ///
 /// The leaves are <see cref="Set"/>, in <see cref="Model"/>'s space.
 /// </summary>
@@ -49,6 +52,10 @@ public partial class VineLeaves : Node3D
     /// <summary>The far instances, shadowless while the stalk's far copies are.</summary>
     private readonly List<MultiMeshInstance3D> _far = new();
     private Material _plain;
+    private ShaderMaterial _material;
+    private Image _holes;
+    private ImageTexture _holesTexture;
+    private int[] _holeCount;
     private bool _ready;
     private int _version = int.MinValue;
     private float _recheck;
@@ -113,9 +120,12 @@ public partial class VineLeaves : Node3D
         _part = new VoxelPart[n];
         _shape = new VoxelPart.ExtraShape[n];
         _slot = new int[n];
+        _holeCount = new int[n];
         Array.Fill(_health, Stats.Health);
 
-        Material bent = Flex?.BendMaterial(_plain) ?? _plain;
+        // Its own copy, bending as the vine does: its holes are its own too.
+        _material = Flex?.BendMaterial(_plain) ?? (ShaderMaterial)_plain.Duplicate();
+        Material bent = _material;
         int shapes = Set.ShapeLobes.Length;
         var counts = new int[shapes];
         for (int i = 0; i < n; i++)
@@ -382,7 +392,7 @@ public partial class VineLeaves : Node3D
         {
             if (!_gone[i] && Inside(i, at, 0.6f))
             {
-                Hurt(i, info.Amount, info.Direction);
+                Shot(i, at, info.Amount, info.Direction);
                 return true;
             }
         }
@@ -396,6 +406,60 @@ public partial class VineLeaves : Node3D
         Vector3 side = Set.Face[i].Cross(Set.Midrib[i]).Normalized();
         return Mathf.Abs(d.Dot(side)) < r && Mathf.Abs(d.Dot(Set.Midrib[i])) < r
             && Mathf.Abs(d.Dot(Set.Face[i])) < Stats.ThicknessM + margin + (Set.Size[i] * 0.1f);
+    }
+
+    // A hit on the blade: through where the stem joins it falls, else it is
+    // holed where it was hit.
+    private void Shot(int i, Vector3 at, float amount, Vector3 push)
+    {
+        float r = Set.Size[i] * 0.5f;
+        Vector3 stem = Set.Centre[i] - (Set.Midrib[i] * r * 0.7f);
+        if (at.DistanceTo(stem) < r * Stats.StemZoneShare)
+        {
+            Tear(i, push);
+            return;
+        }
+        Hole(i, at, amount);
+        Hurt(i, amount, push);
+    }
+
+    // A hole in leaf i at a point in model space, in the blade's own units
+    // (BladeOf: X across, Z along, a unit to its half-width).
+    private void Hole(int i, Vector3 at, float amount)
+    {
+        if (_holes == null)
+        {
+            _holes = Image.CreateEmpty(Stats.HolesPerLeaf, Set.Count, false, Image.Format.Rgbaf);
+            _holesTexture = ImageTexture.CreateFromImage(_holes);
+            _material.SetShaderParameter("leaf_holes", _holesTexture);
+            _material.SetShaderParameter("leaf_hole_slots", Stats.HolesPerLeaf);
+        }
+        float r = Set.Size[i] * 0.5f;
+        Vector3 d = at - Set.Centre[i];
+        Vector3 side = Set.Face[i].Cross(Set.Midrib[i]).Normalized();
+        float radius = Stats.HoleRadiusM * Mathf.Clamp(Mathf.Sqrt(amount / Stats.HoleReferenceDamage), 0.5f, 3.0f);
+        _holes.SetPixel(_holeCount[i] % Stats.HolesPerLeaf, i,
+            new Color(d.Dot(side) / r, d.Dot(Set.Midrib[i]) / r, radius / r, (_holeCount[i] * 0.618034f) % 1.0f));
+        _holesTexture.Update(_holes);
+        if (_holeCount[i]++ == 0)
+        {
+            Color tint = TintOf(Set, i);
+            _blades[Set.Shape[i]].SetInstanceCustomData(_slot[i], new Color(tint.R, tint.G, tint.B, 2.0f + i));
+        }
+    }
+
+    // A torn leaf keeps its holes: its own copy, unbent, naming its row.
+    private Material LooseMaterial(int i)
+    {
+        if (_holesTexture == null || _holeCount[i] == 0)
+        {
+            return _plain;
+        }
+        var own = (ShaderMaterial)_plain.Duplicate();
+        own.SetShaderParameter("leaf_holes", _holesTexture);
+        own.SetShaderParameter("leaf_hole_slots", Stats.HolesPerLeaf);
+        own.SetShaderParameter("leaf_row", i);
+        return own;
     }
 
     private void Hurt(int i, float amount, Vector3 push)
@@ -450,7 +514,7 @@ public partial class VineLeaves : Node3D
         body.AddChild(new MeshInstance3D
         {
             Mesh = LeafMesh.Blade(Set.ShapeAt(Set.Shape[i]), Set.Blade, Set.Vein),
-            MaterialOverride = _plain,
+            MaterialOverride = LooseMaterial(i),
             Transform = new Transform3D(Basis.Identity.Scaled(new Vector3(r, r, r)), Vector3.Zero),
         });
         body.AddChild(new CollisionShape3D
@@ -521,6 +585,47 @@ public partial class VineLeaves : Node3D
     {
         int i = LeafNear(height);
         return i < 0 ? GlobalPosition : Drawn(Set.Centre[i]);
+    }
+
+    /// <summary>On the ground 25 m out past the leaf nearest that height, away
+    /// from the stalk or arm it grows from: a clear shot up at it.</summary>
+    public Vector3 BenchLeafFront(string height)
+    {
+        int i = LeafNear(height);
+        if (i < 0)
+        {
+            return GlobalPosition;
+        }
+        Vector3 c = Set.Centre[i];
+        Vector3 outward = new Vector3(c.X - Set.Attach[i].X, 0.0f, c.Z - Set.Attach[i].Z);
+        if (outward.LengthSquared() < 1e-4f)
+        {
+            outward = new Vector3(c.X, 0.0f, c.Z);
+        }
+        Vector3 at = c + (outward.Normalized() * 25.0f);
+        return Model.GlobalTransform * new Vector3(at.X, 1.0f, at.Z);
+    }
+
+    /// <summary>Six rifle hits across the leaf nearest that height, none
+    /// near its stem, through the way a shot holes it. Returns where it is
+    /// drawn: its middle, its Y its face.</summary>
+    public Transform3D BenchHoleLeaf(string height)
+    {
+        int i = LeafNear(height);
+        if (i < 0)
+        {
+            return GlobalTransform;
+        }
+        float r = Set.Size[i] * 0.5f;
+        Vector3 side = Set.Face[i].Cross(Set.Midrib[i]).Normalized();
+        var random = Core.SeededRandom.Stream((ulong)i, "bench:holes");
+        for (int k = 0; k < 6; k++)
+        {
+            Vector3 at = Set.Centre[i] + (side * r * random.Range(-0.6f, 0.6f)) + (Set.Midrib[i] * r * random.Range(-0.1f, 0.6f));
+            Shot(i, at, 32.0f, Vector3.Zero);
+        }
+        Basis basis = Model.GlobalBasis * BladeOf(Set, i).Basis.Orthonormalized();
+        return new Transform3D(basis, Drawn(Set.Centre[i]));
     }
 
     public void PrintBenchStatus() =>
