@@ -19,4 +19,5 @@ LooseSeconds = 8.0
 DustScale = 0.5
 ThicknessM = 0.5
 StemWidthM = 0.35
+StemWalkWidthM = 0.9
 DrawMetres = 600.0

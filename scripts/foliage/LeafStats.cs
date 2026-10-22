@@ -46,6 +46,8 @@ public partial class LeafStats : Resource
     /// <summary>The collision under a blade, to stand on.</summary>
     [Export(PropertyHint.Range, "0.1,2,0.05,suffix:m")] public float ThicknessM { get; set; } = 0.5f;
     [Export(PropertyHint.Range, "0.05,2,0.05,suffix:m")] public float StemWidthM { get; set; } = 0.35f;
+    /// <summary>The beam under a stem, to walk out along to its blade: wider than it is drawn.</summary>
+    [Export(PropertyHint.Range, "0.1,3,0.05,suffix:m")] public float StemWalkWidthM { get; set; } = 0.9f;
     /// <summary>Leaves further than this from the camera are not drawn.</summary>
     [Export(PropertyHint.Range, "50,5000,10,suffix:m")] public float DrawMetres { get; set; } = 1200.0f;
 }

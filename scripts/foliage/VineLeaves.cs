@@ -15,7 +15,8 @@ namespace DillControl.Foliage;
 ///   (<see cref="VoxelBody.WholeShadowsMetres"/>): each MultiMesh is drawn
 ///   by a near instance that casts and a far one that does not.
 /// - Each leaf is one thin box on the vine's section body where its stem
-///   joins (<see cref="VoxelPart.AddExtraShape"/>): no new bodies, it rides
+///   joins, and its stem a beam (<see cref="VoxelPart.AddExtraShape"/>),
+///   both walkable: no new bodies, it rides
 ///   the bend and carries whoever stands on it, and the grapple pulls the
 ///   vine through it.
 /// - A hit inside a leaf (<see cref="VoxelBody.Intercept"/>) holes it where
@@ -46,6 +47,7 @@ public partial class VineLeaves : Node3D
     private bool[] _gone;
     private VoxelPart[] _part;
     private VoxelPart.ExtraShape[] _shape;
+    private VoxelPart.ExtraShape[] _stemShape;
     private int[] _slot;
     private MultiMesh[] _blades;
     private MultiMesh _stems;
@@ -119,6 +121,7 @@ public partial class VineLeaves : Node3D
         _gone = new bool[n];
         _part = new VoxelPart[n];
         _shape = new VoxelPart.ExtraShape[n];
+        _stemShape = new VoxelPart.ExtraShape[n];
         _slot = new int[n];
         _holeCount = new int[n];
         Array.Fill(_health, Stats.Health);
@@ -312,6 +315,23 @@ public partial class VineLeaves : Node3D
         Transform3D local = part.GlobalTransform.AffineInverse() * Model.GlobalTransform * frame;
         _part[i] = part;
         _shape[i] = part.AddExtraShape(part.ToLocal(root), box, local, place: false);
+
+        // Its stem, a beam to walk out along: wider than drawn, so a foot finds it.
+        Transform3D stem = StemAt(i);
+        float length = stem.Basis.Z.Length();
+        if (length > 0.3f)
+        {
+            float width = Stats.StemWalkWidthM;
+            var stemKey = new Vector3I(Mathf.RoundToInt(width * 100), Mathf.RoundToInt(length * 10), 1);
+            if (!Boxes.TryGetValue(stemKey, out BoxShape3D beam))
+            {
+                beam = new BoxShape3D { Size = new Vector3(width, width, Mathf.Round(length * 10) / 10) };
+                Boxes[stemKey] = beam;
+            }
+            var along = new Transform3D(stem.Basis.Orthonormalized(), stem.Origin + (stem.Basis.Z * 0.5f));
+            _stemShape[i] = part.AddExtraShape(part.ToLocal(root),
+                beam, part.GlobalTransform.AffineInverse() * Model.GlobalTransform * along, place: false);
+        }
     }
 
     private VoxelPart PartAt(Vector3 world)
@@ -485,6 +505,11 @@ public partial class VineLeaves : Node3D
             _part[i].RemoveExtraShape(_shape[i]);
         }
         _shape[i] = null;
+        if (_stemShape[i] != null && IsInstanceValid(_part[i]))
+        {
+            _part[i].RemoveExtraShape(_stemShape[i]);
+        }
+        _stemShape[i] = null;
         var hidden = new Transform3D(new Basis(Vector3.Zero, Vector3.Zero, Vector3.Zero), Set.Centre[i]);
         _blades[Set.Shape[i]].SetInstanceTransform(_slot[i], hidden);
         _stems.SetInstanceTransform(i, hidden);
@@ -581,6 +606,19 @@ public partial class VineLeaves : Node3D
         }
         GD.Print(System.FormattableString.Invariant($"[leaves] stand on leaf {i} of {GetParent()?.Name}, {Set.Size[i]:F1} m across, {Set.Centre[i].Y:F1} m up"));
         return Drawn(Set.Centre[i] + (Set.Face[i] * 1.5f));
+    }
+
+    /// <summary>A point over the middle of the stem of the leaf nearest that height, to stand on.</summary>
+    public Vector3 BenchStemMiddle(string height)
+    {
+        int i = LeafNear(height);
+        if (i < 0)
+        {
+            return GlobalPosition;
+        }
+        Vector3 middle = (Set.Attach[i] + StemJoinOf(Set, i)) * 0.5f;
+        GD.Print(System.FormattableString.Invariant($"[leaves] stand on the stem of leaf {i} of {GetParent()?.Name}, {middle.Y:F1} m up"));
+        return Drawn(middle + (Vector3.Up * 1.5f));
     }
 
     /// <summary>The middle of the leaf nearest that height, to aim at.</summary>
