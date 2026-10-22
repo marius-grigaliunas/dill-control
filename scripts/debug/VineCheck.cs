@@ -56,6 +56,8 @@ public partial class VineCheck : Node
         Written(stats);
         _report.AppendLine("Baked scenes:");
         BakedScenes(stats);
+        _report.AppendLine($"Leaves on their vines, {LeafPool} pool vines a kind grown in memory:");
+        LeavesInMemory(kinds, stats);
         _report.AppendLine("Valid vines, 200 seeds a kind:");
         string rejections = Rejections(200);
         Check("every seed of every kind grows a valid vine", rejections.StartsWith("PASS"));
@@ -467,6 +469,89 @@ public partial class VineCheck : Node
         Check("a pod sits on its cell's centre", podAt.IsEqualApprox(cellAt), $"{podAt} vs {cellAt}");
     }
 
+    /// <summary>Pool vines a kind whose leaves <see cref="LeavesInMemory"/> checks.</summary>
+    private const int LeafPool = 6;
+
+    // A nest grows its vines taller or shorter (NestKit.SizeJitter): its extremes, and as baked.
+    private static readonly float[] LeafScales = { 1.0f, 0.88f, 1.12f };
+
+    private void LeavesInMemory(Dictionary<string, VineKind> kinds, VineBakeStats stats)
+    {
+        VineGrower.Context context = VineGrower.Context.For(stats, kinds.Values);
+        foreach (VineKind kind in kinds.Values.OrderBy(k => k.KindName))
+        {
+            for (int i = 0; i < LeafPool; i++)
+            {
+                int seed = kind.PoolSeed(stats.ArchetypeSeed, i);
+                float scale = LeafScales[i % LeafScales.Length];
+                VineFactory.Data data = VineFactory.BuildData(VineGrower.Grow(kind, seed, context, scale), kind, stats,
+                    $"{VineBaker.NameOf(kind, seed, false)}{(scale != 1.0f ? FormattableString.Invariant($" x{scale}") : "")}");
+                if (data.Model == null)
+                {
+                    Check($"{data.Name}: grows in memory", false, string.Join(" ", data.Grown.Verdict.Details));
+                    continue;
+                }
+                Node3D model = VoxModelBuilder.Instantiate(data.Model, "Model", VoxModelBuilder.MeshInstances(null));
+                LeavesOn(data.Name, model, data.Leaves);
+                model.Free();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Every leaf's stem leaves a solid cell: its attach point, in the
+    /// model's space, within a voxel of one of the stalk's cells. Reports how
+    /// many do not, and the furthest off in voxels.
+    /// </summary>
+    private void LeavesOn(string name, Node3D model, VineLeafSet set)
+    {
+        var stalk = model?.GetNodeOrNull<Node3D>("Stalk");
+        if (stalk == null || set == null || !stalk.HasMeta(VoxelMeta.Cells))
+        {
+            Check($"{name}: leaves on the vine", false, "no stalk cells or no leaves");
+            return;
+        }
+        byte[] cells = stalk.GetMeta(VoxelMeta.Cells).AsByteArray();
+        Vector3I dims = stalk.GetMeta(VoxelMeta.Dims).AsVector3I();
+        Vector3 origin = stalk.GetMeta(VoxelMeta.Origin).AsVector3();
+        float vs = (float)model.GetMeta(VoxelMeta.VoxelSize).AsDouble();
+        Transform3D toStalk = stalk.Transform.AffineInverse();
+        const int Reach = 8;
+        int off = 0;
+        float worst = 0.0f;
+        int worstLeaf = -1;
+        for (int i = 0; i < set.Attach.Length; i++)
+        {
+            // Model space to the grid's continuous coordinates: a cell spans [c, c + 1).
+            Vector3 q = VoxSpace.FromGodot((toStalk * set.Attach[i]) / vs) + origin;
+            float nearest = float.MaxValue;
+            Vector3I c = new(Mathf.FloorToInt(q.X), Mathf.FloorToInt(q.Y), Mathf.FloorToInt(q.Z));
+            for (int z = c.Z - Reach; z <= c.Z + Reach; z++)
+            for (int y = c.Y - Reach; y <= c.Y + Reach; y++)
+            for (int x = c.X - Reach; x <= c.X + Reach; x++)
+            {
+                if (x < 0 || y < 0 || z < 0 || x >= dims.X || y >= dims.Y || z >= dims.Z || cells[x + dims.X * (y + dims.Y * z)] == 0)
+                    continue;
+                // From the point to the cell's box.
+                Vector3 d = new(Mathf.Max(0, Mathf.Max(x - q.X, q.X - (x + 1))), Mathf.Max(0, Mathf.Max(y - q.Y, q.Y - (y + 1))), Mathf.Max(0, Mathf.Max(z - q.Z, q.Z - (z + 1))));
+                nearest = Mathf.Min(nearest, d.Length());
+            }
+            if (nearest > 1.0f)
+            {
+                off++;
+                if (nearest > worst)
+                {
+                    worst = nearest;
+                    worstLeaf = i;
+                }
+            }
+        }
+        Check($"{name}: every leaf's stem on the vine", off == 0,
+            off == 0 ? $"{set.Attach.Length} leaves"
+                : string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                    $"{off} of {set.Attach.Length} more than a voxel off, worst leaf {worstLeaf} {(worst == float.MaxValue ? $"over {Reach}" : $"{worst:F1}")} voxels at {set.Attach[worstLeaf]}"));
+    }
+
     /// <summary>A vine made in memory (<see cref="VineFactory"/>) against its
     /// baked, imported self: the same nodes in the same places, and every
     /// voxel and chunk field the same, so the game can grow what the editor bakes.</summary>
@@ -749,6 +834,7 @@ public partial class VineCheck : Node
             Check($"{name}: foot on the origin, {markers} pods", vs > 0 && Mathf.Abs(foot.X) <= vs * 0.5f + 1e-3f
                 && Mathf.Abs(foot.Z) <= vs * 0.5f + 1e-3f && Mathf.Abs(foot.Y) < 1e-3f && markers > 0,
                 $"foot {foot}, voxel {vs} m");
+            LeavesOn(name, model, leaves?.Set);
             SameInMemory(name, model, leaves?.Set, stats);
             root.Free();
         }

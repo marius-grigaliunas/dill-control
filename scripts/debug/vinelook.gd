@@ -7,8 +7,13 @@
 #
 #   Godot..._console.exe --path . --script scripts/debug/vinelook.gd -- perflogs/leaves.png leaves
 #
+#   Godot..._console.exe --path . --script scripts/debug/vinelook.gd -- perflogs/close.png close prp_vine_fruiting_4532344 30,90,200
+#
 # The number is the camera's elevation in degrees (default 6: eye height);
-# `leaves` lays every kind's leaf shapes out instead, a row a kind, from above.
+# `leaves` lays every kind's leaf shapes out instead, a row a kind, from above;
+# `close` stands one vine alone and photographs it from the ground, looking up
+# into its canopy, once from each distance in metres (close_30.png, ...):
+# either side of its coarse copies' distances, are the leaves on the vine?
 extends SceneTree
 
 const SPACING := 80.0
@@ -42,6 +47,9 @@ func _initialize() -> void:
 	ground.material_override = dirt
 	stage.add_child(ground)
 
+	if args.size() > 3 and args[1] == "close":
+		await _close(stage, out, args[2], args[3])
+		return
 	if sheet:
 		var check = load("res://scripts/debug/VineCheck.cs").new()
 		root.add_child(check)
@@ -81,7 +89,28 @@ func _initialize() -> void:
 
 	await _shoot(out)
 
-func _shoot(out: String) -> void:
+func _close(stage: Node3D, out: String, vine_name: String, distances: String) -> void:
+	var vine: Node3D = load("res://scenes/props/%s.tscn" % vine_name).instantiate()
+	stage.add_child(vine)
+	var camera := Camera3D.new()
+	camera.fov = 50
+	camera.far = 4000
+	stage.add_child(camera)
+	for i in 30:
+		await process_frame
+	var top := 0.0
+	var leaves = vine.get_node_or_null("Leaves")
+	if leaves != null and leaves.get("Set") != null:
+		for c in leaves.get("Set").get("Centre"):
+			top = maxf(top, c.y)
+	var target := Vector3(0, top * 0.7, 0)
+	for d in distances.split(","):
+		var metres := float(d)
+		camera.look_at_from_position(Vector3(metres * 0.3, 2.0, metres), target)
+		await _shoot(out.get_basename() + "_" + d + "." + out.get_extension(), false)
+	quit(0)
+
+func _shoot(out: String, done := true) -> void:
 	for i in 30:
 		await process_frame
 	var image := root.get_viewport().get_texture().get_image()
@@ -89,4 +118,5 @@ func _shoot(out: String) -> void:
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	image.save_png(path)
 	print("[vinelook] -> ", path)
-	quit(0)
+	if done:
+		quit(0)
