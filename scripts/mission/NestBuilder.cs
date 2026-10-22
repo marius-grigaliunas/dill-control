@@ -201,7 +201,7 @@ public partial class NestBuilder : Node, ILevelBuilder
         }
         Title = $"NEST {Seed}";
         Details = string.Create(CultureInfo.InvariantCulture,
-            $"{Kit.DisplayName}: {Population:N0} pickles, one to a pod.{(WithHorde ? "" : "\nWithout the horde.")}");
+            $"{Kit.DisplayName}: {Population:N0} enemies {(WithHorde ? "" : "\nWithout the horde")}");
     }
 
     // The system's stages, then ours.
