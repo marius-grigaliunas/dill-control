@@ -22,7 +22,8 @@ namespace DillControl.Mission;
 ///   those whose zone the slot is in, grown valid (<see cref="VineGrower"/>)
 ///   on all cores a batch at a time, until their pods cover the population.
 /// - If the slots run out first, the plan is made again with kinds weighed
-///   by their pods and zones ignored: more pods a vine, never closer vines.
+///   by the square of their pods and zones ignored, then the fourth and the
+///   eighth power while still short: more pods a vine, never closer vines.
 /// - Then every vine's model is built, on all cores.
 /// </summary>
 public sealed class NestLayout
@@ -90,18 +91,25 @@ public sealed class NestLayout
             meanPods[kind] = Math.Max(1.0, pods.Average());
         }
 
-        Fill(layout, kit, context, seed, population, slots, kinds, meanPods, grown, shift: false);
-        if (layout.Pods < population)
+        Fill(layout, kit, context, seed, population, slots, kinds, meanPods, grown, shift: 0);
+        // Leaning harder on the kinds with most pods only as far as the
+        // population needs: as much of the kit's mix kept as fits.
+        for (int shift = 2; layout.Pods < population && shift <= 8; shift *= 2)
         {
             layout.Vines.Clear();
             layout.Shifted = true;
-            Fill(layout, kit, context, seed, population, slots, kinds, meanPods, grown, shift: true);
+            Fill(layout, kit, context, seed, population, slots, kinds, meanPods, grown, shift);
         }
         layout.Short = Math.Max(0, population - layout.Pods);
         layout.RadiusM = layout.Vines.Count > 0 ? layout.Vines.Max(v => v.RadiusM) : 0.0f;
         layout.GrowSeconds = clock.Elapsed.TotalSeconds;
         return layout;
     }
+
+    /// <summary>Per kind: how many vines and their mean pods, most vines first.</summary>
+    public string KindSummary() => string.Join(", ", Vines.GroupBy(v => v.Kind)
+        .OrderByDescending(g => g.Count())
+        .Select(g => FormattableString.Invariant($"{g.Key.Slug} {g.Count()} x {g.Average(v => v.Pods):F0}")));
 
     /// <summary>Every vine's model, on all cores.</summary>
     public void BuildModels(VineBakeStats stats)
@@ -145,7 +153,7 @@ public sealed class NestLayout
             for (int j = 0; j < n; j++)
             {
                 float bearing = ringPhase + (Mathf.Tau * j / n) + (rings.Range(-1.0f, 1.0f) * kit.Jitter * spacing / radius);
-                float r = radius + (rings.Range(-1.0f, 1.0f) * kit.Jitter * spacing);
+                float r = Math.Min(radius + (rings.Range(-1.0f, 1.0f) * kit.Jitter * spacing), kit.MaxRadiusM);
                 ring[j] = new Slot(r, bearing);
             }
             foreach (int j in order)
@@ -174,10 +182,10 @@ public sealed class NestLayout
 
     private static void Fill(NestLayout layout, NestKit kit, VineGrower.Context context, ulong seed, int population,
         List<Slot> slots, List<VineKind> kinds, Dictionary<VineKind, double> meanPods,
-        Dictionary<(VineKind, int, float), VineGrower.Grown> grown, bool shift)
+        Dictionary<(VineKind, int, float), VineGrower.Grown> grown, int shift)
     {
         double most = meanPods.Values.Max();
-        float[] weights = kinds.Select(k => (float)(Math.Max(k.Weight, 0.0f) * (shift ? Math.Pow(meanPods[k] / most, 2) : 1.0))).ToArray();
+        float[] weights = kinds.Select(k => (float)(Math.Max(k.Weight, 0.0f) * Math.Pow(meanPods[k] / most, shift))).ToArray();
 
         // How far out the nest will reach, from the kinds' mean pods: a
         // kind's zone is a share of that.
@@ -185,7 +193,7 @@ public sealed class NestLayout
         int needed = Math.Min(slots.Count, (int)Math.Ceiling(population / Math.Max(perVine, 1)));
         float reach = Math.Max(1.0f, slots[Math.Max(0, needed - 1)].Radius);
 
-        SeededRandom picks = SeededRandom.Stream(seed, shift ? "nest:kinds:shifted" : "nest:kinds");
+        SeededRandom picks = SeededRandom.Stream(seed, shift == 0 ? "nest:kinds" : shift == 2 ? "nest:kinds:shifted" : $"nest:kinds:shifted{shift}");
         SeededRandom sizes = SeededRandom.Stream(seed, "nest:sizes");
         int pods = 0;
         int next = 0;
@@ -201,7 +209,7 @@ public sealed class NestLayout
                 bool any = false;
                 for (int k = 0; k < kinds.Count; k++)
                 {
-                    bool inZone = shift || (zone >= kinds[k].Zone.X - 1e-4f && zone <= kinds[k].Zone.Y + 1e-4f);
+                    bool inZone = shift > 0 || (zone >= kinds[k].Zone.X - 1e-4f && zone <= kinds[k].Zone.Y + 1e-4f);
                     allowed[k] = inZone ? weights[k] : 0.0f;
                     any |= allowed[k] > 0.0f;
                 }

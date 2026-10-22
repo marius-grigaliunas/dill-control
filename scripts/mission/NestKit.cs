@@ -31,13 +31,15 @@ public partial class NestKit : Resource
 
     [ExportGroup("Layout")]
     /// <summary>Between neighbouring vines along the ground, rolled a ring at
-    /// a time: 20 m is unplayable, 100 m swings well, the grapple reaches 140 m.</summary>
-    [Export] public Vector2 SpacingM { get; set; } = new(85, 110);
+    /// a time: 20 m is unplayable, 100 m swings well, the grapple reaches 140 m.
+    /// Close enough that the nest is one clump.</summary>
+    [Export] public Vector2 SpacingM { get; set; } = new(55, 70);
     /// <summary>How far a vine strays from its slot, a share of the spacing.</summary>
     [Export(PropertyHint.Range, "0,0.45,0.01")] public float Jitter { get; set; } = 0.22f;
-    /// <summary>No vine further than this from the heart, along the ground.
+    /// <summary>No vine further than this from the heart, along the ground:
+    /// the nest is one clump in one place, never spread over the planet.
     /// A population that does not fit shifts to kinds with more pods.</summary>
-    [Export(PropertyHint.Range, "100,2000,10,suffix:m")] public float MaxRadiusM { get; set; } = 900.0f;
+    [Export(PropertyHint.Range, "100,2000,10,suffix:m")] public float MaxRadiusM { get; set; } = 400.0f;
     /// <summary>Clear ways in from the edge to the heart, least and most.</summary>
     [Export] public Vector2I Avenues { get; set; } = new(2, 4);
     [Export(PropertyHint.Range, "0,200,1,suffix:m")] public float AvenueWidthM { get; set; } = 60.0f;

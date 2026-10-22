@@ -31,7 +31,7 @@
     "armThickness": 0.4,
     "armTaper": 0.2,
     "armTipLeaf": true,
-    "podsPerRing": 14.0,
+    "podsPerRing": 18.0,
     "podTwistDeg": 41.0,
     "pedicelM": 2.0,
     "leavesPerRing": 0.0,
@@ -42,19 +42,19 @@
     "leafStemRiseDeg": 39.0
   },
   "counts": {
-    "total": 11999,
-    "shell": 9088,
+    "total": 12152,
+    "shell": 9085,
     "knuckle": 1197,
     "core": 2384,
     "leaves": 36,
     "leavesLeftOut": 0,
-    "bridged": 8,
+    "bridged": 5,
     "stranded": 0,
-    "pods": 126,
+    "pods": 162,
     "podsBlocked": 0,
     "podsGrounded": 0,
     "podsCrowded": 0,
-    "podSpacingM": 1.22474487139159,
+    "podSpacingM": 1.11803398874989,
     "bodies": 3
   },
   "bounds": [

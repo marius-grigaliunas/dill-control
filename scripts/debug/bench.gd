@@ -706,7 +706,8 @@ const GARRISON_SPREAD := "!call:Spawns/Horde:PrintBenchSpread"
 # A vine nest (lvl_nest_lab, docs/handoffs/vine-tool.md step 6), loaded with
 # "pop=N" (and "horde=0", "nest=SEED") after the mode: from the player's
 # spawn at an avenue's mouth, then inside the canopy over the heart, then
-# 400 m above it looking down. NestBuilder prints the load by stage and its
+# 400 m above it looking down, then 900 m up with the fog off for its plan
+# (one clump round the heart?). NestBuilder prints the load by stage and its
 # memory when it lets the player in.
 const NEST_TIMELINE := [
 	["on the ground", ["@status"], [], 4.0],
@@ -717,6 +718,9 @@ const NEST_TIMELINE := [
 	["above", ["@gotocall:NestBuilder:BenchHeart:400", "@aimcall:NestBuilder:BenchHeart:0", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 0.5],
 	["above it", ["@gotocall:NestBuilder:BenchHeart:400", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 2.5],
 	["above shot", ["#nest_above"], [], 0.3],
+	["plan", ["@gotocall:NestBuilder:BenchHeart:900", "@aimcall:NestBuilder:BenchHeart:0", "!set:Player:velocity=Vector3(0, 0, 0)", "!set:WorldEnvironment:environment:fog_enabled=false"], [], 1.0],
+	["plan shot", ["#nest_plan", "@gotocall:NestBuilder:BenchHeart:900", "@aimcall:NestBuilder:BenchHeart:0", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 0.3],
+	["plan done", ["!set:WorldEnvironment:environment:fog_enabled=true"], [], 0.1],
 ]
 
 const GARRISON_TIMELINE := [

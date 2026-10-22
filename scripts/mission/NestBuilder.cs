@@ -257,6 +257,7 @@ public partial class NestBuilder : Node, ILevelBuilder
         GD.Print(string.Create(CultureInfo.InvariantCulture,
             $"[nest] seed {Seed}: {Layout.Vines.Count} vines, {Layout.Pods:N0} pods for {Population:N0} pickles{(Layout.Short > 0 ? $" ({Layout.Short:N0} short)" : "")}, "
             + $"{Layout.RadiusM:F0} m out, {Layout.Vines.Count} of {Layout.Slots} slots, {Layout.Avenues.Length} avenues{(Layout.Shifted ? ", shifted to high-pod kinds" : "")}{(WithHorde ? "" : ", no horde")}\n"
+            + $"[nest] kinds: {Layout.KindSummary()}\n"
             + $"[nest] load {LoadSeconds:F1} s: grow {PlanSeconds:F1} s, models {ModelSeconds:F1} s (both on all cores, under the planet), planting {PlantSeconds:F1} s (making {MakeSeconds:F1} s, entering {EnterSeconds:F1} s, {_plantFrames} frames at {_plantProcessMs / Math.Max(1, _plantFrames):F0} ms process and {_plantPhysicsMs / Math.Max(1, _plantFrames):F0} ms physics); "
             + $"memory managed {managed / 1048576.0:F0} MB, engine {native / 1048576.0:F0} MB"));
     }
