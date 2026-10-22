@@ -215,11 +215,14 @@ public partial class VineLeaves : Node3D
         return new Transform3D(new Basis(side * r, face * r, midrib * r), set.Centre[i]);
     }
 
+    /// <summary>Where leaf <paramref name="i"/>'s stem joins its blade, model space: inside its notch.</summary>
+    public static Vector3 StemJoinOf(VineLeafSet set, int i) =>
+        set.Centre[i] - (set.Midrib[i] * set.Size[i] * 0.5f * LeafMesh.StemJoin(set.ShapeAt(set.Shape[i])));
+
     /// <summary>Its stem, from where it joins the vine into the blade's notch.</summary>
     public static Transform3D StemOf(VineLeafSet set, int i, float width)
     {
-        float r = set.Size[i] * 0.5f;
-        Vector3 basePoint = set.Centre[i] - (set.Midrib[i] * r * 0.7f);
+        Vector3 basePoint = StemJoinOf(set, i);
         Vector3 along = basePoint - set.Attach[i];
         if (along.LengthSquared() < 1e-6f)
         {
@@ -281,7 +284,7 @@ public partial class VineLeaves : Node3D
     // A point just inside the stalk or arm the stem grows from.
     private Vector3 Root(int i)
     {
-        Vector3 basePoint = Set.Centre[i] - (Set.Midrib[i] * Set.Size[i] * 0.35f);
+        Vector3 basePoint = StemJoinOf(Set, i);
         Vector3 out_ = (basePoint - Set.Attach[i]).Normalized();
         float voxel = Body.Parts.Count > 0 && Body.Parts[0].Grid != null ? Body.Parts[0].Grid.VoxelSize : 0.5f;
         return Set.Attach[i] - (out_ * voxel);
@@ -413,7 +416,7 @@ public partial class VineLeaves : Node3D
     private void Shot(int i, Vector3 at, float amount, Vector3 push)
     {
         float r = Set.Size[i] * 0.5f;
-        Vector3 stem = Set.Centre[i] - (Set.Midrib[i] * r * 0.7f);
+        Vector3 stem = StemJoinOf(Set, i);
         if (at.DistanceTo(stem) < r * Stats.StemZoneShare)
         {
             Tear(i, push);

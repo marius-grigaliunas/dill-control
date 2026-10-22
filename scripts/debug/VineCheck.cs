@@ -546,10 +546,62 @@ public partial class VineCheck : Node
                 }
             }
         }
+        StemsIntoBlades(name, set);
         Check($"{name}: every leaf's stem on the vine", off == 0,
             off == 0 ? $"{set.Attach.Length} leaves"
                 : string.Create(System.Globalization.CultureInfo.InvariantCulture,
                     $"{off} of {set.Attach.Length} more than a voxel off, worst leaf {worstLeaf} {(worst == float.MaxValue ? $"over {Reach}" : $"{worst:F1}")} voxels at {set.Attach[worstLeaf]}"));
+    }
+
+    /// <summary>
+    /// Every stem's far end inside its blade, as drawn: the end of the stem's
+    /// box (StemOf) taken into the blade's frame (BladeOf) and tested against
+    /// the blade mesh's own outer edge. A stem that stops in the notch, short
+    /// of the blade, reads as a leaf hanging in the air.
+    /// </summary>
+    private void StemsIntoBlades(string name, VineLeafSet set)
+    {
+        var stats = GD.Load<LeafStats>(LeafStats.DefaultPath);
+        int off = 0, worst = -1;
+        float worstBy = 0.0f;
+        for (int i = 0; i < set.Count; i++)
+        {
+            Vector3 end = VineLeaves.StemOf(set, i, stats.StemWidthM) * new Vector3(0, 0, 1);
+            Vector3 local = VineLeaves.BladeOf(set, i).AffineInverse() * end;
+            var p = new Vector2(local.X, local.Z);
+            Vector3[] vertices = LeafMesh.Blade(set.ShapeAt(set.Shape[i]), Colors.White, Colors.White)
+                .SurfaceGetArrays(0)[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+            // The outer ring: every other vertex after the centre (LeafMesh.Blade).
+            var ring = new List<Vector2>();
+            for (int v = 2; v < vertices.Length; v += 2)
+            {
+                ring.Add(new Vector2(vertices[v].X, vertices[v].Z));
+            }
+            bool inside = false;
+            for (int a = 0, b = ring.Count - 1; a < ring.Count; b = a++)
+            {
+                if ((ring[a].Y > p.Y) != (ring[b].Y > p.Y)
+                    && p.X < ((ring[b].X - ring[a].X) * (p.Y - ring[a].Y) / (ring[b].Y - ring[a].Y)) + ring[a].X)
+                {
+                    inside = !inside;
+                }
+            }
+            if (!inside)
+            {
+                off++;
+                // How far short, in metres: to the nearest edge point.
+                float by = ring.Min(q => q.DistanceTo(p)) * set.Size[i] * 0.5f;
+                if (by > worstBy)
+                {
+                    worstBy = by;
+                    worst = i;
+                }
+            }
+        }
+        Check($"{name}: every stem runs into its blade", off == 0,
+            off == 0 ? $"{set.Count} leaves"
+                : string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                    $"{off} of {set.Count} stop short, worst leaf {worst} by {worstBy:F2} m"));
     }
 
     /// <summary>A vine made in memory (<see cref="VineFactory"/>) against its

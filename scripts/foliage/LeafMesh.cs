@@ -40,6 +40,11 @@ public static class LeafMesh
         return r;
     }
 
+    /// <summary>Where the stem joins the blade, back along the midrib from its
+    /// middle, a share of its half-length: a little inside the notch (the edge
+    /// at the stem, less a tooth), so the stem runs into the blade.</summary>
+    public static float StemJoin(Shape shape) => Edge(shape, Mathf.Pi) * 0.93f * 0.8f;
+
     /// <summary>Points round the edge: two a tooth, so every other one is a notch.</summary>
     private static int SpokesOf(Shape shape) => Math.Clamp(shape.Teeth * 2, 20, 32);
 
