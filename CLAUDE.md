@@ -241,7 +241,7 @@ keeps only pods a pickle can hang from. Jolt never decides a roll.
 `VineFactory` builds the same vine in memory, no files, through the
 importer's own `VoxModelBuilder`. What comes next (the main-screen Vines tool,
 nests generated on the planet, pods that regrow per `docs/decisions/0034`)
-is `docs/handoffs/vine-tool.md`.
+is `docs/handoffs/vine-tool-3.md`.
 
 **Nothing that scales with a model's voxels runs in the frame**
 (`docs/decisions/0015`): re-meshing, structural checks and splits go to

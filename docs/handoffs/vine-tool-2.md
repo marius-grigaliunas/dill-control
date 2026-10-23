@@ -1,5 +1,7 @@
 # Handoff: the Vines tool, part 2 — fix what playing the nest showed, then pods and the tool
 
+*Superseded for what comes next by `docs/handoffs/vine-tool-3.md`.*
+
 ## Status, 2026-10-22 (second session): the eight fixes are done; step 7 is next
 
 Decided with the user (saved to memory, `nest-clumped-no-city`):
