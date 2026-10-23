@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="HordeStats" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="HordeStats" format=3 uid="uid://utfjfvbk2vky"]
 
-[ext_resource type="Script" path="res://scripts/horde/HordeStats.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://vc722tey04ko" path="res://scripts/horde/HordeStats.cs" id="1_script"]
 
 [resource]
 resource_name = "HordeStatsDefault"

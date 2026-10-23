@@ -1,19 +1,15 @@
-[gd_resource type="Resource" script_class="AgentKindStats" format=3]
+[gd_resource type="Resource" script_class="AgentKindStats" format=3 uid="uid://f5jwabt03rxf"]
 
-[ext_resource type="Script" path="res://scripts/enemies/AgentKindStats.cs" id="1_kind"]
+[ext_resource type="Script" uid="uid://42ny2r453vxq" path="res://scripts/enemies/AgentKindStats.cs" id="1_kind"]
 
 [resource]
 resource_name = "Standard"
 script = ExtResource("1_kind")
-DisplayName = "Pickle"
 Radius = 0.35
 Height = 1.8
 Colour = Color(0.36, 0.62, 0.18, 1)
-Mass = 70.0
 StrikeRange = 1.3
 StrikeInterval = 1.2
-StrikeImpulse = 3.0
 StrikeTrauma = 0.12
-StrikeDamage = 4.0
 SpawnWeight = 55.0
 CapacityShare = 0.6

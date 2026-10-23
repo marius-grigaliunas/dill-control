@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="VineBakeStats" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="VineBakeStats" format=3 uid="uid://b66tojq7f78jx"]
 
-[ext_resource type="Script" path="res://scripts/foliage/VineBakeStats.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://ddujq55b8ot1y" path="res://scripts/foliage/VineBakeStats.cs" id="1_script"]
 [ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_vine.tres" id="2_destruction"]
 [ext_resource type="Resource" path="res://resources/foliage/flex_vine.tres" id="3_flex"]
 [ext_resource type="Resource" path="res://resources/foliage/vine_palette.tres" id="4_palette"]
@@ -8,26 +8,8 @@
 [resource]
 resource_name = "VineBake"
 script = ExtResource("1_script")
-ArchetypeSeed = 1
-VoxelSize = 0.5
-VoxelBudget = 30352
-AxisLimit = 256
-PickleHeightM = 1.8
-PodSpacingM = 0.9
-BodiesMax = 20
-MaxAttempts = 16
-MaxPodsLeftOut = 0.1
 MaxLeavesLeftOut = 0.8
 MaxLeafTiltDeg = 38.0
-LeafGapM = 2.5
-GroundClearanceM = 3.0
-MaxLeanDeg = 25.0
-StalkWidening = 0.1
-ArmGrowth = 0.05
-MaxKinkDeg = 3.0
-MaxSagM = 8.0
 Destruction = ExtResource("2_destruction")
 Flex = ExtResource("3_flex")
 Palette = ExtResource("4_palette")
-VoxelFolder = "res://art/voxels"
-SceneFolder = "res://scenes/props"

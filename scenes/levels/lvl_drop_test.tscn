@@ -1,17 +1,17 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene format=3 uid="uid://dten1h12v4klo"]
 
 [ext_resource type="Script" uid="uid://br5rfr1owyw11" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
-[ext_resource type="Script" path="res://scripts/levels/ArenaTerrain.cs" id="3_terrain"]
+[ext_resource type="Script" uid="uid://fyj70fuygn0r" path="res://scripts/levels/ArenaTerrain.cs" id="3_terrain"]
 [ext_resource type="Resource" path="res://resources/levels/arena_terrain_drop_test.tres" id="4_spec"]
 [ext_resource type="Material" path="res://art/materials/mat_arena_terrain.tres" id="5_mat"]
-[ext_resource type="Script" path="res://scripts/levels/TerrainFeature.cs" id="6_feature"]
+[ext_resource type="Script" uid="uid://rqsi5wyx6n3p" path="res://scripts/levels/TerrainFeature.cs" id="6_feature"]
 [ext_resource type="Script" uid="uid://bqbn1xwbwb346" path="res://scripts/horde/HordeDirector.cs" id="7_horde"]
 [ext_resource type="Resource" path="res://resources/horde/horde_stats_default.tres" id="8_stats"]
 [ext_resource type="Resource" path="res://resources/enemies/nme_composition_default.tres" id="9_comp"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_jar_block.tscn" id="10_jar"]
 [ext_resource type="Script" uid="uid://dmucf7smv5n8o" path="res://scripts/levels/ManipulatorBinding.cs" id="11_binding"]
-[ext_resource type="Script" path="res://scripts/mission/ExtractionMission.cs" id="12_mission"]
+[ext_resource type="Script" uid="uid://imj3xoglvtjv" path="res://scripts/mission/ExtractionMission.cs" id="12_mission"]
 [ext_resource type="Resource" path="res://resources/mission/extraction_rules_drop_test.tres" id="13_rules"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_drop_pod.tscn" id="14_pod"]
 
@@ -38,33 +38,33 @@ fog_depth_curve = 1.6
 fog_depth_begin = 180.0
 fog_depth_end = 650.0
 
-[node name="Level" type="Node3D" node_paths=PackedStringArray("PlayerSpawn")]
+[node name="Level" type="Node3D" unique_id=1146591171 node_paths=PackedStringArray("PlayerSpawn")]
 script = ExtResource("1_root")
 PlayerScene = ExtResource("2_player")
 PlayerSpawn = NodePath("Spawns/LandingSite")
 
-[node name="Geometry" type="Node3D" parent="."]
+[node name="Geometry" type="Node3D" parent="." unique_id=26551924]
 
-[node name="Terrain" type="Node3D" parent="Geometry" node_paths=PackedStringArray("GroundedRoots")]
+[node name="Terrain" type="Node3D" parent="Geometry" unique_id=1654369588 node_paths=PackedStringArray("GroundedRoots")]
 script = ExtResource("3_terrain")
 Spec = ExtResource("4_spec")
 Material = ExtResource("5_mat")
 GroundedRoots = [NodePath("../../Foliage"), NodePath("../../Props"), NodePath("../../Spawns")]
 
-[node name="JarPad" type="Marker3D" parent="Geometry/Terrain"]
+[node name="JarPad" type="Marker3D" parent="Geometry/Terrain" unique_id=319636740]
 script = ExtResource("6_feature")
 Kind = 4
 Radius = 45.0
 Edge = 35.0
 
-[node name="LandingPad" type="Marker3D" parent="Geometry/Terrain"]
+[node name="LandingPad" type="Marker3D" parent="Geometry/Terrain" unique_id=2032420707]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 380)
 script = ExtResource("6_feature")
 Kind = 4
 Radius = 14.0
 Edge = 25.0
 
-[node name="MesaWest" type="Marker3D" parent="Geometry/Terrain"]
+[node name="MesaWest" type="Marker3D" parent="Geometry/Terrain" unique_id=1162342990]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -230, 0, -60)
 script = ExtResource("6_feature")
 Kind = 1
@@ -73,7 +73,7 @@ Height = 32.0
 Edge = 8.0
 Roughness = 0.3
 
-[node name="MesaNorthEast" type="Marker3D" parent="Geometry/Terrain"]
+[node name="MesaNorthEast" type="Marker3D" parent="Geometry/Terrain" unique_id=1932947130]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 220, 0, -230)
 script = ExtResource("6_feature")
 Kind = 1
@@ -82,7 +82,7 @@ Height = 46.0
 Edge = 7.0
 Roughness = 0.35
 
-[node name="Butte" type="Marker3D" parent="Geometry/Terrain"]
+[node name="Butte" type="Marker3D" parent="Geometry/Terrain" unique_id=1722503376]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 0, 140)
 script = ExtResource("6_feature")
 Kind = 1
@@ -91,7 +91,7 @@ Height = 28.0
 Edge = 5.0
 Roughness = 0.2
 
-[node name="RidgeNorth" type="Marker3D" parent="Geometry/Terrain"]
+[node name="RidgeNorth" type="Marker3D" parent="Geometry/Terrain" unique_id=1195831752]
 transform = Transform3D(0.9397, 0, 0.342, 0, 1, 0, -0.342, 0, 0.9397, -80, 0, -320)
 script = ExtResource("6_feature")
 Kind = 2
@@ -99,76 +99,76 @@ Radius = 45.0
 Height = 24.0
 Length = 300.0
 
-[node name="HillEast" type="Marker3D" parent="Geometry/Terrain"]
+[node name="HillEast" type="Marker3D" parent="Geometry/Terrain" unique_id=831465076]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 300, 0, 80)
 script = ExtResource("6_feature")
 Radius = 110.0
 Height = 30.0
 
-[node name="HillSouthWest" type="Marker3D" parent="Geometry/Terrain"]
+[node name="HillSouthWest" type="Marker3D" parent="Geometry/Terrain" unique_id=518658334]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -260, 0, 280)
 script = ExtResource("6_feature")
 Radius = 120.0
 Height = 22.0
 
-[node name="Hollow" type="Marker3D" parent="Geometry/Terrain"]
+[node name="Hollow" type="Marker3D" parent="Geometry/Terrain" unique_id=751445771]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 0, 180)
 script = ExtResource("6_feature")
 Kind = 3
 Radius = 90.0
 Height = 10.0
 
-[node name="Water" type="Node3D" parent="."]
+[node name="Water" type="Node3D" parent="." unique_id=2030301993]
 
-[node name="Foliage" type="Node3D" parent="."]
+[node name="Foliage" type="Node3D" parent="." unique_id=1321715712]
 
-[node name="Props" type="Node3D" parent="."]
+[node name="Props" type="Node3D" parent="." unique_id=1722497761]
 
-[node name="Jar" parent="Props" instance=ExtResource("10_jar")]
+[node name="Jar" parent="Props" unique_id=235881704 instance=ExtResource("10_jar")]
 
-[node name="Lighting" type="Node3D" parent="."]
+[node name="Lighting" type="Node3D" parent="." unique_id=1660519070]
 
-[node name="Sun" type="DirectionalLight3D" parent="Lighting"]
+[node name="Sun" type="DirectionalLight3D" parent="Lighting" unique_id=1652408610]
 transform = Transform3D(0.8192, -0.4394, 0.3687, 0, 0.6428, 0.766, -0.5736, -0.6275, 0.5265, 0, 40, 0)
 shadow_enabled = true
 directional_shadow_mode = 1
 directional_shadow_max_distance = 140.0
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="Lighting"]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Lighting" unique_id=762209830]
 environment = SubResource("Env")
 
-[node name="Audio" type="Node3D" parent="."]
+[node name="Audio" type="Node3D" parent="." unique_id=1533439821]
 
-[node name="Spawns" type="Node3D" parent="."]
+[node name="Spawns" type="Node3D" parent="." unique_id=1752832028]
 
-[node name="LandingSite" type="Marker3D" parent="Spawns"]
+[node name="LandingSite" type="Marker3D" parent="Spawns" unique_id=640953740]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 380)
 
-[node name="ExtractionNorthWest" type="Marker3D" parent="Spawns"]
+[node name="ExtractionNorthWest" type="Marker3D" parent="Spawns" unique_id=1405219462]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -320, 10, -330)
 
-[node name="ExtractionSouthEast" type="Marker3D" parent="Spawns"]
+[node name="ExtractionSouthEast" type="Marker3D" parent="Spawns" unique_id=1773937631]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 330, 10, 330)
 
-[node name="ExtractionWest" type="Marker3D" parent="Spawns"]
+[node name="ExtractionWest" type="Marker3D" parent="Spawns" unique_id=378932961]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -370, 10, 60)
 
-[node name="ExtractionNorth" type="Marker3D" parent="Spawns"]
+[node name="ExtractionNorth" type="Marker3D" parent="Spawns" unique_id=1336534484]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 10, -380)
 
-[node name="Horde" type="Node3D" parent="Spawns" node_paths=PackedStringArray("Level", "GroundProvider")]
+[node name="Horde" type="Node3D" parent="Spawns" unique_id=2023925563 node_paths=PackedStringArray("Level", "GroundProvider")]
 script = ExtResource("7_horde")
 Stats = ExtResource("8_stats")
 Composition = ExtResource("9_comp")
 Level = NodePath("../..")
 GroundProvider = NodePath("../../Geometry/Terrain")
 
-[node name="ManipulatorBinding" type="Node" parent="Spawns/Horde" node_paths=PackedStringArray("Horde", "Level")]
+[node name="ManipulatorBinding" type="Node" parent="Spawns/Horde" unique_id=746701320 node_paths=PackedStringArray("Horde", "Level")]
 script = ExtResource("11_binding")
 Horde = NodePath("..")
 Level = NodePath("../../..")
 
-[node name="Mission" type="Node" parent="Spawns" node_paths=PackedStringArray("Level", "Horde", "Jar", "JarCore", "LandingSite", "ExtractionSites")]
+[node name="Mission" type="Node" parent="Spawns" unique_id=14798076 node_paths=PackedStringArray("Level", "Horde", "Jar", "JarCore", "LandingSite", "ExtractionSites")]
 script = ExtResource("12_mission")
 Rules = ExtResource("13_rules")
 Level = NodePath("../..")
@@ -179,4 +179,4 @@ LandingSite = NodePath("../LandingSite")
 ExtractionSites = [NodePath("../ExtractionNorthWest"), NodePath("../ExtractionSouthEast"), NodePath("../ExtractionWest"), NodePath("../ExtractionNorth")]
 PodScene = ExtResource("14_pod")
 
-[node name="Navigation" type="Node3D" parent="."]
+[node name="Navigation" type="Node3D" parent="." unique_id=1660467629]

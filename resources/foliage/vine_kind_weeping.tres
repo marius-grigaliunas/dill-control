@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="VineKind" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="VineKind" format=3 uid="uid://ntic3qvyaxkd"]
 
-[ext_resource type="Script" path="res://scripts/foliage/VineKind.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://l0dk80owbtw7" path="res://scripts/foliage/VineKind.cs" id="1_script"]
 [ext_resource type="Resource" path="res://resources/foliage/vine_palette_weeping.tres" id="9_palette"]
 
 [resource]
@@ -9,38 +9,28 @@ script = ExtResource("1_script")
 KindName = "Weeping"
 Weight = 3.0
 Zone = Vector2(0.35, 0.8)
-PoolSize = 4
-HeightM = Vector2(70.0, 82.0)
-RingCount = Vector2(9.0, 11.0)
-BareStalkM = Vector2(22.0, 28.0)
-WobbleM = Vector2(1.0, 4.0)
-WobbleFrequency = Vector2(1.6, 1.6)
-LeanDeg = Vector2(4.0, 9.0)
-HelixTurns = Vector2(0.0, 0.0)
-TrellisRadiusM = Vector2(4.0, 4.0)
-TipNodDeg = Vector2(20.0, 50.0)
+HeightM = Vector2(70, 82)
+RingCount = Vector2(9, 11)
+BareStalkM = Vector2(22, 28)
+WobbleM = Vector2(1, 4)
+LeanDeg = Vector2(4, 9)
+TipNodDeg = Vector2(20, 50)
 Irregularity = Vector2(0.5, 0.7)
-BaseRadiusM = Vector2(2.6, 3.0)
+BaseRadiusM = Vector2(2.6, 3)
 TipRadiusM = Vector2(0.9, 1.1)
-ShellVoxels = Vector2(2.0, 2.0)
-KnuckleBulge = Vector2(0.4, 0.4)
-KnuckleWidth = Vector2(3.0, 3.0)
-ArmsPerRing = Vector2(4.0, 4.0)
-ArmLengthM = Vector2(16.0, 20.0)
-ArmRiseDeg = Vector2(36.0, 44.0)
+ArmLengthM = Vector2(16, 20)
+ArmRiseDeg = Vector2(36, 44)
 ArmSag = Vector2(1.3, 1.5)
-ArmThickness = Vector2(0.4, 0.4)
 ArmTaper = Vector2(0.15, 0.35)
-ArmTipLeafChance = 1.0
-PodsPerRing = Vector2(16.0, 20.0)
-PodTwistDeg = Vector2(30.0, 50.0)
+PodsPerRing = Vector2(16, 20)
+PodTwistDeg = Vector2(30, 50)
 PedicelM = Vector2(1.75, 2.25)
-LeavesPerRing = Vector2(1.0, 2.0)
-LeavesPerArm = Vector2(2.0, 3.0)
-LeafSizeM = Vector2(11.0, 15.0)
-LeafTiltDeg = Vector2(12.0, 25.0)
-LeafStemM = Vector2(1.0, 2.0)
-LeafStemRiseDeg = Vector2(20.0, 40.0)
+LeavesPerRing = Vector2(1, 2)
+LeavesPerArm = Vector2(2, 3)
+LeafSizeM = Vector2(11, 15)
+LeafTiltDeg = Vector2(12, 25)
+LeafStemM = Vector2(1, 2)
+LeafStemRiseDeg = Vector2(20, 40)
 Palette = ExtResource("9_palette")
-LeafLobes = Vector2(1.0, 2.0)
+LeafLobes = Vector2(1, 2)
 LeafNotch = Vector2(0.1, 0.2)

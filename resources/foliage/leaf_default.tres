@@ -1,23 +1,13 @@
-[gd_resource type="Resource" script_class="LeafStats" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="LeafStats" format=3 uid="uid://bib4nt3gnob6r"]
 
-[ext_resource type="Script" path="res://scripts/foliage/LeafStats.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://bwfl613pylvng" path="res://scripts/foliage/LeafStats.cs" id="1_script"]
 
 [resource]
 resource_name = "LeafDefault"
 script = ExtResource("1_script")
-Health = 250.0
 StemZoneShare = 0.3
 HoleRadiusM = 0.3
-HoleReferenceDamage = 32.0
-HolesPerLeaf = 12
-SplashRadiusM = 6.0
-RecheckSeconds = 0.25
-MassKg = 12.0
 LooseDrag = 1.2
-LooseSpinDrag = 2.0
-LooseSeconds = 8.0
-DustScale = 0.5
-ThicknessM = 0.5
 StemWidthM = 0.35
 StemWalkWidthM = 0.9
 DrawMetres = 600.0

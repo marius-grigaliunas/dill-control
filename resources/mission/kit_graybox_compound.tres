@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="CompoundKit" load_steps=11 format=3]
+[gd_resource type="Resource" script_class="CompoundKit" format=3 uid="uid://c7synyen6a0ub"]
 
-[ext_resource type="Script" path="res://scripts/mission/CompoundKit.cs" id="1_kit"]
-[ext_resource type="Script" path="res://scripts/mission/CompoundEntry.cs" id="2_entry"]
+[ext_resource type="Script" uid="uid://dy1wqtaoocdap" path="res://scripts/mission/CompoundKit.cs" id="1_kit"]
+[ext_resource type="Script" uid="uid://bm7dnhw3nmamj" path="res://scripts/mission/CompoundEntry.cs" id="2_entry"]
 [ext_resource type="PackedScene" path="res://scenes/props/clusters/prp_cluster_jar_court.tscn" id="3_jar"]
 [ext_resource type="PackedScene" path="res://scenes/props/clusters/prp_cluster_spires.tscn" id="4_spires"]
 [ext_resource type="PackedScene" path="res://scenes/props/clusters/prp_cluster_towers.tscn" id="5_towers"]
@@ -10,8 +10,6 @@
 [sub_resource type="Resource" id="Jar"]
 script = ExtResource("2_entry")
 Cluster = ExtResource("3_jar")
-MinCount = 1
-MaxCount = 1
 
 [sub_resource type="Resource" id="Towers"]
 script = ExtResource("2_entry")
@@ -28,15 +26,9 @@ MaxCount = 4
 [sub_resource type="Resource" id="Ruins"]
 script = ExtResource("2_entry")
 Cluster = ExtResource("6_ruin")
-MinCount = 1
 MaxCount = 4
 
 [resource]
 script = ExtResource("1_kit")
 DisplayName = "Graybox nest compound"
-Entries = [SubResource("Jar"), SubResource("Towers"), SubResource("Spires"), SubResource("Ruins")]
-PadRadius = 160.0
-PadBlend = 60.0
-Spacing = 8.0
-SiteCandidates = 32
-PlacementTries = 40
+Entries = Array[ExtResource("2_entry")]([SubResource("Jar"), SubResource("Towers"), SubResource("Spires"), SubResource("Ruins")])

@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="VineLeafSet" format=3]
+[gd_resource type="Resource" script_class="VineLeafSet" format=3 uid="uid://c320qfcustg31"]
 
-[ext_resource type="Script" path="res://scripts/foliage/VineLeafSet.cs" id="1_ku0u4"]
+[ext_resource type="Script" uid="uid://d1jliuibfxd5q" path="res://scripts/foliage/VineLeafSet.cs" id="1_ku0u4"]
 
 [resource]
 script = ExtResource("1_ku0u4")
