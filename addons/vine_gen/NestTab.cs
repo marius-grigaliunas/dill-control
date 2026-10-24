@@ -23,6 +23,12 @@ namespace DillControl.Editor;
 /// on a flat disc (<see cref="NestPreview"/>). Play hands the kit, seed,
 /// population and horde to <c>lvl_nest_lab</c> (<see cref="NestPlay"/>);
 /// it needs no Generate first, and writes nothing else.
+///
+/// After a play the tab shows how it went (<see cref="NestPlay.Result"/>).
+/// Good or Bad, with a note, goes to the verdict log (<see cref="VineLogs"/>)
+/// with what the nest measured, planned again if it was not generated here;
+/// a Good nest can be Saved (<see cref="NestPreset"/>) and loaded back from
+/// the Saved list.
 /// </summary>
 [Tool]
 public partial class NestTab : HSplitContainer
@@ -59,6 +65,26 @@ public partial class NestTab : HSplitContainer
     private NestLayout _layout;
     private MultiMesh _pods;
     private int _podsDrawn;
+    // Which nest the shown layout is: kit, seed, population.
+    private (string Kit, ulong Seed, int Population) _layoutKey;
+
+    private OptionButton _saved;
+    private readonly List<string> _savedPaths = new();
+    private Label _played;
+    private LineEdit _note;
+    private Button _good;
+    private Button _bad;
+    private Button _save;
+    private NestPlay.Result _playResult;
+    private bool _awaitingPlay;
+    private bool _sawPlaying;
+    private bool? _pendingVerdict;
+    private Task<NestLayout> _verdictPlan;
+    private (string Kit, ulong Seed, int Population) _goodKey;
+    private (string Kit, ulong Seed, int Population) _generatingKey;
+    private string _presets = NestPreset.Folder;
+
+    private (string Kit, ulong Seed, int Population) Key() => (Kit()?.ResourcePath ?? "", (ulong)_seed.Value, (int)_population.Value);
 
     public override void _Ready()
     {
@@ -104,6 +130,28 @@ public partial class NestTab : HSplitContainer
         _metrics = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         column.AddChild(_metrics);
 
+        column.AddChild(new HSeparator());
+        column.AddChild(new Label { Text = "Verdict" });
+        _played = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            Text = "Not played yet. Play it, then judge it; or judge what Generate showed." };
+        column.AddChild(_played);
+        _note = new LineEdit { PlaceholderText = "A note: what was good or bad about it", SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        column.AddChild(_note);
+        var verdicts = new HBoxContainer();
+        _good = Button("Good", "Log this nest as good, with its measures and how the play went.", () => Verdict(true));
+        _bad = Button("Bad", "Log this nest as bad. Bad nests are kept as carefully as good ones.", () => Verdict(false));
+        _save = Button("Save", "Keep this Good nest: resources/mission/nests/, loadable from Saved.", Save);
+        _save.Disabled = true;
+        foreach (Button b in new[] { _good, _bad, _save })
+        {
+            b.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            verdicts.AddChild(b);
+        }
+        column.AddChild(verdicts);
+        _saved = new OptionButton { SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "A saved nest: its kit, seed and population into the fields." };
+        _saved.ItemSelected += LoadSaved;
+        column.AddChild(Row("Saved", _saved));
+
         AddChild(BuildPreview());
         // As the dock: the editor has settled before C# resources resolve.
         Callable.From(LoadKits).CallDeferred();
@@ -125,9 +173,13 @@ public partial class NestTab : HSplitContainer
 
     private void StartCheck()
     {
-        EditorInterface.Singleton.SetMainScreenEditor("Vines");
+        VineLogs.Folder = "user://vine-logs-check";
+        _presets = "user://nests-check";
         _viewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
-        _population.Value = 5000;
+        // The nest the last play result (if any) is of, else 5,000.
+        _playResult = NestPlay.ReadResult();
+        _seed.Value = _playResult?.Seed ?? 1;
+        _population.Value = _playResult?.Population ?? 5000;
         Generate();
     }
 
@@ -151,6 +203,13 @@ public partial class NestTab : HSplitContainer
             return;
         }
         image.SavePng(_checkPng.Replace(".png", "_far_vine.png"));
+        _note.Text = "check";
+        Verdict(true);
+        Save();
+        LoadSavedList();
+        LoadSaved(_saved.ItemCount - 1);
+        GD.Print($"[nesttab] {_status.Text}");
+        GD.Print($"[nesttab] log: {ProjectSettings.GlobalizePath(VineLogs.Folder)}");
         GD.Print($"[nesttab] {_status.Text}\n{_metrics.Text}\n[nesttab] {_nest.GetChildCount()} nodes, {_podsDrawn} pods drawn, preview -> {_checkPng}");
         GetTree().Quit();
     }
@@ -276,6 +335,7 @@ public partial class NestTab : HSplitContainer
         }
         if (_kits.Count > 0 && _kit.Selected < 0)
             _kit.Selected = 0;
+        LoadSavedList();
         _status.Text = _kits.Count == 0 ? $"No kits read from {KitFolder}/{KitPrefix}*.tres: build the project, then Reload." : "";
         KitChanged();
     }
@@ -302,6 +362,7 @@ public partial class NestTab : HSplitContainer
         VineGrower.Context context = VineGrower.Context.For(stats, kit.Kinds);
         ulong seed = (ulong)_seed.Value;
         int population = (int)_population.Value;
+        _generatingKey = Key();
         _generate.Disabled = true;
         _clock.Restart();
         _work = Task.Run(() =>
@@ -317,6 +378,8 @@ public partial class NestTab : HSplitContainer
 
     public override void _Process(double delta)
     {
+        WatchPlay();
+        WatchVerdictPlan();
         if (_work != null)
         {
             if (!_work.IsCompleted)
@@ -335,6 +398,7 @@ public partial class NestTab : HSplitContainer
             var (layout, vines, previewSeconds, memory) = _work.Result;
             _work = null;
             Clear(layout);
+            _layoutKey = _generatingKey;
             _toPlant = vines;
             _planted = 0;
             _metrics.Text = Metrics(layout, previewSeconds, memory);
@@ -364,7 +428,7 @@ public partial class NestTab : HSplitContainer
             FinishCheck();
             return;
         }
-        if (_checkFrames > 0)
+        if (_checkFrames > 0 || _awaitingPlay || _verdictPlan != null)
             return;
         SetProcess(false);
     }
@@ -456,7 +520,209 @@ public partial class NestTab : HSplitContainer
             Horde = _horde.ButtonPressed,
         });
         _status.Text = string.Create(CultureInfo.InvariantCulture, $"Playing nest {(ulong)_seed.Value} at {(int)_population.Value:N0}.");
+        NestPlay.ClearResult();
+        _playResult = null;
+        _awaitingPlay = true;
+        _sawPlaying = false;
+        SetProcess(true);
         EditorInterface.Singleton.PlayCustomScene(LabPath);
+    }
+
+    private void WatchPlay()
+    {
+        if (!_awaitingPlay)
+            return;
+        if (EditorInterface.Singleton.IsPlayingScene())
+        {
+            _sawPlaying = true;
+            return;
+        }
+        if (!_sawPlaying)
+            return;
+        _awaitingPlay = false;
+        _playResult = NestPlay.ReadResult();
+        _played.Text = _playResult == null ? "Played, but no result came back (left before the nest loaded?)." : Played(_playResult);
+        _status.Text = "Played. Judge it: Good or Bad, with a note.";
+    }
+
+    private static string Played(NestPlay.Result r)
+    {
+        CultureInfo c = CultureInfo.InvariantCulture;
+        return string.Create(c, $"Played nest {r.Seed} at {r.Population:N0}{(r.Horde ? "" : ", no horde")} for {r.PlayedSeconds / 60:F0}:{r.PlayedSeconds % 60:00}\n")
+            + string.Create(c, $"{r.Swings} swings, {r.GroundTouches} times on the ground, heart reached {(r.SecondsToHeart < 0 ? "never" : string.Create(c, $"after {r.SecondsToHeart:F0} s"))}\n")
+            + string.Create(c, $"Pods destroyed {r.PodsDestroyed:N0} of {r.Pods:N0}; pickles left {r.PicklesLeft:N0} of {r.PicklesStarting:N0} ({r.KilledOnPods:N0} killed hanging)\n")
+            + $"The colony {(r.Woke ? "woke" : "slept")}; {r.Outcome}{(r.Bonus ? ", with the bonus" : "")}; pickled {r.TimesPickled} times";
+    }
+
+    // Good or Bad, for the nest in the fields: with its measures (planned
+    // again if the shown one is another nest) and the play, if it was this one.
+    private void Verdict(bool good)
+    {
+        if (Kit() == null || _verdictPlan != null)
+            return;
+        _pendingVerdict = good;
+        if (_layout != null && _layoutKey == Key())
+        {
+            WriteVerdict(_layout);
+            return;
+        }
+        NestKit kit = Kit();
+        VineGrower.Context context = VineGrower.Context.For(kit.BakeOrDefault(), kit.Kinds);
+        (string _, ulong seed, int population) = Key();
+        _verdictPlan = Task.Run(() => NestLayout.Plan(kit, context, seed, population));
+        _good.Disabled = _bad.Disabled = true;
+        _status.Text = "Planning the nest again for its measures...";
+        SetProcess(true);
+    }
+
+    private void WatchVerdictPlan()
+    {
+        if (_verdictPlan == null || !_verdictPlan.IsCompleted)
+            return;
+        Task<NestLayout> plan = _verdictPlan;
+        _verdictPlan = null;
+        _good.Disabled = _bad.Disabled = false;
+        if (plan.IsFaulted)
+        {
+            _status.Text = "Not logged: planning failed, " + plan.Exception?.GetBaseException().Message;
+            return;
+        }
+        WriteVerdict(plan.Result);
+    }
+
+    private void WriteVerdict(NestLayout layout)
+    {
+        bool good = _pendingVerdict ?? false;
+        _pendingVerdict = null;
+        (string kit, ulong seed, int population) = Key();
+        NestPlay.Result play = _playResult != null && _playResult.Kit == kit && _playResult.Seed == seed && _playResult.Population == population
+            ? _playResult : null;
+        var record = new Dictionary<string, object>
+        {
+            ["time"] = VineLogs.Now(),
+            ["verdict"] = good ? "good" : "bad",
+            ["note"] = _note.Text,
+            ["kit"] = kit,
+            ["seed"] = seed,
+            ["population"] = population,
+            ["horde"] = _horde.ButtonPressed,
+            ["generator"] = VineLogs.Generator(),
+            ["plan"] = PlanMeasures(layout),
+            ["play"] = play == null ? null : PlayMeasures(play),
+        };
+        VineLogs.Append(VineLogs.NestVerdicts, record);
+        _goodKey = good ? Key() : default;
+        _save.Disabled = !good;
+        _status.Text = $"Logged as {(good ? "good" : "bad")} in {VineLogs.Folder}/{VineLogs.NestVerdicts}{(play == null ? " (not played)" : "")}." + (good ? " Save keeps it." : "");
+    }
+
+    private static Dictionary<string, object> PlanMeasures(NestLayout layout)
+    {
+        List<Vector3> at = layout.Vines.Select(v => Vector3.Forward.Rotated(Vector3.Up, v.Bearing) * v.RadiusM).ToList();
+        List<float> nearest = at.Count > 1 ? at.Select((p, i) => at.Where((_, j) => j != i).Min(q => q.DistanceTo(p))).ToList() : new List<float> { 0 };
+        return new Dictionary<string, object>
+        {
+            ["vines"] = layout.Vines.Count,
+            ["pods"] = layout.Pods,
+            ["short"] = layout.Short,
+            ["radius_m"] = Math.Round(layout.RadiusM, 1),
+            ["slots"] = layout.Slots,
+            ["slots_used"] = layout.Vines.Count,
+            ["avenues"] = layout.Avenues.Length,
+            ["shifted"] = layout.Shifted,
+            ["kinds"] = layout.Vines.GroupBy(v => v.Kind?.Slug ?? "?").ToDictionary(g => g.Key, g => (object)new Dictionary<string, object>
+            {
+                ["vines"] = g.Count(),
+                ["mean_pods"] = Math.Round(g.Average(v => v.Pods), 1),
+            }),
+            ["spacing_min_m"] = Math.Round(nearest.Min(), 1),
+            ["spacing_mean_m"] = Math.Round(nearest.Average(), 1),
+            ["rolls"] = layout.Vines.Sum(v => 1 + (v.Grown?.Attempt ?? 0)),
+            ["rejected"] = layout.Vines.Sum(v => v.Grown?.Attempt ?? 0),
+            ["reasons"] = layout.Vines.Where(v => v.Grown != null).SelectMany(v => v.Grown.Rejected).SelectMany(r => r.Reasons)
+                .GroupBy(r => r).ToDictionary(g => g.Key, g => (object)g.Count()),
+            ["grow_seconds"] = Math.Round(layout.GrowSeconds, 2),
+        };
+    }
+
+    private static Dictionary<string, object> PlayMeasures(NestPlay.Result r) => new()
+    {
+        ["played_seconds"] = Math.Round(r.PlayedSeconds, 1),
+        ["swings"] = r.Swings,
+        ["seconds_to_heart"] = Math.Round(r.SecondsToHeart, 1),
+        ["ground_touches"] = r.GroundTouches,
+        ["pods"] = r.Pods,
+        ["pods_destroyed"] = r.PodsDestroyed,
+        ["pickles_starting"] = r.PicklesStarting,
+        ["pickles_left"] = r.PicklesLeft,
+        ["killed_on_pods"] = r.KilledOnPods,
+        ["woke"] = r.Woke,
+        ["outcome"] = r.Outcome,
+        ["bonus"] = r.Bonus,
+        ["times_pickled"] = r.TimesPickled,
+    };
+
+    // Only a nest just judged Good is kept.
+    private void Save()
+    {
+        NestKit kit = Kit();
+        if (kit == null || _goodKey != Key())
+        {
+            _status.Text = "Only a nest just judged Good can be saved.";
+            return;
+        }
+        (string _, ulong seed, int population) = Key();
+        var preset = new NestPreset
+        {
+            Kit = kit,
+            Seed = (long)seed,
+            Population = population,
+            Horde = _horde.ButtonPressed,
+            Note = _note.Text,
+            Saved = VineLogs.Now(),
+            Generator = VineLogs.Generator(),
+        };
+        DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath(_presets));
+        string path = string.Create(CultureInfo.InvariantCulture, $"{_presets}/nest_{kit.ResourcePath.GetFile().GetBaseName().Replace("nest_kit_", "")}_{seed}_{population}.tres");
+        Error error = ResourceSaver.Save(preset, path);
+        _status.Text = error == Error.Ok ? $"Saved {path}." : $"Not saved: {error}.";
+        EditorInterface.Singleton.GetResourceFilesystem().Scan();
+        LoadSavedList();
+    }
+
+    private void LoadSavedList()
+    {
+        _savedPaths.Clear();
+        _saved.Clear();
+        _saved.AddItem("(none)");
+        if (!DirAccess.DirExistsAbsolute(_presets))
+            return;
+        foreach (string file in DirAccess.GetFilesAt(_presets))
+        {
+            if (!file.EndsWith(".tres"))
+                continue;
+            _savedPaths.Add($"{_presets}/{file}");
+            _saved.AddItem(file.GetBaseName());
+        }
+    }
+
+    private void LoadSaved(long index)
+    {
+        if (index < 1 || index > _savedPaths.Count)
+            return;
+        if (ResourceLoader.Load(_savedPaths[(int)index - 1], cacheMode: ResourceLoader.CacheMode.Replace) is not NestPreset preset)
+            return;
+        int kit = _kits.FindIndex(k => k.ResourcePath == preset.Kit?.ResourcePath);
+        if (kit >= 0)
+        {
+            _kit.Selected = kit;
+            KitChanged();
+        }
+        _seed.Value = preset.Seed;
+        _population.Value = preset.Population;
+        _horde.ButtonPressed = preset.Horde;
+        _note.Text = preset.Note;
+        _status.Text = $"Loaded {preset.ResourcePath.GetFile()}: Generate to see it, Play to play it.";
     }
 }
 #endif

@@ -82,6 +82,9 @@ public partial class NestBuilder : Node, ILevelBuilder
     public double LoadSeconds { get; private set; }
 
     private NestPlay.Request _request;
+
+    /// <summary>What the Vines tool asked for, when it played this nest; else null.</summary>
+    public NestPlay.Request PlayedFromTool => _request;
     private Task<NestLayout> _plan;
     private Task _models;
     private VineBakeStats _stats;
