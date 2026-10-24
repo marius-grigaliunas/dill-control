@@ -8,15 +8,15 @@
   "rolledSeed": 8349791,
   "params": {
     "seed": 8349791.0,
-    "heightM": 107.0,
+    "heightM": 109.0,
     "voxelSize": 0.5,
     "ringCount": 11.0,
     "bareStalkM": 30.5,
     "wobbleM": 3.0,
     "wobbleFrequency": 1.6,
     "leanDeg": 2.0,
-    "helixTurns": 0.0,
-    "trellisRadiusM": 4.0,
+    "helixTurns": 0.6,
+    "trellisRadiusM": 3.0,
     "tipNodDeg": 14.0,
     "irregularity": 0.5,
     "baseRadiusM": 3.6,
@@ -25,9 +25,9 @@
     "knuckleBulge": 0.4,
     "knuckleWidth": 3.0,
     "armsPerRing": 4.0,
-    "armLengthM": 22.5,
-    "armRiseDeg": 42.0,
-    "armSag": 1.35,
+    "armLengthM": 23.5,
+    "armRiseDeg": 14.0,
+    "armSag": 0.3,
     "armThickness": 0.35,
     "armTaper": 0.2,
     "armTipLeaf": true,
@@ -42,28 +42,28 @@
     "leafStemRiseDeg": 26.0
   },
   "counts": {
-    "total": 25464,
-    "shell": 16647,
-    "knuckle": 2217,
-    "core": 7716,
-    "leaves": 93,
-    "leavesLeftOut": 138,
-    "bridged": 9,
+    "total": 26377,
+    "shell": 17323,
+    "knuckle": 2114,
+    "core": 7901,
+    "leaves": 121,
+    "leavesLeftOut": 110,
+    "bridged": 7,
     "stranded": 0,
-    "pods": 207,
-    "podsBlocked": 1,
+    "pods": 206,
+    "podsBlocked": 3,
     "podsGrounded": 0,
-    "podsCrowded": 1,
-    "podSpacingM": 1.11803398874989,
-    "bodies": 10
+    "podsCrowded": 0,
+    "podSpacingM": 1.22474487139159,
+    "bodies": 13
   },
   "bounds": [
-    77,
-    74,
-    218
+    101,
+    100,
+    221
   ],
-  "heightM": 109.0,
+  "heightM": 110.5,
   "warnings": [
-    "2 of 209 pods left out: 1 with the vine in their 1.8 m drop, 0 too low, 1 under 0.9 m from another."
+    "3 of 209 pods left out: 3 with the vine in their 1.8 m drop, 0 too low, 0 under 0.9 m from another."
   ]
 }

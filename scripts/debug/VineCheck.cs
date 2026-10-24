@@ -700,6 +700,7 @@ public partial class VineCheck : Node
             var armThick = new List<double>();
             var leaves = new List<double>();
             var leavesOut = new List<double>();
+            var examples = new List<string>();
             ulong t0 = Time.GetTicksMsec();
             for (int i = 0; i < count; i++)
             {
@@ -718,6 +719,8 @@ public partial class VineCheck : Node
                 // The seed's own roll, valid or not: how the kind's ranges land.
                 VineValidator.Verdict first = grown.Attempt == 0 ? grown.Verdict
                     : VineValidator.Check(VineGenerator.Generate(kind.Roll(seed, Math.Round((double)stats.VoxelSize, 6)), stats.Limits()), stats);
+                if (!first.Ok && examples.Count < 3)
+                    examples.Add(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"seed {seed}: ") + string.Join(" ", first.Details));
                 lean.Add(first.LeanDeg);
                 kink.Add(first.KinkDeg);
                 sag.Add(first.SagM);
@@ -743,6 +746,8 @@ public partial class VineCheck : Node
             }
             text.AppendLine($"    first rolls p10/p50/p90/max: lean {Spread(lean)} deg, kink {Spread(kink)} deg, sag {Spread(sag)} m, "
                 + $"knuckle widening {Spread(widen)}, arm length growth {Spread(armLength)}, arm thickness growth {Spread(armThick)}, leaves {Spread(leaves)} ({Spread(leavesOut)} left out)");
+            foreach (string example in examples)
+                text.AppendLine("    e.g. " + example);
             if (failed > 0)
                 pass = false;
         }
