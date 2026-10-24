@@ -171,5 +171,20 @@ func _run() -> void:
 	_check("the felled vine's pods are destroyed", pods.Destroyed >= near / 2,
 		"%d destroyed after %.1f s, the heart vine has %d" % [pods.Destroyed, waited, near])
 	_check("no pod far from it is", far_lost == 0, "%d more than 200 m off" % far_lost)
+
+	# The goal: every pod destroyed is not enough while too many are alive;
+	# with at most MaxAliveShare alive it is cleared, and with none the bonus.
+	var mission: Node = level.get_node("Spawns/Mission")
+	for i in pods.Count:
+		pods.Destroy(i)
+	for i in 5:
+		await process_frame
+	_check("every pod destroyed, too many alive: not yet cleared", mission.PodsLeft == 0 and mission.Current == 1,
+		"%d alive, at most %d" % [mission.Alive, mission.AliveAllowed])
+	horde.Manager.SetAgentCount(0, Vector3.ZERO, 0.0)
+	for i in 5:
+		await process_frame
+	_check("none left: cleared, and the bonus", mission.Current == 2 and mission.Bonus,
+		"phase %d, bonus %s, %d alive" % [mission.Current, mission.Bonus, mission.Alive])
 	print("FAIL" if _failed else "PASS")
 	quit(1 if _failed else 0)

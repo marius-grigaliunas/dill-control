@@ -26,6 +26,8 @@
 [ext_resource type="Resource" path="res://resources/horde/horde_stats_default.tres" id="52_hordestats"]
 [ext_resource type="Resource" path="res://resources/enemies/nme_composition_default.tres" id="53_comp"]
 [ext_resource type="Script" uid="uid://dmucf7smv5n8o" path="res://scripts/levels/ManipulatorBinding.cs" id="54_binding"]
+[ext_resource type="Script" path="res://scripts/mission/ColonyMission.cs" id="55_mission"]
+[ext_resource type="Resource" path="res://resources/mission/colony_rules_default.tres" id="56_rules"]
 
 [sub_resource type="Sky" id="Sky"]
 sky_material = ExtResource("32_sky")
@@ -141,5 +143,11 @@ GroundProvider = NodePath("../../Geometry/Planet")
 script = ExtResource("54_binding")
 Horde = NodePath("..")
 Level = NodePath("../../..")
+
+[node name="Mission" type="Node" parent="Spawns" node_paths=PackedStringArray("Pods", "Horde")]
+script = ExtResource("55_mission")
+Rules = ExtResource("56_rules")
+Pods = NodePath("../../Props/PodField")
+Horde = NodePath("../Horde")
 
 [node name="Navigation" type="Node3D" parent="."]

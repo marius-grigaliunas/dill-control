@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ColonyRules" format=3]
+
+[ext_resource type="Script" path="res://scripts/mission/ColonyRules.cs" id="1_script"]
+
+[resource]
+resource_name = "ColonyRulesDefault"
+script = ExtResource("1_script")
+MaxAliveShare = 0.2
+CardSeconds = 6.0
