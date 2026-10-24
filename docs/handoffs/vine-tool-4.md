@@ -37,8 +37,37 @@ files only (never `docs/project_board.json`, `engine/` or `.vscode/`).
   ticks, with the shoves, the platform's speed and what it touched. Next
   time it happens, the console or the `U` summary says which.
   `flingcheck.gd` holds the cap and the guard.
-- **Report 1 (path of destruction): waiting on the design talk** with the
-  user; questions asked.
+- **Report 1 (path of destruction): decided with the user** (interview,
+  same day; memory `path-of-destruction`):
+  - A felled vine leaves **logs plus litter**: its logs lying where it
+    fell, with torn leaves, broken arms and empty pods round them.
+  - **Big stays, small fades.** Logs, stumps and scorch last the whole
+    contract; only small bits fade. When the frame is tight, small litter
+    gives first.
+  - **Over the loose-piece cap, dust is fine**: keep `cap-dusted`. Make
+    what is made stay.
+  - **Fire burns where hit for 10-20 s, smoulders, then chars.** No
+    spreading. Charred means blackened where it burned; the rest stays
+    green.
+  - **Ground marks: laser scorch lines only.** No blast scorch, no ash.
+  - **Dead pickles lie about a minute, then fade**: drawn in bulk, capped.
+  - **The vine nest first.** The decision record is written for the whole
+    game (it revisits 0016 and 0022); buildings and mechs come after.
+  - **Before/after screenshots at each step**, from a laser sweep through
+    the nest, for the user to judge.
+
+  Build order, each step its own commit:
+  1. Write the decision record.
+  2. A `lasersweep` bench mode for the nest, modelled on `lasercut`.
+  3. Settled logs stay as static, no-physics debris (end the crumble for
+     big pieces), with stumps.
+  4. Litter: torn leaves, arms and pods lie rather than puff; small bits
+     fade.
+  5. Fire on vines and leaves, then char.
+  6. Laser scorch lines on the ground.
+  7. Corpses that lie for about a minute.
+
+  Measure each step against the 25,000 nest.
 
 ## Where it stands
 
