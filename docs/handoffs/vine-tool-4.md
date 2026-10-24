@@ -9,6 +9,37 @@ file is where things stand now and what to do next. **Work only inside
 numbers in `.tres`, bench on the target machine, short commits of your own
 files only (never `docs/project_board.json`, `engine/` or `.vscode/`).
 
+## Status, 24 October 2026 (later)
+
+- **Report 3 (Good/Bad) is done** (c6df224). The Vine tab has Good/Bad and
+  a note under its preview. A click on a range-lab card opens that very
+  roll in the Vine tab: its settings, attempt 0. It's marked "as the range
+  lab rolled it" when that isn't the vine the seed grows from the kind's
+  file, and then it bakes with a `c` name. Both write one record
+  (`VineLogs.JudgeVine`, with `changed`). Log keys now keep their order
+  (Godot's JSON sorted them). The Nest tab's verdict sits under Play.
+  `rangelab-check` and `reload-check` cover the Vine tab. Both passed in a
+  real editor, run with every `.vox.import` snapshotted and compared after:
+  none changed.
+- **Report 2 (the fling): guarded, not solved** (d9b139e). Ruled out by
+  reading: a respawn (nothing in the lab calls `RespawnPlayer`), the
+  under-ground rescue (it only lifts along the player's own up), the bike
+  (capped every tick at 78 m/s x 1.8, and a CharacterBody), and shoves
+  collected while riding (the stowed player is off every layer, and the
+  crowd checks `IsStowed`). "17801 PICKLED" on the HUD is kills.
+  The player falls at 1.75 g, so orbital speed is about 146 m/s; anything
+  near it reaches kilometres. Two live causes: shoves summed in one tick
+  (they had no limit; HE is 44 m/s each), now capped at
+  `MaxShoveSpeed` 50; or a vine section's platform velocity
+  (`VoxelPart.BendSections` gives a near section `(offset - was) / dt`, and
+  Godot adds it to the player leaving it). The `[fling]` guard prints and
+  logs (PerfLog event) a player over 70 m/s or moved over 20 m between
+  ticks, with the shoves, the platform's speed and what it touched. Next
+  time it happens, the console or the `U` summary says which.
+  `flingcheck.gd` holds the cap and the guard.
+- **Report 1 (path of destruction): waiting on the design talk** with the
+  user; questions asked.
+
 ## Where it stands
 
 | Step (vine-tool.md build order) | State |
