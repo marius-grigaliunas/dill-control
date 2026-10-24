@@ -11,6 +11,10 @@ namespace DillControl.Mission;
 /// plays, since the editor stops a game by ending it. Records nothing for
 /// a nest the tool did not play.
 ///
+/// What the tool asks for testing it sets up as well: every weapon kept
+/// full (resupplied every half second: magazines still reload), and a
+/// hoverbike parked beside the player.
+///
 /// What each measure means is fixed here, not tuned: the verdict log keeps
 /// them side by side across nests and must compare like with like.
 /// </summary>
@@ -27,6 +31,15 @@ public partial class NestPlaytest : Node
     [Export] public NestBuilder Builder { get; set; }
     [Export] public PodField Pods { get; set; }
     [Export] public ColonyMission Mission { get; set; }
+    [Export] public PackedScene BikeScene { get; set; }
+    /// <summary>Where a parked bike goes: the level's Props.</summary>
+    [Export] public Node3D BikeParent { get; set; }
+
+    private const float ResupplyEverySeconds = 0.5f;
+    /// <summary>A parked bike stands this far to the player's right.</summary>
+    private const float BikeAsideM = 8.0f;
+    private float _sinceResupply;
+    private bool _infiniteAmmo;
 
     private NestPlay.Result _result;
     private PlayerController _player;
@@ -70,6 +83,50 @@ public partial class NestPlaytest : Node
         {
             _player.Grapple.Attached += () => _result.Swings++;
         }
+        _infiniteAmmo = request.InfiniteAmmo;
+        if (request.Bike)
+        {
+            ParkBike();
+        }
+    }
+
+    // Upright on its own ground, to the player's right, nose the way they face.
+    private void ParkBike()
+    {
+        if (BikeScene == null || BikeParent == null)
+        {
+            return;
+        }
+        Vector3 at = _player.GlobalPosition;
+        Vector3 up = Core.WorldUp.At(at);
+        Vector3 facing = (-_player.GlobalBasis.Z).Slide(up);
+        if (facing.LengthSquared() < 1e-6f)
+        {
+            facing = up.Cross(Vector3.Right);
+        }
+        facing = facing.Normalized();
+        Vector3 place = at + (facing.Cross(up).Normalized() * BikeAsideM) + (up * 1.0f);
+        Planet.PlanetHeightfield heights = Builder?.Contract?.Planet?.Heights;
+        if (heights != null)
+        {
+            place = heights.SurfacePoint(place.Normalized()) + (up * 1.0f);
+        }
+        var bike = BikeScene.Instantiate<Node3D>();
+        BikeParent.AddChild(bike);
+        bike.GlobalTransform = new Transform3D(Planet.PlanetHeightfield.UprightBasis(up, facing), place);
+    }
+
+    // Every weapon the player carries, topped up.
+    private void Resupply(Node node)
+    {
+        foreach (Node child in node.GetChildren())
+        {
+            if (child is Weapons.WeaponBase weapon)
+            {
+                weapon.Resupply(1.0f);
+            }
+            Resupply(child);
+        }
     }
 
     public override void _PhysicsProcess(double delta)
@@ -80,6 +137,11 @@ public partial class NestPlaytest : Node
         }
         _playing += delta;
         _result.PlayedSeconds = _playing;
+        if (_infiniteAmmo && (_sinceResupply += (float)delta) >= ResupplyEverySeconds)
+        {
+            _sinceResupply = 0.0f;
+            Resupply(_player);
+        }
         Vector3 at = _player.GlobalPosition;
 
         Planet.PlanetHeightfield heights = Builder.Contract?.Planet?.Heights;

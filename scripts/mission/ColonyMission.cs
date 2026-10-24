@@ -113,6 +113,8 @@ public partial class ColonyMission : Node
             Alive = Alive,
             AliveAllowed = AliveAllowed,
             Hanging = Pods.Full,
+            Regrowing = Pods.Regrowing,
+            Dropped = Pods.Dropped,
         });
     }
 

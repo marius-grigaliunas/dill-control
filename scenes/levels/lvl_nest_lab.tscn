@@ -29,6 +29,7 @@
 [ext_resource type="Script" path="res://scripts/mission/ColonyMission.cs" id="55_mission"]
 [ext_resource type="Resource" path="res://resources/mission/colony_rules_default.tres" id="56_rules"]
 [ext_resource type="Script" path="res://scripts/mission/NestPlaytest.cs" id="57_playtest"]
+[ext_resource type="PackedScene" path="res://scenes/vehicles/shp_hoverbike.tscn" id="58_bike"]
 
 [sub_resource type="Sky" id="Sky"]
 sky_material = ExtResource("32_sky")
@@ -151,11 +152,13 @@ Rules = ExtResource("56_rules")
 Pods = NodePath("../../Props/PodField")
 Horde = NodePath("../Horde")
 
-[node name="Playtest" type="Node" parent="Spawns" node_paths=PackedStringArray("Level", "Builder", "Pods", "Mission")]
+[node name="Playtest" type="Node" parent="Spawns" node_paths=PackedStringArray("Level", "Builder", "Pods", "Mission", "BikeParent")]
 script = ExtResource("57_playtest")
 Level = NodePath("../..")
 Builder = NodePath("../../Geometry/NestBuilder")
 Pods = NodePath("../../Props/PodField")
 Mission = NodePath("../Mission")
+BikeScene = ExtResource("58_bike")
+BikeParent = NodePath("../../Props")
 
 [node name="Navigation" type="Node3D" parent="."]

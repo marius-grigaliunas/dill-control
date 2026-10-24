@@ -1,5 +1,6 @@
+using System;
 using System.IO;
-using System.Text.Json;
+using System.Reflection;
 using Godot;
 
 namespace DillControl.Mission;
@@ -12,6 +13,10 @@ namespace DillControl.Mission;
 /// steered by a stale one). While it plays, <see cref="NestPlaytest"/>
 /// writes how it is going (<see cref="Result"/>) for the tool to read when
 /// play stops. Play writes nothing in the project.
+///
+/// Godot's JSON, not System.Text.Json: this runs in the editor too, and
+/// System.Text.Json's caches of the project's types keep the editor from
+/// unloading the project's assembly when it is rebuilt.
 /// </summary>
 public static class NestPlay
 {
@@ -24,6 +29,10 @@ public static class NestPlay
         public ulong Seed { get; set; }
         public int Population { get; set; }
         public bool Horde { get; set; } = true;
+        /// <summary>For testing: every weapon kept full (<see cref="NestPlaytest"/>).</summary>
+        public bool InfiniteAmmo { get; set; } = true;
+        /// <summary>For testing: a hoverbike parked beside the player at the start.</summary>
+        public bool Bike { get; set; } = true;
     }
 
     public const string ResultPath = "user://nest_result.json";
@@ -56,12 +65,10 @@ public static class NestPlay
         public int TimesPickled { get; set; }
     }
 
-    private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
-
     public static void WriteResult(Result result)
     {
         string path = ProjectSettings.GlobalizePath(ResultPath);
-        File.WriteAllText(path + ".tmp", JsonSerializer.Serialize(result, Options));
+        File.WriteAllText(path + ".tmp", ToJson(result));
         File.Move(path + ".tmp", path, overwrite: true);
     }
 
@@ -73,14 +80,7 @@ public static class NestPlay
         {
             return null;
         }
-        try
-        {
-            return JsonSerializer.Deserialize<Result>(File.ReadAllText(path));
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
+        return FromJson<Result>(File.ReadAllText(path));
     }
 
     public static void ClearResult()
@@ -93,7 +93,7 @@ public static class NestPlay
     }
 
     public static void Write(Request request) =>
-        File.WriteAllText(ProjectSettings.GlobalizePath(RequestPath), JsonSerializer.Serialize(request, Options));
+        File.WriteAllText(ProjectSettings.GlobalizePath(RequestPath), ToJson(request));
 
     /// <summary>The request the tool left, or null; it is gone after.</summary>
     public static Request Take()
@@ -105,16 +105,61 @@ public static class NestPlay
         }
         try
         {
-            return JsonSerializer.Deserialize<Request>(File.ReadAllText(path));
-        }
-        catch (JsonException e)
-        {
-            GD.PushWarning($"NestPlay: {RequestPath} could not be read ({e.Message}); ignored.");
-            return null;
+            Request request = FromJson<Request>(File.ReadAllText(path));
+            if (request == null)
+                GD.PushWarning($"NestPlay: {RequestPath} could not be read; ignored.");
+            return request;
         }
         finally
         {
             File.Delete(path);
         }
+    }
+
+    // Each public property by name; seeds as whole numbers (a JSON number is
+    // a double, exact to 2^53, and the tool's seeds are ints).
+    private static string ToJson(object value)
+    {
+        var dictionary = new Godot.Collections.Dictionary();
+        foreach (PropertyInfo property in value.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            object v = property.GetValue(value);
+            dictionary[property.Name] = v switch
+            {
+                string s => s,
+                bool b => b,
+                int i => i,
+                long l => l,
+                ulong u => (long)u,
+                float f => f,
+                double d => d,
+                _ => v?.ToString() ?? "",
+            };
+        }
+        return Json.Stringify(dictionary, "  ");
+    }
+
+    private static T FromJson<T>(string text) where T : new()
+    {
+        if (Json.ParseString(text).Obj is not Godot.Collections.Dictionary dictionary)
+            return default;
+        var value = new T();
+        foreach (PropertyInfo property in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (!dictionary.TryGetValue(property.Name, out Variant v))
+                continue;
+            Type type = property.PropertyType;
+            object read = type == typeof(string) ? v.AsString()
+                : type == typeof(bool) ? v.AsBool()
+                : type == typeof(int) ? (int)v.AsDouble()
+                : type == typeof(long) ? (long)v.AsDouble()
+                : type == typeof(ulong) ? (ulong)Math.Max(0.0, v.AsDouble())
+                : type == typeof(float) ? (float)v.AsDouble()
+                : type == typeof(double) ? v.AsDouble()
+                : null;
+            if (read != null)
+                property.SetValue(value, read);
+        }
+        return value;
     }
 }

@@ -1,8 +1,8 @@
 #if TOOLS
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using System.IO;
-using System.Text.Json;
 using Godot;
 
 namespace DillControl.Editor;
@@ -15,6 +15,10 @@ namespace DillControl.Editor;
 /// record a line, in <c>tools/vine-logs/</c>, tracked in git. Each file's
 /// first line is an <c>"about"</c> record saying in plain words what a line
 /// is and what each field means.
+///
+/// Written with Godot's JSON: System.Text.Json's caches of the project's
+/// types keep the editor from unloading the project's assembly on a rebuild.
+/// Keys keep the order they are given in.
 /// </summary>
 public static class VineLogs
 {
@@ -23,8 +27,6 @@ public static class VineLogs
     public static string Folder { get; set; } = "res://tools/vine-logs";
     public const string NestVerdicts = "nest_verdicts.jsonl";
     public const string VineVerdicts = "vine_verdicts.jsonl";
-
-    private static readonly JsonSerializerOptions Options = new() { WriteIndented = false };
 
     private static readonly Dictionary<string, Dictionary<string, object>> Abouts = new()
     {
@@ -84,8 +86,8 @@ public static class VineLogs
         string path = Path.Combine(folder, file);
         var lines = new List<string>();
         if (!File.Exists(path) || new FileInfo(path).Length == 0)
-            lines.Add(JsonSerializer.Serialize(Abouts[file], Options));
-        lines.Add(JsonSerializer.Serialize(record, Options));
+            lines.Add(Json.Stringify(ToVariant(Abouts[file])));
+        lines.Add(Json.Stringify(ToVariant(record)));
         File.AppendAllLines(path, lines);
     }
 
@@ -101,6 +103,38 @@ public static class VineLogs
         OS.Execute("git", new[] { "-C", root, "status", "--porcelain", "--", "scripts/foliage", "scripts/mission", "resources/foliage", "resources/mission" }, output);
         bool changed = output.Count > 0 && output[0].AsString().Trim().Length > 0;
         return changed ? commit + "+changes" : commit;
+    }
+
+    // Plain values, lists and string-keyed dictionaries, as Godot's.
+    private static Variant ToVariant(object value) => value switch
+    {
+        null => default,
+        string s => s,
+        bool b => b,
+        int i => i,
+        long l => l,
+        ulong u => (long)u,
+        float f => f,
+        double d => d,
+        IDictionary map => Map(map),
+        IEnumerable list => List(list),
+        _ => value.ToString(),
+    };
+
+    private static Godot.Collections.Dictionary Map(IDictionary map)
+    {
+        var dictionary = new Godot.Collections.Dictionary();
+        foreach (DictionaryEntry entry in map)
+            dictionary[entry.Key.ToString()] = ToVariant(entry.Value);
+        return dictionary;
+    }
+
+    private static Godot.Collections.Array List(IEnumerable list)
+    {
+        var array = new Godot.Collections.Array();
+        foreach (object item in list)
+            array.Add(ToVariant(item));
+        return array;
     }
 
     public static string Now() => DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture);

@@ -43,6 +43,8 @@ public partial class NestTab : HSplitContainer
     private SpinBox _seed;
     private SpinBox _population;
     private CheckBox _horde;
+    private CheckBox _ammo;
+    private CheckBox _bike;
     private Button _generate;
     private Button _play;
     private Label _metrics;
@@ -114,6 +116,12 @@ public partial class NestTab : HSplitContainer
         _horde = new CheckBox { Text = "With the horde", ButtonPressed = true,
             TooltipText = "Off: the pickles hang, and nothing drops when the colony wakes." };
         column.AddChild(_horde);
+        var testing = new HBoxContainer();
+        _ammo = new CheckBox { Text = "Infinite ammo", ButtonPressed = true, TooltipText = "For testing: every weapon kept full (magazines still reload)." };
+        _bike = new CheckBox { Text = "Hoverbike", ButtonPressed = true, TooltipText = "For testing: a hoverbike parked beside you at the start." };
+        testing.AddChild(_ammo);
+        testing.AddChild(_bike);
+        column.AddChild(testing);
 
         var buttons = new HBoxContainer();
         _generate = Button("Generate", "Plan the nest and stand it here, as the game would grow it.", Generate);
@@ -519,6 +527,8 @@ public partial class NestTab : HSplitContainer
             Seed = (ulong)_seed.Value,
             Population = (int)_population.Value,
             Horde = _horde.ButtonPressed,
+            InfiniteAmmo = _ammo.ButtonPressed,
+            Bike = _bike.ButtonPressed,
         });
         _status.Text = string.Create(CultureInfo.InvariantCulture, $"Playing nest {(ulong)_seed.Value} at {(int)_population.Value:N0}.");
         NestPlay.ClearResult();

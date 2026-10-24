@@ -4,10 +4,11 @@ using Godot;
 namespace DillControl.UI;
 
 /// <summary>
-/// What a nest contract has left to do (<see cref="ColonyMission"/>): the
-/// pods left, the pickles alive against what the nest may be cleared with,
-/// how many still hang, and whether the colony sleeps. A card when it is
-/// cleared, and when every pickle is dead.
+/// What a nest contract has left to do (<see cref="ColonyMission"/>): its
+/// goals top right, each ticked when met, in a plate sized to its words; a
+/// card when it is cleared and when every pickle is dead. How the colony
+/// stands (asleep, waking, hanging, regrowing) is for whoever is testing it:
+/// a plain debug line bottom left, not part of the game's look.
 ///
 /// PLACEHOLDER, like <see cref="MissionHud"/>: drawn immediate-mode from a
 /// <see cref="Readout"/> the mission hands it every frame; it reads nothing
@@ -30,7 +31,15 @@ public partial class ColonyHud : Control
         public int Alive;
         public int AliveAllowed;
         public int Hanging;
+        public int Regrowing;
+        public int Dropped;
     }
+
+    private const float Margin = 28.0f;
+    private const float Pad = 18.0f;
+    private const int TitleSize = 18;
+    private const int LineSize = 22;
+    private const int DebugSize = 14;
 
     private Readout _r;
 
@@ -46,41 +55,69 @@ public partial class ColonyHud : Control
         {
             return;
         }
-        DrawPlate();
+        DrawGoals();
+        DrawDebug();
         if (_r.CardTime >= 0.0f && _r.CardTime < _r.CardSeconds)
         {
             Card(_r.Bonus ? "NEST WIPED OUT" : "NEST CLEARED", _r.Bonus ? "Every pickle dead: the bonus is yours." : "Every pod destroyed.");
         }
     }
 
-    private void DrawPlate()
+    // The goals, top right: a box ticked when met, what to do, and how far.
+    private void DrawGoals()
     {
-        bool podsDone = _r.PodsLeft == 0;
-        bool fewEnough = _r.Alive <= _r.AliveAllowed;
-        Rect2 plate = new(new Vector2(28.0f, 24.0f), new Vector2(400.0f, 176.0f));
-        PickleStyle.Plate(this, plate, PickleStyle.Ink with { A = 0.72f }, 10.0f, 3.0f);
-        float x = plate.Position.X + 22.0f;
-        float y = plate.Position.Y + 34.0f;
-        string goal = _r.Phase == ColonyMission.Phase.Cleared
-            ? _r.Bonus ? "WIPED OUT" : "CLEARED: KILL THE REST FOR THE BONUS"
-            : "DESTROY EVERY POD";
-        PickleStyle.Text(this, new Vector2(x, y), goal, 22, _r.Phase == ColonyMission.Phase.Cleared ? PickleStyle.Brine : PickleStyle.Cream);
-        y += 32.0f;
-        PickleStyle.Text(this, new Vector2(x, y), $"PODS LEFT  {PickleStyle.Count(_r.PodsLeft)} / {PickleStyle.Count(_r.Pods)}", 20,
-            podsDone ? PickleStyle.Brine : PickleStyle.Cream);
-        y += 28.0f;
-        PickleStyle.Text(this, new Vector2(x, y), $"PICKLES ALIVE  {PickleStyle.Count(_r.Alive)}  (at most {PickleStyle.Count(_r.AliveAllowed)})", 20,
-            fewEnough ? PickleStyle.Brine : PickleStyle.Cream);
-        y += 28.0f;
-        PickleStyle.Text(this, new Vector2(x, y), $"STILL HANGING  {PickleStyle.Count(_r.Hanging)}", 20, PickleStyle.Cream);
-        y += 30.0f;
-        string colony = _r.Colony switch
+        (string Goal, string Left, bool Met, bool Bonus)[] lines =
         {
-            PodField.ColonyState.Asleep => "THE COLONY SLEEPS",
-            PodField.ColonyState.Waking => "THE COLONY IS WAKING",
-            _ => System.FormattableString.Invariant($"THE COLONY IS AWAKE  {Mathf.FloorToInt(_r.Time / 60.0f)}:{Mathf.FloorToInt(_r.Time % 60.0f):00}"),
+            ("DESTROY EVERY POD", $"{PickleStyle.Count(_r.PodsLeft)} left", _r.PodsLeft == 0, false),
+            ($"LEAVE {PickleStyle.Count(_r.AliveAllowed)} PICKLES AT MOST", $"{PickleStyle.Count(_r.Alive)} alive", _r.Alive <= _r.AliveAllowed, false),
+            ("BONUS: KILL THEM ALL", $"{PickleStyle.Count(_r.Alive)} to go", _r.Bonus, true),
         };
-        PickleStyle.Text(this, new Vector2(x, y), colony, 20, _r.Colony == PodField.ColonyState.Asleep ? PickleStyle.BrineDeep : PickleStyle.BrineSour);
+        float box = LineSize * 0.8f, gap = 12.0f, spacing = LineSize * 1.45f;
+        float goals = 0.0f, lefts = 0.0f;
+        foreach ((string goal, string left, bool _, bool _) in lines)
+        {
+            goals = Mathf.Max(goals, PickleStyle.Measure(goal, LineSize));
+            lefts = Mathf.Max(lefts, PickleStyle.Measure(left, LineSize));
+        }
+        string title = _r.Phase == ColonyMission.Phase.Cleared ? "CONTRACT DONE" : "CONTRACT";
+        float width = Pad + box + gap + goals + (gap * 2.5f) + lefts + Pad;
+        float height = Pad + TitleSize + 10.0f + (spacing * lines.Length) + (Pad * 0.4f);
+        var plate = new Rect2(new Vector2(Size.X - Margin - width, Margin), new Vector2(width, height));
+        PickleStyle.Plate(this, plate, PickleStyle.Ink with { A = 0.8f }, 0.0f, 3.0f);
+
+        float x = plate.Position.X + Pad;
+        float y = plate.Position.Y + Pad + TitleSize;
+        PickleStyle.Text(this, new Vector2(x, y), title, TitleSize, PickleStyle.BrineSour);
+        y += 10.0f;
+        foreach ((string goal, string left, bool met, bool bonus) in lines)
+        {
+            y += spacing;
+            Color colour = met ? PickleStyle.Brine : bonus ? PickleStyle.Cream with { A = 0.7f } : PickleStyle.Cream;
+            var square = new Rect2(new Vector2(x, y - box), new Vector2(box, box));
+            DrawRect(square.Grow(2.0f), PickleStyle.Ink);
+            DrawRect(square, met ? PickleStyle.Brine : PickleStyle.Cream with { A = 0.25f });
+            PickleStyle.Text(this, new Vector2(x + box + gap, y), goal, LineSize, colour);
+            float leftWidth = PickleStyle.Measure(left, LineSize);
+            PickleStyle.Text(this, new Vector2(plate.End.X - Pad - leftWidth, y), left, LineSize, colour);
+        }
+    }
+
+    // For testing: how the colony stands, plain and small, bottom left.
+    private void DrawDebug()
+    {
+        string state = _r.Colony switch
+        {
+            PodField.ColonyState.Asleep => "asleep",
+            PodField.ColonyState.Waking => "waking",
+            _ => "awake",
+        };
+        string line = System.FormattableString.Invariant(
+            $"debug  colony {state}  {Mathf.FloorToInt(_r.Time / 60.0f)}:{Mathf.FloorToInt(_r.Time % 60.0f):00}   hanging {_r.Hanging:N0}   regrowing {_r.Regrowing:N0}   dropped {_r.Dropped:N0}   pods {_r.PodsLeft:N0}/{_r.Pods:N0}");
+        Font font = ThemeDB.FallbackFont;
+        Vector2 size = font.GetStringSize(line, HorizontalAlignment.Left, -1, DebugSize);
+        var at = new Vector2(Margin, Size.Y - Margin);
+        DrawRect(new Rect2(at - new Vector2(6, size.Y), size + new Vector2(12, 8)), new Color(0, 0, 0, 0.45f));
+        DrawString(font, at, line, HorizontalAlignment.Left, -1, DebugSize, new Color(0.75f, 0.78f, 0.72f));
     }
 
     private void Card(string title, string line)
