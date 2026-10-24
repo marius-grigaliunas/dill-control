@@ -9,6 +9,60 @@ are the same: one system at a time, numbers in `.tres`, bench on the target
 machine, and short commits of your own files only (never
 `docs/project_board.json`, `engine/` or `.vscode/`).
 
+## Status, 24 October 2026: step 7 is done; step 8 (the tool) is next
+
+Decided with the user before coding (memory `colony-wake-rules`): any harm
+to the colony wakes it (getting close does not); a pickle shot on its pod
+drops dead; the leaf overhaul stays for now. The user's editor re-saves were
+checked against the class defaults and committed (fdc22bf).
+
+Commits 5763c23..f0228a2, each part of step 7 its own:
+1. `PodField`: every pod in flat arrays, filled by `NestBuilder` from
+   `VineFactory.Data.Pods` (the `@PodNN` markers, read from the built model
+   with no nodes). Each hangs from the voxel nearest its marker and is
+   destroyed when that voxel or its vine goes.
+2. Hanging pickles: instanced by 150 m ground cells, capsules near and
+   columns far (`pickle_hang`, `pickle_hang_far`), bent on the GPU by their
+   vine's flex row in instance custom data (`FlexField.Track`,
+   `flex_bend_row`). Paired at 25,000: under 1 ms of GPU.
+3. Shooting: a pool of `PodHitProxy` on the pickles nearest the aim; blasts
+   from the bus. Killed, a pickle falls as a body (capped) and puffs.
+4. The wake: harm (a pickle, a vine or leaf via `VoxelBody.Damaged`, a
+   blast in the nest) drops every pickle into the horde over 30 s, nearest
+   first (`SpawnOrigin.Pod`, lobbed so the fall does not kill it). The lab
+   now has a horde with no agents of its own. **A rifle round on bare
+   ground near the nest does not wake it**: nothing broadcasts one, and a
+   new `EventBus` signal wants a decision record.
+5. Regrowth: an emptied pod regrows after 45 s, 2,000 at once at most,
+   slower on a damaged vine, and only for a pickle that died (the colony
+   never grows past its pods). In an awake colony a regrown one hangs 5 s
+   and drops.
+6. `ColonyMission`, `ColonyRules`, `ColonyHud`: every pod destroyed with at
+   most 20 % alive clears the nest; none alive earns the bonus.
+7. `bench.gd ... lvl_nest_lab.tscn colony pop=25000`, plugged in:
+
+   | Phase | Mean | GPU | Over 16.7 ms |
+   |---|---|---|---|
+   | Calm, under the canopy | 14.7 ms | 12.8 | 3 of 341 |
+   | Calm, in the canopy | 14.6 ms | 12.8 | 3 of 275 |
+   | Waking 0-10 s | 15.7 ms | 13.7 | 87 of 637 |
+   | Waking 20-30 s | 16.3 ms | 14.1 | 56 of 614 |
+   | In the fight | 16.9 ms | 14.7 | 331 of 887 |
+
+   The fight is the horde's own cost at 25,000 (about 2 ms of CPU in its
+   update); the pods add about 0.5 ms of CPU. The `nest` bench's numbers
+   swing by 5 ms between runs on this laptop with nothing changed: pair them.
+
+Also fixed on the way: `Rod`'s calibration cache was a plain dictionary
+written from every nest worker at once, and could fail a load (79a1e2e).
+
+`scripts/debug/podcheck.gd -- pop=3000` holds all of it (17 checks, about
+3 minutes headless).
+
+Not decided, worth asking: whether the colony goes back to sleep; whether a
+hanging pickle's kind should match what it drops as (all draw as Standard,
+the horde's composition picks the kind on the drop).
+
 ## Where the whole tool stands
 
 | Step (vine-tool.md build order) | State |
@@ -20,8 +74,8 @@ machine, and short commits of your own files only (never
 | 5. Colour per kind, vine and leaf | done |
 | 6. `NestKit`, `NestBuilder`, `NestPlacer`, `lvl_nest_lab`, `nest` bench | done |
 | Fixes 1-8 from playing the nest (vine-tool-2.md) | done |
-| **7. Pods and hanging pickles (decision 0034)** | **not started: next** |
-| 8. The main-screen tool (Nest tab, range lab, vine panel, Play, Good/Bad/Save) | not started; today's Vines dock is its vine panel |
+| 7. Pods and hanging pickles (decision 0034) | done (see the status above) |
+| **8. The main-screen tool (Nest tab, range lab, vine panel, Play, Good/Bad/Save)** | **next**; today's Vines dock is its vine panel |
 | 9. Decision records (rewrite 0033, write new ones) | not started |
 
 The user has asked from the start to "generate the nest, see it, press one
