@@ -9,6 +9,32 @@ are the same: one system at a time, numbers in `.tres`, bench on the target
 machine, and short commits of your own files only (never
 `docs/project_board.json`, `engine/` or `.vscode/`).
 
+## Status, 24 October 2026 (later): step 8 is done; step 9 (the records) is next
+
+The Vines tool is `addons/vine_gen`'s main screen (commits 30c1d3c..):
+- **Nest tab**: kit, seed, population, horde. Generate plans the nest with
+  `NestLayout` and stands it on a flat disc with its measures (the planet
+  is not drawn: its classes are placeholders in the editor; this departs
+  from "on the 1,260 m planet in the editor viewport"). Play hands it to
+  `lvl_nest_lab` (`NestPlay`, `user://nest_play.json`). After play the lab's
+  `NestPlaytest` result is shown; Good/Bad with a note append to
+  `tools/vine-logs/nest_verdicts.jsonl`; Save keeps a Good one as a
+  `NestPreset` in `resources/mission/nests/`, and Saved loads it back.
+  Save keeps the seed, not baked vines: whether contracts load saved nests
+  is still 0033.
+- **Range lab**: N seeds of a kind, each its own roll (no re-roll),
+  thumbnails, valid or why not, Good/Bad to `vine_verdicts.jsonl`, each
+  setting's spread over its range, ranges edited in place and saved.
+- **Vine tab**: the dock's panel (`VinePanel`), also still in the dock.
+- Checked in the editor with `--editor -- nesttab-check=<png>` and
+  `rangelab-check=<prefix>` (their verdicts go to `user://`).
+
+Found with it, not yet acted on:
+- Fruiting vines are 56 % valid on their own roll; 20 of 48 fail on
+  pods left out. The re-roll hides it; the range lab shows where.
+- Nearest-neighbour spacing in a nest goes down to 45 m, under the 55-70 m
+  the user set: the layout's jitter (0.22) pulls slots in.
+
 ## Status, 24 October 2026: step 7 is done; step 8 (the tool) is next
 
 Decided with the user before coding (memory `colony-wake-rules`): any harm
@@ -75,8 +101,8 @@ the horde's composition picks the kind on the drop).
 | 6. `NestKit`, `NestBuilder`, `NestPlacer`, `lvl_nest_lab`, `nest` bench | done |
 | Fixes 1-8 from playing the nest (vine-tool-2.md) | done |
 | 7. Pods and hanging pickles (decision 0034) | done (see the status above) |
-| **8. The main-screen tool (Nest tab, range lab, vine panel, Play, Good/Bad/Save)** | **next**; today's Vines dock is its vine panel |
-| 9. Decision records (rewrite 0033, write new ones) | not started |
+| 8. The main-screen tool (Nest tab, range lab, vine panel, Play, Good/Bad/Save) | done (see the status above) |
+| **9. Decision records (rewrite 0033, write new ones)** | **next** |
 
 The user has asked from the start to "generate the nest, see it, press one
 button to play it". That is step 8. They chose to do pods (step 7) first.

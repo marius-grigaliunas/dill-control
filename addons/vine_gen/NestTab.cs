@@ -192,6 +192,7 @@ public partial class NestTab : HSplitContainer
         {
             // Then from beside the vine furthest out.
             image.SavePng(_checkPng);
+            GetTree().Root.GetTexture().GetImage().SavePng(_checkPng.Replace(".png", "_editor.png"));
             _checkClose = true;
             Node3D far = _nest.GetChildren().OfType<Node3D>().OrderByDescending(n => n.Position.Length()).First();
             _target = far.Position + new Vector3(0, 40, 0);
