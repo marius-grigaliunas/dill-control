@@ -263,7 +263,10 @@ any re-roll, judges each, logs Good/Bad to `vine_verdicts.jsonl`, shows
 each setting's spread, and edits and saves the kind's ranges. **The logs
 are training data: never edit or prune them.** Check it in the editor:
 `"$GODOT" --path . --editor -- nesttab-check=<png>` or
-`rangelab-check=<prefix>` (their verdicts go to `user://`, not the logs).
+`rangelab-check=<prefix>` (their verdicts go to `user://`, not the logs). A tool's C# signal handlers do not survive the
+editor reloading the project's code, so the plugin rebuilds its panel and
+dock on the first frame after a reload; `--editor -- reload-check` proves it
+(rebuild the code under it, then make `user://reload_go`).
 What comes next is `docs/handoffs/vine-tool-3.md`.
 
 **Nothing that scales with a model's voxels runs in the frame**
