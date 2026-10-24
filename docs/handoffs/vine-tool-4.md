@@ -11,9 +11,13 @@ files only (never `docs/project_board.json`, `engine/` or `.vscode/`).
 
 ## Status, 24 October 2026 (latest): the tool's build order is finished
 
-- **Step 9 is done.** 0033 is rewritten as open (generate at load, or pick
-  from nests made beforehand; decided by load time at 25,000 and the share of
-  nests judged Good), and 0035-0043 are written: leaves as meshes, the re-roll
+- **Step 9 is done.** 0033 is decided: a nest is generated at load. Measured
+  headless, plugged in: 25.2 s at 25,000 (grow 3.7 s, models 10.8 s,
+  planting 10.1 s, of which 8.3 s is the vines entering the tree), 4.9 s at
+  1,000. Baking would save at most about 10 s and not the planting. Saved
+  nests stay `NestPreset` seeds. The next load cut is the planting.
+  Engine memory at 25,000 now reads 1,056 MB (0.65 GB before). 0035-0043
+  are written: leaves as meshes, the re-roll
   gate, the 1,260 m planet, the clump, the Structure and Litter layers, pods
   in bulk, the colony's wake, vines leaving no rubble, the tool. CLAUDE.md
   points at each.

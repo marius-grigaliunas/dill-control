@@ -98,8 +98,8 @@ it. See `docs/decisions/0018`. A compound is a seeded layout of authored
 cluster scenes from a `CompoundKit`: the seed decides where, never what
 (`docs/decisions/0020`).
 
-**A vine nest is grown at load** (`docs/handoffs/vine-tool.md`, step 6;
-whether to keep that or pick saved nests is `docs/decisions/0033`). A
+**A vine nest is grown at load** (`docs/decisions/0033`: 25 s at 25,000;
+a saved nest is a `NestPreset` seed, never baked vines). A
 `NestKit` (`resources/mission/nest_kit_default.tres`) names the kinds and the
 layout; `NestBuilder`, the level's builder over `SystemBuilder`, plans the
 nest from the contract's seed and population (one pod per pickle) and grows
@@ -232,7 +232,7 @@ and a leaf whose stalk or arm is cut away falls. A baked vine's leaves are
 `resources/foliage/leaf_default.tres`. Vines have no tendrils.
 
 **A single vine is baked for a set piece**; a nest grows its own at load
-(`docs/decisions/0033`, open). The Vines dock and the tool's Vine tab
+(`docs/decisions/0033`). The Vines dock and the tool's Vine tab
 (`addons/vine_gen`) roll a vine from a kind
 (`resources/foliage/vine_kind_*.tres`) and a seed, previews it and bakes
 `art/voxels/prp_vine_<kind>_<seed>.vox` and `scenes/props/prp_vine_<kind>_<seed>.tscn`,
