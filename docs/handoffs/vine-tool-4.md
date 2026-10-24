@@ -27,8 +27,10 @@ reports, below, come first.
 
 Playing on the hoverbike and lasering everything, the user sees vines
 collapse, but then most of the debris disappears and nothing is left to show
-where they went. They want the destruction to stay visible: a path behind
-them.
+where they went. In their words: **"the player should be able to see what he
+did: destroyed vine nest, burning everywhere, mountains of debris. Now,
+nothing."** That is the target: a nest the player has been through looks
+wrecked, on fire and piled with what fell, and stays so.
 
 What makes it vanish today, all measured or read this session:
 - **Vine pieces crumble after `CrumbleAfterSeconds` (20 s)**
@@ -40,9 +42,13 @@ What makes it vanish today, all measured or read this session:
   (`MaxChunks`, `HasRoom`, `cap-dusted` events). A laser sweep through a
   nest makes many pieces at once; most go straight to dust.
 - **Vines leave no rubble** (`LeavesRubble` off in
-  `voxel_destruction_vine.tres`), on purpose: heaps re-cut a fallen stalk on
-  a grid square to the ground and left blocks floating (the user's earlier
-  screenshot). Don't bring heaps back for vines.
+  `voxel_destruction_vine.tres`). This session turned it off because the
+  heaps were wrong, not because heaps are: baking re-cut a fallen stalk on a
+  grid square to the ground and left blocks floating in the air (the user's
+  earlier screenshot), and crushed vine was laid down as beige core cubes.
+  **The user wants mountains of debris**, so vines need heaps again, done
+  right: what fell lying as it fell (logs, crowns, arms, leaves), piling up
+  where vines came down, on the ground and never in the air.
 - **Vine dust is off** (`DustScale = 0` in `voxel_destruction_vine.tres`):
   shots and crushes on a vine raise nothing. Only `PlantFlex.FallDust` (the
   big dark clouds when a vine falls) is on.
@@ -52,8 +58,19 @@ What makes it vanish today, all measured or read this session:
   `SnapReachM` 5 m) instead of shattering at every bounce. That was a fix and
   should stay.
 
-What "a path of destruction" could be, to propose to the user before
-building (ask; don't pick alone):
+What it takes, from the user's three words (ask about the details and the
+look; show screenshots as you go):
+- **Destroyed vine nest**: stumps, felled vines lying where they fell,
+  stripped arms, torn leaves on the ground, empty pods. All of it stays.
+- **Burning everywhere**: fire on what was hit and lasered, and on the
+  ground. Fire exists already (`FireField`, `FireZone`, `FireStats`,
+  `ToonFlame`, the burner weapon, `fx_scorch_trail`): read what they do,
+  and whether vines and leaves can catch and keep burning, then smoulder and
+  leave scorch.
+- **Mountains of debris**: heaps of what fell, piling up where vines came
+  down.
+
+Parts that may serve it:
 - **Fallen logs stay** as sleeping bodies, or, once settled, become static
   (no body, no physics cost). They could be merged into one static mesh a
   nest, so hundreds cost a few draws. Small bits may still crumble.
@@ -111,7 +128,19 @@ preview, report, Bake) and found none. Today:
 - **Range lab**: Good/Bad on every thumbnail card.
 - **Vine tab** (`VinePanel`, also the dock): none.
 
+The user's answer: **the Vine tab must have Good/Bad, because that's where
+you actually see the vine.** And: **pressing a vine in the range lab opens it
+in the Vine tab**, that kind and seed, to look at it there and judge it.
+
 To do:
+- **Clicking a range-lab card opens that vine in the Vine tab**: switch to
+  the tab, select the kind, set the seed. The card's vine is its seed's own
+  roll (attempt 0, no re-roll), while the Vine tab grows a seed through
+  `VineGrower` (re-rolling a failed roll). The Vine tab must show the
+  same vine the card did: load the card's settings
+  (`VinePanel`'s by-hand settings path, `VineGrower.FromSettings`), or give
+  it a way to show attempt 0. Today a click on a card only marks its values
+  on the spread bars.
 - **Add Good/Bad (and a note) to the Vine tab**, logging to
   `tools/vine-logs/vine_verdicts.jsonl` in the same record shape as the range
   lab's (`RangeLabTab.Judge`: kind, seed, attempt, generator, valid,
@@ -213,10 +242,8 @@ weeping 95 %, leafy 53 %. 25,000 is 117 vines, 25,062 pods, 393 m out
   the default options: `voxel/size` 0.1 instead of 0.5 (0.04 and 0.11 for two
   mechs), and new uids. Vines, trees, towers and mechs imported at a fifth of
   their size. The `.import` files were restored from git
-  (`git checkout -- art/voxels/*.vox.import`); **the reimport still has to
-  be done with the editor closed**: delete `.godot/imported/*.vox-*`, run
-  `--headless --editor --quit`, and check a vine's imported height (74 m or
-  so, not 15). **Before running `reload-check` again**, make it safe: run
+  (`git checkout -- art/voxels/*.vox.import`) and reimported be done with the editor closed**: done the same day with the user's editor
+  closed; a fruiting vine imports 70.5 m tall again, the heart 110.5 m. **Before running `reload-check` again**, make it safe: run
   it on a copy of the project, or snapshot `art/voxels/*.vox.import` first
   and restore them after. And find out why a reload makes the editor
   reimport with defaults: it may also happen in the user's own editor on a
