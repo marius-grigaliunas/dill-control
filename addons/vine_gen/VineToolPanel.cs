@@ -21,6 +21,7 @@ public partial class VineToolPanel : VBoxContainer
         AddChild(tabs);
         var nest = new NestTab { Name = "Nest", SizeFlagsVertical = SizeFlags.ExpandFill };
         tabs.AddChild(nest);
+        tabs.AddChild(new RangeLabTab { Name = "Range lab", SizeFlagsVertical = SizeFlags.ExpandFill });
     }
 }
 #endif

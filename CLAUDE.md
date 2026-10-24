@@ -255,9 +255,16 @@ importer's own `VoxModelBuilder`.
 a seed and a population, stands it on a flat disc (the planet is not drawn:
 its classes are placeholders in the editor), reports its measures, and
 Play loads `lvl_nest_lab` with it through `user://nest_play.json`
-(`NestPlay`, taken and deleted by `NestBuilder`). Check it in the editor:
-`"$GODOT" --path . --editor -- nesttab-check=<png>`. What comes next is
-`docs/handoffs/vine-tool-3.md`.
+(`NestPlay`, taken and deleted by `NestBuilder`); the lab records how the
+play went (`NestPlaytest`), and Good/Bad go to
+`tools/vine-logs/nest_verdicts.jsonl` (Save keeps a Good one as a
+`NestPreset`). The range lab rolls N seeds of a kind as they roll, before
+any re-roll, judges each, logs Good/Bad to `vine_verdicts.jsonl`, shows
+each setting's spread, and edits and saves the kind's ranges. **The logs
+are training data: never edit or prune them.** Check it in the editor:
+`"$GODOT" --path . --editor -- nesttab-check=<png>` or
+`rangelab-check=<prefix>` (their verdicts go to `user://`, not the logs).
+What comes next is `docs/handoffs/vine-tool-3.md`.
 
 **Nothing that scales with a model's voxels runs in the frame**
 (`docs/decisions/0015`): re-meshing, structural checks and splits go to

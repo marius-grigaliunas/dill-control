@@ -39,27 +39,33 @@ public static class NestPreview
         Parallel.For(0, made.Length, i =>
         {
             NestLayout.Vine planned = layout.Vines[i];
-            VineGenerator.Result vine = planned.Grown?.Vine;
-            if (vine == null || !planned.Grown.Ok)
+            if (planned.Grown?.Vine == null || !planned.Grown.Ok)
                 return;
-            VinePalette palette = VineBaker.PaletteFor(planned.Kind, stats, vine);
-            VoxFile file = VoxFile.Load(VineBaker.Encode(vine, palette));
-            VoxFile.Model model = file.Models[0];
-            float vs = (float)vine.VoxelSize;
-            Vector3 centre = VoxSpace.Centre(model.Size);
-            (int X, int Y, int Z) t = VineBaker.FootTranslation(vine);
-            var translation = new Vector3(t.X, t.Y, t.Z);
-            made[i] = new Vine
-            {
-                Planned = planned,
-                Place = PlaceOf(planned, kit),
-                MeshOffset = VoxSpace.ToGodot(translation) * vs,
-                Mesh = VoxMesher.BuildArrays(model.Cells, model.Size, Vector3I.Zero, model.Size, file.Palette, file.Emission, centre, vs, 255),
-                Leaves = VineLeafSet.Of(vine, planned.Kind, palette),
-                Pods = vine.Markers.Select(m => VoxSpace.ToGodot(translation + new Vector3(m.X + 0.5f, m.Y + 0.5f, m.Z + 0.5f) - centre) * vs).ToArray(),
-            };
+            made[i] = One(planned.Grown.Vine, planned.Kind, stats);
+            made[i].Planned = planned;
+            made[i].Place = PlaceOf(planned, kit);
         });
         return made.Where(v => v != null).ToList();
+    }
+
+    /// <summary>One grown vine ready to draw, standing on the origin. Any thread.</summary>
+    public static Vine One(VineGenerator.Result vine, VineKind kind, VineBakeStats stats)
+    {
+        VinePalette palette = VineBaker.PaletteFor(kind, stats, vine);
+        VoxFile file = VoxFile.Load(VineBaker.Encode(vine, palette));
+        VoxFile.Model model = file.Models[0];
+        float vs = (float)vine.VoxelSize;
+        Vector3 centre = VoxSpace.Centre(model.Size);
+        (int X, int Y, int Z) t = VineBaker.FootTranslation(vine);
+        var translation = new Vector3(t.X, t.Y, t.Z);
+        return new Vine
+        {
+            Place = Transform3D.Identity,
+            MeshOffset = VoxSpace.ToGodot(translation) * vs,
+            Mesh = VoxMesher.BuildArrays(model.Cells, model.Size, Vector3I.Zero, model.Size, file.Palette, file.Emission, centre, vs, 255),
+            Leaves = VineLeafSet.Of(vine, kind, palette),
+            Pods = vine.Markers.Select(m => VoxSpace.ToGodot(translation + new Vector3(m.X + 0.5f, m.Y + 0.5f, m.Z + 0.5f) - centre) * vs).ToArray(),
+        };
     }
 
     /// <summary>Its place on the disc: as <see cref="NestPlacer"/> places it,
