@@ -101,6 +101,28 @@ time, and record with `U`. The summary's events and the player's position
 column will show the jump. Or add a guard that logs (`PerfLog.Event`) any
 frame where the player moves more than, say, 200 m.
 
+### 3. "Where is Good, Bad?" (the tool)
+
+The user looked for Good/Bad on the **Vine** tab (one vine: kind, seed,
+preview, report, Bake) and found none. Today:
+- **Nest tab**: Good/Bad, a note, Save and the Saved list are in a
+  "Verdict" section at the bottom of the left column, under the measures;
+  it has to be scrolled to, and the user didn't find it.
+- **Range lab**: Good/Bad on every thumbnail card.
+- **Vine tab** (`VinePanel`, also the dock): none.
+
+To do:
+- **Add Good/Bad (and a note) to the Vine tab**, logging to
+  `tools/vine-logs/vine_verdicts.jsonl` in the same record shape as the range
+  lab's (`RangeLabTab.Judge`: kind, seed, attempt, generator, valid,
+  reasons, every setting, measures). If the settings were changed by hand,
+  log them as they are and mark it (`changed: true`), and add that field to
+  the log's `about` line.
+- **Make the Nest tab's verdict visible without scrolling**: put
+  Good/Bad/note/Save under Generate and Play, or right after the play's
+  results, so they show as soon as play stops.
+- Check both in a real editor, including after a rebuild (`reload-check`).
+
 ## Waiting on the user
 
 - **Distant shadows.** Sun shadows stop at 140 m in `lvl_nest_lab` (and
@@ -182,6 +204,12 @@ weeping 95 %, leafy 53 %. 25,000 is 117 vines, 25,062 pods, 393 m out
 (weeping 51, fruiting 43, heart 23).
 
 ## Known and not yet done
+
+- **The working tree has 28 modified `art/voxels/*.vox.import` files** that
+  aren't this session's work. The editor rewrote them when it reimported
+  after the re-bake. Leave them out of commits until the user says whether
+  to keep them; check with `git diff` what changed (probably settings the
+  importer now writes out).
 
 - **A rifle round on bare ground near the nest doesn't wake the colony**;
   nothing broadcasts a ground hit. A new `EventBus` signal needs a decision
