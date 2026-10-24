@@ -51,6 +51,15 @@ func _run() -> void:
 	_check("every pod hangs from a voxel", unheld == 0, "%d hang from none" % unheld)
 	_check("pods bend with their vine in the wind", moved > pods.Count / 2, "%d of %d moved off where they were built" % [moved, pods.Count])
 
+	# A pod destroyed with its pickle on it: the pickle falls into the horde,
+	# it does not vanish.
+	var horde_early: Node = level.get_node_or_null("Spawns/Horde")
+	var full_before: int = pods.Full
+	pods.Destroy(0)
+	_check("a destroyed pod's pickle drops into the horde", pods.Full == full_before - 1 and pods.Dropped == 1
+		and horde_early != null and horde_early.Manager.ExtraCount(5) == 1,
+		"%d dropped, %d in the horde from pods" % [pods.Dropped, horde_early.Manager.ExtraCount(5) if horde_early else -1])
+
 	# A shot, as a hitscan weapon casts one, at a pickle a proxy stands on
 	# (the pickles nearest the camera's aim): from 8 m to its side, where the
 	# player's view may be a hill, handed to the Hitbox the ray meets.

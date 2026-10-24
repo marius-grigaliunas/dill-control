@@ -119,8 +119,11 @@ public partial class PodField : Node
     {
         public readonly List<int> Vines = new();
         public MultiMesh Near, Far;
+        public MultiMeshInstance3D NearNode, FarNode;
         public float[] Buffer = Array.Empty<float>();
         public Aabb Bounds;
+        // The bounds its draws were given: the cell grows as its vines are planted.
+        public Aabb DrawnBounds;
         public bool HasBounds, Dirty;
         public ulong DrawnAt;
     }
@@ -391,6 +394,18 @@ public partial class PodField : Node
         }
         if (_state[i] == PodState.Full)
         {
+            // Its pickle falls with it: into the fight if there is a horde,
+            // dead if not. A pod destroyed is no pickle killed.
+            HordeManager horde = Horde != null && IsInstanceValid(Horde) ? Horde.Manager : null;
+            if (horde != null && horde.SpawnFlung(PickleAt(i).Origin, Vector3.Zero, -1, HordeManager.SpawnOrigin.Pod, lobbed: true))
+            {
+                Dropped++;
+            }
+            else
+            {
+                Drop(PickleAt(i), Vector3.Zero);
+            }
+            ReleaseProxy(i);
             Full--;
         }
         _state[i] = PodState.Destroyed;
@@ -504,6 +519,15 @@ public partial class PodField : Node
         {
             Make(cell);
         }
+        else if (cell.DrawnBounds != cell.Bounds)
+        {
+            // Planted into since it was made: culled and handed over by its
+            // bounds, so they must hold every pickle.
+            Aabb grown = cell.Bounds.Grow(25.0f);
+            cell.Near.CustomAabb = cell.Far.CustomAabb = grown;
+            cell.NearNode.CustomAabb = cell.FarNode.CustomAabb = grown;
+            cell.DrawnBounds = cell.Bounds;
+        }
         int pods = 0;
         foreach (int v in cell.Vines)
         {
@@ -576,8 +600,11 @@ public partial class PodField : Node
         Aabb bounds = cell.Bounds.Grow(25.0f);
         cell.Near = NewMulti(_nearMesh, bounds);
         cell.Far = NewMulti(_farMesh, bounds);
-        AddChild(NewInstance("PicklesNear", cell.Near, _material, bounds, 0.0f, Stats.NearMetres + VoxelBody.HandoverOverlapM));
-        AddChild(NewInstance("PicklesFar", cell.Far, _farMaterial, bounds, Stats.NearMetres, Stats.DrawMetres));
+        cell.NearNode = NewInstance("PicklesNear", cell.Near, _material, bounds, 0.0f, Stats.NearMetres + VoxelBody.HandoverOverlapM);
+        cell.FarNode = NewInstance("PicklesFar", cell.Far, _farMaterial, bounds, Stats.NearMetres, Stats.DrawMetres);
+        AddChild(cell.NearNode);
+        AddChild(cell.FarNode);
+        cell.DrawnBounds = cell.Bounds;
     }
 
     private static MultiMesh NewMulti(Mesh mesh, Aabb bounds) => new()
@@ -691,6 +718,13 @@ public partial class PodField : Node
         Full--;
         Killed++;
         MarkDirty(_vines[_vine[i]].Cell);
+        ReleaseProxy(i);
+        Drop(PickleAt(i), push);
+        PickleKilled?.Invoke(i);
+    }
+
+    private void ReleaseProxy(int i)
+    {
         foreach (PodHitProxy proxy in _proxies)
         {
             if (proxy.Pod == i)
@@ -698,8 +732,6 @@ public partial class PodField : Node
                 proxy.Release();
             }
         }
-        Drop(PickleAt(i), push);
-        PickleKilled?.Invoke(i);
     }
 
     // Where pod i's pickle hangs now: upright along its up, its middle half
@@ -1000,13 +1032,7 @@ public partial class PodField : Node
         Full--;
         Dropped++;
         MarkDirty(_vines[_vine[i]].Cell);
-        foreach (PodHitProxy proxy in _proxies)
-        {
-            if (proxy.Pod == i)
-            {
-                proxy.Release();
-            }
-        }
+        ReleaseProxy(i);
     }
 
     // Empty pods start to regrow while there is room; regrowing ones grow;

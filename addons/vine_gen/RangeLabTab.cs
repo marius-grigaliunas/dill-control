@@ -57,6 +57,7 @@ public partial class RangeLabTab : HSplitContainer
     private Task<List<Entry>> _work;
     private int _rendering = -1;
     private int _renderFrames;
+    private int _drawnAt;
     private Entry _selected;
 
     private SubViewport _thumbs;
@@ -366,9 +367,10 @@ public partial class RangeLabTab : HSplitContainer
         SetProcess(false);
     }
 
-    // One thumbnail at a time: stood up and asked for in one frame, read two
-    // frames on (the editor draws only when something changes, and the
-    // label changing each frame is that something).
+    // One thumbnail at a time: stood up and asked for in one frame, read once
+    // a frame has really been drawn since (the editor draws only when
+    // something changes: reading sooner, or with the tab hidden, would take
+    // the last vine's picture).
     private void RenderStep()
     {
         if (_rendering >= _entries.Count)
@@ -407,10 +409,16 @@ public partial class RangeLabTab : HSplitContainer
             Vector3 from = target + (new Vector3(0.75f, 0.12f, 0.65f).Normalized() * height * 1.55f);
             _camera.Transform = new Transform3D(Basis.LookingAt(target - from, Vector3.Up), from);
             _thumbs.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
+            _drawnAt = Engine.GetFramesDrawn();
         }
         _summary.Text = $"Drawing {_rendering + 1} of {_entries.Count}...";
-        if (++_renderFrames < 3)
+        _renderFrames++;
+        if (Engine.GetFramesDrawn() - _drawnAt < 2)
+        {
+            // Nothing else may be changing: ask the editor for a frame.
+            EditorInterface.Singleton.GetBaseControl().QueueRedraw();
             return;
+        }
         entry.Thumb.Texture = ImageTexture.CreateFromImage(_thumbs.GetTexture().GetImage());
         _renderFrames = 0;
         _rendering++;

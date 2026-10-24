@@ -49,9 +49,16 @@ public partial class PodHitProxy : Node3D, IDamageable, ISplashExempt
     /// <summary>Stands it on pod <paramref name="pod"/>'s pickle, where it hangs now.</summary>
     public void Assign(int pod, Transform3D at)
     {
-        Pod = pod;
-        // Through the server only: a query sees it, and no notification goes
-        // down the node's children every tick.
+        if (pod != Pod)
+        {
+            // A new pickle: the node too, so whatever reads a hitbox's
+            // position (the flame cone, a thrown body's sweep) finds it here.
+            Pod = pod;
+            GlobalTransform = at;
+            return;
+        }
+        // The same one following its vine's bend: through the server only,
+        // which a query sees, with no notification down the node every tick.
         PhysicsServer3D.AreaSetTransform(_rid, at);
     }
 
@@ -60,7 +67,7 @@ public partial class PodHitProxy : Node3D, IDamageable, ISplashExempt
         Pod = -1;
         if (_hitbox != null)
         {
-            PhysicsServer3D.AreaSetTransform(_rid, _park);
+            GlobalTransform = _park;
         }
     }
 
