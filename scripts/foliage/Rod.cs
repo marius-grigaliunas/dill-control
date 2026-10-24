@@ -177,7 +177,8 @@ public sealed class Rod
         Calibrated[key] = _stiffnessScale;
     }
 
-    private static readonly System.Collections.Generic.Dictionary<long, float> Calibrated = new();
+    // Concurrent: a nest grows and judges its vines on every core at once.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, float> Calibrated = new();
 
     private long Key(float period, float damping, float taper)
     {
