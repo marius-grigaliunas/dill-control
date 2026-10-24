@@ -307,6 +307,20 @@ public partial class VoxelDebris : Node3D
         for (int k = _chunks.Count - 1; k >= 0 && baked < 8; k--)
         {
             VoxelChunk chunk = _chunks[k];
+            if (!chunk.LeavesRubble)
+            {
+                // Not heap stuff (a vine's): it lies where it fell a while,
+                // whatever its size, then crumbles.
+                if (chunk.StillFor >= Stats.CrumbleAfterSeconds && chunk.Grid != null && !chunk.IsHeld && !chunk.IsHinged)
+                {
+                    _chunks.RemoveAt(k);
+                    DustInstead(chunk.Grid, chunk.Palette, chunk.Emission, chunk.Material, chunk.GlobalPosition, Vector3.Zero,
+                        Mathf.Max(chunk.DustScale, 0.5f));
+                    chunk.RetireAfter(0.05f);
+                    baked++;
+                }
+                continue;
+            }
             if (chunk.StillFor < Stats.BakeAfterSeconds || chunk.IsHinged || chunk.VoxelCount > Stats.BakeMaxVoxels
                 || chunk.Grid == null || chunk.IsHeld || chunk.BakeRefused)
             {
@@ -372,14 +386,16 @@ public partial class VoxelDebris : Node3D
         public readonly ChunkBuild Build;
         public readonly SpawnBatch Batch;
         public readonly float DustScale;
+        public readonly bool Rubble;
         public readonly ulong Asked;
         public readonly VoxelChunkGraph Graph;
         public readonly float AngularDamp;
 
         public Pending(VoxelGrid grid, Color[] palette, float[] emission, Material material, Transform3D at,
             Vector3 velocity, Vector3 spin, VoxelHinge? hinge, (MeshInstance3D[], Vector3)? meshes, ChunkBuild build,
-            SpawnBatch batch, float dustScale, VoxelChunkGraph graph = null, float angularDamp = -1.0f)
+            SpawnBatch batch, float dustScale, VoxelChunkGraph graph = null, float angularDamp = -1.0f, bool rubble = true)
         {
+            Rubble = rubble;
             AngularDamp = angularDamp;
             Graph = graph;
             DustScale = dustScale;
@@ -425,7 +441,7 @@ public partial class VoxelDebris : Node3D
     public void SpawnChunk(VoxelGrid grid, Color[] palette, float[] emission, Material material,
         Transform3D at, Vector3 velocity, Vector3? spin = null, VoxelHinge? hinge = null,
         (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null, SpawnBatch batch = null,
-        float dustScale = 1.0f, VoxelChunkGraph graph = null, float angularDamp = -1.0f)
+        float dustScale = 1.0f, VoxelChunkGraph graph = null, float angularDamp = -1.0f, bool rubble = true)
     {
         SpawnedBy?.AddOrUpdate(grid, $"at y={at.Origin.Y:F2} " + System.Environment.StackTrace);
         if (batch != null)
@@ -454,7 +470,7 @@ public partial class VoxelDebris : Node3D
         // Made on the next physics tick, never in the frame that asked: that
         // frame has just split the thing it came from (VoxelPart.Apply).
         _pending.Enqueue(new Pending(grid, palette, emission, material, at, velocity, spin.Value, hinge, meshes, build, batch,
-            dustScale, graph, angularDamp));
+            dustScale, graph, angularDamp, rubble));
     }
 
     private readonly List<SpawnBatch> _batches = new();
@@ -552,7 +568,7 @@ public partial class VoxelDebris : Node3D
         // the origin, inside whatever is there, and be moved after.
         VoxelChunk chunk = _spare.Count > 0 ? _spare.Pop() : NewChunk();
         chunk.Transform = GlobalTransform.AffineInverse() * at;
-        chunk.Setup(p.Grid, p.Palette, p.Emission, p.Material, Stats, p.Meshes, p.Build, p.DustScale);
+        chunk.Setup(p.Grid, p.Palette, p.Emission, p.Material, Stats, p.Meshes, p.Build, p.DustScale, p.Rubble);
         chunk.GiveGraph(p.Graph);
         using (FrameProfiler.Begin(VoxelPart.SectionChunkAdd))
         {
@@ -560,7 +576,9 @@ public partial class VoxelDebris : Node3D
         }
         // A plant's stalk (a damping of its own): it turns over, and does
         // not crush down through what it lands on.
-        chunk.CrushesThrough = p.AngularDamp < 0.0f;
+        // Nor does anything that leaves no rubble (a vine's pieces): it breaks
+        // where it lands, it does not grind itself away as a storey does.
+        chunk.CrushesThrough = p.AngularDamp < 0.0f && p.Rubble;
         if (p.AngularDamp >= 0.0f)
         {
             chunk.AngularDamp = p.AngularDamp;
@@ -982,7 +1000,7 @@ public partial class VoxelDebris : Node3D
     /// crush: something for the eye to follow out of the dust.
     /// </summary>
     public void Spall(Vector3 at, Vector3 velocity, IReadOnlyList<byte> colours, Color[] palette, float[] emission,
-        Material material, float voxel, float dustScale = 1.0f)
+        Material material, float voxel, float dustScale = 1.0f, bool rubble = true)
     {
         if (colours.Count == 0 || !HasRoom(1))
         {
@@ -1000,7 +1018,7 @@ public partial class VoxelDebris : Node3D
         }
         var grid = new VoxelGrid(size, cells, new Vector3(size.X, size.Y, size.Z) * 0.5f, voxel);
         SpawnChunk(grid, palette, emission, material, new Transform3D(Basis.Identity, at), velocity,
-            dustScale: dustScale);
+            dustScale: dustScale, rubble: rubble);
     }
 
     /// <summary>Room for this many more pieces under the cap, counting those

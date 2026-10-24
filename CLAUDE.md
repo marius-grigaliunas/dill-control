@@ -279,6 +279,14 @@ the horde when its footprint changes (`docs/decisions/0022`). To see a
 collapse frame by frame: `"$GODOT" --path . --write-movie <dir>/f.png
 --fixed-fps 10 --script scripts/debug/bench.gd -- <level> cut quiet`.
 
+**Vines leave no rubble** (`LeavesRubble` off in
+`voxel_destruction_vine.tres`, carried by their pieces as `DustScale` is):
+nothing of a vine is heaped or baked into a heap. A felled vine falls in big
+dark dust (`FallDust*` in `flex_vine.tres`), does not crush through, snaps
+into logs where it lands (`SnapReachM`, `SnapMinVoxels`), and its pieces
+crumble after `CrumbleAfterSeconds`. A voxel part's up is the ground's
+(`WorldUp`). `bench.gd ... flex <vine> 12 rec` records a rocket-felled vine.
+
 What still needs modelling, part by part, is `docs/models.md`. After changing the importer,
 force a reimport (delete `.godot/imported/*.vox-*`): Godot skips unchanged
 sources.

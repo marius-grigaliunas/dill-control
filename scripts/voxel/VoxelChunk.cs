@@ -46,6 +46,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
     private bool _trails;
     private float _trailDust;
     private float _dustScale = 1.0f;
+    private bool _rubble = true;
 
     public bool IsSettled { get; private set; }
 
@@ -108,10 +109,11 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
     private bool _retired;
 
     public void Setup(VoxelGrid grid, Color[] palette, float[] emission, Material material, VoxelDestructionStats stats,
-        (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null, float dustScale = 1.0f)
+        (MeshInstance3D[], Vector3)? meshes = null, ChunkBuild build = null, float dustScale = 1.0f, bool rubble = true)
     {
         _retired = false;
         _dustScale = dustScale;
+        _rubble = rubble;
         _build = build;
         _meshes = meshes;
         _grid = grid;
@@ -158,6 +160,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             CollisionStep = _build?.Step ?? VoxelSplit.CollisionStepFor(_grid, _stats.MaxChunkBoxes),
             Velocity = () => LinearVelocity,
             DustScale = _dustScale,
+            LeavesRubble = _rubble,
             // Made mid-game: its sections are built on worker threads, unless
             // it is small enough to build in the moment (a piece torn off a
             // heap is seen at once, in the gravity gun's grip).
@@ -225,7 +228,11 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             // its middle moves: count that slam too, or a toppled tower lies
             // down whole.
             float slam = Mathf.Max(change, (_lastSpin - AngularVelocity).Length() * _halfLength);
-            if (slam > _stats.BreakSpeed && _grid.SolidCount >= _stats.MinBreakVoxels)
+            // What leaves no rubble (a vine's stalk) snaps where it lands while
+            // it is big, and its logs then lie: broken again at every bounce,
+            // a felled vine went to dust over the loose-piece cap.
+            int breaksFrom = _rubble ? _stats.MinBreakVoxels : _stats.SnapMinVoxels;
+            if (slam > _stats.BreakSpeed && _grid.SolidCount >= breaksFrom)
             {
                 Break(_lastVelocity);
                 return;
@@ -711,8 +718,11 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         {
             return;
         }
-        debris.LeaveRubble(centre, footprint + _grid.VoxelSize, crushed, _colours, _palette, _emission, _material,
-            _grid.VoxelSize);
+        if (_rubble)
+        {
+            debris.LeaveRubble(centre, footprint + _grid.VoxelSize, crushed, _colours, _palette, _emission, _material,
+                _grid.VoxelSize);
+        }
 
         // Outward is level, about world up, not about the contact normal: the
         // normal averages contacts with the ground and the rubble, leans by
@@ -740,7 +750,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
                 continue;
             }
             Vector3 velocity = out_ * (float)GD.RandRange(5.0, 11.0) + up * (float)GD.RandRange(2.0, 6.0);
-            debris.Spall(at, velocity, _colours, _palette, _emission, _material, _grid.VoxelSize, _dustScale);
+            debris.Spall(at, velocity, _colours, _palette, _emission, _material, _grid.VoxelSize, _dustScale, _rubble);
         }
     }
 
@@ -780,8 +790,14 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
             _crushCooldown = 0.4f;
             return;
         }
-        // From its centre of mass to past its farthest corner.
+        // From its centre of mass to past its farthest corner; a piece of
+        // something that leaves no rubble (a vine's stalk, tens of metres
+        // long) only round its middle, where it snaps, not along all of it.
         float reach = (new Vector3(_grid.Size.X, _grid.Size.Y, _grid.Size.Z) * _grid.VoxelSize).Length() * 0.5f;
+        if (!_rubble)
+        {
+            reach = Mathf.Min(reach, _stats.SnapReachM);
+        }
         Crush(speed, GlobalPosition, reach);
     }
 
@@ -856,6 +872,9 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
     public float[] Emission => _emission;
     public Material Material => _material;
     public float DustScale => _dustScale;
+
+    /// <summary>Whether its source heaps up (<see cref="VoxelDestructionStats.LeavesRubble"/>).</summary>
+    public bool LeavesRubble => _rubble;
 
     /// <summary>The lowest corner of its collision boxes along <paramref name="up"/>,
     /// or NaN with none. What the ground actually holds up: the corners of its
@@ -948,6 +967,7 @@ public partial class VoxelChunk : RigidBody3D, IDamageable, IBlastSurface, IGrab
         _breaking = false;
         _heavy = false;
         _dustScale = 1.0f;
+        _rubble = true;
         _trails = false;
         _trailDust = 0.0f;
         _hinge = null;

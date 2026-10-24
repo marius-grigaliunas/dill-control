@@ -152,6 +152,16 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "0,1,0.01")]
     public float RubbleShare { get; set; } = 0.7f;
 
+    /// <summary>
+    /// Whether what comes off it heaps up as rubble (docs/decisions/0016): a
+    /// building's storeys do. Off (vines), nothing crushed off it is laid
+    /// down, no piece of it is baked into a heap, a small piece at rest
+    /// crumbles to dust, and a big one lies where it fell. Its pieces keep it,
+    /// as they keep <see cref="DustScale"/>.
+    /// </summary>
+    [Export]
+    public bool LeavesRubble { get; set; } = true;
+
     /// <summary>How far a rubble heap spreads past the footprint it came off.</summary>
     [Export(PropertyHint.Range, "2,60,0.5,suffix:m")]
     public float RubbleReach { get; set; } = 14.0f;
@@ -313,6 +323,24 @@ public partial class VoxelDestructionStats : Resource
     /// body. A collapse leaves a hundred pieces, and a hundred more draws.</summary>
     [Export(PropertyHint.Range, "0.5,60,0.5,suffix:s")]
     public float BakeAfterSeconds { get; set; } = 1.0f;
+
+    /// <summary>A piece of something that leaves no rubble
+    /// (<see cref="LeavesRubble"/> off: a vine's) lies still this long, then
+    /// crumbles to dust, whatever its size.</summary>
+    [Export(PropertyHint.Range, "1,300,1,suffix:s")]
+    public float CrumbleAfterSeconds { get; set; } = 20.0f;
+
+    /// <summary>Landing hard, a piece of something that leaves no rubble hits
+    /// only this far round its middle: it snaps there, rather than its whole
+    /// length (a vine's stalk) being blasted to nothing.</summary>
+    [Export(PropertyHint.Range, "0,30,0.5,suffix:m")]
+    public float SnapReachM { get; set; } = 5.0f;
+
+    /// <summary>A piece of something that leaves no rubble breaks on landing
+    /// only while it has this many voxels: a felled stalk snaps into logs, and
+    /// the logs lie where they land.</summary>
+    [Export(PropertyHint.Range, "40,100000,10")]
+    public int SnapMinVoxels { get; set; } = 4000;
 
     /// <summary>Only pieces up to this many voxels are baked into a heap;
     /// bigger ones (a tower's segments) stay pieces you can blow apart.</summary>

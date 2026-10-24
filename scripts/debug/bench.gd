@@ -457,7 +457,7 @@ static func _vine_timeline(slot: String) -> Array:
 # (12 m by default). At 12 m the volley is a coin flip: prp_vine_41051 held
 # at 61 % in one run and fell in the next, and then the grapple, perch and
 # bite have no vine. 40 m keeps it standing for the rest of the timeline.
-static func _flex_timeline(vine: String, shot_height: String = "12") -> Array:
+static func _flex_timeline(vine: String, shot_height: String = "12", rec := false) -> Array:
 	var status := "!call:FlexField:PrintBenchStatus"
 	var leaves := "!call:%s/Leaves:PrintBenchStatus" % vine
 	# A vine's stalk need not stand over its node: aim where its voxels are.
@@ -470,7 +470,7 @@ static func _flex_timeline(vine: String, shot_height: String = "12") -> Array:
 		["rifle out", [stalk, "slot_1"], [], 1.0],
 		["rifle", [stalk], ["fire"], 2.5],
 		["after the rifle", [status], [], 1.0],
-		["rockets", [stalk, "slot_3"], [], 0.6],
+		["rockets", [stalk, "slot_3"] + (["!call:PerfRecorder:Start"] if rec else []), [], 0.6],
 		["rockets fire", [stalk], ["~fire"], 0.5],
 		["rocket flying", [], [], 0.4],
 		["shaking", [status], [], 0.6],
@@ -517,6 +517,10 @@ static func _flex_timeline(vine: String, shot_height: String = "12") -> Array:
 		["falling 4", ["!call:VoxelDebris:PrintBenchStatus"], [], 2.0],
 		["settled", [status, "!call:VoxelDebris:PrintBenchStatus", leaves], [], 2.0],
 		["settled shot", ["#flex_settled", status, leaves], [], 0.3],
+		# What is left lying, from the ground beside the stump, once it has rested.
+		["resting", ["!call:VoxelDebris:PrintBenchStatus"], [], 10.0],
+		["debris from the ground", ["@gotorel:%s:0, 0.2, 40" % vine, "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:%s:4" % vine], [], 1.5],
+		["debris shot", ["#flex_debris", "!call:VoxelDebris:PrintBenchStatus"] + (["!call:PerfRecorder:Stop"] if rec else []), [], 0.3],
 	]
 
 # The vine forest (prp_vine_forest, 85 bending vines 100 m apart) round
@@ -740,6 +744,11 @@ const NEST_TIMELINE := [
 	["unrooted shot", ["#nest_unrooted", "!call:FlexField:PrintBenchStatus", "!call:VoxelDebris:PrintBenchStatus"], [], 0.3],
 	["fallen", [], [], 5.0],
 	["fallen shot", ["@aimcall:NestBuilder:BenchHeart:5", "#nest_fallen", "!call:VoxelDebris:PrintBenchStatus"], [], 0.3],
+	# Where what fell has come to rest: nothing floating, nothing sunk.
+	["settling", [], [], 10.0],
+	["settled shot", ["@gotocall:NestBuilder:BenchBesideHeart:30", "@aimcall:NestBuilder:BenchHeart:0", "!set:Player:velocity=Vector3(0, 0, 0)", "#nest_settled", "!call:VoxelDebris:PrintBenchStatus"], [], 0.5],
+	["settled above", ["@gotocall:NestBuilder:BenchHeart:120", "@aimcall:NestBuilder:BenchHeart:0", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 1.0],
+	["settled above shot", ["#nest_settled_above"], [], 0.3],
 ]
 
 # A nest's colony (lvl_nest_lab, docs/decisions/0029 and 0034), loaded with
@@ -963,7 +972,7 @@ func _initialize() -> void:
 			if flex_vine.begins_with("mem:"):
 				_mem_vine = flex_vine.split(":")
 				flex_vine = "mem_%s_%s" % [_mem_vine[1], _mem_vine[2]]
-			_timeline = _flex_timeline(flex_vine, args[3] if args.size() > 3 else "12")
+			_timeline = _flex_timeline(flex_vine, args[3] if args.size() > 3 else "12", args.has("rec"))
 		"vine": _timeline = _vine_timeline(args[2] if args.size() > 2 and args[2].begins_with("slot_") else "slot_1")
 		"siege": _timeline = _siege_timeline(int(args[2]) if args.size() > 2 else 25000)
 		"horde": _timeline = _horde_timeline(int(args[2]) if args.size() > 2 else 25000)

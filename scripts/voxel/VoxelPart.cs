@@ -1395,7 +1395,7 @@ public partial class VoxelPart : Node3D, IStrainHost
             }
             VoxelDebris.Current.SpawnChunk(piece.Grid, Palette, Emission, Material, at, velocity, turning,
                 hung, given == null ? null : (given, piece.Offset), piece.Build, batch, Dusty,
-                piece.Graph, damp);
+                piece.Graph, damp, Rubbly);
             if (breakingUp)
             {
                 // Cover: each piece comes out of a cloud its own size, so the
@@ -2189,6 +2189,13 @@ public partial class VoxelPart : Node3D, IStrainHost
 
     private float Dusty => DustScale ?? _stats.DustScale;
 
+    /// <summary>Whether what comes off it heaps up
+    /// (<see cref="VoxelDestructionStats.LeavesRubble"/>): a loose piece keeps
+    /// its source's, not the loose pieces' stats'.</summary>
+    public bool? LeavesRubble { get; set; }
+
+    private bool Rubbly => LeavesRubble ?? _stats.LeavesRubble;
+
     private void Dust(List<VoxelGrid.Removed> removed)
     {
         if (removed.Count == 0 || VoxelDebris.Current == null)
@@ -2212,6 +2219,10 @@ public partial class VoxelPart : Node3D, IStrainHost
     /// the share of it that is not dust.</summary>
     private void LeaveRubble(List<VoxelGrid.Removed> removed)
     {
+        if (!Rubbly)
+        {
+            return;
+        }
         if (removed.Count == 0 || VoxelDebris.Current == null)
         {
             return;
