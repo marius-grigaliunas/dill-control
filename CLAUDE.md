@@ -307,6 +307,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_contract.tscn descent          # from the ship in orbit down to the compound
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_contract.tscn garrison         # the horde at home: spread round its nest, 40 s
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_nest_lab.tscn nest pop=25000  # a nest for 25,000: ground, canopy, above; load by stage and memory (horde=0 without the horde)
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_nest_lab.tscn colony pop=25000  # its pickles hanging, calm; harmed; waking over 30 s; in the fight
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_ship_hub.tscn flow             # ship, computer, contract taken, loaded, in orbit
 "$GODOT" --headless --path . --script scripts/debug/seedcheck.gd -- 20                                      # same seed, same planet; cube seams
 "$GODOT" --headless --path . --script scripts/debug/graphcheck.gd -- 40                                     # chunk graph vs a cell flood: what falls, what floats

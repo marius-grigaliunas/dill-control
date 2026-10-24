@@ -742,6 +742,24 @@ const NEST_TIMELINE := [
 	["fallen shot", ["@aimcall:NestBuilder:BenchHeart:5", "#nest_fallen", "!call:VoxelDebris:PrintBenchStatus"], [], 0.3],
 ]
 
+# A nest's colony (lvl_nest_lab, docs/decisions/0029 and 0034), loaded with
+# "pop=N" after the mode: calm under and in the canopy with every pickle
+# hanging, then harmed where the player stands, on the ground under the
+# heart, through the WakeSeconds its pickles drop over, and in the fight
+# after. Shots and status only between the measured phases.
+const COLONY_TIMELINE := [
+	["calm, under the canopy", ["@gotocall:NestBuilder:BenchBesideHeart:2", "@aimcall:NestBuilder:BenchHeart:45", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 5.0],
+	["calm shot", ["#colony_calm", "!call:PodField:PrintBenchStatus"], [], 0.3],
+	["calm, in the canopy", ["@gotocall:NestBuilder:BenchBesideHeart:60", "@aimcall:NestBuilder:BenchHeart:40", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 4.0],
+	["back down", ["@gotocall:NestBuilder:BenchBesideHeart:2", "@aimcall:NestBuilder:BenchHeart:20", "!set:Player:velocity=Vector3(0, 0, 0)"], [], 1.0],
+	["waking, 0-10 s", ["!call:PodField:BenchWake"], [], 10.0],
+	["waking, 10-20 s", [], [], 10.0],
+	["waking shot", ["#colony_waking", "!call:PodField:PrintBenchStatus"], [], 0.3],
+	["waking, 20-30 s", [], [], 10.0],
+	["in the fight", [], [], 15.0],
+	["fight shot", ["#colony_fight", "!call:PodField:PrintBenchStatus"], [], 0.3],
+]
+
 const GARRISON_TIMELINE := [
 	["arrive", [GARRISON_SPREAD], [], 5.0],
 	["10 s", [GARRISON_SPREAD], [], 10.0],
@@ -955,6 +973,7 @@ func _initialize() -> void:
 		"descent": _timeline = DESCENT_TIMELINE
 		"garrison": _timeline = GARRISON_TIMELINE
 		"nest": _timeline = NEST_TIMELINE
+		"colony": _timeline = COLONY_TIMELINE
 		"flow": _timeline = FLOW_TIMELINE
 		"planets": _timeline = _planets_timeline(int(args[2]) if args.size() > 2 else 10, int(args[3]) if args.size() > 3 else 1)
 		_: _timeline = IDLE_TIMELINE
