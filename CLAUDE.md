@@ -267,7 +267,7 @@ are training data: never edit or prune them.** Check it in the editor:
 editor reloading the project's code, so the plugin rebuilds its panel and
 dock on the first frame after a reload; `--editor -- reload-check` proves it
 (rebuild the code under it, then make `user://reload_go`).
-What comes next is `docs/handoffs/vine-tool-3.md`.
+What comes next is `docs/handoffs/vine-tool-4.md`.
 
 **Nothing that scales with a model's voxels runs in the frame**
 (`docs/decisions/0015`): re-meshing, structural checks and splits go to

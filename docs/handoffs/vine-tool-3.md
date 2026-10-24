@@ -1,5 +1,7 @@
 # Handoff: the Vines tool, part 3 — pods and hanging pickles, then the main-screen tool
 
+*Superseded for what comes next by `docs/handoffs/vine-tool-4.md`.*
+
 *23 October 2026.* Read `CLAUDE.md` first. The original task, its settled
 decisions and its build order are in `docs/handoffs/vine-tool.md`. What the
 user saw playing the first nest, and the eight fixes for it, are in
