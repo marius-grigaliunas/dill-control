@@ -1,4 +1,4 @@
-# Handoff: the Vines tool, part 4 — leave a path of destruction, find the fling, then the records
+# Handoff: the Vines tool, part 4 — the fling, the tool's Good/Bad, the records; and the game's path of destruction
 
 *24 October 2026.* Read `CLAUDE.md` first. The earlier handoffs hold the
 history: `vine-tool.md` (the task, its settled decisions and build order),
@@ -23,14 +23,24 @@ reports, below, come first.
 
 ## The user's two reports from playing (do these first)
 
-### 1. "Add more path of destruction"
+### 1. "Add more path of destruction" (the whole game, not the generator)
 
 Playing on the hoverbike and lasering everything, the user sees vines
 collapse, but then most of the debris disappears and nothing is left to show
 where they went. In their words: **"the player should be able to see what he
 did: destroyed vine nest, burning everywhere, mountains of debris. Now,
-nothing."** That is the target: a nest the player has been through looks
-wrecked, on fire and piled with what fell, and stays so.
+nothing."**
+
+**This is a gameplay goal for the whole game, not a vine-generator or tool
+task.** Everything the player destroys (vines and nests, buildings, mechs,
+the ground, pickles) should leave lasting, visible destruction behind: wreck,
+fire, debris piled up, and it stays. The vine nest is where it showed, and
+the vine debris below is the first place it fails, but the work belongs to
+the destruction systems (`VoxelDebris`, `VoxelChunk`, `RubblePile`, the
+dust, fire and scorch effects, the planet's craters), and it should be
+planned as such: a design talk with the user, likely a decision record (it
+revisits 0016's rubble and 0022's recovering destruction), then built system
+by system. It may deserve its own handoff once scoped.
 
 What makes it vanish today, all measured or read this session:
 - **Vine pieces crumble after `CrumbleAfterSeconds` (20 s)**
