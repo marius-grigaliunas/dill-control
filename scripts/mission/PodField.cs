@@ -55,6 +55,11 @@ public enum PodState : byte
 ///   in the nest. Then over <see cref="PodStats.WakeSeconds"/> every full
 ///   pod lets its pickle drop, nearest the harm first, into the
 ///   <see cref="Horde"/> (<see cref="HordeManager.SpawnOrigin.Pod"/>).
+/// - An empty pod grows its pickle again (docs/decisions/0034), the longest
+///   empty first, so many at once, slower on a damaged vine; it is drawn
+///   small while it grows. In a colony that is awake a regrown pickle hangs
+///   a moment and then drops to fight. A destroyed pod never regrows: only
+///   destroying the pods ends the colony.
 ///
 /// Its numbers are <see cref="Stats"/>.
 /// </summary>
@@ -80,6 +85,10 @@ public partial class PodField : Node
     public event Action<Vector3> Aggravated;
     /// <summary>Pickles dropped into the horde.</summary>
     public int Dropped { get; private set; }
+    /// <summary>Pickles grown again on emptied pods.</summary>
+    public int Regrown { get; private set; }
+    /// <summary>Pods growing a pickle now.</summary>
+    public int Regrowing => _regrowing.Count;
 
     /// <summary>Pod <c>i</c> is gone for good. After its state is <see cref="PodState.Destroyed"/>.</summary>
     public event Action<int> PodDestroyed;
@@ -148,6 +157,13 @@ public partial class PodField : Node
     private int[] _vine = Array.Empty<int>();
     private PodState[] _state = Array.Empty<PodState>();
     private float[] _health = Array.Empty<float>();
+    // Seconds left: of regrowing, or of hanging before a regrown pickle drops.
+    private float[] _timer = Array.Empty<float>();
+    // Emptied pods, the longest empty first; those regrowing; regrown ones
+    // waiting to drop into an awake colony's fight.
+    private readonly Queue<int> _emptied = new();
+    private readonly List<int> _regrowing = new();
+    private readonly List<int> _hanging = new();
     // The voxel it hangs from; a null part hangs from nothing.
     private VoxelPart[] _part = Array.Empty<VoxelPart>();
     private Vector3I[] _cell = Array.Empty<Vector3I>();
@@ -315,6 +331,7 @@ public partial class PodField : Node
         Array.Resize(ref _vine, size);
         Array.Resize(ref _state, size);
         Array.Resize(ref _health, size);
+        Array.Resize(ref _timer, size);
         Array.Resize(ref _part, size);
         Array.Resize(ref _cell, size);
     }
@@ -355,6 +372,7 @@ public partial class PodField : Node
         using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionCheck);
         Proxies();
         Wake((float)delta);
+        Regrow((float)delta);
         // A vine's parts have their voxels a frame after it enters.
         foreach (Vine vine in _vines)
         {
@@ -439,7 +457,7 @@ public partial class PodField : Node
             }
             for (int i = vine.First; i < vine.First + vine.Count; i++)
             {
-                count += _state[i] == PodState.Full ? 1 : 0;
+                count += _state[i] == PodState.Full || _state[i] == PodState.Regrowing ? 1 : 0;
             }
         }
         if (cell.Near == null)
@@ -459,17 +477,20 @@ public partial class PodField : Node
             float row = vine.Flex != null && IsInstanceValid(vine.Flex) ? vine.Flex.Row : 0;
             for (int i = vine.First; i < vine.First + vine.Count; i++)
             {
-                if (_state[i] != PodState.Full)
+                if (_state[i] != PodState.Full && _state[i] != PodState.Regrowing)
                 {
                     continue;
                 }
+                float size = _state[i] == PodState.Regrowing ? Stats.RegrowingScale : 1.0f;
                 Vector3 up = WorldUp.At(_built[i]);
                 Vector3 side = up.Cross(Mathf.Abs(up.Y) < 0.99f ? Vector3.Up : Vector3.Right).Normalized();
                 // Turned about its up as its place says: no two in a row alike.
                 float turn = Mathf.PosMod(_built[i].Dot(new Vector3(12.9898f, 78.233f, 37.719f)), Mathf.Tau);
                 Vector3 right = (side * Mathf.Cos(turn)) + (side.Cross(up) * Mathf.Sin(turn));
-                Vector3 back = right.Cross(up);
-                Vector3 at = _built[i] - (up * half);
+                Vector3 back = right.Cross(up) * size;
+                Vector3 at = _built[i] - (up * (half * size));
+                right *= size;
+                up *= size;
                 b[o + 0] = right.X;
                 b[o + 1] = up.X;
                 b[o + 2] = back.X;
@@ -621,6 +642,7 @@ public partial class PodField : Node
     private void Kill(int i, Vector3 push)
     {
         _state[i] = PodState.Empty;
+        _emptied.Enqueue(i);
         Full--;
         Killed++;
         MarkDirty(_vines[_vine[i]].Cell);
@@ -929,6 +951,7 @@ public partial class PodField : Node
             return;
         }
         _state[i] = PodState.Empty;
+        _emptied.Enqueue(i);
         Full--;
         Dropped++;
         MarkDirty(_vines[_vine[i]].Cell);
@@ -939,6 +962,84 @@ public partial class PodField : Node
                 proxy.Release();
             }
         }
+    }
+
+    // Empty pods start to regrow while there is room; regrowing ones grow;
+    // in an awake colony regrown ones hang a moment and drop.
+    private void Regrow(float dt)
+    {
+        while (_regrowing.Count < Stats.MaxRegrowing && _emptied.Count > 0)
+        {
+            int i = _emptied.Dequeue();
+            Vine vine = _vines[_vine[i]];
+            if (_state[i] != PodState.Empty || vine.Gone)
+            {
+                continue;
+            }
+            _state[i] = PodState.Regrowing;
+            _timer[i] = Stats.RegrowSeconds / GrowSpeed(vine);
+            _regrowing.Add(i);
+            MarkDirty(vine.Cell);
+        }
+        for (int k = _regrowing.Count - 1; k >= 0; k--)
+        {
+            int i = _regrowing[k];
+            if (_state[i] == PodState.Regrowing && (_timer[i] -= dt) > 0.0f)
+            {
+                continue;
+            }
+            _regrowing[k] = _regrowing[^1];
+            _regrowing.RemoveAt(_regrowing.Count - 1);
+            if (_state[i] != PodState.Regrowing)
+            {
+                continue;
+            }
+            _state[i] = PodState.Full;
+            _health[i] = Stats.PickleHealth;
+            Full++;
+            Regrown++;
+            MarkDirty(_vines[_vine[i]].Cell);
+            if (Colony != ColonyState.Asleep)
+            {
+                _timer[i] = Stats.AwakeHangSeconds;
+                _hanging.Add(i);
+            }
+        }
+        HordeManager horde = Horde != null && IsInstanceValid(Horde) ? Horde.Manager : null;
+        for (int k = _hanging.Count - 1; k >= 0; k--)
+        {
+            int i = _hanging[k];
+            if (_state[i] == PodState.Full && (_timer[i] -= dt) > 0.0f)
+            {
+                continue;
+            }
+            _hanging[k] = _hanging[^1];
+            _hanging.RemoveAt(_hanging.Count - 1);
+            if (_state[i] == PodState.Full && horde != null)
+            {
+                DropIntoHorde(i, horde);
+            }
+        }
+    }
+
+    // How fast a vine's pods regrow against a whole one's: slower by the
+    // share of its voxels it has lost, as far as DamagedSlowdown says.
+    private float GrowSpeed(Vine vine)
+    {
+        long solid = 0, initial = 0;
+        if (vine.Body != null && IsInstanceValid(vine.Body))
+        {
+            foreach (VoxelPart part in vine.Body.Parts)
+            {
+                if (IsInstanceValid(part) && part.Grid != null)
+                {
+                    solid += part.Grid.SolidCount;
+                    initial += part.Grid.InitialCount;
+                }
+            }
+        }
+        float whole = initial > 0 ? (float)solid / initial : 1.0f;
+        return Mathf.Max(0.05f, 1.0f - (Stats.DamagedSlowdown * (1.0f - whole)));
     }
 
     /// <summary>For <c>bench.gd</c> and the checks: how many pods, and in what state.</summary>
@@ -952,7 +1053,7 @@ public partial class PodField : Node
             unheld += _part[i] == null ? 1 : 0;
         }
         return FormattableString.Invariant(
-            $"[pods] {Count} on {_vines.Count} vines: {Full} full, {empty} empty, {regrowing} regrowing, {Destroyed} destroyed; {Killed} pickles killed on them, {Dropped} dropped; the colony {Colony.ToString().ToLowerInvariant()}; {unheld} hang from no voxel");
+            $"[pods] {Count} on {_vines.Count} vines: {Full} full, {empty} empty, {regrowing} regrowing, {Destroyed} destroyed; {Killed} pickles killed on them, {Dropped} dropped, {Regrown} regrown; the colony {Colony.ToString().ToLowerInvariant()}; {unheld} hang from no voxel");
     }
 
     public void PrintBenchStatus() => GD.Print(Summary());

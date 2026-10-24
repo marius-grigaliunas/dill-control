@@ -313,7 +313,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --headless --path . --script scripts/debug/flexcheck.gd                                            # a plant's spine: its period, settling, a pull, a cut
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd                                            # vine generator vs its golden vines; every baked vine's wrapper and foot
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- record                                  # re-record the golden vines, only after a change meant to move them
-"$GODOT" --headless --path . --script scripts/debug/podcheck.gd -- pop=3000                                 # a nest's pods: in the field, on voxels, bending; a shot, a blast; the wake into the horde; a felled vine takes its own
+"$GODOT" --headless --path . --script scripts/debug/podcheck.gd -- pop=3000                                 # a nest's pods: in the field, on voxels, bending; a shot, a blast; the wake into the horde; regrowth; a felled vine takes its own
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- rejections 200                          # per kind: how often a seed's roll is valid, why not, how each measure spreads
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- settle                                  # every baked vine stood 5 s with Jolt: no drift, nothing loose or sunk
 "$GODOT" --path . --script scripts/debug/vinelook.gd -- perflogs/vines.png                                   # every baked vine in a row, photographed

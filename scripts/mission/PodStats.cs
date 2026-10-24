@@ -38,6 +38,19 @@ public partial class PodStats : Resource
     /// <summary>A blast this far outside the nest's pods still wakes it.</summary>
     [Export(PropertyHint.Range, "0,300,5,suffix:m")] public float AlarmMarginM { get; set; } = 40.0f;
 
+    [ExportGroup("Regrowing")]
+    /// <summary>How long an empty pod takes to grow its pickle again, on a whole vine.</summary>
+    [Export(PropertyHint.Range, "1,600,1,suffix:s")] public float RegrowSeconds { get; set; } = 45.0f;
+    /// <summary>At most this many pods regrow at once, the longest empty first.</summary>
+    [Export(PropertyHint.Range, "0,25000,10")] public int MaxRegrowing { get; set; } = 2000;
+    /// <summary>How much a damaged vine slows its pods: 0 not at all, 1 a vine at
+    /// half its voxels regrows at half the speed.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float DamagedSlowdown { get; set; } = 1.0f;
+    /// <summary>A regrowing pickle is drawn this size against a grown one.</summary>
+    [Export(PropertyHint.Range, "0.1,1,0.05")] public float RegrowingScale { get; set; } = 0.5f;
+    /// <summary>In a colony that is awake, a regrown pickle hangs this long and then drops to fight.</summary>
+    [Export(PropertyHint.Range, "0,120,0.5,suffix:s")] public float AwakeHangSeconds { get; set; } = 5.0f;
+
     [ExportGroup("Dropped dead")]
     /// <summary>A killed pickle falls as a body, at most this many at once; past it, it puffs where it hung.</summary>
     [Export(PropertyHint.Range, "0,256,1")] public int MaxFalling { get; set; } = 32;
