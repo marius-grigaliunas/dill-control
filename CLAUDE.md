@@ -248,9 +248,16 @@ lean, the spine's load; thresholds in `vine_bake.tres`) again from the seed
 and an attempt number, so a seed is always one valid vine; the generator
 keeps only pods a pickle can hang from. Jolt never decides a roll.
 `VineFactory` builds the same vine in memory, no files, through the
-importer's own `VoxModelBuilder`. What comes next (the main-screen Vines tool,
-nests generated on the planet, pods that regrow per `docs/decisions/0034`)
-is `docs/handoffs/vine-tool-3.md`.
+importer's own `VoxModelBuilder`.
+
+**The Vines tool** is `addons/vine_gen`'s main screen (a tab beside 2D and
+3D). Its Nest tab plans a nest with the game's own `NestLayout` from a kit,
+a seed and a population, stands it on a flat disc (the planet is not drawn:
+its classes are placeholders in the editor), reports its measures, and
+Play loads `lvl_nest_lab` with it through `user://nest_play.json`
+(`NestPlay`, taken and deleted by `NestBuilder`). Check it in the editor:
+`"$GODOT" --path . --editor -- nesttab-check=<png>`. What comes next is
+`docs/handoffs/vine-tool-3.md`.
 
 **Nothing that scales with a model's voxels runs in the frame**
 (`docs/decisions/0015`): re-meshing, structural checks and splits go to

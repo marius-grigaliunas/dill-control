@@ -26,7 +26,8 @@ namespace DillControl.Mission;
 ///   the ground from under its foot (<see cref="Kit"/>'s UnrootMarginM), the
 ///   foot goes too and it falls (<see cref="PlantFlex.Unroot"/>).
 ///
-/// Its population and seed are the contract's, unless the command line says
+/// Its population and seed are the contract's, unless the Vines tool played
+/// it (<see cref="NestPlay"/>: its kit too) or the command line says
 /// <c>pop=N</c>, <c>nest=SEED</c>; <c>horde=0</c> builds it without the horde,
 /// as does a level with none. The horde has no pickles of its own: every one
 /// starts on a pod (<see cref="PodField"/>) and drops into it when the colony
@@ -80,6 +81,7 @@ public partial class NestBuilder : Node, ILevelBuilder
     public double EnterSeconds { get; private set; }
     public double LoadSeconds { get; private set; }
 
+    private NestPlay.Request _request;
     private Task<NestLayout> _plan;
     private Task _models;
     private VineBakeStats _stats;
@@ -97,6 +99,19 @@ public partial class NestBuilder : Node, ILevelBuilder
 
     public override void _Ready()
     {
+        // Played from the Vines tool's Nest tab: its kit, seed, population
+        // and horde, over the contract's.
+        _request = NestPlay.Take();
+        if (_request != null)
+        {
+            if (ResourceLoader.Exists(_request.Kit) && GD.Load<Resource>(_request.Kit) is NestKit kit)
+            {
+                Kit = kit;
+                if (Placer != null)
+                    Placer.Kit = kit;
+            }
+            WithHorde = _request.Horde;
+        }
         foreach (string argument in OS.GetCmdlineUserArgs())
         {
             if (argument == "horde=0")
@@ -195,6 +210,11 @@ public partial class NestBuilder : Node, ILevelBuilder
         _stats = Kit.BakeOrDefault();
         int population = Contract.Contract.Tier?.AgentCount ?? Kit.DefaultPopulation;
         Seed = Contract.Contract.Seed;
+        if (_request != null)
+        {
+            population = _request.Population;
+            Seed = _request.Seed;
+        }
         foreach (string argument in OS.GetCmdlineUserArgs())
         {
             if (argument.StartsWith("pop=") && int.TryParse(argument.Substring(4), out int pop))
