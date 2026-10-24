@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DillControl.Core;
+using DillControl.Enemies;
 using DillControl.Foliage;
 using DillControl.Voxel;
 using Godot;
@@ -34,6 +35,14 @@ public enum PodState : byte
 /// - Where a pod is drawn is where it was built plus the vine's bend
 ///   (<see cref="PlantFlex.OffsetAt"/>), the same move <c>flex_bend</c>
 ///   gives its voxels and leaves.
+/// - A pickle hangs from every full pod, drawn as the horde draws its own:
+///   instanced, in world space, no node a pickle and no shadows. Pods are
+///   drawn by square cells of the ground (<see cref="PodStats.CellM"/>), each
+///   a MultiMesh of capsules near and one of five-sided columns further off,
+///   handed over by visibility range. A cell's buffer is written again only
+///   when one of its pods changes; the bend and the swing are the shader's
+///   (<c>pickle_hang</c>), each pickle bending by its vine's flex row, which
+///   it carries in its custom data.
 ///
 /// Its numbers are <see cref="Stats"/>.
 /// </summary>
@@ -60,7 +69,34 @@ public partial class PodField : Node
         public int First, Count;
         public bool Anchored, Gone;
         public int Version = int.MinValue;
+        public Cell Cell;
     }
+
+    // A square of the ground and the pickles hanging over it.
+    private sealed class Cell
+    {
+        public readonly List<int> Vines = new();
+        public MultiMesh Near, Far;
+        public float[] Buffer = Array.Empty<float>();
+        public Aabb Bounds;
+        public bool HasBounds, Dirty;
+    }
+
+    // Per instance: a transform's 12 floats, then its custom data (the flex row).
+    private const int FloatsPerPickle = 16;
+
+    public const string ShaderPath = "res://shaders/pickle_hang.gdshader";
+    public const string FarShaderPath = "res://shaders/pickle_hang_far.gdshader";
+
+    private static readonly int SectionDraw = FrameProfiler.Section("pods draw");
+
+    private readonly Dictionary<Vector2I, Cell> _cells = new();
+    private readonly List<Cell> _dirty = new();
+    private bool _gridSet;
+    private Vector3 _gridOrigin, _gridX, _gridZ;
+    private ShaderMaterial _material, _farMaterial;
+    private Mesh _nearMesh, _farMesh;
+    private bool _hidden;
 
     private readonly List<Vine> _vines = new();
     // Per pod: where it hangs as built, in world space; its vine; its state.
@@ -75,6 +111,37 @@ public partial class PodField : Node
     public override void _Ready()
     {
         Stats ??= GD.Load<PodStats>(PodStats.DefaultPath);
+        // For a bench's A/B: the pods, with nothing hanging from them drawn.
+        _hidden = Array.IndexOf(OS.GetCmdlineUserArgs(), "pickles=0") >= 0;
+        AgentKindStats pickle = Stats.Pickle;
+        float radius = pickle?.Radius ?? 0.35f, height = pickle?.Height ?? 1.8f;
+        _material = Material(ShaderPath, pickle, height);
+        _farMaterial = Material(FarShaderPath, pickle, height);
+        // The horde's two shapes (HordeManager.BuildMultiMeshes).
+        _nearMesh = new CapsuleMesh { Radius = radius, Height = height, RadialSegments = 6, Rings = 1 };
+        _farMesh = new CylinderMesh { TopRadius = radius * 0.75f, BottomRadius = radius, Height = height, RadialSegments = 5, Rings = 0 };
+    }
+
+    private ShaderMaterial Material(string path, AgentKindStats pickle, float height)
+    {
+        var material = new ShaderMaterial { Shader = GD.Load<Shader>(path) };
+        material.SetShaderParameter("colour", pickle?.Colour ?? new Color(0.36f, 0.62f, 0.18f));
+        material.SetShaderParameter("half_height", height * 0.5f);
+        material.SetShaderParameter("sway_m", Stats.SwayM);
+        material.SetShaderParameter("sway_hz", Stats.SwayHz);
+        FlexField.Track(material);
+        return material;
+    }
+
+    public override void _ExitTree()
+    {
+        foreach (ShaderMaterial material in new[] { _material, _farMaterial })
+        {
+            if (material != null)
+            {
+                FlexField.Untrack(material);
+            }
+        }
     }
 
     /// <summary>Room for this many pods, before the vines are added.</summary>
@@ -114,7 +181,48 @@ public partial class PodField : Node
         }
         Count += pods.Length;
         Full += pods.Length;
+
+        Cell cell = CellAt(root.GlobalPosition);
+        vine.Cell = cell;
+        cell.Vines.Add(index);
+        for (int i = vine.First; i < vine.First + vine.Count; i++)
+        {
+            cell.Bounds = cell.HasBounds ? cell.Bounds.Expand(_built[i]) : new Aabb(_built[i], Vector3.Zero);
+            cell.HasBounds = true;
+        }
+        MarkDirty(cell);
         return index;
+    }
+
+    // The cell a vine's foot stands in: squares of the ground about the
+    // first vine's, across its up.
+    private Cell CellAt(Vector3 foot)
+    {
+        if (!_gridSet)
+        {
+            _gridSet = true;
+            _gridOrigin = foot;
+            Vector3 up = WorldUp.At(foot);
+            _gridX = up.Cross(Mathf.Abs(up.Y) < 0.99f ? Vector3.Up : Vector3.Right).Normalized();
+            _gridZ = _gridX.Cross(up).Normalized();
+        }
+        Vector3 d = foot - _gridOrigin;
+        var key = new Vector2I(Mathf.FloorToInt(d.Dot(_gridX) / Stats.CellM), Mathf.FloorToInt(d.Dot(_gridZ) / Stats.CellM));
+        if (!_cells.TryGetValue(key, out Cell cell))
+        {
+            cell = new Cell();
+            _cells[key] = cell;
+        }
+        return cell;
+    }
+
+    private void MarkDirty(Cell cell)
+    {
+        if (!cell.Dirty)
+        {
+            cell.Dirty = true;
+            _dirty.Add(cell);
+        }
     }
 
     private void Grow(int size)
@@ -153,6 +261,7 @@ public partial class PodField : Node
         }
         _state[i] = PodState.Destroyed;
         Destroyed++;
+        MarkDirty(_vines[_vine[i]].Cell);
         PodDestroyed?.Invoke(i);
     }
 
@@ -210,6 +319,135 @@ public partial class PodField : Node
             }
         }
     }
+
+    public override void _Process(double delta)
+    {
+        if (_dirty.Count == 0 || _hidden)
+        {
+            return;
+        }
+        using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionDraw);
+        for (int c = _dirty.Count - 1; c >= 0; c--)
+        {
+            Cell cell = _dirty[c];
+            if (Draw(cell))
+            {
+                cell.Dirty = false;
+                _dirty.RemoveAt(c);
+            }
+        }
+    }
+
+    // A cell's pickles into its buffers: one for every full pod. Not before
+    // each of its vines has its flex row, which its pickles bend by.
+    private bool Draw(Cell cell)
+    {
+        int count = 0;
+        foreach (int v in cell.Vines)
+        {
+            Vine vine = _vines[v];
+            if (!vine.Gone && vine.Flex != null && IsInstanceValid(vine.Flex) && vine.Flex.Row < 0)
+            {
+                return false;
+            }
+            for (int i = vine.First; i < vine.First + vine.Count; i++)
+            {
+                count += _state[i] == PodState.Full ? 1 : 0;
+            }
+        }
+        if (cell.Near == null)
+        {
+            Make(cell);
+        }
+        if (cell.Buffer.Length < count * FloatsPerPickle)
+        {
+            cell.Buffer = new float[count * FloatsPerPickle];
+        }
+        float half = (Stats.Pickle?.Height ?? 1.8f) * 0.5f;
+        float[] b = cell.Buffer;
+        int o = 0;
+        foreach (int v in cell.Vines)
+        {
+            Vine vine = _vines[v];
+            float row = vine.Flex != null && IsInstanceValid(vine.Flex) ? vine.Flex.Row : 0;
+            for (int i = vine.First; i < vine.First + vine.Count; i++)
+            {
+                if (_state[i] != PodState.Full)
+                {
+                    continue;
+                }
+                Vector3 up = WorldUp.At(_built[i]);
+                Vector3 side = up.Cross(Mathf.Abs(up.Y) < 0.99f ? Vector3.Up : Vector3.Right).Normalized();
+                // Turned about its up as its place says: no two in a row alike.
+                float turn = Mathf.PosMod(_built[i].Dot(new Vector3(12.9898f, 78.233f, 37.719f)), Mathf.Tau);
+                Vector3 right = (side * Mathf.Cos(turn)) + (side.Cross(up) * Mathf.Sin(turn));
+                Vector3 back = right.Cross(up);
+                Vector3 at = _built[i] - (up * half);
+                b[o + 0] = right.X;
+                b[o + 1] = up.X;
+                b[o + 2] = back.X;
+                b[o + 3] = at.X;
+                b[o + 4] = right.Y;
+                b[o + 5] = up.Y;
+                b[o + 6] = back.Y;
+                b[o + 7] = at.Y;
+                b[o + 8] = right.Z;
+                b[o + 9] = up.Z;
+                b[o + 10] = back.Z;
+                b[o + 11] = at.Z;
+                b[o + 12] = row;
+                b[o + 13] = 0.0f;
+                b[o + 14] = 0.0f;
+                b[o + 15] = 0.0f;
+                o += FloatsPerPickle;
+            }
+        }
+        foreach (MultiMesh multi in new[] { cell.Near, cell.Far })
+        {
+            if (multi.InstanceCount != count)
+            {
+                multi.InstanceCount = count;
+            }
+            if (count > 0)
+            {
+                RenderingServer.MultimeshSetBuffer(multi.GetRid(), new ReadOnlySpan<float>(b, 0, count * FloatsPerPickle));
+            }
+        }
+        return true;
+    }
+
+    // Its two draws: capsules near its middle, columns further off.
+    private void Make(Cell cell)
+    {
+        // Room for the vines to bend and the pickles to hang.
+        Aabb bounds = cell.Bounds.Grow(25.0f);
+        cell.Near = NewMulti(_nearMesh, bounds);
+        cell.Far = NewMulti(_farMesh, bounds);
+        AddChild(NewInstance("PicklesNear", cell.Near, _material, bounds, 0.0f, Stats.NearMetres + VoxelBody.HandoverOverlapM));
+        AddChild(NewInstance("PicklesFar", cell.Far, _farMaterial, bounds, Stats.NearMetres, Stats.DrawMetres));
+    }
+
+    private static MultiMesh NewMulti(Mesh mesh, Aabb bounds) => new()
+    {
+        TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+        UseCustomData = true,
+        Mesh = mesh,
+        CustomAabb = bounds,
+    };
+
+    private static MultiMeshInstance3D NewInstance(string name, MultiMesh multi, Material material, Aabb bounds, float begin, float end) => new()
+    {
+        Name = name,
+        Multimesh = multi,
+        MaterialOverride = material,
+        CustomAabb = bounds,
+        TopLevel = true,
+        // As the horde's: shadows on thousands of capsules are the dearest
+        // thing an integrated GPU can be asked for.
+        CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        VisibilityRangeBegin = begin,
+        VisibilityRangeEnd = end,
+    };
 
     // Each pod's voxel: the solid one nearest its marker, in whichever part
     // holds the marker.

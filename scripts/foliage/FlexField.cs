@@ -75,6 +75,22 @@ public partial class FlexField : Node
         return own;
     }
 
+    /// <summary>A material that draws many plants' things at once, each
+    /// bending by its own row (<c>flex_bend_row</c>, the row in its instance's
+    /// custom data): given the texture now and whenever it grows.</summary>
+    public static void Track(ShaderMaterial material)
+    {
+        material.SetShaderParameter(RowParameter, 0);
+        material.SetMeta(RowMeta, 0);
+        if (_texture != null)
+        {
+            material.SetShaderParameter(TextureParameter, _texture);
+        }
+        Materials.Add(material);
+    }
+
+    public static void Untrack(ShaderMaterial material) => Materials.Remove(material);
+
     internal static void Leave(PlantFlex plant)
     {
         if (!Plants.Remove(plant) || plant.Row < 0)

@@ -1,9 +1,16 @@
 [gd_resource type="Resource" script_class="PodStats" format=3]
 
 [ext_resource type="Script" path="res://scripts/mission/PodStats.cs" id="1_script"]
+[ext_resource type="Resource" path="res://resources/enemies/nme_standard.tres" id="2_pickle"]
 
 [resource]
 resource_name = "PodDefault"
 script = ExtResource("1_script")
 RecheckSeconds = 0.25
 AnchorSearchVoxels = 3
+Pickle = ExtResource("2_pickle")
+CellM = 150.0
+NearMetres = 160.0
+DrawMetres = 450.0
+SwayM = 0.15
+SwayHz = 0.35
