@@ -242,8 +242,10 @@ weeping 95 %, leafy 53 %. 25,000 is 117 vines, 25,062 pods, 393 m out
   the default options: `voxel/size` 0.1 instead of 0.5 (0.04 and 0.11 for two
   mechs), and new uids. Vines, trees, towers and mechs imported at a fifth of
   their size. The `.import` files were restored from git
-  (`git checkout -- art/voxels/*.vox.import`) and reimported be done with the editor closed**: done the same day with the user's editor
-  closed; a fruiting vine imports 70.5 m tall again, the heart 110.5 m. **Before running `reload-check` again**, make it safe: run
+  (`git checkout -- art/voxels/*.vox.import`) and everything reimported the
+  same day with the user's editor closed: a fruiting vine imports 70.5 m
+  tall again, the heart 110.5 m. **Before running `reload-check` again**,
+  make it safe: run
   it on a copy of the project, or snapshot `art/voxels/*.vox.import` first
   and restore them after. And find out why a reload makes the editor
   reimport with defaults: it may also happen in the user's own editor on a
