@@ -43,6 +43,12 @@ public enum PodState : byte
 ///   when one of its pods changes; the bend and the swing are the shader's
 ///   (<c>pickle_hang</c>), each pickle bending by its vine's flex row, which
 ///   it carries in its custom data.
+/// - A hanging pickle can be shot: a pool of <see cref="PodHitProxy"/> is
+///   handed each few ticks to the full pods nearest the line the player
+///   aims along, and a blast on the bus (<see cref="EventBus.AreaBlast"/>)
+///   reaches every pickle in it. Killed, it drops dead (a body that falls
+///   and puffs, under a cap) and its pod is left empty. A pod itself goes
+///   with the voxel it hangs from, shot away like any other.
 ///
 /// Its numbers are <see cref="Stats"/>.
 /// </summary>
@@ -55,10 +61,14 @@ public partial class PodField : Node
 
     /// <summary>Pod <c>i</c> is gone for good. After its state is <see cref="PodState.Destroyed"/>.</summary>
     public event Action<int> PodDestroyed;
+    /// <summary>Pod <c>i</c>'s pickle was killed hanging on it; the pod is empty.</summary>
+    public event Action<int> PickleKilled;
 
     public int Count { get; private set; }
     public int Full { get; private set; }
     public int Destroyed { get; private set; }
+    /// <summary>Pickles killed on their pods.</summary>
+    public int Killed { get; private set; }
     public int Vines => _vines.Count;
 
     private sealed class Vine
@@ -96,6 +106,13 @@ public partial class PodField : Node
     private Vector3 _gridOrigin, _gridX, _gridZ;
     private ShaderMaterial _material, _farMaterial;
     private Mesh _nearMesh, _farMesh;
+    private StandardMaterial3D _fallingMaterial;
+    private PodHitProxy[] _proxies = Array.Empty<PodHitProxy>();
+    private int[] _bestPod;
+    private float[] _bestScore;
+    private int _ticks;
+    private int _falling;
+    private readonly HashSet<int> _chosen = new();
     private bool _hidden;
 
     private readonly List<Vine> _vines = new();
@@ -103,6 +120,7 @@ public partial class PodField : Node
     private Vector3[] _built = Array.Empty<Vector3>();
     private int[] _vine = Array.Empty<int>();
     private PodState[] _state = Array.Empty<PodState>();
+    private float[] _health = Array.Empty<float>();
     // The voxel it hangs from; a null part hangs from nothing.
     private VoxelPart[] _part = Array.Empty<VoxelPart>();
     private Vector3I[] _cell = Array.Empty<Vector3I>();
@@ -120,6 +138,27 @@ public partial class PodField : Node
         // The horde's two shapes (HordeManager.BuildMultiMeshes).
         _nearMesh = new CapsuleMesh { Radius = radius, Height = height, RadialSegments = 6, Rings = 1 };
         _farMesh = new CylinderMesh { TopRadius = radius * 0.75f, BottomRadius = radius, Height = height, RadialSegments = 5, Rings = 0 };
+        _fallingMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = pickle?.Colour ?? new Color(0.36f, 0.62f, 0.18f),
+            Roughness = 0.9f,
+            SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled,
+            DiffuseMode = BaseMaterial3D.DiffuseModeEnum.Toon,
+        };
+        _proxies = new PodHitProxy[Stats.HitProxies];
+        for (int k = 0; k < _proxies.Length; k++)
+        {
+            var proxy = new PodHitProxy { Name = $"HitProxy{k}", Field = this };
+            AddChild(proxy);
+            proxy.Build(radius, height);
+            _proxies[k] = proxy;
+        }
+        _bestPod = new int[_proxies.Length];
+        _bestScore = new float[_proxies.Length];
+        if (EventBus.Instance != null)
+        {
+            EventBus.Instance.AreaBlast += OnAreaBlast;
+        }
     }
 
     private ShaderMaterial Material(string path, AgentKindStats pickle, float height)
@@ -135,6 +174,10 @@ public partial class PodField : Node
 
     public override void _ExitTree()
     {
+        if (EventBus.Instance != null)
+        {
+            EventBus.Instance.AreaBlast -= OnAreaBlast;
+        }
         foreach (ShaderMaterial material in new[] { _material, _farMaterial })
         {
             if (material != null)
@@ -178,6 +221,7 @@ public partial class PodField : Node
             _built[i] = at * pods[k];
             _vine[i] = index;
             _state[i] = PodState.Full;
+            _health[i] = Stats.PickleHealth;
         }
         Count += pods.Length;
         Full += pods.Length;
@@ -230,6 +274,7 @@ public partial class PodField : Node
         Array.Resize(ref _built, size);
         Array.Resize(ref _vine, size);
         Array.Resize(ref _state, size);
+        Array.Resize(ref _health, size);
         Array.Resize(ref _part, size);
         Array.Resize(ref _cell, size);
     }
@@ -268,6 +313,7 @@ public partial class PodField : Node
     public override void _PhysicsProcess(double delta)
     {
         using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionCheck);
+        Proxies();
         // A vine's parts have their voxels a frame after it enters.
         foreach (Vine vine in _vines)
         {
@@ -513,6 +559,247 @@ public partial class PodField : Node
         return part.Grid.At(c.X, c.Y, c.Z) != 0;
     }
 
+    /// <summary>A shot on pod <paramref name="i"/>'s pickle (through its
+    /// proxy, or a blast): at no health left it drops dead.</summary>
+    public void HitPickle(int i, DamageInfo info)
+    {
+        if (i < 0 || i >= Count || _state[i] != PodState.Full || info == null)
+        {
+            return;
+        }
+        _health[i] -= info.Amount;
+        if (_health[i] <= 0.0f)
+        {
+            info.Killed = true;
+            Kill(i, info.Direction);
+        }
+    }
+
+    // Killed hanging: it drops dead, and its pod is empty.
+    private void Kill(int i, Vector3 push)
+    {
+        _state[i] = PodState.Empty;
+        Full--;
+        Killed++;
+        MarkDirty(_vines[_vine[i]].Cell);
+        foreach (PodHitProxy proxy in _proxies)
+        {
+            if (proxy.Pod == i)
+            {
+                proxy.Release();
+            }
+        }
+        Drop(PickleAt(i), push);
+        PickleKilled?.Invoke(i);
+    }
+
+    // Where pod i's pickle hangs now: upright along its up, its middle half
+    // its height under the pod.
+    private Transform3D PickleAt(int i)
+    {
+        Vector3 pod = Drawn(i);
+        Vector3 up = WorldUp.At(pod);
+        Vector3 side = up.Cross(Mathf.Abs(up.Y) < 0.99f ? Vector3.Up : Vector3.Right).Normalized();
+        return new Transform3D(new Basis(side, up, side.Cross(up)), pod - (up * (Stats.Pickle?.Height ?? 1.8f) * 0.5f));
+    }
+
+    // A dead pickle falls as a body under the cap, and puffs where it lands;
+    // past the cap it puffs where it hung.
+    private void Drop(Transform3D at, Vector3 push)
+    {
+        float height = Stats.Pickle?.Height ?? 1.8f;
+        Color colour = _fallingMaterial.AlbedoColor;
+        if (_falling >= Stats.MaxFalling)
+        {
+            VoxelDebris.Current?.Dust(at.Origin, at.Basis.Y, Vector3.Zero, colour, height * Stats.DustScale);
+            return;
+        }
+        var body = new RigidBody3D
+        {
+            Name = "FallingPickle",
+            Mass = Stats.FallingMassKg,
+            // Never on anything the player collides with: see GameLayers.Litter.
+            CollisionLayer = GameLayers.Mask(GameLayers.Litter),
+            CollisionMask = GameLayers.Mask(GameLayers.World, GameLayers.Prop, GameLayers.Litter),
+        };
+        body.AddChild(new MeshInstance3D { Mesh = _nearMesh, MaterialOverride = _fallingMaterial });
+        body.AddChild(new CollisionShape3D { Shape = new CapsuleShape3D { Radius = Stats.Pickle?.Radius ?? 0.35f, Height = height } });
+        Node parent = GetTree().CurrentScene ?? GetTree().Root;
+        parent.AddChild(body);
+        body.GlobalTransform = at;
+        body.LinearVelocity = push.LengthSquared() > 1e-6f ? push.Normalized() * 2.0f : Vector3.Zero;
+        body.AngularVelocity = at.Basis.X * 2.0f;
+        _falling++;
+        GetTree().CreateTimer(Stats.FallingSeconds).Timeout += () =>
+        {
+            _falling--;
+            if (IsInstanceValid(body))
+            {
+                VoxelDebris.Current?.Dust(body.GlobalPosition, WorldUp.At(body.GlobalPosition), body.LinearVelocity, colour, height * Stats.DustScale);
+                body.QueueFree();
+            }
+        };
+    }
+
+    // Every pickle in a blast takes its share: full inside its inner radius,
+    // down to its least share at its edge. A line (the lance) is a blast
+    // along it.
+    private void OnAreaBlast(BlastInfo blast)
+    {
+        if (blast == null || Full == 0)
+        {
+            return;
+        }
+        Vector3 end = blast.IsLine ? blast.LineEnd : blast.Centre;
+        var box = new Aabb(blast.Centre, Vector3.Zero).Expand(end).Grow(blast.Radius);
+        foreach (Cell cell in _cells.Values)
+        {
+            if (!cell.Bounds.Grow(25.0f).Intersects(box))
+            {
+                continue;
+            }
+            foreach (int v in cell.Vines)
+            {
+                Vine vine = _vines[v];
+                for (int i = vine.First; i < vine.First + vine.Count; i++)
+                {
+                    if (_state[i] != PodState.Full)
+                    {
+                        continue;
+                    }
+                    Vector3 at = Drawn(i);
+                    float d = blast.IsLine ? Geometry3D.GetClosestPointToSegment(at, blast.Centre, end).DistanceTo(at) : at.DistanceTo(blast.Centre);
+                    if (d > blast.Radius)
+                    {
+                        continue;
+                    }
+                    float t = blast.Radius > blast.InnerRadius ? Mathf.Clamp((d - blast.InnerRadius) / (blast.Radius - blast.InnerRadius), 0.0f, 1.0f) : 0.0f;
+                    var info = new DamageInfo
+                    {
+                        Amount = blast.Damage * Mathf.Lerp(1.0f, blast.MinMultiplier, t),
+                        IsSplash = true,
+                        IsExplosive = true,
+                        Position = at,
+                        Direction = (at - blast.Centre).Normalized(),
+                        Source = blast.Source,
+                    };
+                    HitPickle(i, info);
+                }
+            }
+        }
+    }
+
+    // The proxies to the full pods nearest the aim, each few ticks; between,
+    // they follow their pickles as their vines bend.
+    private void Proxies()
+    {
+        if (_proxies.Length == 0 || Full == 0)
+        {
+            return;
+        }
+        Camera3D camera = GetViewport()?.GetCamera3D();
+        if (camera == null)
+        {
+            return;
+        }
+        if (_ticks++ % Stats.ProxyEveryTicks == 0)
+        {
+            Choose(camera.GlobalPosition, -camera.GlobalBasis.Z);
+        }
+        foreach (PodHitProxy proxy in _proxies)
+        {
+            if (proxy.Pod >= 0)
+            {
+                proxy.Assign(proxy.Pod, PickleAt(proxy.Pod));
+            }
+        }
+    }
+
+    // The best few by how near the aim they are: across the line over along
+    // it (so a pickle aimed at far off counts as much as one near), within
+    // ProxyMetres and in front.
+    private void Choose(Vector3 eye, Vector3 forward)
+    {
+        int n = _proxies.Length, found = 0, worst = 0;
+        float reach = Stats.ProxyMetres, reach2 = reach * reach;
+        foreach (Cell cell in _cells.Values)
+        {
+            if (cell.Bounds.Grow(25.0f + reach).HasPoint(eye) == false)
+            {
+                continue;
+            }
+            foreach (int v in cell.Vines)
+            {
+                Vine vine = _vines[v];
+                for (int i = vine.First; i < vine.First + vine.Count; i++)
+                {
+                    if (_state[i] != PodState.Full)
+                    {
+                        continue;
+                    }
+                    Vector3 d = _built[i] - eye;
+                    float along = d.Dot(forward), far2 = d.LengthSquared();
+                    if (along <= 0.0f || far2 > reach2)
+                    {
+                        continue;
+                    }
+                    float near = Mathf.Max(along, 5.0f);
+                    float score = (far2 - (along * along)) / (near * near);
+                    if (found < n)
+                    {
+                        _bestPod[found] = i;
+                        _bestScore[found] = score;
+                        if (score > _bestScore[worst])
+                        {
+                            worst = found;
+                        }
+                        found++;
+                    }
+                    else if (score < _bestScore[worst])
+                    {
+                        _bestPod[worst] = i;
+                        _bestScore[worst] = score;
+                        for (int k = 0; k < n; k++)
+                        {
+                            if (_bestScore[k] > _bestScore[worst])
+                            {
+                                worst = k;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // A proxy that keeps its pickle keeps it; the rest are handed out.
+        HashSet<int> chosen = _chosen;
+        chosen.Clear();
+        for (int k = 0; k < found; k++)
+        {
+            chosen.Add(_bestPod[k]);
+        }
+        foreach (PodHitProxy proxy in _proxies)
+        {
+            if (proxy.Pod >= 0 && !chosen.Remove(proxy.Pod))
+            {
+                proxy.Release();
+            }
+        }
+        foreach (PodHitProxy proxy in _proxies)
+        {
+            if (proxy.Pod < 0 && chosen.Count > 0)
+            {
+                int pod = 0;
+                foreach (int c in chosen)
+                {
+                    pod = c;
+                    break;
+                }
+                chosen.Remove(pod);
+                proxy.Assign(pod, PickleAt(pod));
+            }
+        }
+    }
+
     /// <summary>For <c>bench.gd</c> and the checks: how many pods, and in what state.</summary>
     public string Summary()
     {
@@ -524,7 +811,7 @@ public partial class PodField : Node
             unheld += _part[i] == null ? 1 : 0;
         }
         return FormattableString.Invariant(
-            $"[pods] {Count} on {_vines.Count} vines: {Full} full, {empty} empty, {regrowing} regrowing, {Destroyed} destroyed; {unheld} hang from no voxel");
+            $"[pods] {Count} on {_vines.Count} vines: {Full} full, {empty} empty, {regrowing} regrowing, {Destroyed} destroyed; {Killed} pickles killed on them; {unheld} hang from no voxel");
     }
 
     public void PrintBenchStatus() => GD.Print(Summary());

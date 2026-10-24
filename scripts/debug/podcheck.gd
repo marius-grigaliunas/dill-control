@@ -48,9 +48,62 @@ func _run() -> void:
 		if pods.Built(i).distance_to(pods.Drawn(i)) > 0.01:
 			moved += 1
 	var summary: String = pods.Summary()
-	unheld = int(summary.get_slice("; ", 1).get_slice(" ", 0))
+	unheld = int(summary.get_slice("; ", 2).get_slice(" ", 0))
 	_check("every pod hangs from a voxel", unheld == 0, "%d hang from none" % unheld)
 	_check("pods bend with their vine in the wind", moved > pods.Count / 2, "%d of %d moved off where they were built" % [moved, pods.Count])
+
+	# A shot, as a hitscan weapon casts one, at a pickle a proxy stands on
+	# (the pickles nearest the camera's aim): from 8 m to its side, where the
+	# player's view may be a hill, handed to the Hitbox the ray meets.
+	var camera := root.get_viewport().get_camera_3d()
+	var space := camera.get_world_3d().direct_space_state
+	var shot_pod := -1
+	var assigned := 0
+	for proxy in pods.get_children():
+		if not proxy.has_method("Release") or proxy.Pod < 0:
+			continue
+		assigned += 1
+		if shot_pod >= 0:
+			continue
+		var pod: int = proxy.Pod
+		var middle: Vector3 = pods.Drawn(pod) - pods.Drawn(pod).normalized() * 0.9
+		var up := middle.normalized()
+		var from := middle + up.cross(Vector3.FORWARD).normalized() * 8.0
+		var query := PhysicsRayQueryParameters3D.create(from, middle + (middle - from).normalized() * 2.0, 0xFFFFFFFF)
+		query.collide_with_areas = true
+		var hit := space.intersect_ray(query)
+		if hit.is_empty() or not hit.collider.has_method("TakeHit") or hit.collider.get_parent() != proxy:
+			if OS.get_cmdline_user_args().has("debug"):
+				print("    pod %d %.0f m off: %s" % [pod, from.distance_to(middle), "nothing" if hit.is_empty() else "%s at %.0f m" % [hit.collider.name, from.distance_to(hit.position)]])
+			continue
+		var info = load("res://scripts/core/DamageInfo.cs").new()
+		info.Amount = 1000.0
+		info.Position = hit.position
+		info.Direction = (middle - from).normalized()
+		hit.collider.TakeHit(info)
+		shot_pod = pod
+	_check("proxies stand on the pickles nearest the aim", assigned > 0, "%d assigned" % assigned)
+	_check("a shot pickle drops dead and leaves its pod empty", shot_pod >= 0 and pods.StateOf(shot_pod) == 1 and pods.Killed == 1,
+		"pod %d, %d killed" % [shot_pod, pods.Killed])
+
+	# A blast on the bus, 6 m round a pickle: every pickle in it, none past it.
+	var target: int = pods.Count - 1
+	var blast = load("res://scripts/core/BlastInfo.cs").new()
+	blast.Centre = pods.Drawn(target)
+	blast.Radius = 6.0
+	blast.InnerRadius = 2.0
+	blast.Damage = 500.0
+	blast.MinMultiplier = 0.5
+	var inside := 0
+	for i in pods.Count:
+		if pods.StateOf(i) == 0 and pods.Drawn(i).distance_to(blast.Centre) <= 6.0:
+			inside += 1
+	var before: int = pods.Killed
+	root.get_node("EventBus").emit_signal("AreaBlast", blast)
+	_check("a blast kills every pickle in it and none past it", pods.Killed - before == inside and inside > 0,
+		"%d killed, %d inside" % [pods.Killed - before, inside])
+	for i in 30:
+		await physics_frame
 
 	# Craters the heart's vine out from under it: it falls, and its pods with it.
 	var heart: Vector3 = builder.BenchHeart("0")

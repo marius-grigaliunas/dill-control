@@ -20,6 +20,26 @@ public partial class PodStats : Resource
     /// vine.</summary>
     [Export(PropertyHint.Range, "1,8,1")] public int AnchorSearchVoxels { get; set; } = 3;
 
+    [ExportGroup("Shot")]
+    /// <summary>What a hanging pickle takes before it drops dead.</summary>
+    [Export(PropertyHint.Range, "1,2000,1")] public float PickleHealth { get; set; } = 60.0f;
+    /// <summary>Colliders handed each tick to the pickles nearest the aim.</summary>
+    [Export(PropertyHint.Range, "0,256,1")] public int HitProxies { get; set; } = 48;
+    /// <summary>No proxy goes to a pickle further off than this.</summary>
+    [Export(PropertyHint.Range, "10,1000,10,suffix:m")] public float ProxyMetres { get; set; } = 350.0f;
+    /// <summary>How often, in physics ticks, the proxies are handed out again.
+    /// Between, the ones handed out follow their pickles.</summary>
+    [Export(PropertyHint.Range, "1,30,1")] public int ProxyEveryTicks { get; set; } = 3;
+
+    [ExportGroup("Dropped dead")]
+    /// <summary>A killed pickle falls as a body, at most this many at once; past it, it puffs where it hung.</summary>
+    [Export(PropertyHint.Range, "0,256,1")] public int MaxFalling { get; set; } = 32;
+    [Export(PropertyHint.Range, "1,500,1,suffix:kg")] public float FallingMassKg { get; set; } = 40.0f;
+    /// <summary>A fallen pickle puffs into dust after this long.</summary>
+    [Export(PropertyHint.Range, "0.5,30,0.5,suffix:s")] public float FallingSeconds { get; set; } = 5.0f;
+    /// <summary>Its dust cloud's width against the pickle's height.</summary>
+    [Export(PropertyHint.Range, "0,4,0.05")] public float DustScale { get; set; } = 1.0f;
+
     [ExportGroup("Drawn")]
     /// <summary>The pickle that hangs from a full pod: its size and colour.</summary>
     [Export] public DillControl.Enemies.AgentKindStats Pickle { get; set; }
