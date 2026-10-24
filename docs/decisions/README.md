@@ -54,3 +54,4 @@ Number them in order, `NNNN-short-title.md`.
 | [0041](0041-the-colony-wakes-on-harm.md) | The colony wakes on harm, never nearness; a pickle shot on its pod drops dead; every pickle drops into the horde over 30 s |
 | [0042](0042-vines-leave-no-rubble.md) | Vines leave no rubble (an exception to 0016): never heaped, snap into logs, crumble after 20 s; to be revisited by the path of destruction |
 | [0043](0043-the-vines-tool.md) | The Vines tool: a main screen that generates a nest, shows it, plays it and logs Good/Bad as training data; rebuilt after every reload |
+| [0044](0044-the-editor-bridge.md) | The editor bridge: Claude works in the running editor on the real scene (localhost, token, every change one undo); terrain is sculpted with our own brushes, not generated; tools register commands |

@@ -63,7 +63,7 @@ Joypad events in the input map use device `-1` (any pad). The layout is
    debug key is a letter.
 7. **No third-party addons** without a proposal and a reason. Our own editor
    plugins live in `addons/` because Godot looks for them nowhere else; there
-   are two, `vox_importer` and `vine_gen`.
+   are three, `vox_importer`, `vine_gen` and `editor_bridge`.
 
 ## The level tree
 
@@ -133,10 +133,25 @@ accepted contract, across scene changes. A level built after it loads names a
 made once the builder says the frames have settled. See
 `docs/decisions/0021`.
 
+## Working in the editor
+
+**Claude works in the user's running editor through the editor bridge**
+(`docs/decisions/0044`): `addons/editor_bridge` listens on 127.0.0.1 while
+it is on, and `tools/editor-bridge/godot_mcp.py` (the project's `.mcp.json`)
+gives its commands to Claude Code. Everything in a scene is the real thing,
+visible in the editor as itself: no markers that become content at load.
+Every command that changes a scene is one undo. While a scene is open in the
+editor, change it through the bridge, never by editing its `.tscn`. A tool
+adds its own commands with `Bridge.Register`. To try one by hand:
+`python tools/editor-bridge/godot_mcp.py call view '{}' --png perflogs/v.png`.
+Terrain is sculpted with our own brushes into a `HeightMapShape3D` and saved
+chunk meshes, never generated from markers. Claude may judge vines, its
+verdicts marked `"by": "claude"`, and may open the game window unasked.
+
 ## Folder map
 
 ```
-addons/         our own editor plugins only (vox_importer, vine_gen)
+addons/         our own editor plugins only (vox_importer, vine_gen, editor_bridge)
 art/
   _source/      .blend and paint sources, packs as downloaded. .gdignore'd, LFS.
   models/       .glb exports
@@ -149,7 +164,7 @@ scripts/        core/ player/ weapons/ enemies/ horde/ voxel/ planet/
                 vehicles/ mission/ levels/ ui/ audio/ debug/
 resources/      mirrors scripts/
 shaders/
-tools/          project-board/, vox-tools/ (and voxel-bench/ from M2). .gdignore'd.
+tools/          project-board/, vox-tools/, editor-bridge/ (and voxel-bench/ from M2). .gdignore'd.
 docs/           pitch.md, plan.md, decisions/, handoffs/, project_board.json
 perflogs/       recordings and bench screenshots. Gitignored.
 ```

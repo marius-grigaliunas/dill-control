@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "godot": {
+      "command": "python",
+      "args": ["tools/editor-bridge/godot_mcp.py"]
+    }
+  }
+}
