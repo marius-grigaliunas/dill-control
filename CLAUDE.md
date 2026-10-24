@@ -159,8 +159,12 @@ holds the heights (scaled by the spacing; Jolt takes it), and chunk meshes,
 all saved in `<scene>_terrain/` beside the scene; the horde reads the same
 heights. Select it and the 3D view's bar (`addons/terrain_brush`) raises,
 lowers, smooths or flattens; Scatter paints real instances of the ticked
-palette's scenes (Shift erases); Water floods a hollow. A stroke or a
-click is one undo; Claude uses `sculpt`, `scatter` and `flood`. **Water is
+palette's scenes; Forest paints tall trees, small trees and undergrowth in
+one stroke (`forest_default.tres`); Vines paints new unique vines of a kind,
+each a new seed baked as the Vine tab bakes; Flood fills a hollow; Water
+paints a pond's water on and off. Shift takes away. A stroke or a click is
+one undo; Claude uses `sculpt`, `scatter`, `forest`, `vines`, `flood` and
+`water_paint`. **Water is
 shallow** (`docs/decisions/0045`): a `WaterBody` under Water, wet cells
 and a saved surface in `<scene>_water/`; it slows the player and the horde
 (`water_default.tres`), and everything asks `WaterBody.DepthAt`. The

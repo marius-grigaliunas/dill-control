@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
 using Godot;
+using System.Threading.Tasks;
 using DillControl.Core;
+using DillControl.Foliage;
 using DillControl.Levels;
 
 namespace DillControl.Editor;
@@ -78,6 +80,41 @@ public static class TerrainCommands
             }}
             """,
             Flood);
+        Bridge.Register("forest",
+            "Paint a layered forest onto a SculptedTerrain, as the brush's Forest does: tall trees well apart, small trees between, Shrub vines as undergrowth " +
+            "(resources/levels/forest_default.tres), along 'points' or at 'at', thinning past 'edge' (share of the radius) to the edge. " +
+            "'thickness' scales every layer's density. 'erase' takes the forest's scenes away. One undo.",
+            """
+            {"type":"object","properties":{
+              "terrain":{"type":"string"},"at":{"type":"array","items":{"type":"number"}},"points":{"type":"array","items":{"type":"array","items":{"type":"number"}}},
+              "radius":{"type":"number","description":"default 40"},"thickness":{"type":"number","description":"default 1"},
+              "edge":{"type":"number","description":"0-1, default 0.5"},"erase":{"type":"boolean"}
+            }}
+            """,
+            ForestCommand);
+        Bridge.Register("vines",
+            "Paint new unique vines of a kind onto a SculptedTerrain, as the brush's Vines does: each spot is a new seed grown valid and baked " +
+            "(art/voxels/prp_vine_<kind>_<seed>.vox and its scene, in LFS), then imported and placed, as one undo. At most 'max' a call (default 40). " +
+            "'erase' takes the kind's vines away (their files stay).",
+            """
+            {"type":"object","required":["kind"],"properties":{
+              "terrain":{"type":"string"},"kind":{"type":"string"},"at":{"type":"array","items":{"type":"number"}},
+              "points":{"type":"array","items":{"type":"array","items":{"type":"number"}}},
+              "radius":{"type":"number"},"density":{"type":"number","description":"per 1,000 m², default 0.5"},
+              "spacing":{"type":"number","description":"default 20"},"max_slope":{"type":"number"},"max":{"type":"integer"},"erase":{"type":"boolean"}
+            }}
+            """,
+            VinesCommand);
+        Bridge.Register("water_paint",
+            "Paint a pond's water on (or off with 'erase') along 'points' or at 'at', as the brush's Water does: at the pond's own level, only where the " +
+            "ground is below it. Works on the pond at the first point or the nearest within 'radius'; with none, starts a pond 'depth' over the ground there. One undo.",
+            """
+            {"type":"object","properties":{
+              "terrain":{"type":"string"},"at":{"type":"array","items":{"type":"number"}},"points":{"type":"array","items":{"type":"array","items":{"type":"number"}}},
+              "radius":{"type":"number","description":"default 10"},"depth":{"type":"number","description":"for a new pond, default 0.8"},"erase":{"type":"boolean"}
+            }}
+            """,
+            WaterPaintCommand);
         Bridge.Register("terrain",
             "A SculptedTerrain's size, spacing, lowest and highest ground, and the ground's height at 'points' [[x, z], ...].",
             """
@@ -285,6 +322,37 @@ public static class TerrainCommands
         return points;
     }
 
+    // Dabs along the points, half a radius apart.
+    private static IEnumerable<Vector2> Along(List<Vector2> points, float radius)
+    {
+        float step = Mathf.Max(radius * 0.5f, 1.0f);
+        for (int i = 0; i < points.Count; i++)
+        {
+            Vector2 a = points[i];
+            Vector2 b = i + 1 < points.Count ? points[i + 1] : a;
+            int n = i + 1 < points.Count ? Math.Max(1, Mathf.CeilToInt(a.DistanceTo(b) / step)) : 1;
+            for (int k = 0; k < n; k++)
+                yield return a.Lerp(b, (float)k / n);
+        }
+    }
+
+    private static JsonNode Painted(Scatter scatter, string name, bool erase, Func<string, bool> mine)
+    {
+        if (scatter.Changed)
+        {
+            EditorUndoRedoManager undo = Bridge.BeginAction(erase ? $"{name}: erase" : name);
+            scatter.Record(undo);
+            Bridge.EndAction(undo);
+        }
+        return new JsonObject
+        {
+            ["added"] = scatter.Added.Count,
+            ["removed"] = scatter.Removed.Count,
+            ["now_placed"] = Scatter.Count(Bridge.SceneRoot, mine),
+            ["nodes"] = new JsonArray(scatter.Added.Take(60).Select(n => (JsonNode)Bridge.PathOf(n)).ToArray()),
+        };
+    }
+
     private static JsonNode ScatterCommand(JsonObject args)
     {
         SculptedTerrain terrain = Find(args);
@@ -296,37 +364,87 @@ public static class TerrainCommands
             Density = (float)Bridge.Number(args, "density", 2),
             SpacingM = (float)Bridge.Number(args, "spacing", 12),
             MaxSlopeDeg = (float)Bridge.Number(args, "max_slope", 30),
+            Hardness = (float)Bridge.Number(args, "hardness", 1),
         };
         bool erase = Bridge.Flag(args, "erase", false);
+        var scatter = new Scatter(terrain);
+        foreach (Vector2 p in Along(Points(args), settings.RadiusM))
+        {
+            if (erase)
+                scatter.Erase(p.X, p.Y, settings, scenes.Contains);
+            else
+                scatter.Paint(p.X, p.Y, settings, scenes);
+        }
+        return Painted(scatter, "scatter", erase, scenes.Contains);
+    }
+
+    private static JsonNode ForestCommand(JsonObject args)
+    {
+        SculptedTerrain terrain = Find(args);
+        float radius = (float)Bridge.Number(args, "radius", 40);
+        float thickness = (float)Bridge.Number(args, "thickness", 1);
+        float edge = (float)Bridge.Number(args, "edge", 0.5);
+        bool erase = Bridge.Flag(args, "erase", false);
+        var scatter = new Scatter(terrain);
+        foreach (Vector2 p in Along(Points(args), radius))
+            ForestBrush.Dab(scatter, p.X, p.Y, radius, thickness, edge, erase);
+        List<string> all = ForestBrush.AllScenes();
+        return Painted(scatter, "forest", erase, all.Contains);
+    }
+
+    private static async Task<JsonNode> VinesCommand(JsonObject args)
+    {
+        SculptedTerrain terrain = Find(args);
+        string name = Bridge.Text(args, "kind") ?? throw new Bridge.Refused("'kind' is missing");
+        VineKind kind = DirAccess.GetFilesAt(VineKind.Folder).Where(f => f.StartsWith(VineKind.Prefix) && f.EndsWith(".tres"))
+            .Select(f => ResourceLoader.Load<VineKind>($"{VineKind.Folder}/{f}"))
+            .FirstOrDefault(k => k != null && string.Equals(k.KindName, name, StringComparison.OrdinalIgnoreCase))
+            ?? throw new Bridge.Refused($"no vine kind '{name}'");
+        var settings = new Scatter.Settings
+        {
+            RadiusM = (float)Bridge.Number(args, "radius", 30),
+            Density = (float)Bridge.Number(args, "density", 0.5),
+            SpacingM = (float)Bridge.Number(args, "spacing", 20),
+            MaxSlopeDeg = (float)Bridge.Number(args, "max_slope", 30),
+            Hardness = 1.0f,
+        };
+        int most = (int)Bridge.Number(args, "max", 40);
+        bool erase = Bridge.Flag(args, "erase", false);
+        var scatter = new Scatter(terrain);
+        var vines = new VineBrush(scatter, kind);
+        foreach (Vector2 p in Along(Points(args), settings.RadiusM))
+        {
+            if (erase)
+                vines.Erase(p.X, p.Y, settings);
+            else if (vines.Waiting < most)
+                vines.Paint(p.X, p.Y, settings);
+        }
+        int placed = await vines.Finish(null);
+        JsonObject result = (JsonObject)Painted(scatter, "vines", erase, s => VineBrush.IsKind(s, kind));
+        result["baked_and_placed"] = placed;
+        return result;
+    }
+
+    private static JsonNode WaterPaintCommand(JsonObject args)
+    {
+        SculptedTerrain terrain = Find(args);
+        float radius = (float)Bridge.Number(args, "radius", 10);
+        bool erase = Bridge.Flag(args, "erase", false);
         List<Vector2> points = Points(args);
-        var scatter = new Scatter(terrain, scenes);
-        float step = Mathf.Max(settings.RadiusM * 0.5f, 1.0f);
-        for (int i = 0; i < points.Count; i++)
-        {
-            Vector2 a = points[i];
-            Vector2 b = i + 1 < points.Count ? points[i + 1] : a;
-            int n = i + 1 < points.Count ? Math.Max(1, Mathf.CeilToInt(a.DistanceTo(b) / step)) : 1;
-            for (int k = 0; k < n; k++)
-            {
-                Vector2 p = a.Lerp(b, (float)k / Math.Max(n, 1));
-                if (erase)
-                    scatter.Erase(p.X, p.Y, settings);
-                else
-                    scatter.Paint(p.X, p.Y, settings);
-            }
-        }
-        if (scatter.Changed)
-        {
-            EditorUndoRedoManager undo = Bridge.BeginAction(erase ? "scatter: erase" : "scatter");
-            scatter.Record(undo);
-            Bridge.EndAction(undo);
-        }
+        ArenaHeights h = terrain.Heights;
+        var first = new Vector3(points[0].X, h.HeightAt(points[0].X, points[0].Y), points[0].Y);
+        var paint = new WaterPaint(terrain, first, radius, (float)Bridge.Number(args, "depth", 0.8));
+        foreach (Vector2 p in Along(points, radius))
+            paint.Dab(p.X, p.Y, radius, erase);
+        EditorUndoRedoManager undo = Bridge.BeginAction(erase ? "water: dry" : "water");
+        paint.Record(undo);
+        Bridge.EndAction(undo);
         return new JsonObject
         {
-            ["added"] = scatter.Added.Count,
-            ["removed"] = scatter.Removed.Count,
-            ["now_placed"] = Scatter.Count(Bridge.SceneRoot, scenes),
-            ["nodes"] = new JsonArray(scatter.Added.Take(50).Select(n => (JsonNode)Bridge.PathOf(n)).ToArray()),
+            ["pond"] = Bridge.PathOf(paint.Body),
+            ["made"] = paint.Made,
+            ["level"] = Math.Round(paint.Body.GlobalPosition.Y, 2),
+            ["wet_cells"] = paint.WetCells,
         };
     }
 

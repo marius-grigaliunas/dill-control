@@ -15,7 +15,7 @@ namespace DillControl.Editor;
 /// </summary>
 public static class WaterFlood
 {
-    private const string MaterialPath = "res://art/materials/mat_water_toon.tres";
+    private const string MaterialPath = WaterBody.MaterialPath;
 
     /// <summary>The most cells one flood may cover (about 800 m square at 4 m).</summary>
     public const int MaxCells = 40000;
@@ -69,9 +69,21 @@ public static class WaterFlood
         foreach ((int i, int j) in wet)
             cells[((j - z0) * width) + (i - x0)] = 1;
 
+        WaterBody made = Create(level, s, h.Min.X + (x0 * s), h.Min.Y + (z0 * s), width, length, cells);
+        RecordCreate(undo, made);
+        return made;
+    }
+
+    /// <summary>
+    /// A new <see cref="WaterBody"/> under Water at <paramref name="level"/>,
+    /// its cells' corner at world (minX, minZ), and its surface saved beside
+    /// the scene. <see cref="RecordCreate"/> makes it undoable. The water
+    /// brush starts a pond with no cells and paints them in.
+    /// </summary>
+    public static WaterBody Create(float level, float s, float minX, float minZ, int width, int length, byte[] cells)
+    {
         Node root = EditorInterface.Singleton.GetEditedSceneRoot();
         Node parent = root.GetNodeOrNull("Water") ?? root;
-        float minX = h.Min.X + (x0 * s), minZ = h.Min.Y + (z0 * s);
         var middle = new Vector3(minX + (width * s * 0.5f), level, minZ + (length * s * 0.5f));
         var body = new WaterBody
         {
@@ -92,19 +104,26 @@ public static class WaterFlood
         string scene = root.SceneFilePath;
         string folder = $"{scene.GetBaseDir()}/{scene.GetFile().GetBaseName()}_water";
         DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath(folder));
-        string path = $"{folder}/{body.Name}_{Time.GetUnixTimeFromSystem():0}.res";
+        string path = $"{folder}/{body.Name}_{Time.GetTicksUsec()}.res";
         if (ResourceSaver.Save(mesh, path) == Error.Ok)
             mesh.TakeOverPath(path);
         var surface = new MeshInstance3D { Name = "Surface", Mesh = mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
         body.AddChild(surface);
         surface.Owner = root;
+        return body;
+    }
 
+    /// <summary>A pond's making as part of an undo: undone, it is taken out.</summary>
+    public static void RecordCreate(EditorUndoRedoManager undo, WaterBody body)
+    {
+        Node root = EditorInterface.Singleton.GetEditedSceneRoot();
+        Node parent = body.GetParent();
         undo.AddDoMethod(parent, Node.MethodName.AddChild, body, true);
         undo.AddDoProperty(body, Node.PropertyName.Owner, root);
-        undo.AddDoProperty(surface, Node.PropertyName.Owner, root);
+        foreach (Node child in body.GetChildren())
+            undo.AddDoProperty(child, Node.PropertyName.Owner, root);
         undo.AddDoReference(body);
         undo.AddUndoMethod(parent, Node.MethodName.RemoveChild, body);
-        return body;
     }
 
     private static float Ground(ArenaHeights h, int i, int j) => h.Base + h.Heights[(j * h.Count) + i];

@@ -9,11 +9,12 @@ using DillControl.Levels;
 namespace DillControl.Editor;
 
 /// <summary>
-/// The scatter brush (docs/decisions/0044): paints real instances of the
-/// scenes in a palette onto a <see cref="SculptedTerrain"/>, each the node
-/// the user would drag in, stood on the ground with a random turn, kept
-/// apart and off steep ground; or takes them away. The same for the brush in
-/// the 3D view and for the bridge's <c>scatter</c>. A stroke is one undo.
+/// Painting things onto a <see cref="SculptedTerrain"/> (docs/decisions/0044):
+/// spots on the ground, kept apart from everything standing in Foliage and
+/// Props, off steep ground and out of water, thinning toward the brush's
+/// edge; and real instances of scenes made on them, each the node the user
+/// would drag in, stood on the ground with a random turn. Scatter, Forest
+/// and Vines all paint through one of these a stroke; a stroke is one undo.
 /// </summary>
 public sealed class Scatter
 {
@@ -22,86 +23,116 @@ public sealed class Scatter
         public float RadiusM;
         /// <summary>Instances per 1,000 m² the brush fills up to: it never adds where there are this many already.</summary>
         public float Density;
-        /// <summary>No closer than this to anything already standing in Foliage or Props.</summary>
+        /// <summary>No closer than this to anything already standing.</summary>
         public float SpacingM;
         public float MaxSlopeDeg;
+        /// <summary>The share of the radius at full density; outside it thins to nothing at the edge. 1 is even all over.</summary>
+        public float Hardness;
     }
 
     private readonly SculptedTerrain _terrain;
     private readonly Node _root;
-    private readonly List<string> _palette;
     private readonly Dictionary<string, PackedScene> _scenes = new();
-    private readonly SeededRandom _random;
-    // Everything standing, so nothing lands in another; what this stroke made or took.
-    private readonly List<(Vector3 At, Node3D Node)> _standing = new();
+    public readonly SeededRandom Random;
+
+    // Everything standing, so nothing lands in another. A spot taken but not
+    // yet built (a vine still baking) has no node; its scene names what it will be.
+    private readonly List<Standing> _standing = new();
     public readonly List<Node3D> Added = new();
     public readonly List<(Node3D Node, Node Parent, int Index)> Removed = new();
 
-    public Scatter(SculptedTerrain terrain, IEnumerable<string> palette)
+    private sealed class Standing
+    {
+        public Vector3 At;
+        public Node3D Node;
+        public string Scene;
+    }
+
+    public Scatter(SculptedTerrain terrain)
     {
         _terrain = terrain;
         _root = EditorInterface.Singleton.GetEditedSceneRoot();
-        _palette = palette.ToList();
-        foreach (string path in _palette)
-            _scenes[path] = ResourceLoader.Load<PackedScene>(path);
         // The brush's own stream, from the clock: where a stroke puts things is the user's doing, not a contract's.
-        _random = SeededRandom.Stream(Time.GetTicksUsec(), "editor:scatter");
-        foreach (string branch in new[] { "Foliage", "Props" })
-        {
-            Node b = _root.GetNodeOrNull(branch);
-            if (b == null)
-                continue;
-            foreach (Node3D n in b.FindChildren("*", nameof(Node3D), true, true).OfType<Node3D>().Where(n => !string.IsNullOrEmpty(n.SceneFilePath)))
-                _standing.Add((n.GlobalPosition, n));
-        }
+        Random = SeededRandom.Stream(Time.GetTicksUsec(), "editor:scatter");
+        foreach (Node3D n in Branches(_root).SelectMany(b => b.FindChildren("*", nameof(Node3D), true, true).OfType<Node3D>())
+                     .Where(n => !string.IsNullOrEmpty(n.SceneFilePath)))
+            _standing.Add(new Standing { At = n.GlobalPosition, Node = n, Scene = n.SceneFilePath });
     }
 
-    /// <summary>Instances of the palette's scenes in Foliage and Props.</summary>
-    public static int Count(Node root, ICollection<string> palette) =>
-        new[] { "Foliage", "Props" }.Select(b => root.GetNodeOrNull(b)).Where(b => b != null)
-            .Sum(b => b.FindChildren("*", "", true, true).Count(n => palette.Contains(n.SceneFilePath)));
+    private static IEnumerable<Node> Branches(Node root) =>
+        new[] { "Foliage", "Props" }.Select(b => root.GetNodeOrNull(b)).Where(b => b != null);
 
-    /// <summary>One dab of adding at world (x, z).</summary>
-    public void Paint(float x, float z, Settings s)
+    /// <summary>Instances in Foliage and Props whose scene <paramref name="mine"/> says yes to.</summary>
+    public static int Count(Node root, Func<string, bool> mine) =>
+        Branches(root).Sum(b => b.FindChildren("*", "", true, true).Count(n => !string.IsNullOrEmpty(n.SceneFilePath) && mine(n.SceneFilePath)));
+
+    public static int Count(Node root, ICollection<string> palette) => Count(root, palette.Contains);
+
+    /// <summary>
+    /// New spots in one dab at world (x, z), filling up to the density of
+    /// what <paramref name="mine"/> counts. Each is taken at once, as
+    /// <paramref name="scene"/>, so later spots keep away from it.
+    /// </summary>
+    public List<Vector3> Spots(float x, float z, Settings s, Func<string, bool> mine, string scene)
     {
-        if (_palette.Count == 0)
-            return;
+        var spots = new List<Vector3>();
         ArenaHeights h = _terrain.Heights;
         float area = Mathf.Pi * s.RadiusM * s.RadiusM;
         int want = Mathf.Max(1, Mathf.RoundToInt(s.Density * area / 1000.0f));
-        int here = _standing.Count(t => new Vector2(t.At.X - x, t.At.Z - z).Length() < s.RadiusM && _palette.Contains(t.Node.SceneFilePath));
+        int here = _standing.Count(t => new Vector2(t.At.X - x, t.At.Z - z).Length() < s.RadiusM && mine(t.Scene));
         float maxSlope = Mathf.DegToRad(s.MaxSlopeDeg);
-        // A few tries for every one still missing; a try that lands too near or too steep is dropped.
+        float hard = Mathf.Clamp(s.Hardness <= 0.0f ? 1.0f : s.Hardness, 0.0f, 1.0f);
+        // A few tries for every one still missing; a try too near, too steep, wet or past the falloff is dropped.
         for (int attempt = 0; attempt < (want - here) * 4 && here < want; attempt++)
         {
-            float a = _random.Range(0.0f, Mathf.Tau);
-            float r = s.RadiusM * Mathf.Sqrt(_random.NextFloat());
-            float px = x + (Mathf.Cos(a) * r), pz = z + (Mathf.Sin(a) * r);
+            float a = Random.Range(0.0f, Mathf.Tau);
+            float d = Mathf.Sqrt(Random.NextFloat());
+            float px = x + (Mathf.Cos(a) * d * s.RadiusM), pz = z + (Mathf.Sin(a) * d * s.RadiusM);
+            if (hard < 1.0f && d > hard)
+            {
+                float t = (d - hard) / (1.0f - hard);
+                if (Random.NextFloat() > 1.0f - (t * t * (3.0f - (2.0f * t))))
+                    continue;
+            }
             if (!h.Contains(px, pz) || h.SlopeAt(px, pz, _terrain.Spacing) > maxSlope)
                 continue;
             if (_standing.Any(t => new Vector2(t.At.X - px, t.At.Z - pz).Length() < s.SpacingM))
                 continue;
-            if (WaterBody.DepthAt(new Vector3(px, h.HeightAt(px, pz), pz)) > 0.0f)
+            var at = new Vector3(px, h.HeightAt(px, pz), pz);
+            if (WaterBody.DepthAt(at) > 0.0f)
                 continue;
-            string path = _palette[_random.RangeInt(0, _palette.Count - 1)];
-            Node3D node = Make(path, new Vector3(px, h.HeightAt(px, pz), pz), _random.Range(0.0f, Mathf.Tau));
-            if (node == null)
-                continue;
-            _standing.Add((node.GlobalPosition, node));
-            Added.Add(node);
+            _standing.Add(new Standing { At = at, Scene = scene });
+            spots.Add(at);
             here++;
+        }
+        return spots;
+    }
+
+    /// <summary>One dab of instances of the palette's scenes.</summary>
+    public void Paint(float x, float z, Settings s, IList<string> palette)
+    {
+        if (palette.Count == 0)
+            return;
+        foreach (Vector3 at in Spots(x, z, s, palette.Contains, palette[0]))
+        {
+            Node3D node = Make(palette[Random.RangeInt(0, palette.Count - 1)], at, Random.Range(0.0f, Mathf.Tau));
+            Standing spot = _standing.Last(t => t.At == at);
+            spot.Node = node;
+            if (node != null)
+                spot.Scene = node.SceneFilePath;
         }
     }
 
-    /// <summary>One dab of taking away: the palette's instances within the radius.</summary>
-    public void Erase(float x, float z, Settings s)
+    /// <summary>One dab of taking away what <paramref name="mine"/> says yes to, within the radius.</summary>
+    public void Erase(float x, float z, Settings s, Func<string, bool> mine)
     {
         for (int i = _standing.Count - 1; i >= 0; i--)
         {
-            (Vector3 at, Node3D node) = _standing[i];
-            if (new Vector2(at.X - x, at.Z - z).Length() >= s.RadiusM || !_palette.Contains(node.SceneFilePath) || !node.IsInsideTree())
+            Standing t = _standing[i];
+            if (t.Node == null || new Vector2(t.At.X - x, t.At.Z - z).Length() >= s.RadiusM || !mine(t.Scene) || !t.Node.IsInsideTree())
                 continue;
             _standing.RemoveAt(i);
+            Node3D node = t.Node;
             if (Added.Remove(node))
             {
                 node.GetParent().RemoveChild(node);
@@ -114,15 +145,19 @@ public sealed class Scatter
         }
     }
 
-    private Node3D Make(string path, Vector3 at, float yaw)
+    /// <summary>An instance of a scene stood at a spot, as the user would drag it in.</summary>
+    public Node3D Make(string path, Vector3 at, float yaw)
     {
-        if (_scenes[path]?.Instantiate(PackedScene.GenEditState.Instance) is not Node3D node)
+        if (!_scenes.TryGetValue(path, out PackedScene packed))
+            _scenes[path] = packed = ResourceLoader.Load<PackedScene>(path);
+        if (packed?.Instantiate(PackedScene.GenEditState.Instance) is not Node3D node)
             return null;
         Node parent = PlaceCommands.DefaultParent(_root, path);
         node.Name = PlaceCommands.NameOf(path);
         parent.AddChild(node, true);
         node.Owner = _root;
         node.GlobalTransform = new Transform3D(new Basis(Vector3.Up, yaw), at);
+        Added.Add(node);
         return node;
     }
 
@@ -148,5 +183,13 @@ public sealed class Scatter
     }
 
     public bool Changed => Added.Count > 0 || Removed.Count > 0;
+
+    /// <summary>The scenes in scenes/props whose names start with any of <paramref name="prefixes"/>.</summary>
+    public static List<string> ScenesStarting(IEnumerable<string> prefixes)
+    {
+        string[] p = prefixes.ToArray();
+        return DirAccess.GetFilesAt("res://scenes/props").Where(f => f.EndsWith(".tscn") && p.Any(f.StartsWith))
+            .OrderBy(f => f).Select(f => $"res://scenes/props/{f}").ToList();
+    }
 }
 #endif

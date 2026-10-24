@@ -19,15 +19,18 @@ dearer (`HordeFlowCost`), so the crowd goes round a pond when the way round
 is short. Stepping in faster than `SplashMinSpeed` splashes. No swimming.
 Numbers: `resources/levels/water_default.tres` (`WaterStats`).
 
-**Water is made by flooding a hollow.** The brush's Water mode, or the
+**Water is made by flooding a hollow.** The brush's Flood mode, or the
 bridge's `flood`: a click in a hollow and a level; every cell connected to
 it with ground lower than the level gets water, flat at that level, like a
 lake. It refuses to spill off the terrain's edge or past 40,000 cells. The
 result is real nodes (0044): a `WaterBody` under Water holding which cells
 are wet, relative to itself (drag it and the water goes with it), and a
 `Surface` mesh saved in `<scene>_water/`. Shape a pond with the terrain
-brush, then flood it; to change a pond, remove it (Shift-click, or delete
-the node) and flood again.
+brush, then flood it. The Water brush (or `water_paint`) paints a pond's
+cells on and off at its own level, only where the ground is below it; a
+stroke starting on dry ground joins a pond within three radii, and starts a
+new one only when none is near. To change a pond's level, remove it
+(Shift-click in Flood, or delete the node) and flood again.
 
 **Everything asks `WaterBody.DepthAt`**: the player each tick, the horde
 once when its ground is made (`IGroundPace`, read from its parallel passes

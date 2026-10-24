@@ -84,6 +84,22 @@ public partial class WaterBody : Node3D
         return Mathf.Lerp(1.0f, share, Mathf.Clamp(depth / stats.FullSlowDepthM, 0.0f, 1.0f));
     }
 
+    public const string MaterialPath = "res://art/materials/mat_water_toon.tres";
+
+    /// <summary>
+    /// New wet cells, as a whole, and the surface drawn again over them: the
+    /// water brush's strokes and their undo both come through here.
+    /// </summary>
+    public void Reshape(Vector2 corner, int width, int length, byte[] cells)
+    {
+        Corner = corner;
+        Width = width;
+        Length = length;
+        Cells = cells;
+        if (GetNodeOrNull("Surface") is MeshInstance3D surface && surface.Mesh is ArrayMesh mesh)
+            FillSurface(mesh, ResourceLoader.Load<Material>(MaterialPath));
+    }
+
     /// <summary>
     /// The surface over the marked cells, at this node's height, into
     /// <paramref name="mesh"/> (kept, so its file stays the scene's).
