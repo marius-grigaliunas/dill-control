@@ -107,9 +107,18 @@ and builds its vines on all cores while the planet generates; `NestPlacer`, a
 site chooser (`PlanetTerrain.MoreSiteChoosers`), lays it at the flattest of
 a few places on levelled pads. **A nest is one clump**: vines 55-70 m apart
 inside 400 m, more pods a vine before more room. No compound or city goes
-with a nest. `lvl_nest_lab` is a contract level with a nest, no ship, no
-compound and no horde until the pods are it: `pop=N`, `nest=SEED` after `--`.
+with a nest. `lvl_nest_lab` is a contract level with a nest, no ship and no
+compound: `pop=N`, `nest=SEED`, `horde=0`, `pickles=0` after `--`.
 A vine stands on its own foot; a crater under it unroots it (`PlantFlex.Unroot`).
+
+**Every pickle starts on a pod** (`docs/decisions/0034`). `PodField` holds a
+nest's pods in flat arrays, never a node a pod: each hangs from a voxel of its
+vine and goes with it, and its pickle is drawn instanced and bent on the GPU
+(`pickle_hang`). Hanging pickles are shot through a pool of `PodHitProxy`
+on those nearest the aim, and blasts through the bus. The colony never
+strikes first (`docs/decisions/0029`): harm to any of it wakes it, and over
+`WakeSeconds` every pickle drops into the horde (`SpawnOrigin.Pod`), which
+has none of its own. Numbers: `resources/mission/pod_default.tres`.
 
 **Static voxel bodies are on World and Structure, never Prop.** The planet's
 gravity field watches Prop for loose pieces; watching a nest's 64,000 static
@@ -304,7 +313,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --headless --path . --script scripts/debug/flexcheck.gd                                            # a plant's spine: its period, settling, a pull, a cut
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd                                            # vine generator vs its golden vines; every baked vine's wrapper and foot
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- record                                  # re-record the golden vines, only after a change meant to move them
-"$GODOT" --headless --path . --script scripts/debug/podcheck.gd -- pop=3000                                 # a nest's pods: all in the field, each on a voxel, bending; one shot, one blast; the heart's vine felled takes its own
+"$GODOT" --headless --path . --script scripts/debug/podcheck.gd -- pop=3000                                 # a nest's pods: in the field, on voxels, bending; a shot, a blast; the wake into the horde; a felled vine takes its own
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- rejections 200                          # per kind: how often a seed's roll is valid, why not, how each measure spreads
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- settle                                  # every baked vine stood 5 s with Jolt: no drift, nothing loose or sunk
 "$GODOT" --path . --script scripts/debug/vinelook.gd -- perflogs/vines.png                                   # every baked vine in a row, photographed

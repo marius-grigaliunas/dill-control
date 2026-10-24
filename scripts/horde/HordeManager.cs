@@ -164,9 +164,12 @@ public partial class HordeManager : Node3D
 
         /// <summary>A cornichon a thrower lobbed at the player.</summary>
         Thrown = 4,
+
+        /// <summary>A pickle dropped from its pod when its colony woke (PodField).</summary>
+        Pod = 5,
     }
 
-    private readonly int[] _extraByOrigin = new int[5];
+    private readonly int[] _extraByOrigin = new int[6];
 
     /// <summary>Extras alive from one origin.</summary>
     public int ExtraCount(SpawnOrigin origin) => _extraByOrigin[(int)origin];

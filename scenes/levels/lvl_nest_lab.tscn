@@ -22,6 +22,10 @@
 [ext_resource type="Resource" path="res://resources/mission/nest_kit_default.tres" id="48_nestkit"]
 [ext_resource type="Script" path="res://scripts/mission/PodField.cs" id="49_pods"]
 [ext_resource type="Resource" path="res://resources/mission/pod_default.tres" id="50_podstats"]
+[ext_resource type="Script" uid="uid://bqbn1xwbwb346" path="res://scripts/horde/HordeDirector.cs" id="51_horde"]
+[ext_resource type="Resource" path="res://resources/horde/horde_stats_default.tres" id="52_hordestats"]
+[ext_resource type="Resource" path="res://resources/enemies/nme_composition_default.tres" id="53_comp"]
+[ext_resource type="Script" uid="uid://dmucf7smv5n8o" path="res://scripts/levels/ManipulatorBinding.cs" id="54_binding"]
 
 [sub_resource type="Sky" id="Sky"]
 sky_material = ExtResource("32_sky")
@@ -65,16 +69,18 @@ Environment = NodePath("../../Lighting/WorldEnvironment")
 Sun = NodePath("../../Lighting/Sun")
 BuildOnReady = false
 
-[node name="SystemBuilder" type="Node" parent="Geometry" node_paths=PackedStringArray("Planet")]
+[node name="SystemBuilder" type="Node" parent="Geometry" node_paths=PackedStringArray("Planet", "Horde")]
 script = ExtResource("43_builder")
 Planet = NodePath("../Planet")
+Horde = NodePath("../../Spawns/Horde")
 FallbackPools = ExtResource("44_pools")
 
-[node name="NestBuilder" type="Node" parent="Geometry" node_paths=PackedStringArray("Contract", "Placer", "Vines", "Pods")]
+[node name="NestBuilder" type="Node" parent="Geometry" node_paths=PackedStringArray("Contract", "Placer", "Vines", "Horde", "Pods")]
 script = ExtResource("46_nestbuilder")
 Contract = NodePath("../SystemBuilder")
 Placer = NodePath("../../Props/NestPlacer")
 Vines = NodePath("../../Foliage")
+Horde = NodePath("../../Spawns/Horde")
 Pods = NodePath("../../Props/PodField")
 Kit = ExtResource("48_nestkit")
 
@@ -89,9 +95,10 @@ script = ExtResource("47_nestplacer")
 Kit = ExtResource("48_nestkit")
 Spawn = NodePath("../../Spawns/PlayerSpawn")
 
-[node name="PodField" type="Node" parent="Props"]
+[node name="PodField" type="Node" parent="Props" node_paths=PackedStringArray("Horde")]
 script = ExtResource("49_pods")
 Stats = ExtResource("50_podstats")
+Horde = NodePath("../../Spawns/Horde")
 
 [node name="Lighting" type="Node3D" parent="."]
 
@@ -121,5 +128,18 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1300, 0)
 script = ExtResource("21_site")
 Lift = 1.5
 KeepColliderRadius = 120.0
+
+[node name="Horde" type="Node3D" parent="Spawns" node_paths=PackedStringArray("Level", "GroundProvider")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1262, 0)
+script = ExtResource("51_horde")
+Stats = ExtResource("52_hordestats")
+Composition = ExtResource("53_comp")
+Level = NodePath("../..")
+GroundProvider = NodePath("../../Geometry/Planet")
+
+[node name="ManipulatorBinding" type="Node" parent="Spawns/Horde" node_paths=PackedStringArray("Horde", "Level")]
+script = ExtResource("54_binding")
+Horde = NodePath("..")
+Level = NodePath("../../..")
 
 [node name="Navigation" type="Node3D" parent="."]

@@ -31,6 +31,13 @@ public partial class PodStats : Resource
     /// Between, the ones handed out follow their pickles.</summary>
     [Export(PropertyHint.Range, "1,30,1")] public int ProxyEveryTicks { get; set; } = 3;
 
+    [ExportGroup("Waking")]
+    /// <summary>Once the colony is harmed, its pickles drop over this long,
+    /// nearest the harm first (docs/decisions/0029: <c>WakeSeconds</c>).</summary>
+    [Export(PropertyHint.Range, "0,300,1,suffix:s")] public float WakeSeconds { get; set; } = 30.0f;
+    /// <summary>A blast this far outside the nest's pods still wakes it.</summary>
+    [Export(PropertyHint.Range, "0,300,5,suffix:m")] public float AlarmMarginM { get; set; } = 40.0f;
+
     [ExportGroup("Dropped dead")]
     /// <summary>A killed pickle falls as a body, at most this many at once; past it, it puffs where it hung.</summary>
     [Export(PropertyHint.Range, "0,256,1")] public int MaxFalling { get; set; } = 32;

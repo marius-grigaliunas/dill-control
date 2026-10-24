@@ -28,7 +28,9 @@ namespace DillControl.Mission;
 ///
 /// Its population and seed are the contract's, unless the command line says
 /// <c>pop=N</c>, <c>nest=SEED</c>; <c>horde=0</c> builds it without the horde,
-/// as does a level with none (the nest lab, until the pods are its horde).
+/// as does a level with none. The horde has no pickles of its own: every one
+/// starts on a pod (<see cref="PodField"/>) and drops into it when the colony
+/// wakes (docs/decisions/0034).
 /// The load is timed by stage, and the memory it took printed: the numbers
 /// that decide docs/decisions/0033.
 /// </summary>
@@ -111,6 +113,17 @@ public partial class NestBuilder : Node, ILevelBuilder
             Horde = null;
         }
         WithHorde = Horde != null;
+        if (Horde?.Stats != null)
+        {
+            // A copy, as a compound's tier makes one: none of its own, room
+            // for the whole nest, and every one it gets hunts.
+            var stats = (HordeStats)Horde.Stats.Duplicate();
+            stats.AgentCount = 0;
+            stats.AgentCapacity = Math.Max(stats.AgentCapacity, (Kit?.PopulationClamp.Y ?? 25000) + 1000);
+            stats.RespawnKilledAgents = false;
+            stats.AggroRange = 0.0f;
+            Horde.Stats = stats;
+        }
         _clock.Start();
         _managedBefore = GC.GetTotalMemory(false);
         _nativeBefore = OS.GetStaticMemoryUsage();

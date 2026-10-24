@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using DillControl.Core;
 using DillControl.Enemies;
 using DillControl.Foliage;
+using DillControl.Horde;
 using DillControl.Voxel;
 using Godot;
 
@@ -49,15 +50,36 @@ public enum PodState : byte
 ///   reaches every pickle in it. Killed, it drops dead (a body that falls
 ///   and puffs, under a cap) and its pod is left empty. A pod itself goes
 ///   with the voxel it hangs from, shot away like any other.
+/// - The colony never strikes first (docs/decisions/0029). Harm to any of
+///   it wakes all of it: a hanging pickle hit, a vine or a leaf hit, a blast
+///   in the nest. Then over <see cref="PodStats.WakeSeconds"/> every full
+///   pod lets its pickle drop, nearest the harm first, into the
+///   <see cref="Horde"/> (<see cref="HordeManager.SpawnOrigin.Pod"/>).
 ///
 /// Its numbers are <see cref="Stats"/>.
 /// </summary>
 [GlobalClass]
 public partial class PodField : Node
 {
+    /// <summary>Asleep until harmed; waking while its pickles drop; awake once they all have.</summary>
+    public enum ColonyState
+    {
+        Asleep,
+        Waking,
+        Awake,
+    }
+
     private static readonly int SectionCheck = FrameProfiler.Section("pods");
 
     [Export] public PodStats Stats { get; set; }
+    /// <summary>Where a woken colony's pickles drop into. None: they stay hanging.</summary>
+    [Export] public HordeDirector Horde { get; set; }
+
+    public ColonyState Colony { get; private set; } = ColonyState.Asleep;
+    /// <summary>The colony was harmed, here: it starts to wake.</summary>
+    public event Action<Vector3> Aggravated;
+    /// <summary>Pickles dropped into the horde.</summary>
+    public int Dropped { get; private set; }
 
     /// <summary>Pod <c>i</c> is gone for good. After its state is <see cref="PodState.Destroyed"/>.</summary>
     public event Action<int> PodDestroyed;
@@ -80,6 +102,7 @@ public partial class PodField : Node
         public bool Anchored, Gone;
         public int Version = int.MinValue;
         public Cell Cell;
+        public Action<DamageInfo> OnDamaged;
     }
 
     // A square of the ground and the pickles hanging over it.
@@ -113,6 +136,10 @@ public partial class PodField : Node
     private int _ticks;
     private int _falling;
     private readonly HashSet<int> _chosen = new();
+    // The order a waking colony drops in, how far along it is, and for how long.
+    private int[] _wakeOrder = Array.Empty<int>();
+    private int _woken;
+    private float _waking;
     private bool _hidden;
 
     private readonly List<Vine> _vines = new();
@@ -178,6 +205,13 @@ public partial class PodField : Node
         {
             EventBus.Instance.AreaBlast -= OnAreaBlast;
         }
+        foreach (Vine vine in _vines)
+        {
+            if (vine.OnDamaged != null && vine.Body != null && IsInstanceValid(vine.Body))
+            {
+                vine.Body.Damaged -= vine.OnDamaged;
+            }
+        }
         foreach (ShaderMaterial material in new[] { _material, _farMaterial })
         {
             if (material != null)
@@ -225,6 +259,12 @@ public partial class PodField : Node
         }
         Count += pods.Length;
         Full += pods.Length;
+
+        if (vine.Body != null)
+        {
+            vine.OnDamaged = info => Aggravate(info?.Position ?? root.GlobalPosition);
+            vine.Body.Damaged += vine.OnDamaged;
+        }
 
         Cell cell = CellAt(root.GlobalPosition);
         vine.Cell = cell;
@@ -314,6 +354,7 @@ public partial class PodField : Node
     {
         using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionCheck);
         Proxies();
+        Wake((float)delta);
         // A vine's parts have their voxels a frame after it enters.
         foreach (Vine vine in _vines)
         {
@@ -567,6 +608,7 @@ public partial class PodField : Node
         {
             return;
         }
+        Aggravate(info.Position);
         _health[i] -= info.Amount;
         if (_health[i] <= 0.0f)
         {
@@ -646,12 +688,28 @@ public partial class PodField : Node
     // along it.
     private void OnAreaBlast(BlastInfo blast)
     {
-        if (blast == null || Full == 0)
+        // A blast that harms nothing (LevelRoot's shader warm-up) wakes nothing.
+        if (blast == null || Count == 0 || blast.Damage <= 0.0f)
         {
             return;
         }
         Vector3 end = blast.IsLine ? blast.LineEnd : blast.Centre;
         var box = new Aabb(blast.Centre, Vector3.Zero).Expand(end).Grow(blast.Radius);
+        if (Colony == ColonyState.Asleep)
+        {
+            foreach (Cell cell in _cells.Values)
+            {
+                if (cell.Bounds.Grow(Stats.AlarmMarginM).Intersects(box))
+                {
+                    Aggravate(blast.Centre);
+                    break;
+                }
+            }
+        }
+        if (Full == 0)
+        {
+            return;
+        }
         foreach (Cell cell in _cells.Values)
         {
             if (!cell.Bounds.Grow(25.0f).Intersects(box))
@@ -800,6 +858,89 @@ public partial class PodField : Node
         }
     }
 
+    /// <summary>The colony was harmed at <paramref name="at"/>: it wakes, and
+    /// its pickles start to drop, the nearest there first. Once only.</summary>
+    public void Aggravate(Vector3 at)
+    {
+        if (Colony != ColonyState.Asleep || Count == 0)
+        {
+            return;
+        }
+        Colony = ColonyState.Waking;
+        _waking = 0.0f;
+        _woken = 0;
+        var order = new List<int>(Full);
+        for (int i = 0; i < Count; i++)
+        {
+            if (_state[i] == PodState.Full)
+            {
+                order.Add(i);
+            }
+        }
+        var distance = new float[Count];
+        foreach (int i in order)
+        {
+            distance[i] = _built[i].DistanceSquaredTo(at);
+        }
+        order.Sort((a, b) => distance[a].CompareTo(distance[b]));
+        _wakeOrder = order.ToArray();
+        if (PerfLog.Recording)
+        {
+            PerfLog.Event(FormattableString.Invariant($"colony-wakes {_wakeOrder.Length} to drop"));
+        }
+        Aggravated?.Invoke(at);
+    }
+
+    // A share of the colony each tick, so the last pickle drops WakeSeconds
+    // after the first.
+    private void Wake(float dt)
+    {
+        if (Colony != ColonyState.Waking)
+        {
+            return;
+        }
+        _waking += dt;
+        int due = Stats.WakeSeconds <= 0.0f ? _wakeOrder.Length
+            : Math.Min(_wakeOrder.Length, (int)Math.Ceiling(_wakeOrder.Length * _waking / Stats.WakeSeconds));
+        HordeManager horde = Horde != null && IsInstanceValid(Horde) ? Horde.Manager : null;
+        for (; _woken < due; _woken++)
+        {
+            int i = _wakeOrder[_woken];
+            if (_state[i] == PodState.Full && horde != null)
+            {
+                DropIntoHorde(i, horde);
+            }
+        }
+        if (_woken >= _wakeOrder.Length)
+        {
+            Colony = ColonyState.Awake;
+            _wakeOrder = Array.Empty<int>();
+        }
+    }
+
+    // Pod i's pickle lets go: from where it hangs, an agent of the horde,
+    // landing soft (a lob: the fall from the canopy is no throw). Its pod is
+    // empty. With the horde full, it holds on.
+    private void DropIntoHorde(int i, HordeManager horde)
+    {
+        Vector3 at = PickleAt(i).Origin;
+        if (!horde.SpawnFlung(at, Vector3.Zero, -1, HordeManager.SpawnOrigin.Pod, lobbed: true))
+        {
+            return;
+        }
+        _state[i] = PodState.Empty;
+        Full--;
+        Dropped++;
+        MarkDirty(_vines[_vine[i]].Cell);
+        foreach (PodHitProxy proxy in _proxies)
+        {
+            if (proxy.Pod == i)
+            {
+                proxy.Release();
+            }
+        }
+    }
+
     /// <summary>For <c>bench.gd</c> and the checks: how many pods, and in what state.</summary>
     public string Summary()
     {
@@ -811,8 +952,19 @@ public partial class PodField : Node
             unheld += _part[i] == null ? 1 : 0;
         }
         return FormattableString.Invariant(
-            $"[pods] {Count} on {_vines.Count} vines: {Full} full, {empty} empty, {regrowing} regrowing, {Destroyed} destroyed; {Killed} pickles killed on them; {unheld} hang from no voxel");
+            $"[pods] {Count} on {_vines.Count} vines: {Full} full, {empty} empty, {regrowing} regrowing, {Destroyed} destroyed; {Killed} pickles killed on them, {Dropped} dropped; the colony {Colony.ToString().ToLowerInvariant()}; {unheld} hang from no voxel");
     }
 
     public void PrintBenchStatus() => GD.Print(Summary());
+
+    /// <summary>For the checks: pods that found no voxel to hang from.</summary>
+    public int Unheld()
+    {
+        int unheld = 0;
+        for (int i = 0; i < Count; i++)
+        {
+            unheld += _part[i] == null ? 1 : 0;
+        }
+        return unheld;
+    }
 }

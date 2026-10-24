@@ -47,8 +47,7 @@ func _run() -> void:
 	for i in pods.Count:
 		if pods.Built(i).distance_to(pods.Drawn(i)) > 0.01:
 			moved += 1
-	var summary: String = pods.Summary()
-	unheld = int(summary.get_slice("; ", 2).get_slice(" ", 0))
+	unheld = pods.Unheld()
 	_check("every pod hangs from a voxel", unheld == 0, "%d hang from none" % unheld)
 	_check("pods bend with their vine in the wind", moved > pods.Count / 2, "%d of %d moved off where they were built" % [moved, pods.Count])
 
@@ -102,8 +101,23 @@ func _run() -> void:
 	root.get_node("EventBus").emit_signal("AreaBlast", blast)
 	_check("a blast kills every pickle in it and none past it", pods.Killed - before == inside and inside > 0,
 		"%d killed, %d inside" % [pods.Killed - before, inside])
-	for i in 30:
+	# The shot woke the colony: over WakeSeconds every full pod's pickle
+	# drops into the horde, the nearest the shot first.
+	_check("a shot on a hanging pickle wakes the colony", pods.Colony == 1, "colony %d" % pods.Colony)
+	var horde: Node = level.get_node_or_null("Spawns/Horde")
+	var wake_started := Time.get_ticks_msec()
+	var first_dropped := -1
+	while pods.Colony != 2 and Time.get_ticks_msec() - wake_started < 60000:
 		await physics_frame
+		if first_dropped < 0 and pods.Dropped > 0:
+			first_dropped = Time.get_ticks_msec() - wake_started
+	var woke_in := (Time.get_ticks_msec() - wake_started) / 1000.0
+	print(pods.Summary())
+	_check("over WakeSeconds every pickle left drops", pods.Colony == 2 and pods.Full == 0,
+		"awake after %.1f s, %d still full, %d dropped" % [woke_in, pods.Full, pods.Dropped])
+	# Its throwers' cornichons are agents of another origin.
+	_check("into the horde, as pod pickles", horde != null and horde.Manager.ExtraCount(5) == pods.Dropped,
+		"%d in the horde from pods, %d agents in all" % [horde.Manager.ExtraCount(5) if horde else -1, horde.Manager.AgentCount if horde else -1])
 
 	# Craters the heart's vine out from under it: it falls, and its pods with it.
 	var heart: Vector3 = builder.BenchHeart("0")
