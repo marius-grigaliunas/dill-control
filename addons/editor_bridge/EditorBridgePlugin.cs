@@ -58,6 +58,7 @@ public partial class EditorBridgePlugin : EditorPlugin
         ViewCommands.Register();
         PlaceCommands.Register();
         NodeCommands.Register();
+        SceneCommands.Register();
         _server = new BridgeServer();
         _server.Start();
         _startedByThisCode = true;

@@ -44,7 +44,7 @@ project/assembly_name="DillControl"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/editor_bridge/plugin.cfg", "res://addons/vine_gen/plugin.cfg", "res://addons/vox_importer/plugin.cfg")
+enabled=PackedStringArray("res://addons/editor_bridge/plugin.cfg", "res://addons/terrain_brush/plugin.cfg", "res://addons/vine_gen/plugin.cfg", "res://addons/vox_importer/plugin.cfg")
 
 [input]
 

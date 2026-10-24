@@ -2,18 +2,118 @@
 
 [ext_resource type="Script" uid="uid://br5rfr1owyw11" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
-[ext_resource type="Script" uid="uid://fyj70fuygn0r" path="res://scripts/levels/ArenaTerrain.cs" id="3_terrain"]
-[ext_resource type="Resource" path="res://resources/levels/arena_terrain_drop_test.tres" id="4_spec"]
 [ext_resource type="Material" path="res://art/materials/mat_arena_terrain.tres" id="5_mat"]
-[ext_resource type="Script" uid="uid://rqsi5wyx6n3p" path="res://scripts/levels/TerrainFeature.cs" id="6_feature"]
+[ext_resource type="Script" uid="uid://0a0lnlqfsicw" path="res://scripts/levels/SculptedTerrain.cs" id="7_euy0o"]
 [ext_resource type="Script" uid="uid://bqbn1xwbwb346" path="res://scripts/horde/HordeDirector.cs" id="7_horde"]
-[ext_resource type="Resource" path="res://resources/horde/horde_stats_default.tres" id="8_stats"]
-[ext_resource type="Resource" path="res://resources/enemies/nme_composition_default.tres" id="9_comp"]
+[ext_resource type="Resource" path="res://resources/levels/terrain_default.tres" id="8_dpgwb"]
+[ext_resource type="Resource" uid="uid://utfjfvbk2vky" path="res://resources/horde/horde_stats_default.tres" id="8_stats"]
+[ext_resource type="Resource" uid="uid://1rctlaen0pbe" path="res://resources/enemies/nme_composition_default.tres" id="9_comp"]
+[ext_resource type="Shape3D" uid="uid://ua4tmibgllfk" path="res://scenes/levels/lvl_drop_test_terrain/heights.res" id="9_lj4gg"]
+[ext_resource type="ArrayMesh" uid="uid://cb4fwq8cdlhun" path="res://scenes/levels/lvl_drop_test_terrain/chunk_0_0.res" id="10_hw1pj"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_jar_block.tscn" id="10_jar"]
 [ext_resource type="Script" uid="uid://dmucf7smv5n8o" path="res://scripts/levels/ManipulatorBinding.cs" id="11_binding"]
+[ext_resource type="ArrayMesh" uid="uid://curivifht6gx6" path="res://scenes/levels/lvl_drop_test_terrain/chunk_1_0.res" id="11_yi1uv"]
 [ext_resource type="Script" uid="uid://imj3xoglvtjv" path="res://scripts/mission/ExtractionMission.cs" id="12_mission"]
+[ext_resource type="ArrayMesh" uid="uid://bq5ge1dhej6f7" path="res://scenes/levels/lvl_drop_test_terrain/chunk_2_0.res" id="12_sfcv0"]
+[ext_resource type="ArrayMesh" uid="uid://ck2xwrre2g7n7" path="res://scenes/levels/lvl_drop_test_terrain/chunk_3_0.res" id="13_2mgr5"]
 [ext_resource type="Resource" path="res://resources/mission/extraction_rules_drop_test.tres" id="13_rules"]
+[ext_resource type="ArrayMesh" uid="uid://tyy8tkj3woly" path="res://scenes/levels/lvl_drop_test_terrain/chunk_4_0.res" id="14_0e1j0"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_drop_pod.tscn" id="14_pod"]
+[ext_resource type="ArrayMesh" uid="uid://b4h6emc8bedc2" path="res://scenes/levels/lvl_drop_test_terrain/chunk_5_0.res" id="15_mlnph"]
+[ext_resource type="ArrayMesh" uid="uid://cosr3siqtwp6e" path="res://scenes/levels/lvl_drop_test_terrain/chunk_6_0.res" id="16_2ryjb"]
+[ext_resource type="ArrayMesh" uid="uid://cku0vasf557bc" path="res://scenes/levels/lvl_drop_test_terrain/chunk_7_0.res" id="17_vbi6g"]
+[ext_resource type="ArrayMesh" uid="uid://dhoo4goc0n8oj" path="res://scenes/levels/lvl_drop_test_terrain/chunk_8_0.res" id="18_gu2g7"]
+[ext_resource type="ArrayMesh" uid="uid://dir2m6taoycc6" path="res://scenes/levels/lvl_drop_test_terrain/chunk_9_0.res" id="19_hlwg8"]
+[ext_resource type="ArrayMesh" uid="uid://djbjc87bv14oq" path="res://scenes/levels/lvl_drop_test_terrain/chunk_0_1.res" id="20_maops"]
+[ext_resource type="ArrayMesh" uid="uid://jv1cuq5angr6" path="res://scenes/levels/lvl_drop_test_terrain/chunk_1_1.res" id="21_xxv3b"]
+[ext_resource type="ArrayMesh" uid="uid://byq3fhpqxagm4" path="res://scenes/levels/lvl_drop_test_terrain/chunk_2_1.res" id="22_c0elh"]
+[ext_resource type="ArrayMesh" uid="uid://ekuhveov3m4k" path="res://scenes/levels/lvl_drop_test_terrain/chunk_3_1.res" id="23_j13ci"]
+[ext_resource type="ArrayMesh" uid="uid://s55rv0swq8ka" path="res://scenes/levels/lvl_drop_test_terrain/chunk_4_1.res" id="24_nccdc"]
+[ext_resource type="ArrayMesh" uid="uid://cbegmstfhgjkt" path="res://scenes/levels/lvl_drop_test_terrain/chunk_5_1.res" id="25_8o185"]
+[ext_resource type="ArrayMesh" uid="uid://cgitbn5a68uel" path="res://scenes/levels/lvl_drop_test_terrain/chunk_6_1.res" id="26_ifwnh"]
+[ext_resource type="ArrayMesh" uid="uid://deva7yia34xcn" path="res://scenes/levels/lvl_drop_test_terrain/chunk_7_1.res" id="27_26nkk"]
+[ext_resource type="ArrayMesh" uid="uid://bxnfjxhyeair6" path="res://scenes/levels/lvl_drop_test_terrain/chunk_8_1.res" id="28_nko6g"]
+[ext_resource type="ArrayMesh" uid="uid://bignm6vg7uhre" path="res://scenes/levels/lvl_drop_test_terrain/chunk_9_1.res" id="29_8k8jm"]
+[ext_resource type="ArrayMesh" uid="uid://byasem70ao06g" path="res://scenes/levels/lvl_drop_test_terrain/chunk_0_2.res" id="30_uvdsy"]
+[ext_resource type="ArrayMesh" uid="uid://b020wivpytm4q" path="res://scenes/levels/lvl_drop_test_terrain/chunk_1_2.res" id="31_ekuyq"]
+[ext_resource type="ArrayMesh" uid="uid://328262ttwfum" path="res://scenes/levels/lvl_drop_test_terrain/chunk_2_2.res" id="32_ux08h"]
+[ext_resource type="ArrayMesh" uid="uid://cujpbmbfkpjkc" path="res://scenes/levels/lvl_drop_test_terrain/chunk_3_2.res" id="33_cjbi3"]
+[ext_resource type="ArrayMesh" uid="uid://bpljp2ilqjdin" path="res://scenes/levels/lvl_drop_test_terrain/chunk_4_2.res" id="34_8q0mg"]
+[ext_resource type="ArrayMesh" uid="uid://bmar3m1umsiya" path="res://scenes/levels/lvl_drop_test_terrain/chunk_5_2.res" id="35_yapua"]
+[ext_resource type="ArrayMesh" uid="uid://7d6r4awqh3rb" path="res://scenes/levels/lvl_drop_test_terrain/chunk_6_2.res" id="36_1wlav"]
+[ext_resource type="ArrayMesh" uid="uid://c1l2kq4t1siyf" path="res://scenes/levels/lvl_drop_test_terrain/chunk_7_2.res" id="37_qmhkr"]
+[ext_resource type="ArrayMesh" uid="uid://br64awljcmkio" path="res://scenes/levels/lvl_drop_test_terrain/chunk_8_2.res" id="38_v5rpn"]
+[ext_resource type="ArrayMesh" uid="uid://do560x8iq4c20" path="res://scenes/levels/lvl_drop_test_terrain/chunk_9_2.res" id="39_rppqs"]
+[ext_resource type="ArrayMesh" uid="uid://vegmq71aowji" path="res://scenes/levels/lvl_drop_test_terrain/chunk_0_3.res" id="40_nig2h"]
+[ext_resource type="ArrayMesh" uid="uid://cljd0jgf021y6" path="res://scenes/levels/lvl_drop_test_terrain/chunk_1_3.res" id="41_aoa6v"]
+[ext_resource type="ArrayMesh" uid="uid://0n0krjy3xhv3" path="res://scenes/levels/lvl_drop_test_terrain/chunk_2_3.res" id="42_ogxrp"]
+[ext_resource type="ArrayMesh" uid="uid://wbrboif664a6" path="res://scenes/levels/lvl_drop_test_terrain/chunk_3_3.res" id="43_tt3x0"]
+[ext_resource type="ArrayMesh" uid="uid://kmtmgcdhr2ql" path="res://scenes/levels/lvl_drop_test_terrain/chunk_4_3.res" id="44_2n7rc"]
+[ext_resource type="ArrayMesh" uid="uid://7vutt4ds43ja" path="res://scenes/levels/lvl_drop_test_terrain/chunk_5_3.res" id="45_kse8x"]
+[ext_resource type="ArrayMesh" uid="uid://bh7ghn2530761" path="res://scenes/levels/lvl_drop_test_terrain/chunk_6_3.res" id="46_4t0gt"]
+[ext_resource type="ArrayMesh" uid="uid://bwlbtwpgb2778" path="res://scenes/levels/lvl_drop_test_terrain/chunk_7_3.res" id="47_rkyyf"]
+[ext_resource type="ArrayMesh" uid="uid://dpkx0i3ui1hfs" path="res://scenes/levels/lvl_drop_test_terrain/chunk_8_3.res" id="48_yk11a"]
+[ext_resource type="ArrayMesh" uid="uid://bipfokfulewbv" path="res://scenes/levels/lvl_drop_test_terrain/chunk_9_3.res" id="49_fojtg"]
+[ext_resource type="ArrayMesh" uid="uid://l8aiomoqkbco" path="res://scenes/levels/lvl_drop_test_terrain/chunk_0_4.res" id="50_5dih7"]
+[ext_resource type="ArrayMesh" uid="uid://b1i7jg7ii6fk5" path="res://scenes/levels/lvl_drop_test_terrain/chunk_1_4.res" id="51_ya1mu"]
+[ext_resource type="ArrayMesh" uid="uid://dg3j6cqmda4r5" path="res://scenes/levels/lvl_drop_test_terrain/chunk_2_4.res" id="52_i20s6"]
+[ext_resource type="ArrayMesh" uid="uid://del226b27sd48" path="res://scenes/levels/lvl_drop_test_terrain/chunk_3_4.res" id="53_61vmb"]
+[ext_resource type="ArrayMesh" uid="uid://do80w32wsgkmi" path="res://scenes/levels/lvl_drop_test_terrain/chunk_4_4.res" id="54_c5epi"]
+[ext_resource type="ArrayMesh" uid="uid://d21161xjhbrcb" path="res://scenes/levels/lvl_drop_test_terrain/chunk_5_4.res" id="55_rnk8i"]
+[ext_resource type="ArrayMesh" uid="uid://cwdy16u3f22ow" path="res://scenes/levels/lvl_drop_test_terrain/chunk_6_4.res" id="56_t3fwr"]
+[ext_resource type="ArrayMesh" uid="uid://ci885kqmilmbl" path="res://scenes/levels/lvl_drop_test_terrain/chunk_7_4.res" id="57_nqdrl"]
+[ext_resource type="ArrayMesh" uid="uid://cv37g68wltpwa" path="res://scenes/levels/lvl_drop_test_terrain/chunk_8_4.res" id="58_d22u5"]
+[ext_resource type="ArrayMesh" uid="uid://cf46euo2bd11v" path="res://scenes/levels/lvl_drop_test_terrain/chunk_9_4.res" id="59_dh633"]
+[ext_resource type="ArrayMesh" uid="uid://cy8m726pva4p3" path="res://scenes/levels/lvl_drop_test_terrain/chunk_0_5.res" id="60_hq1k2"]
+[ext_resource type="ArrayMesh" uid="uid://dj7qmrtpq2vay" path="res://scenes/levels/lvl_drop_test_terrain/chunk_1_5.res" id="61_2t6g4"]
+[ext_resource type="ArrayMesh" uid="uid://klt3oqnlubb2" path="res://scenes/levels/lvl_drop_test_terrain/chunk_2_5.res" id="62_3xuf0"]
+[ext_resource type="ArrayMesh" uid="uid://d08ce27o40if2" path="res://scenes/levels/lvl_drop_test_terrain/chunk_3_5.res" id="63_jes3w"]
+[ext_resource type="ArrayMesh" uid="uid://btm7fpv8i075u" path="res://scenes/levels/lvl_drop_test_terrain/chunk_4_5.res" id="64_kndag"]
+[ext_resource type="ArrayMesh" uid="uid://bfkx62cru8rvs" path="res://scenes/levels/lvl_drop_test_terrain/chunk_5_5.res" id="65_w4bqr"]
+[ext_resource type="ArrayMesh" uid="uid://oi1prf4avw2l" path="res://scenes/levels/lvl_drop_test_terrain/chunk_6_5.res" id="66_xnyri"]
+[ext_resource type="ArrayMesh" uid="uid://dd3344ovoxxk2" path="res://scenes/levels/lvl_drop_test_terrain/chunk_7_5.res" id="67_317fp"]
+[ext_resource type="ArrayMesh" uid="uid://c7xu6i6rdikku" path="res://scenes/levels/lvl_drop_test_terrain/chunk_8_5.res" id="68_f7o8h"]
+[ext_resource type="ArrayMesh" uid="uid://dbadr3pljpqqw" path="res://scenes/levels/lvl_drop_test_terrain/chunk_9_5.res" id="69_insnx"]
+[ext_resource type="ArrayMesh" uid="uid://dj6b3gooq8vi2" path="res://scenes/levels/lvl_drop_test_terrain/chunk_0_6.res" id="70_02d84"]
+[ext_resource type="ArrayMesh" uid="uid://cpjhyfynfjye2" path="res://scenes/levels/lvl_drop_test_terrain/chunk_1_6.res" id="71_44d0l"]
+[ext_resource type="ArrayMesh" uid="uid://db020i23ww8nh" path="res://scenes/levels/lvl_drop_test_terrain/chunk_2_6.res" id="72_kyv1s"]
+[ext_resource type="ArrayMesh" uid="uid://csfawxqx6tydo" path="res://scenes/levels/lvl_drop_test_terrain/chunk_3_6.res" id="73_6nb8d"]
+[ext_resource type="ArrayMesh" uid="uid://dv5431gob3t5q" path="res://scenes/levels/lvl_drop_test_terrain/chunk_4_6.res" id="74_6k36w"]
+[ext_resource type="ArrayMesh" uid="uid://2w5qtrql77pc" path="res://scenes/levels/lvl_drop_test_terrain/chunk_5_6.res" id="75_a1iu5"]
+[ext_resource type="ArrayMesh" uid="uid://csi6ckpk3v1q3" path="res://scenes/levels/lvl_drop_test_terrain/chunk_6_6.res" id="76_3x40w"]
+[ext_resource type="ArrayMesh" uid="uid://bwnqfchq3jj01" path="res://scenes/levels/lvl_drop_test_terrain/chunk_7_6.res" id="77_g05q3"]
+[ext_resource type="ArrayMesh" uid="uid://c8prtc887efln" path="res://scenes/levels/lvl_drop_test_terrain/chunk_8_6.res" id="78_4rliy"]
+[ext_resource type="ArrayMesh" uid="uid://dxw74etw1yj3v" path="res://scenes/levels/lvl_drop_test_terrain/chunk_9_6.res" id="79_ek3ks"]
+[ext_resource type="ArrayMesh" uid="uid://1ru1g67r64pn" path="res://scenes/levels/lvl_drop_test_terrain/chunk_0_7.res" id="80_nhuie"]
+[ext_resource type="ArrayMesh" uid="uid://dplbcnjvbo3n2" path="res://scenes/levels/lvl_drop_test_terrain/chunk_1_7.res" id="81_7muip"]
+[ext_resource type="ArrayMesh" uid="uid://blrj6burbu4sb" path="res://scenes/levels/lvl_drop_test_terrain/chunk_2_7.res" id="82_qq574"]
+[ext_resource type="ArrayMesh" uid="uid://hvuioyw1fkdv" path="res://scenes/levels/lvl_drop_test_terrain/chunk_3_7.res" id="83_f4eg0"]
+[ext_resource type="ArrayMesh" uid="uid://dfgwuyyr86mlw" path="res://scenes/levels/lvl_drop_test_terrain/chunk_4_7.res" id="84_mv6g4"]
+[ext_resource type="ArrayMesh" uid="uid://c5uwwgfpoj7rx" path="res://scenes/levels/lvl_drop_test_terrain/chunk_5_7.res" id="85_yycse"]
+[ext_resource type="ArrayMesh" uid="uid://bar0iayxl3emn" path="res://scenes/levels/lvl_drop_test_terrain/chunk_6_7.res" id="86_h1b3x"]
+[ext_resource type="ArrayMesh" uid="uid://nuc4joty8hrd" path="res://scenes/levels/lvl_drop_test_terrain/chunk_7_7.res" id="87_k3kf5"]
+[ext_resource type="ArrayMesh" uid="uid://k53a7psg54x8" path="res://scenes/levels/lvl_drop_test_terrain/chunk_8_7.res" id="88_l0yd4"]
+[ext_resource type="ArrayMesh" uid="uid://cee201cw5qexk" path="res://scenes/levels/lvl_drop_test_terrain/chunk_9_7.res" id="89_h5gqu"]
+[ext_resource type="ArrayMesh" uid="uid://ddtdaq0b5qw3w" path="res://scenes/levels/lvl_drop_test_terrain/chunk_0_8.res" id="90_wwyj5"]
+[ext_resource type="ArrayMesh" uid="uid://1ul5xuoglhp2" path="res://scenes/levels/lvl_drop_test_terrain/chunk_1_8.res" id="91_oijh1"]
+[ext_resource type="ArrayMesh" uid="uid://dmgfxmvd70cr1" path="res://scenes/levels/lvl_drop_test_terrain/chunk_2_8.res" id="92_bl80e"]
+[ext_resource type="ArrayMesh" uid="uid://yqkl8hcl248x" path="res://scenes/levels/lvl_drop_test_terrain/chunk_3_8.res" id="93_wam0a"]
+[ext_resource type="ArrayMesh" uid="uid://cc6opp3cakfsx" path="res://scenes/levels/lvl_drop_test_terrain/chunk_4_8.res" id="94_lbb5u"]
+[ext_resource type="ArrayMesh" uid="uid://dk8wm4c37ixbt" path="res://scenes/levels/lvl_drop_test_terrain/chunk_5_8.res" id="95_xufhk"]
+[ext_resource type="ArrayMesh" uid="uid://bgdrph4s6fblm" path="res://scenes/levels/lvl_drop_test_terrain/chunk_6_8.res" id="96_kn1jp"]
+[ext_resource type="ArrayMesh" uid="uid://bnxwvso02iwe" path="res://scenes/levels/lvl_drop_test_terrain/chunk_7_8.res" id="97_2xhlh"]
+[ext_resource type="ArrayMesh" uid="uid://d0okdtxglk6eb" path="res://scenes/levels/lvl_drop_test_terrain/chunk_8_8.res" id="98_fw6i6"]
+[ext_resource type="ArrayMesh" uid="uid://cr8sui50koekd" path="res://scenes/levels/lvl_drop_test_terrain/chunk_9_8.res" id="99_ve1ar"]
+[ext_resource type="ArrayMesh" uid="uid://d2j5i6rcdbkqu" path="res://scenes/levels/lvl_drop_test_terrain/chunk_0_9.res" id="100_0g7po"]
+[ext_resource type="ArrayMesh" uid="uid://fce3b4fc0m5y" path="res://scenes/levels/lvl_drop_test_terrain/chunk_1_9.res" id="101_xxuy0"]
+[ext_resource type="ArrayMesh" uid="uid://cexpfcx0f0xum" path="res://scenes/levels/lvl_drop_test_terrain/chunk_2_9.res" id="102_dhc34"]
+[ext_resource type="ArrayMesh" uid="uid://h4wumrrc6gn2" path="res://scenes/levels/lvl_drop_test_terrain/chunk_3_9.res" id="103_fxnxg"]
+[ext_resource type="ArrayMesh" uid="uid://ckoehbs83n4yv" path="res://scenes/levels/lvl_drop_test_terrain/chunk_4_9.res" id="104_tp852"]
+[ext_resource type="ArrayMesh" uid="uid://dthr7uau3yn7b" path="res://scenes/levels/lvl_drop_test_terrain/chunk_5_9.res" id="105_kgq8o"]
+[ext_resource type="ArrayMesh" uid="uid://ch6cisf2vc1g6" path="res://scenes/levels/lvl_drop_test_terrain/chunk_6_9.res" id="106_jibdt"]
+[ext_resource type="ArrayMesh" uid="uid://0celn6348ho" path="res://scenes/levels/lvl_drop_test_terrain/chunk_7_9.res" id="107_e3r0f"]
+[ext_resource type="ArrayMesh" uid="uid://dbwirj3uks8w5" path="res://scenes/levels/lvl_drop_test_terrain/chunk_8_9.res" id="108_8421x"]
+[ext_resource type="ArrayMesh" uid="uid://502kl4fgxmy0" path="res://scenes/levels/lvl_drop_test_terrain/chunk_9_9.res" id="109_jhirv"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
 sky_top_color = Color(0.3, 0.52, 0.84, 1)
@@ -45,78 +145,316 @@ PlayerSpawn = NodePath("Spawns/LandingSite")
 
 [node name="Geometry" type="Node3D" parent="." unique_id=26551924]
 
-[node name="Terrain" type="Node3D" parent="Geometry" unique_id=1654369588 node_paths=PackedStringArray("GroundedRoots")]
-script = ExtResource("3_terrain")
-Spec = ExtResource("4_spec")
+[node name="Terrain" type="StaticBody3D" parent="Geometry" unique_id=1196925653 node_paths=PackedStringArray("Shape")]
+collision_mask = 0
+script = ExtResource("7_euy0o")
+Stats = ExtResource("8_dpgwb")
+Shape = NodePath("Heights")
 Material = ExtResource("5_mat")
-GroundedRoots = [NodePath("../../Foliage"), NodePath("../../Props"), NodePath("../../Spawns")]
 
-[node name="JarPad" type="Marker3D" parent="Geometry/Terrain" unique_id=319636740]
-script = ExtResource("6_feature")
-Kind = 4
-Radius = 45.0
-Edge = 35.0
+[node name="Heights" type="CollisionShape3D" parent="Geometry/Terrain" unique_id=516809647]
+transform = Transform3D(4, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0)
+shape = ExtResource("9_lj4gg")
 
-[node name="LandingPad" type="Marker3D" parent="Geometry/Terrain" unique_id=2032420707]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 380)
-script = ExtResource("6_feature")
-Kind = 4
-Radius = 14.0
-Edge = 25.0
+[node name="Chunk_0_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2072034045]
+mesh = ExtResource("10_hw1pj")
 
-[node name="MesaWest" type="Marker3D" parent="Geometry/Terrain" unique_id=1162342990]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -230, 0, -60)
-script = ExtResource("6_feature")
-Kind = 1
-Radius = 70.0
-Height = 32.0
-Edge = 8.0
-Roughness = 0.3
+[node name="Chunk_1_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1225901439]
+mesh = ExtResource("11_yi1uv")
 
-[node name="MesaNorthEast" type="Marker3D" parent="Geometry/Terrain" unique_id=1932947130]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 220, 0, -230)
-script = ExtResource("6_feature")
-Kind = 1
-Radius = 55.0
-Height = 46.0
-Edge = 7.0
-Roughness = 0.35
+[node name="Chunk_2_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2024717439]
+mesh = ExtResource("12_sfcv0")
 
-[node name="Butte" type="Marker3D" parent="Geometry/Terrain" unique_id=1722503376]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 0, 140)
-script = ExtResource("6_feature")
-Kind = 1
-Radius = 22.0
-Height = 28.0
-Edge = 5.0
-Roughness = 0.2
+[node name="Chunk_3_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1738218878]
+mesh = ExtResource("13_2mgr5")
 
-[node name="RidgeNorth" type="Marker3D" parent="Geometry/Terrain" unique_id=1195831752]
-transform = Transform3D(0.9397, 0, 0.342, 0, 1, 0, -0.342, 0, 0.9397, -80, 0, -320)
-script = ExtResource("6_feature")
-Kind = 2
-Radius = 45.0
-Height = 24.0
-Length = 300.0
+[node name="Chunk_4_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=401097395]
+mesh = ExtResource("14_0e1j0")
 
-[node name="HillEast" type="Marker3D" parent="Geometry/Terrain" unique_id=831465076]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 300, 0, 80)
-script = ExtResource("6_feature")
-Radius = 110.0
-Height = 30.0
+[node name="Chunk_5_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=353940107]
+mesh = ExtResource("15_mlnph")
 
-[node name="HillSouthWest" type="Marker3D" parent="Geometry/Terrain" unique_id=518658334]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -260, 0, 280)
-script = ExtResource("6_feature")
-Radius = 120.0
-Height = 22.0
+[node name="Chunk_6_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=429763397]
+mesh = ExtResource("16_2ryjb")
 
-[node name="Hollow" type="Marker3D" parent="Geometry/Terrain" unique_id=751445771]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 0, 180)
-script = ExtResource("6_feature")
-Kind = 3
-Radius = 90.0
-Height = 10.0
+[node name="Chunk_7_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=742505252]
+mesh = ExtResource("17_vbi6g")
+
+[node name="Chunk_8_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=166264053]
+mesh = ExtResource("18_gu2g7")
+
+[node name="Chunk_9_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1116411149]
+mesh = ExtResource("19_hlwg8")
+
+[node name="Chunk_0_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1118942019]
+mesh = ExtResource("20_maops")
+
+[node name="Chunk_1_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1127342397]
+mesh = ExtResource("21_xxv3b")
+
+[node name="Chunk_2_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1886261521]
+mesh = ExtResource("22_c0elh")
+
+[node name="Chunk_3_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=328560200]
+mesh = ExtResource("23_j13ci")
+
+[node name="Chunk_4_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=940271381]
+mesh = ExtResource("24_nccdc")
+
+[node name="Chunk_5_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1205816804]
+mesh = ExtResource("25_8o185")
+
+[node name="Chunk_6_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1336045513]
+mesh = ExtResource("26_ifwnh")
+
+[node name="Chunk_7_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1713932717]
+mesh = ExtResource("27_26nkk")
+
+[node name="Chunk_8_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=462438028]
+mesh = ExtResource("28_nko6g")
+
+[node name="Chunk_9_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=849300036]
+mesh = ExtResource("29_8k8jm")
+
+[node name="Chunk_0_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1169501283]
+mesh = ExtResource("30_uvdsy")
+
+[node name="Chunk_1_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=438400938]
+mesh = ExtResource("31_ekuyq")
+
+[node name="Chunk_2_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=151620442]
+mesh = ExtResource("32_ux08h")
+
+[node name="Chunk_3_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=543368641]
+mesh = ExtResource("33_cjbi3")
+
+[node name="Chunk_4_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=382641643]
+mesh = ExtResource("34_8q0mg")
+
+[node name="Chunk_5_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1565452644]
+mesh = ExtResource("35_yapua")
+
+[node name="Chunk_6_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=255130728]
+mesh = ExtResource("36_1wlav")
+
+[node name="Chunk_7_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=538588658]
+mesh = ExtResource("37_qmhkr")
+
+[node name="Chunk_8_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=415448010]
+mesh = ExtResource("38_v5rpn")
+
+[node name="Chunk_9_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=604433984]
+mesh = ExtResource("39_rppqs")
+
+[node name="Chunk_0_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=150818160]
+mesh = ExtResource("40_nig2h")
+
+[node name="Chunk_1_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=830823609]
+mesh = ExtResource("41_aoa6v")
+
+[node name="Chunk_2_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1624778903]
+mesh = ExtResource("42_ogxrp")
+
+[node name="Chunk_3_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1564113489]
+mesh = ExtResource("43_tt3x0")
+
+[node name="Chunk_4_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1208632919]
+mesh = ExtResource("44_2n7rc")
+
+[node name="Chunk_5_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=656487220]
+mesh = ExtResource("45_kse8x")
+
+[node name="Chunk_6_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1428303753]
+mesh = ExtResource("46_4t0gt")
+
+[node name="Chunk_7_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1675382147]
+mesh = ExtResource("47_rkyyf")
+
+[node name="Chunk_8_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1663727085]
+mesh = ExtResource("48_yk11a")
+
+[node name="Chunk_9_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=805123377]
+mesh = ExtResource("49_fojtg")
+
+[node name="Chunk_0_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=692782273]
+mesh = ExtResource("50_5dih7")
+
+[node name="Chunk_1_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1965161578]
+mesh = ExtResource("51_ya1mu")
+
+[node name="Chunk_2_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2068412549]
+mesh = ExtResource("52_i20s6")
+
+[node name="Chunk_3_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=185086668]
+mesh = ExtResource("53_61vmb")
+
+[node name="Chunk_4_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2114722444]
+mesh = ExtResource("54_c5epi")
+
+[node name="Chunk_5_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=325084144]
+mesh = ExtResource("55_rnk8i")
+
+[node name="Chunk_6_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=84073858]
+mesh = ExtResource("56_t3fwr")
+
+[node name="Chunk_7_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=669166964]
+mesh = ExtResource("57_nqdrl")
+
+[node name="Chunk_8_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=952109018]
+mesh = ExtResource("58_d22u5")
+
+[node name="Chunk_9_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1346187974]
+mesh = ExtResource("59_dh633")
+
+[node name="Chunk_0_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=81520704]
+mesh = ExtResource("60_hq1k2")
+
+[node name="Chunk_1_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=817001980]
+mesh = ExtResource("61_2t6g4")
+
+[node name="Chunk_2_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1814549021]
+mesh = ExtResource("62_3xuf0")
+
+[node name="Chunk_3_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1135470787]
+mesh = ExtResource("63_jes3w")
+
+[node name="Chunk_4_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1239516573]
+mesh = ExtResource("64_kndag")
+
+[node name="Chunk_5_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1697028090]
+mesh = ExtResource("65_w4bqr")
+
+[node name="Chunk_6_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1100859890]
+mesh = ExtResource("66_xnyri")
+
+[node name="Chunk_7_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1586271098]
+mesh = ExtResource("67_317fp")
+
+[node name="Chunk_8_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=278145367]
+mesh = ExtResource("68_f7o8h")
+
+[node name="Chunk_9_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=466049731]
+mesh = ExtResource("69_insnx")
+
+[node name="Chunk_0_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1118516776]
+mesh = ExtResource("70_02d84")
+
+[node name="Chunk_1_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1864207055]
+mesh = ExtResource("71_44d0l")
+
+[node name="Chunk_2_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=4058720]
+mesh = ExtResource("72_kyv1s")
+
+[node name="Chunk_3_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=977494997]
+mesh = ExtResource("73_6nb8d")
+
+[node name="Chunk_4_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=217392842]
+mesh = ExtResource("74_6k36w")
+
+[node name="Chunk_5_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2126358866]
+mesh = ExtResource("75_a1iu5")
+
+[node name="Chunk_6_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1631541570]
+mesh = ExtResource("76_3x40w")
+
+[node name="Chunk_7_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1245941429]
+mesh = ExtResource("77_g05q3")
+
+[node name="Chunk_8_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=189085765]
+mesh = ExtResource("78_4rliy")
+
+[node name="Chunk_9_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2087941186]
+mesh = ExtResource("79_ek3ks")
+
+[node name="Chunk_0_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=854525559]
+mesh = ExtResource("80_nhuie")
+
+[node name="Chunk_1_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1100523049]
+mesh = ExtResource("81_7muip")
+
+[node name="Chunk_2_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2088358292]
+mesh = ExtResource("82_qq574")
+
+[node name="Chunk_3_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1838603423]
+mesh = ExtResource("83_f4eg0")
+
+[node name="Chunk_4_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1666111703]
+mesh = ExtResource("84_mv6g4")
+
+[node name="Chunk_5_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1681709829]
+mesh = ExtResource("85_yycse")
+
+[node name="Chunk_6_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1460910177]
+mesh = ExtResource("86_h1b3x")
+
+[node name="Chunk_7_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=272763918]
+mesh = ExtResource("87_k3kf5")
+
+[node name="Chunk_8_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2035567706]
+mesh = ExtResource("88_l0yd4")
+
+[node name="Chunk_9_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1551749797]
+mesh = ExtResource("89_h5gqu")
+
+[node name="Chunk_0_8" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=613221091]
+mesh = ExtResource("90_wwyj5")
+
+[node name="Chunk_1_8" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1522316]
+mesh = ExtResource("91_oijh1")
+
+[node name="Chunk_2_8" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=443352316]
+mesh = ExtResource("92_bl80e")
+
+[node name="Chunk_3_8" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=968640515]
+mesh = ExtResource("93_wam0a")
+
+[node name="Chunk_4_8" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1882922679]
+mesh = ExtResource("94_lbb5u")
+
+[node name="Chunk_5_8" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=970751809]
+mesh = ExtResource("95_xufhk")
+
+[node name="Chunk_6_8" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=241320135]
+mesh = ExtResource("96_kn1jp")
+
+[node name="Chunk_7_8" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=900617703]
+mesh = ExtResource("97_2xhlh")
+
+[node name="Chunk_8_8" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1970528837]
+mesh = ExtResource("98_fw6i6")
+
+[node name="Chunk_9_8" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=967705834]
+mesh = ExtResource("99_ve1ar")
+
+[node name="Chunk_0_9" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=101384901]
+mesh = ExtResource("100_0g7po")
+
+[node name="Chunk_1_9" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=237920512]
+mesh = ExtResource("101_xxuy0")
+
+[node name="Chunk_2_9" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1383128161]
+mesh = ExtResource("102_dhc34")
+
+[node name="Chunk_3_9" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1214283715]
+mesh = ExtResource("103_fxnxg")
+
+[node name="Chunk_4_9" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=909046801]
+mesh = ExtResource("104_tp852")
+
+[node name="Chunk_5_9" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1272199475]
+mesh = ExtResource("105_kgq8o")
+
+[node name="Chunk_6_9" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1997374353]
+mesh = ExtResource("106_jibdt")
+
+[node name="Chunk_7_9" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=658242554]
+mesh = ExtResource("107_e3r0f")
+
+[node name="Chunk_8_9" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=838683767]
+mesh = ExtResource("108_8421x")
+
+[node name="Chunk_9_9" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1558402829]
+mesh = ExtResource("109_jhirv")
 
 [node name="Water" type="Node3D" parent="." unique_id=2030301993]
 

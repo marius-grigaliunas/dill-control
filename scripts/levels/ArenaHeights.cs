@@ -4,7 +4,7 @@ namespace DillControl.Levels;
 
 /// <summary>
 /// An arena's ground as pure data: a square grid of heights, sampled
-/// bilinearly. Built once by <see cref="ArenaTerrain"/>, read from the
+/// bilinearly. Copied from a <see cref="SculptedTerrain"/>'s heights, read from the
 /// horde's parallel passes through <see cref="ArenaGround"/>, so nothing here
 /// touches a node or a resource.
 ///

@@ -181,7 +181,7 @@ public sealed class ArenaGround : IHordeGround, IFlowGraph, IObstacleGround
         using PhysicsShapeQueryParameters3D query = ObstacleQuery.Box(CellSize, mask, out BoxShape3D box);
         using (box)
         {
-            bool Blocks(GodotObject collider) => collider is not ArenaChunk && blocks(collider);
+            bool Blocks(GodotObject collider) => collider is not SculptedTerrain && blocks(collider);
             int u0 = Mathf.Clamp((int)((centre.X - radius - _min.X) * _inverseCell), 0, GridSize - 1);
             int u1 = Mathf.Clamp((int)((centre.X + radius - _min.X) * _inverseCell), 0, GridSize - 1);
             int v0 = Mathf.Clamp((int)((centre.Z - radius - _min.Y) * _inverseCell), 0, GridSize - 1);

@@ -68,10 +68,29 @@ public sealed class BridgeServer
             System.IO.File.Delete(info);
     }
 
+    // The editor runs whole frames inside some of its own work (a save's
+    // progress bar and thumbnail, opening a scene), so Poll can be entered
+    // again from inside a command it is running. It answers nothing then:
+    // once, a save re-entered its own request until the stack ran out.
+    private bool _polling;
+
     public void Poll(double delta)
     {
-        if (_server == null)
+        if (_server == null || _polling)
             return;
+        _polling = true;
+        try
+        {
+            PollOnce(delta);
+        }
+        finally
+        {
+            _polling = false;
+        }
+    }
+
+    private void PollOnce(double delta)
+    {
         while (_server.IsConnectionAvailable())
             _clients.Add(new Client(_server.TakeConnection()));
         for (int i = _clients.Count - 1; i >= 0; i--)
@@ -91,6 +110,7 @@ public sealed class BridgeServer
         public readonly StreamPeerTcp Peer = peer;
         public readonly List<byte> Received = new();
         public Task<(int Status, string Body)> Work;
+        public bool Taken;
         public double Age;
     }
 
@@ -102,6 +122,8 @@ public sealed class BridgeServer
         if (peer.GetStatus() != StreamPeerTcp.Status.Connected)
             return false;
 
+        if (client.Taken && client.Work == null)
+            return true;
         if (client.Work != null)
         {
             if (!client.Work.IsCompleted)
@@ -128,6 +150,8 @@ public sealed class BridgeServer
         }
         if (Parse(client.Received, out string method, out string path, out Dictionary<string, string> headers, out string body))
         {
+            // Taken before it runs: a command that runs editor frames must not see its own request again.
+            client.Taken = true;
             client.Work = Handle(method, path, headers, body);
             return true;
         }

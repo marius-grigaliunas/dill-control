@@ -63,7 +63,7 @@ Joypad events in the input map use device `-1` (any pad). The layout is
    debug key is a letter.
 7. **No third-party addons** without a proposal and a reason. Our own editor
    plugins live in `addons/` because Godot looks for them nowhere else; there
-   are three, `vox_importer`, `vine_gen` and `editor_bridge`.
+   are four, `vox_importer`, `vine_gen`, `editor_bridge` and `terrain_brush`.
 
 ## The level tree
 
@@ -153,14 +153,21 @@ The Vines tool's own commands (`vine_kinds`, `vine_kind`, `vine_roll`,
 `vine_bake`, `vine_judge`) call the classes its tabs call, never its buttons.
 `vine_kind_shrub.tres` is a 9-12 m kind fought from the ground (pickles
 0.4-5.4 m up), for set pieces; no nest kit names it.
-Terrain is sculpted with our own brushes into a `HeightMapShape3D` and saved
-chunk meshes, never generated from markers. Claude may judge vines, its
+**Terrain is sculpted, never generated from markers**: a `SculptedTerrain`
+(`scripts/levels/`) is a body, a `CollisionShape3D` whose `HeightMapShape3D`
+holds the heights (scaled by the spacing; Jolt takes it), and chunk meshes,
+all saved in `<scene>_terrain/` beside the scene; the horde reads the same
+heights. Select it and the 3D view's bar (`addons/terrain_brush`) raises,
+lowers, smooths or flattens, a stroke an undo; Claude uses `sculpt`. The
+editor runs frames inside its own work (a save's progress bar), so the
+bridge never answers while it is already answering: a save once re-entered
+its own request until the stack overflowed and the editor died. Claude may judge vines, its
 verdicts marked `"by": "claude"`, and may open the game window unasked.
 
 ## Folder map
 
 ```
-addons/         our own editor plugins only (vox_importer, vine_gen, editor_bridge)
+addons/         our own editor plugins only (vox_importer, vine_gen, editor_bridge, terrain_brush)
 art/
   _source/      .blend and paint sources, packs as downloaded. .gdignore'd, LFS.
   models/       .glb exports
