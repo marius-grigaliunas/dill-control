@@ -134,8 +134,15 @@ public partial class VoxelPart : Node3D, IStrainHost
     /// <summary>The piece's velocity, for what it throws off. Defaults to still.</summary>
     public Func<Vector3> Velocity { get; set; } = () => Vector3.Zero;
 
-    /// <summary>Up, for dust and for what is thrown. Defaults to world up.</summary>
-    public Func<Vector3> Up { get; set; } = () => Vector3.Up;
+    /// <summary>Up, for dust, for what is thrown, and for which way a collapse
+    /// topples and hangs. Defaults to the ground's up where it stands
+    /// (<see cref="WorldUp"/>): world up on the flats, the planet's on a planet.</summary>
+    public Func<Vector3> Up { get; set; }
+
+    public VoxelPart()
+    {
+        Up = () => IsInsideTree() ? WorldUp.At(GlobalPosition) : Vector3.Up;
+    }
 
     /// <summary>Raised once, when nothing of it is left or nothing holds it.</summary>
     public event Action<VoxelPart> Emptied;
