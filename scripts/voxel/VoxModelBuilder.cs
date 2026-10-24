@@ -109,6 +109,28 @@ public static class VoxModelBuilder
         return root;
     }
 
+    /// <summary>Where each marker whose name starts with <paramref name="prefix"/>
+    /// would stand, in the space of <see cref="Instantiate"/>'s root, in the
+    /// order its nodes would be made. No nodes; any thread.</summary>
+    public static List<Vector3> Markers(Model model, string prefix)
+    {
+        var found = new List<Vector3>();
+        CollectMarkers(model.Root, Transform3D.Identity, prefix, found);
+        return found;
+    }
+
+    private static void CollectMarkers(Part part, Transform3D parent, string prefix, List<Vector3> found)
+    {
+        foreach (Part child in part.Children)
+        {
+            Transform3D at = parent * child.Transform;
+            if (child.Kind == PartKind.Marker && child.Name.StartsWith(prefix))
+                found.Add(at.Origin);
+            else if (child.Kind == PartKind.Group)
+                CollectMarkers(child, at, prefix, found);
+        }
+    }
+
     /// <summary>The game's mesh node: a <c>MeshInstance3D</c> drawing an
     /// <c>ArrayMesh</c> in <paramref name="material"/>.</summary>
     public static MeshNodeMaker MeshInstances(Material material) => (name, arrays, transform) =>

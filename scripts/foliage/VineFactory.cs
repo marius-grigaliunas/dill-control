@@ -20,6 +20,9 @@ public static class VineFactory
     /// <summary>The LODs' normal merge angle, the importer's default.</summary>
     private const float LodNormalMergeAngle = 60.0f;
 
+    /// <summary>A pod marker's node name: <c>@Pod01</c> without its <c>@</c>.</summary>
+    public const string PodPrefix = "Pod";
+
     public sealed class Data
     {
         public string Name;
@@ -28,6 +31,9 @@ public static class VineFactory
         /// <summary>Null when no valid vine grew: <see cref="Grown"/> says why.</summary>
         public VoxModelBuilder.Model Model;
         public VineLeafSet Leaves;
+        /// <summary>Where each pod hangs (its <c>@PodNN</c> marker), in the vine's
+        /// space: the foot on the origin. For <c>PodField</c>, with no nodes.</summary>
+        public Vector3[] Pods = System.Array.Empty<Vector3>();
         public double GenerateMs;
         public double ModelMs;
     }
@@ -67,6 +73,7 @@ public static class VineFactory
             Path = $"{stats.VoxelFolder}/{data.Name}.vox",
         });
         data.Leaves = VineLeafSet.Of(vine, kind, palette);
+        data.Pods = VoxModelBuilder.Markers(data.Model, PodPrefix).ToArray();
         data.ModelMs = clock.Elapsed.TotalMilliseconds;
         return data;
     }

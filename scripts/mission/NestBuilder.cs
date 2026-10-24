@@ -42,6 +42,8 @@ public partial class NestBuilder : Node, ILevelBuilder
     /// <summary>Where the vines go: the level's Foliage.</summary>
     [Export] public Node3D Vines { get; set; }
     [Export] public HordeDirector Horde { get; set; }
+    /// <summary>Every vine's pods, added as it is planted.</summary>
+    [Export] public PodField Pods { get; set; }
 
     [Export] public NestKit Kit { get; set; }
 
@@ -64,6 +66,8 @@ public partial class NestBuilder : Node, ILevelBuilder
     public ulong Seed { get; private set; }
     public bool WithHorde { get; private set; } = true;
     public int Planted { get; private set; }
+    /// <summary>The pods the plan grew, for the checks.</summary>
+    public int PlannedPods => Layout?.Pods ?? 0;
 
     /// <summary>Seconds per stage and in all, for the bench.</summary>
     public double PlanSeconds { get; private set; }
@@ -223,6 +227,7 @@ public partial class NestBuilder : Node, ILevelBuilder
             // with eight physics ticks, each stepping every vine planted so far.
             _physicsSteps = Engine.MaxPhysicsStepsPerFrame;
             Engine.MaxPhysicsStepsPerFrame = 1;
+            Pods?.Reserve(Layout.Pods);
         }
         _plantFrames++;
         _plantProcessMs += Performance.GetMonitor(Performance.Monitor.TimeProcess) * 1000.0;
@@ -243,6 +248,7 @@ public partial class NestBuilder : Node, ILevelBuilder
                 node.Transform = Vines.GlobalTransform.AffineInverse() * places[Planted];
                 Vines.AddChild(node);
                 _rooted.Add((node.GetNodeOrNull<PlantFlex>("Flex"), places[Planted].Origin));
+                Pods?.AddVine(node, vine.Data.Pods);
             }
             MakeSeconds += (t1 - t0) / (double)Stopwatch.Frequency;
             EnterSeconds += (Stopwatch.GetTimestamp() - t1) / (double)Stopwatch.Frequency;
@@ -305,6 +311,7 @@ public partial class NestBuilder : Node, ILevelBuilder
             + $"[nest] kinds: {Layout.KindSummary()}\n"
             + $"[nest] load {LoadSeconds:F1} s: grow {PlanSeconds:F1} s, models {ModelSeconds:F1} s (both on all cores, under the planet), planting {PlantSeconds:F1} s (making {MakeSeconds:F1} s, entering {EnterSeconds:F1} s, {_plantFrames} frames at {_plantProcessMs / Math.Max(1, _plantFrames):F0} ms process and {_plantPhysicsMs / Math.Max(1, _plantFrames):F0} ms physics); "
             + $"memory managed {managed / 1048576.0:F0} MB, engine {native / 1048576.0:F0} MB"));
+        Pods?.PrintBenchStatus();
     }
 
     /// <summary>For bench.gd: a point <paramref name="up"/> metres over the nest's heart.</summary>

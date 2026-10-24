@@ -610,6 +610,20 @@ public partial class VineCheck : Node
     /// <summary>A vine made in memory (<see cref="VineFactory"/>) against its
     /// baked, imported self: the same nodes in the same places, and every
     /// voxel and chunk field the same, so the game can grow what the editor bakes.</summary>
+    // Every marker named so under a model, in tree order, in the model's space.
+    private static List<Vector3> MarkersUnder(Node3D model, string prefix)
+    {
+        var found = new List<Vector3>();
+        foreach (Node node in model.FindChildren(prefix + "*", nameof(Marker3D), true, false))
+        {
+            Transform3D at = Transform3D.Identity;
+            for (Node3D n = (Node3D)node; n != null && n != model; n = n.GetParent() as Node3D)
+                at = n.Transform * at;
+            found.Add(at.Origin);
+        }
+        return found;
+    }
+
     private void SameInMemory(string name, Node3D baked, VineLeafSet bakedLeaves, VineBakeStats stats)
     {
         var match = System.Text.RegularExpressions.Regex.Match(name, @"^prp_vine_([a-z]+)_(\d+)$");
@@ -647,6 +661,9 @@ public partial class VineCheck : Node
             }
         }
         made.Free();
+        List<Vector3> bakedPods = MarkersUnder(baked, VineFactory.PodPrefix);
+        if (bakedPods.Count != data.Pods.Length || bakedPods.Where((p, i) => !p.IsEqualApprox(data.Pods[i])).Any())
+            differ.Add($"pods {data.Pods.Length} vs {bakedPods.Count} markers");
         foreach (string property in new[] { "Attach", "Centre", "Midrib", "Face", "Size", "Shape", "ShapeLobes", "ShapeTeeth", "ShapeNotch", "ShapeCup", "Blade", "Vein", "Stem" })
         {
             if (bakedLeaves == null || !GD.VarToBytes(bakedLeaves.Get(property)).SequenceEqual(GD.VarToBytes(data.Leaves.Get(property))))

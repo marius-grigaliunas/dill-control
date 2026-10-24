@@ -20,6 +20,8 @@
 [ext_resource type="Script" path="res://scripts/mission/NestBuilder.cs" id="46_nestbuilder"]
 [ext_resource type="Script" path="res://scripts/mission/NestPlacer.cs" id="47_nestplacer"]
 [ext_resource type="Resource" path="res://resources/mission/nest_kit_default.tres" id="48_nestkit"]
+[ext_resource type="Script" path="res://scripts/mission/PodField.cs" id="49_pods"]
+[ext_resource type="Resource" path="res://resources/mission/pod_default.tres" id="50_podstats"]
 
 [sub_resource type="Sky" id="Sky"]
 sky_material = ExtResource("32_sky")
@@ -68,11 +70,12 @@ script = ExtResource("43_builder")
 Planet = NodePath("../Planet")
 FallbackPools = ExtResource("44_pools")
 
-[node name="NestBuilder" type="Node" parent="Geometry" node_paths=PackedStringArray("Contract", "Placer", "Vines")]
+[node name="NestBuilder" type="Node" parent="Geometry" node_paths=PackedStringArray("Contract", "Placer", "Vines", "Pods")]
 script = ExtResource("46_nestbuilder")
 Contract = NodePath("../SystemBuilder")
 Placer = NodePath("../../Props/NestPlacer")
 Vines = NodePath("../../Foliage")
+Pods = NodePath("../../Props/PodField")
 Kit = ExtResource("48_nestkit")
 
 [node name="Water" type="Node3D" parent="."]
@@ -85,6 +88,10 @@ Kit = ExtResource("48_nestkit")
 script = ExtResource("47_nestplacer")
 Kit = ExtResource("48_nestkit")
 Spawn = NodePath("../../Spawns/PlayerSpawn")
+
+[node name="PodField" type="Node" parent="Props"]
+script = ExtResource("49_pods")
+Stats = ExtResource("50_podstats")
 
 [node name="Lighting" type="Node3D" parent="."]
 
