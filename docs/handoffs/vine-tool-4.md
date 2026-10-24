@@ -9,6 +9,24 @@ file is where things stand now and what to do next. **Work only inside
 numbers in `.tres`, bench on the target machine, short commits of your own
 files only (never `docs/project_board.json`, `engine/` or `.vscode/`).
 
+## Status, 24 October 2026 (latest): the tool's build order is finished
+
+- **Step 9 is done.** 0033 is rewritten as open (generate at load, or pick
+  from nests made beforehand; decided by load time at 25,000 and the share of
+  nests judged Good), and 0035-0043 are written: leaves as meshes, the re-roll
+  gate, the 1,260 m planet, the clump, the Structure and Litter layers, pods
+  in bulk, the colony's wake, vines leaving no rubble, the tool. CLAUDE.md
+  points at each.
+- **`reload-check` is safe to run.** It copies every `art/voxels/*.vox.import`
+  aside before the reload, puts back any that changed and names them. Run
+  headless after the change: Roll and Good pass after the reload, and no
+  import changed (all 28 byte-identical). Why a reload once reset them is
+  still unknown; the check will name the files if it happens again.
+- **What remains is not the tool:** report 1 (the path of destruction, its
+  build order below, starting with its decision record) and report 2 (the
+  fling, waiting for the guard to catch it). The open questions under
+  "Waiting on the user" still stand.
+
 ## Status, 24 October 2026 (later)
 
 - **Report 3 (Good/Bad) is done** (c6df224). The Vine tab has Good/Bad and
@@ -76,7 +94,7 @@ files only (never `docs/project_board.json`, `engine/` or `.vscode/`).
 | 1-6. Generator, in-memory vines, valid-only, mesh leaves, colour, the nest | done |
 | 7. Pods and hanging pickles (decision 0034) | done |
 | 8. The main-screen tool (Nest tab, range lab, vine panel, Play, Good/Bad/Save) | done; the user played with it and called it good |
-| 9. Decision records (rewrite 0033, write new ones) | **not started** |
+| 9. Decision records (rewrite 0033, write new ones) | done (0033 rewritten, 0035-0043) |
 
 The user's verdict after playing: **"The tool is good."** Their two new
 reports, below, come first.

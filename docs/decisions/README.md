@@ -43,5 +43,14 @@ Number them in order, `NNNN-short-title.md`.
 | [0030](0030-innocent-pickles.md) | Proposed: the pickles are innocent and the player is not one: cartoon look, scared faces, brine is theirs, whimpers capped and pooled, health and shield for the player |
 | [0031](0031-a-contracts-arc.md) | Proposed: scout first or drop in, both valid; random one-off drops within a contract (mechs, vehicles, weapons) up to the bike; persistent progression unchanged; both lasers |
 | [0032](0032-plants-bend.md) | Proposed: vines and trees bend: a spine of springs built from their voxels, drawn in the shader, collision moved along and carrying the player; wind, hits and the grapple push it; cut weak, it gives way and falls over |
-| [0033](0033-vines-baked-in-the-editor.md) | Proposed: vines are baked by an editor dock (`addons/vine_gen`) to a `.vox` and a wrapper scene with the foot on the origin; nests are laid out in the editor and saved; nothing generates at runtime |
+| [0033](0033-vines-baked-in-the-editor.md) | Open, rewritten: a nest is generated at load (built) or picked from nests made beforehand, settled by load time and the share judged Good; nothing generates mid-mission; single vines are still baked for set pieces |
 | [0034](0034-pods-regrow.md) | Decided: every pickle grows on a pod (one pod per pickle, 1,000-25,000); an emptied pod regrows while it and its vine stand; a contract is won with every pod destroyed and at most 20 % of the pickles alive, all of them killed for a bonus |
+| [0035](0035-leaves-are-meshes.md) | A vine's leaves are meshes bent by the stalk's shader, a thin box each on its section's body, walkable stems, holes where hit, torn off whole; tendrils gone |
+| [0036](0036-only-valid-vines.md) | Only valid vines: a failed roll is rolled again from the seed and an attempt number, so a seed is one valid vine; Jolt never decides a roll; rejection rates per kind |
+| [0037](0037-one-planet-size.md) | One planet size for nests: the rock archetype pinned at 1,260 m |
+| [0038](0038-the-nest-is-one-clump.md) | The nest is one clump sized by its population: 55-70 m apart, 400 m at most, high-pod kinds before more room; no compound or city |
+| [0039](0039-structure-and-litter-layers.md) | Structure (layer 9) for static voxel bodies, never Prop; Litter (layer 10) for torn leaves, which never push the player |
+| [0040](0040-pods-in-bulk.md) | Pods in flat arrays, anchored to a voxel; hanging pickles instanced and bent on the GPU; shot through a pool of proxies |
+| [0041](0041-the-colony-wakes-on-harm.md) | The colony wakes on harm, never nearness; a pickle shot on its pod drops dead; every pickle drops into the horde over 30 s |
+| [0042](0042-vines-leave-no-rubble.md) | Vines leave no rubble (an exception to 0016): never heaped, snap into logs, crumble after 20 s; to be revisited by the path of destruction |
+| [0043](0043-the-vines-tool.md) | The Vines tool: a main screen that generates a nest, shows it, plays it and logs Good/Bad as training data; rebuilt after every reload |

@@ -106,8 +106,8 @@ nest from the contract's seed and population (one pod per pickle) and grows
 and builds its vines on all cores while the planet generates; `NestPlacer`, a
 site chooser (`PlanetTerrain.MoreSiteChoosers`), lays it at the flattest of
 a few places on levelled pads. **A nest is one clump**: vines 55-70 m apart
-inside 400 m, more pods a vine before more room. No compound or city goes
-with a nest. `lvl_nest_lab` is a contract level with a nest, no ship and no
+inside 400 m, more pods a vine before more room (`docs/decisions/0038`), on
+a planet pinned at 1,260 m (`0037`). No compound or city goes with a nest. `lvl_nest_lab` is a contract level with a nest, no ship and no
 compound: `pop=N`, `nest=SEED`, `horde=0`, `pickles=0` after `--`.
 A vine stands on its own foot; a crater under it unroots it (`PlantFlex.Unroot`).
 
@@ -115,12 +115,13 @@ A vine stands on its own foot; a crater under it unroots it (`PlantFlex.Unroot`)
 nest's pods in flat arrays, never a node a pod: each hangs from a voxel of its
 vine and goes with it, and its pickle is drawn instanced and bent on the GPU
 (`pickle_hang`). Hanging pickles are shot through a pool of `PodHitProxy`
-on those nearest the aim, and blasts through the bus. The colony never
-strikes first (`docs/decisions/0029`): harm to any of it wakes it, and over
+on those nearest the aim, and blasts through the bus (`docs/decisions/0040`).
+The colony never strikes first (`0029`, `0041`): harm to any of it wakes it,
+never nearness, and over
 `WakeSeconds` every pickle drops into the horde (`SpawnOrigin.Pod`), which
 has none of its own. Numbers: `resources/mission/pod_default.tres`.
 
-**Static voxel bodies are on World and Structure, never Prop.** The planet's
+**Static voxel bodies are on World and Structure, never Prop** (`docs/decisions/0039`). The planet's
 gravity field watches Prop for loose pieces; watching a nest's 64,000 static
 boxes too cost Jolt 16 ms a tick. A query that looks for props looks for
 Structure too (`GameLayers`). Torn leaves are on Litter: they fall and rest
@@ -220,7 +221,7 @@ changes, and only then meshes its sections: a forest of 200 vines draws in
 about 200-450 calls instead of 10,000. Its numbers are
 `resources/foliage/flex_vine.tres` / `flex_tree.tres` and `wind_default.tres`.
 
-**A vine's leaves are meshes, not voxels** (`VineLeaves`, the wrapper's
+**A vine's leaves are meshes, not voxels** (`docs/decisions/0035`; `VineLeaves`, the wrapper's
 `Leaves` node): a few heart-shaped blades a kind (`LeafMesh`), drawn as
 MultiMeshes in `mat_leaf_toon`, which bends by the same
 `shaders/flex_bend.gdshaderinc` as `voxel_toon`. Each leaf is one thin box on
@@ -230,8 +231,9 @@ and a leaf whose stalk or arm is cut away falls. A baked vine's leaves are
 `art/voxels/prp_vine_<kind>_<seed>_leaves.tres`; their numbers
 `resources/foliage/leaf_default.tres`. Vines have no tendrils.
 
-**Vines are baked, never grown in the game** (`docs/decisions/0033`,
-proposed). The Vines dock (`addons/vine_gen`) rolls a vine from a kind
+**A single vine is baked for a set piece**; a nest grows its own at load
+(`docs/decisions/0033`, open). The Vines dock and the tool's Vine tab
+(`addons/vine_gen`) roll a vine from a kind
 (`resources/foliage/vine_kind_*.tres`) and a seed, previews it and bakes
 `art/voxels/prp_vine_<kind>_<seed>.vox` and `scenes/props/prp_vine_<kind>_<seed>.tscn`,
 the wrapper above, with the stalk's foot on the scene origin. Its colours are
@@ -245,13 +247,13 @@ and voxel size are `vine_bake.tres`. A seed grows the same vine on every machine
 with `vinecheck.gd -- record`. **Only valid vines are baked or placed:**
 `VineGrower` rolls a seed that fails `VineValidator` (shape, pods, taper,
 lean, the spine's load; thresholds in `vine_bake.tres`) again from the seed
-and an attempt number, so a seed is always one valid vine; the generator
+and an attempt number, so a seed is always one valid vine (`docs/decisions/0036`); the generator
 keeps only pods a pickle can hang from. Jolt never decides a roll.
 `VineFactory` builds the same vine in memory, no files, through the
 importer's own `VoxModelBuilder`.
 
 **The Vines tool** is `addons/vine_gen`'s main screen (a tab beside 2D and
-3D). Its Nest tab plans a nest with the game's own `NestLayout` from a kit,
+3D; `docs/decisions/0043`). Its Nest tab plans a nest with the game's own `NestLayout` from a kit,
 a seed and a population, stands it on a flat disc (the planet is not drawn:
 its classes are placeholders in the editor), reports its measures, and
 Play loads `lvl_nest_lab` with it through `user://nest_play.json`
@@ -287,7 +289,7 @@ the horde when its footprint changes (`docs/decisions/0022`). To see a
 collapse frame by frame: `"$GODOT" --path . --write-movie <dir>/f.png
 --fixed-fps 10 --script scripts/debug/bench.gd -- <level> cut quiet`.
 
-**Vines leave no rubble** (`LeavesRubble` off in
+**Vines leave no rubble** (`docs/decisions/0042`; `LeavesRubble` off in
 `voxel_destruction_vine.tres`, carried by their pieces as `DustScale` is):
 nothing of a vine is heaped or baked into a heap. A felled vine falls in big
 dark dust (`FallDust*` in `flex_vine.tres`), does not crush through, snaps
