@@ -21,8 +21,15 @@ public partial class VineToolPanel : VBoxContainer
         AddChild(tabs);
         var nest = new NestTab { Name = "Nest", SizeFlagsVertical = SizeFlags.ExpandFill };
         tabs.AddChild(nest);
-        tabs.AddChild(new RangeLabTab { Name = "Range lab", SizeFlagsVertical = SizeFlags.ExpandFill });
-        tabs.AddChild(new VinePanel { Name = "Vine" });
+        var lab = new RangeLabTab { Name = "Range lab", SizeFlagsVertical = SizeFlags.ExpandFill };
+        tabs.AddChild(lab);
+        var vine = new VinePanel { Name = "Vine" };
+        tabs.AddChild(vine);
+        lab.OpenVine += (kind, seed, settings) =>
+        {
+            vine.Open(kind, seed, settings);
+            tabs.CurrentTab = vine.GetIndex();
+        };
     }
 }
 #endif

@@ -132,14 +132,7 @@ public partial class NestTab : HSplitContainer
         buttons.AddChild(_play);
         column.AddChild(buttons);
 
-        _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        column.AddChild(_status);
-        column.AddChild(new HSeparator());
-        _metrics = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        column.AddChild(_metrics);
-
-        column.AddChild(new HSeparator());
-        column.AddChild(new Label { Text = "Verdict" });
+        // The verdict right under Play, so it is in view as soon as play stops.
         _played = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill,
             Text = "Not played yet. Play it, then judge it; or judge what Generate showed." };
         column.AddChild(_played);
@@ -159,6 +152,12 @@ public partial class NestTab : HSplitContainer
         _saved = new OptionButton { SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "A saved nest: its kit, seed and population into the fields." };
         _saved.ItemSelected += LoadSaved;
         column.AddChild(Row("Saved", _saved));
+
+        _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        column.AddChild(_status);
+        column.AddChild(new HSeparator());
+        _metrics = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        column.AddChild(_metrics);
 
         AddChild(BuildPreview());
         // As the dock: the editor has settled before C# resources resolve.

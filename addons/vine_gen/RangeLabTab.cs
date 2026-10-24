@@ -18,7 +18,8 @@ namespace DillControl.Editor;
 /// <see cref="VineLogs"/>); each setting's bar shows where valid, failed,
 /// good and bad vines fall inside the kind's range, so a range can be
 /// narrowed from evidence. Ranges are edited in place, rolled again, and
-/// Saved to the kind's .tres.
+/// Saved to the kind's .tres. A click on a vine opens it in the Vine tab
+/// (<see cref="OpenVine"/>), to be looked at closely and judged there.
 /// </summary>
 [Tool]
 public partial class RangeLabTab : HSplitContainer
@@ -38,6 +39,9 @@ public partial class RangeLabTab : HSplitContainer
         public TextureRect Thumb;
         public StyleBoxFlat Style;
     }
+
+    /// <summary>A card clicked: its kind, seed and the settings it rolled.</summary>
+    public event Action<VineKind, int, VineParams> OpenVine;
 
     private VineBakeStats _stats;
     private readonly List<VineKind> _kinds = new();
@@ -436,12 +440,16 @@ public partial class RangeLabTab : HSplitContainer
         {
             CustomMinimumSize = new Vector2(ThumbWidth, ThumbHeight), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Stop,
-            TooltipText = "Click: mark its settings on the bars.",
+            TooltipText = "Click: open it in the Vine tab, and mark its settings on the bars here.",
         };
         entry.Thumb.GuiInput += e =>
         {
             if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+            {
                 Select(entry);
+                if (Kind() is VineKind kind)
+                    OpenVine?.Invoke(kind, entry.Seed, entry.Params);
+            }
         };
         column.AddChild(entry.Thumb);
         bool ok = entry.Verdict.Ok;
@@ -489,34 +497,7 @@ public partial class RangeLabTab : HSplitContainer
         VineKind kind = Kind();
         entry.Judged = good;
         entry.Style.BorderColor = entry == _selected ? new Color(1.0f, 0.85f, 0.3f) : BorderOf(entry);
-        var settings = new Dictionary<string, object>();
-        foreach (VineParams.Field field in VineParams.Fields)
-            settings[field.Key] = field.Get(entry.Params);
-        VineGenerator.Counts c = entry.Vine.Counts;
-        VineValidator.Verdict v = entry.Verdict;
-        VineLogs.Append(VineLogs.VineVerdicts, new Dictionary<string, object>
-        {
-            ["time"] = VineLogs.Now(),
-            ["verdict"] = good ? "good" : "bad",
-            ["note"] = _note.Text,
-            ["kind"] = kind?.ResourcePath ?? "",
-            ["seed"] = entry.Seed,
-            ["attempt"] = 0,
-            ["generator"] = VineLogs.Generator(),
-            ["valid"] = v.Ok,
-            ["reasons"] = v.Reasons,
-            ["settings"] = settings,
-            ["measures"] = new Dictionary<string, object>
-            {
-                ["voxels"] = c.Total,
-                ["pods"] = c.Markers,
-                ["leaves"] = c.Leaves,
-                ["height_m"] = Math.Round(entry.Vine.BoundsZ * entry.Vine.VoxelSize, 2),
-                ["lean_deg"] = Math.Round(v.LeanDeg, 2),
-                ["kink_deg"] = Math.Round(v.KinkDeg, 3),
-                ["sag_m"] = Math.Round(v.SagM, 2),
-            },
-        });
+        VineLogs.JudgeVine(good, _note.Text, kind, entry.Seed, 0, false, entry.Params, entry.Vine, entry.Verdict);
         _note.Text = "";
         Summarise();
         Spread();
@@ -559,10 +540,12 @@ public partial class RangeLabTab : HSplitContainer
     // For checking the lab in the editor (--editor -- rangelab-check=<prefix>):
     // the first kind's seeds rolled and drawn, the first few thumbnails saved
     // as <prefix>_N.png, the first judged Good into a scratch log
-    // (user://vine-logs-check), a summary printed, and the editor quit.
+    // (user://vine-logs-check), a summary printed; then the first failed vine
+    // (else the first) opened in the Vine tab, which judges it there too
+    // (VinePanel), the editor photographed as <prefix>_vine.png, and quit.
     private string _checkPrefix;
 
-    private void FinishCheck()
+    private async void FinishCheck()
     {
         VineLogs.Folder = "user://vine-logs-check";
         if (_entries.Count > 0)
@@ -570,6 +553,20 @@ public partial class RangeLabTab : HSplitContainer
         for (int i = 0; i < Math.Min(4, _entries.Count); i++)
             (_entries[i].Thumb.Texture as ImageTexture)?.GetImage()?.SavePng($"{_checkPrefix}_{i}.png");
         GD.Print($"[rangelab] {_summary.Text}\n[rangelab] {_entries.Count(e => e.Thumb.Texture != null)} thumbnails drawn");
+        Entry open = _entries.FirstOrDefault(e => !e.Verdict.Ok) ?? _entries.FirstOrDefault();
+        if (open != null && Kind() is VineKind kind)
+        {
+            GD.Print(string.Create(CultureInfo.InvariantCulture,
+                $"[rangelab] opening {open.Seed} ({(open.Verdict.Ok ? "valid" : "failed")}): {open.Vine.Counts.Total} voxels, {open.Vine.Counts.Markers} pods"));
+            OpenVine?.Invoke(kind, open.Seed, open.Params);
+            int drawn = Engine.GetFramesDrawn();
+            while (Engine.GetFramesDrawn() - drawn < 10)
+            {
+                EditorInterface.Singleton.GetBaseControl().QueueRedraw();
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+            GetViewport().GetTexture().GetImage().SavePng($"{_checkPrefix}_vine.png");
+        }
         GetTree().Quit();
     }
 }

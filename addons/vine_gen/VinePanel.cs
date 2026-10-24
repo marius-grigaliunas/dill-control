@@ -14,8 +14,9 @@ namespace DillControl.Editor;
 /// Bake: a .vox imported at the bake's voxel size and a wrapper scene that
 /// drops into any level (<see cref="VineBaker"/>), for hand-made set pieces.
 /// Kinds are <c>resources/foliage/vine_kind_*.tres</c>; how a vine is baked
-/// and judged is <c>vine_bake.tres</c>. The Vines dock and the Vines tool's
-/// Vine tab each hold one.
+/// and judged is <c>vine_bake.tres</c>. Good and Bad log the vine shown to
+/// the vine verdict log (<see cref="VineLogs"/>), as the range lab does. The
+/// Vines dock and the Vines tool's Vine tab each hold one.
 /// </summary>
 [Tool]
 public partial class VinePanel : VBoxContainer
@@ -26,6 +27,9 @@ public partial class VinePanel : VBoxContainer
     private VineGenerator.Result _vine;
     private VineGrower.Grown _grown;
     private bool _custom;
+    // Opened from the range lab: its seed's own roll from the lab's ranges,
+    // which is not what the seed grows from the kind's file.
+    private bool _labRoll;
     private bool _filling;
 
     private OptionButton _kind;
@@ -33,6 +37,7 @@ public partial class VinePanel : VBoxContainer
     private SpinBox _pool;
     private Label _report;
     private Label _status;
+    private LineEdit _note;
     private Button _bake;
     private GridContainer _fields;
     private readonly Dictionary<string, Control> _editors = new();
@@ -95,6 +100,18 @@ public partial class VinePanel : VBoxContainer
         column.AddChild(poolRow);
 
         column.AddChild(BuildPreview());
+
+        // Judged where the vine is seen.
+        var verdictRow = new HBoxContainer();
+        _note = new LineEdit { PlaceholderText = "A note for Good or Bad", SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        verdictRow.AddChild(_note);
+        var good = new Button { Text = "Good", CustomMinimumSize = new Vector2(70, 0), TooltipText = "Log this vine as good, with every setting it grew from." };
+        good.Pressed += () => Judge(true);
+        verdictRow.AddChild(good);
+        var bad = new Button { Text = "Bad", CustomMinimumSize = new Vector2(70, 0), TooltipText = "Log this vine as bad. Bad vines are kept as carefully as good ones." };
+        bad.Pressed += () => Judge(false);
+        verdictRow.AddChild(bad);
+        column.AddChild(verdictRow);
 
         _report = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         column.AddChild(_report);
@@ -289,6 +306,55 @@ public partial class VinePanel : VBoxContainer
         _growMs = Time.GetTicksMsec() - t0;
         _params = _grown.Vine.Params.Copy();
         _custom = false;
+        _labRoll = false;
+        Fill(kind);
+        Show();
+    }
+
+    /// <summary>
+    /// A range-lab vine as the lab grew it: <paramref name="seed"/>'s own roll
+    /// (attempt 0, never re-rolled) from <paramref name="settings"/>, which
+    /// the lab rolled from its ranges as they were, saved or not.
+    /// </summary>
+    public void Open(VineKind kind, int seed, VineParams settings)
+    {
+        int index = _kinds.FindIndex(k => k.ResourcePath == kind.ResourcePath);
+        if (index < 0 || _stats == null)
+            return;
+        _kind.Select(index);
+        _pool.MaxValue = _kinds[index].PoolSize - 1;
+        _seed.SetValueNoSignal(seed);
+        ulong t0 = Time.GetTicksMsec();
+        _grown = VineGrower.FromSettings(settings.Copy(), _stats);
+        _grown.Seed = seed;
+        _growMs = Time.GetTicksMsec() - t0;
+        VineGrower.Grown usual = VineGrower.Grow(_kinds[index], seed, _stats);
+        _labRoll = usual.Attempt != 0 || !Same(usual.Vine.Params, settings);
+        _params = settings.Copy();
+        _custom = false;
+        Fill(_kinds[index]);
+        Show();
+        // The range lab's check (rangelab-check=) judges here as well.
+        if (System.Array.Exists(OS.GetCmdlineUserArgs(), a => a.StartsWith("rangelab-check=")))
+        {
+            Judge(true);
+            GD.Print(string.Create(CultureInfo.InvariantCulture,
+                $"[vinetab] {_grown.Seed}: {_vine.Counts.Total} voxels, {_vine.Counts.Markers} pods, attempt {_grown.Attempt}, lab roll {_labRoll}, valid {_grown.Ok}; {_status.Text}"));
+        }
+    }
+
+    private static bool Same(VineParams a, VineParams b)
+    {
+        foreach (VineParams.Field field in VineParams.Fields)
+        {
+            if (field.Get(a) != field.Get(b))
+                return false;
+        }
+        return true;
+    }
+
+    private void Fill(VineKind kind)
+    {
         _filling = true;
         foreach (VineParams.Field field in VineParams.RangeFields)
         {
@@ -304,7 +370,6 @@ public partial class VinePanel : VBoxContainer
             editor.Modulate = Colors.White;
         }
         _filling = false;
-        Show();
     }
 
     private void Changed(VineParams.Field field, double value)
@@ -337,7 +402,7 @@ public partial class VinePanel : VBoxContainer
         _vine = _grown.Vine;
         // Only valid vines are baked (docs/handoffs/vine-tool.md).
         _bake.Disabled = !_grown.Ok;
-        _bake.Text = _custom ? "Bake (changed settings)" : "Bake";
+        _bake.Text = _custom ? "Bake (changed settings)" : _labRoll ? "Bake (the lab's roll)" : "Bake";
         _report.Text = Report(_grown, _growMs);
         ShowVine();
     }
@@ -349,7 +414,7 @@ public partial class VinePanel : VBoxContainer
             return vine.Error ?? "Nothing grew.";
         VineGenerator.Counts c = vine.Counts;
         VineValidator.Verdict verdict = grown.Verdict;
-        string name = VineBaker.NameOf(Kind(), grown.Seed, _custom);
+        string name = VineBaker.NameOf(Kind(), grown.Seed, _custom || _labRoll);
         string text = string.Create(CultureInfo.InvariantCulture,
             $"{name}\n{c.Total:N0} voxels of {_stats.VoxelBudget:N0}, {c.Bodies} bodies at rest\n"
             + $"{vine.BoundsX}x{vine.BoundsY}x{vine.BoundsZ} voxels, {vine.BoundsZ * vine.VoxelSize:0.#} m tall\n"
@@ -357,6 +422,8 @@ public partial class VinePanel : VBoxContainer
             + $"core {c.Core:N0}, {c.Leaves} leaves ({c.LeavesLeftOut} left out), bridged {c.Bridged}\n"
             + $"lean {verdict.LeanDeg:0.0} deg, spine bends {verdict.KinkDeg:0.00} deg at most, tip sags {verdict.SagM:0.0} m\n"
             + $"grown in {ms} ms");
+        if (_labRoll)
+            text += "\nAs the range lab rolled it: the seed's own roll from the lab's ranges, not the vine this seed grows from the kind's file.";
         if (grown.Attempt > 0)
         {
             text += string.Create(CultureInfo.InvariantCulture, $"\nAttempt {grown.Attempt} (rolled from seed {(int)vine.Params.Seed}); skipped: ")
@@ -365,7 +432,9 @@ public partial class VinePanel : VBoxContainer
         foreach (string detail in verdict.Details)
             text += "\nNot valid: " + detail;
         if (!grown.Ok)
-            text += _custom ? "\nCannot bake: change the settings back, or Reroll." : "\nCannot bake: no valid vine in this kind's attempts; its ranges need narrowing.";
+            text += _custom ? "\nCannot bake: change the settings back, or Reroll."
+                : _labRoll ? "\nCannot bake: this roll is not valid. Back to the kind grows the seed's valid vine."
+                : "\nCannot bake: no valid vine in this kind's attempts; its ranges need narrowing.";
         if (FileAccess.FileExists($"{_stats.VoxelFolder}/{name}.vox"))
             text += "\nBaked before: baking again replaces its .vox and keeps its scene.";
         return text;
@@ -433,7 +502,8 @@ public partial class VinePanel : VBoxContainer
         VineKind kind = Kind();
         if (kind == null || _grown == null || !_grown.Ok)
             return;
-        VineBaker.Baked baked = VineBaker.Bake(kind, _grown.Seed, _stats, _custom ? _params : null, _custom);
+        bool settings = _custom || _labRoll;
+        VineBaker.Baked baked = VineBaker.Bake(kind, _grown.Seed, _stats, settings ? _params : null, settings);
         if (!baked.Grown.Ok)
         {
             _status.Text = "Not baked: " + string.Join(" ", baked.Grown.Verdict.Details);
@@ -450,6 +520,15 @@ public partial class VinePanel : VBoxContainer
         files.FilesystemChanged += Select;
         files.Scan();
         _report.Text = Report(_grown, 0);
+    }
+
+    private void Judge(bool good)
+    {
+        if (_grown?.Vine == null || _grown.Vine.Voxels.Count == 0)
+            return;
+        VineLogs.JudgeVine(good, _note.Text, Kind(), _grown.Seed, _grown.Attempt, _custom, _grown.Vine.Params, _grown.Vine, _grown.Verdict);
+        _status.Text = $"Logged {VineBaker.NameOf(Kind(), _grown.Seed, _custom || _labRoll)} as {(good ? "good" : "bad")} in {VineLogs.Folder}/{VineLogs.VineVerdicts}.";
+        _note.Text = "";
     }
 }
 #endif

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections;
 using System.IO;
+using DillControl.Foliage;
 using Godot;
 
 namespace DillControl.Editor;
@@ -58,9 +59,9 @@ public static class VineLogs
         },
         [VineVerdicts] = new()
         {
-            ["about"] = "One line per verdict a person gave on one vine in the Vines tool's range lab: Good or Bad, with every "
-                + "setting it was grown from and whether it passed validation. Used to narrow a kind's ranges from evidence. "
-                + "Nothing is removed.",
+            ["about"] = "One line per verdict a person gave on one vine in the Vines tool, in its range lab or its Vine tab: Good "
+                + "or Bad, with every setting it was grown from and whether it passed validation. Used to narrow a kind's ranges "
+                + "from evidence. Nothing is removed.",
             ["fields"] = new Dictionary<string, string>
             {
                 ["time"] = "When the verdict was given, UTC, ISO 8601.",
@@ -69,6 +70,7 @@ public static class VineLogs
                 ["kind"] = "The VineKind resource's path.",
                 ["seed"] = "The seed asked for.",
                 ["attempt"] = "Which deterministic re-roll of that seed grew it (0: its own roll).",
+                ["changed"] = "true when a setting was changed by hand in the Vine tab: the settings are then not the seed's own roll.",
                 ["generator"] = "The git commit the generator was at, with \"+changes\" when its code had uncommitted edits.",
                 ["valid"] = "Whether it passed VineValidator.",
                 ["reasons"] = "Why not, if not.",
@@ -78,6 +80,40 @@ public static class VineLogs
         },
     };
 
+    /// <summary>One vine's verdict, in the same shape from the range lab and the Vine tab.</summary>
+    public static void JudgeVine(bool good, string note, VineKind kind, int seed, int attempt, bool changed,
+        VineParams settings, VineGenerator.Result vine, VineValidator.Verdict verdict)
+    {
+        var values = new Dictionary<string, object>();
+        foreach (VineParams.Field field in VineParams.Fields)
+            values[field.Key] = field.Get(settings);
+        VineGenerator.Counts c = vine.Counts;
+        Append(VineVerdicts, new Dictionary<string, object>
+        {
+            ["time"] = Now(),
+            ["verdict"] = good ? "good" : "bad",
+            ["note"] = note,
+            ["kind"] = kind?.ResourcePath ?? "",
+            ["seed"] = seed,
+            ["attempt"] = attempt,
+            ["changed"] = changed,
+            ["generator"] = Generator(),
+            ["valid"] = verdict.Ok,
+            ["reasons"] = verdict.Reasons,
+            ["settings"] = values,
+            ["measures"] = new Dictionary<string, object>
+            {
+                ["voxels"] = c.Total,
+                ["pods"] = c.Markers,
+                ["leaves"] = c.Leaves,
+                ["height_m"] = Math.Round(vine.BoundsZ * vine.VoxelSize, 2),
+                ["lean_deg"] = Math.Round(verdict.LeanDeg, 2),
+                ["kink_deg"] = Math.Round(verdict.KinkDeg, 3),
+                ["sag_m"] = Math.Round(verdict.SagM, 2),
+            },
+        });
+    }
+
     /// <summary>Adds one record to a log, its about line first if it is new.</summary>
     public static void Append(string file, Dictionary<string, object> record)
     {
@@ -86,8 +122,8 @@ public static class VineLogs
         string path = Path.Combine(folder, file);
         var lines = new List<string>();
         if (!File.Exists(path) || new FileInfo(path).Length == 0)
-            lines.Add(Json.Stringify(ToVariant(Abouts[file])));
-        lines.Add(Json.Stringify(ToVariant(record)));
+            lines.Add(Json.Stringify(ToVariant(Abouts[file]), sortKeys: false));
+        lines.Add(Json.Stringify(ToVariant(record), sortKeys: false));
         File.AppendAllLines(path, lines);
     }
 

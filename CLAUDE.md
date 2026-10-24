@@ -260,7 +260,8 @@ play went (`NestPlaytest`), and Good/Bad go to
 `tools/vine-logs/nest_verdicts.jsonl` (Save keeps a Good one as a
 `NestPreset`). The range lab rolls N seeds of a kind as they roll, before
 any re-roll, judges each, logs Good/Bad to `vine_verdicts.jsonl`, shows
-each setting's spread, and edits and saves the kind's ranges. **The logs
+each setting's spread, and edits and saves the kind's ranges; a click on a
+vine opens it, that very roll, in the Vine tab, which has Good/Bad too. **The logs
 are training data: never edit or prune them.** Check it in the editor:
 `"$GODOT" --path . --editor -- nesttab-check=<png>` or
 `rangelab-check=<prefix>` (their verdicts go to `user://`, not the logs). A tool's C# signal handlers do not survive the

@@ -64,8 +64,9 @@ public partial class VineGenPlugin : EditorPlugin
     // For checking that the tool survives a rebuild (--editor -- reload-check):
     // once user://reload_go exists (made after the code is rebuilt), the
     // editor is told it has the focus again, which is when it reloads the
-    // project's code; after the reload, the Nest tab's Roll is pressed and
-    // whether the seed changed is printed, and the editor quits.
+    // project's code; after the reload, the Nest tab's Roll and the Vine
+    // tab's Good are pressed, whether each did its work is printed, and the
+    // editor quits.
     private bool _rebuilt;
     private double _checkWait;
 
@@ -99,6 +100,13 @@ public partial class VineGenPlugin : EditorPlugin
         roll?.EmitSignal(BaseButton.SignalName.Pressed);
         double after = seed?.Value ?? -1;
         GD.Print($"[reloadcheck] {(roll != null && after != before ? "PASS" : "FAIL")}: after the reload, Roll took the seed from {before} to {after}");
+        // The Vine tab's Good, into a scratch log.
+        VineLogs.Folder = "user://vine-logs-check";
+        VinePanel vine = _panel.FindChild("Vine", true, false) as VinePanel;
+        Button good = vine?.FindChildren("*", nameof(Button), true, false).Cast<Button>().FirstOrDefault(b => b.Text == "Good");
+        good?.EmitSignal(BaseButton.SignalName.Pressed);
+        Label logged = vine?.FindChildren("*", nameof(Label), true, false).Cast<Label>().FirstOrDefault(l => l.Text.StartsWith("Logged "));
+        GD.Print($"[reloadcheck] {(logged != null ? "PASS" : "FAIL")}: after the reload, the Vine tab's Good {(logged != null ? "said: " + logged.Text : "logged nothing")}");
         GetTree().Quit();
     }
 
