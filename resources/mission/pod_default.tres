@@ -27,5 +27,6 @@ Pickle = ExtResource("2_pickle")
 CellM = 150.0
 NearMetres = 160.0
 DrawMetres = 450.0
+RedrawSeconds = 0.25
 SwayM = 0.15
 SwayHz = 0.35

@@ -72,6 +72,9 @@ public partial class PodStats : Resource
     /// <summary>Past this from a cell's middle its pickles are not drawn: as
     /// far as the fog lets anything be seen (the nest lab's ends at 400 m).</summary>
     [Export(PropertyHint.Range, "100,3000,10,suffix:m")] public float DrawMetres { get; set; } = 450.0f;
+    /// <summary>A cell's pickles are drawn again at most this often as its pods
+    /// change: a waking colony empties some in every cell every tick.</summary>
+    [Export(PropertyHint.Range, "0,2,0.05,suffix:s")] public float RedrawSeconds { get; set; } = 0.25f;
     /// <summary>How far a hanging pickle's bottom swings each way, and how often.</summary>
     [Export(PropertyHint.Range, "0,2,0.01,suffix:m")] public float SwayM { get; set; } = 0.15f;
     [Export(PropertyHint.Range, "0,3,0.01,suffix:Hz")] public float SwayHz { get; set; } = 0.35f;

@@ -122,10 +122,13 @@ public partial class PodField : Node
         public float[] Buffer = Array.Empty<float>();
         public Aabb Bounds;
         public bool HasBounds, Dirty;
+        public ulong DrawnAt;
     }
 
     // Per instance: a transform's 12 floats, then its custom data (the flex row).
     private const int FloatsPerPickle = 16;
+    // A grown pickle's transform, worked out once a pod: a redraw copies it.
+    private const int PoseFloats = 12;
 
     public const string ShaderPath = "res://shaders/pickle_hang.gdshader";
     public const string FarShaderPath = "res://shaders/pickle_hang_far.gdshader";
@@ -159,6 +162,7 @@ public partial class PodField : Node
     private float[] _health = Array.Empty<float>();
     // Seconds left: of regrowing, or of hanging before a regrown pickle drops.
     private float[] _timer = Array.Empty<float>();
+    private float[] _pose = Array.Empty<float>();
     // Emptied pods, the longest empty first; those regrowing; regrown ones
     // waiting to drop into an awake colony's fight.
     private readonly Queue<int> _emptied = new();
@@ -272,6 +276,7 @@ public partial class PodField : Node
             _vine[i] = index;
             _state[i] = PodState.Full;
             _health[i] = Stats.PickleHealth;
+            Pose(i);
         }
         Count += pods.Length;
         Full += pods.Length;
@@ -292,6 +297,32 @@ public partial class PodField : Node
         }
         MarkDirty(cell);
         return index;
+    }
+
+    // Pod i's grown pickle, upright along its up and hanging from the pod by
+    // its top, turned about its up as its place says: no two in a row alike.
+    private void Pose(int i)
+    {
+        float half = (Stats.Pickle?.Height ?? 1.8f) * 0.5f;
+        Vector3 up = WorldUp.At(_built[i]);
+        Vector3 side = up.Cross(Mathf.Abs(up.Y) < 0.99f ? Vector3.Up : Vector3.Right).Normalized();
+        float turn = Mathf.PosMod(_built[i].Dot(new Vector3(12.9898f, 78.233f, 37.719f)), Mathf.Tau);
+        Vector3 right = (side * Mathf.Cos(turn)) + (side.Cross(up) * Mathf.Sin(turn));
+        Vector3 back = right.Cross(up);
+        Vector3 at = _built[i] - (up * half);
+        int o = i * PoseFloats;
+        _pose[o + 0] = right.X;
+        _pose[o + 1] = up.X;
+        _pose[o + 2] = back.X;
+        _pose[o + 3] = at.X;
+        _pose[o + 4] = right.Y;
+        _pose[o + 5] = up.Y;
+        _pose[o + 6] = back.Y;
+        _pose[o + 7] = at.Y;
+        _pose[o + 8] = right.Z;
+        _pose[o + 9] = up.Z;
+        _pose[o + 10] = back.Z;
+        _pose[o + 11] = at.Z;
     }
 
     // The cell a vine's foot stands in: squares of the ground about the
@@ -332,6 +363,7 @@ public partial class PodField : Node
         Array.Resize(ref _state, size);
         Array.Resize(ref _health, size);
         Array.Resize(ref _timer, size);
+        Array.Resize(ref _pose, size * PoseFloats);
         Array.Resize(ref _part, size);
         Array.Resize(ref _cell, size);
     }
@@ -432,9 +464,17 @@ public partial class PodField : Node
             return;
         }
         using FrameProfiler.Scope scope = FrameProfiler.Begin(SectionDraw);
+        ulong now = Time.GetTicksMsec();
+        ulong every = (ulong)(Stats.RedrawSeconds * 1000.0f);
         for (int c = _dirty.Count - 1; c >= 0; c--)
         {
             Cell cell = _dirty[c];
+            // A waking colony empties pods in every cell every tick: each is
+            // drawn again at most so often.
+            if (cell.DrawnAt > 0 && now - cell.DrawnAt < every)
+            {
+                continue;
+            }
             if (Draw(cell))
             {
                 cell.Dirty = false;
@@ -464,9 +504,14 @@ public partial class PodField : Node
         {
             Make(cell);
         }
-        if (cell.Buffer.Length < count * FloatsPerPickle)
+        int pods = 0;
+        foreach (int v in cell.Vines)
         {
-            cell.Buffer = new float[count * FloatsPerPickle];
+            pods += _vines[v].Count;
+        }
+        if (cell.Buffer.Length != pods * FloatsPerPickle)
+        {
+            cell.Buffer = new float[pods * FloatsPerPickle];
         }
         float half = (Stats.Pickle?.Height ?? 1.8f) * 0.5f;
         float[] b = cell.Buffer;
@@ -481,28 +526,19 @@ public partial class PodField : Node
                 {
                     continue;
                 }
-                float size = _state[i] == PodState.Regrowing ? Stats.RegrowingScale : 1.0f;
-                Vector3 up = WorldUp.At(_built[i]);
-                Vector3 side = up.Cross(Mathf.Abs(up.Y) < 0.99f ? Vector3.Up : Vector3.Right).Normalized();
-                // Turned about its up as its place says: no two in a row alike.
-                float turn = Mathf.PosMod(_built[i].Dot(new Vector3(12.9898f, 78.233f, 37.719f)), Mathf.Tau);
-                Vector3 right = (side * Mathf.Cos(turn)) + (side.Cross(up) * Mathf.Sin(turn));
-                Vector3 back = right.Cross(up) * size;
-                Vector3 at = _built[i] - (up * (half * size));
-                right *= size;
-                up *= size;
-                b[o + 0] = right.X;
-                b[o + 1] = up.X;
-                b[o + 2] = back.X;
-                b[o + 3] = at.X;
-                b[o + 4] = right.Y;
-                b[o + 5] = up.Y;
-                b[o + 6] = back.Y;
-                b[o + 7] = at.Y;
-                b[o + 8] = right.Z;
-                b[o + 9] = up.Z;
-                b[o + 10] = back.Z;
-                b[o + 11] = at.Z;
+                Array.Copy(_pose, i * PoseFloats, b, o, PoseFloats);
+                if (_state[i] == PodState.Regrowing)
+                {
+                    // Small, still hanging from its pod by the top.
+                    float size = Stats.RegrowingScale;
+                    for (int r = 0; r < 3; r++)
+                    {
+                        b[o + (r * 4)] *= size;
+                        b[o + (r * 4) + 1] *= size;
+                        b[o + (r * 4) + 2] *= size;
+                        b[o + (r * 4) + 3] += b[o + (r * 4) + 1] / size * half * (1.0f - size);
+                    }
+                }
                 b[o + 12] = row;
                 b[o + 13] = 0.0f;
                 b[o + 14] = 0.0f;
@@ -510,18 +546,27 @@ public partial class PodField : Node
                 o += FloatsPerPickle;
             }
         }
-        foreach (MultiMesh multi in new[] { cell.Near, cell.Far })
-        {
-            if (multi.InstanceCount != count)
-            {
-                multi.InstanceCount = count;
-            }
-            if (count > 0)
-            {
-                RenderingServer.MultimeshSetBuffer(multi.GetRid(), new ReadOnlySpan<float>(b, 0, count * FloatsPerPickle));
-            }
-        }
+        Upload(cell.Near, b, count);
+        Upload(cell.Far, b, count);
+        cell.DrawnAt = Time.GetTicksMsec();
         return true;
+    }
+
+    // Allocated once for every pod of the cell, so a pickle dropping never
+    // reallocates the GPU's buffer (InstanceCount does, VisibleInstanceCount
+    // does not); the engine takes the buffer whole, at its allocation.
+    private static void Upload(MultiMesh multi, float[] buffer, int count)
+    {
+        int allocated = buffer.Length / FloatsPerPickle;
+        if (multi.InstanceCount != allocated)
+        {
+            multi.InstanceCount = allocated;
+        }
+        multi.VisibleInstanceCount = count;
+        if (allocated > 0)
+        {
+            RenderingServer.MultimeshSetBuffer(multi.GetRid(), new ReadOnlySpan<float>(buffer, 0, allocated * FloatsPerPickle));
+        }
     }
 
     // Its two draws: capsules near its middle, columns further off.
@@ -968,7 +1013,11 @@ public partial class PodField : Node
     // in an awake colony regrown ones hang a moment and drop.
     private void Regrow(float dt)
     {
-        while (_regrowing.Count < Stats.MaxRegrowing && _emptied.Count > 0)
+        HordeManager horde = Horde != null && IsInstanceValid(Horde) ? Horde.Manager : null;
+        // The colony never grows past its pods (docs/decisions/0034): a pod
+        // regrows only for a pickle that has died, not one still fighting.
+        int room = Count - Destroyed - Full - _regrowing.Count - (horde?.ExtraCount(HordeManager.SpawnOrigin.Pod) ?? 0);
+        while (_regrowing.Count < Stats.MaxRegrowing && _emptied.Count > 0 && room > 0)
         {
             int i = _emptied.Dequeue();
             Vine vine = _vines[_vine[i]];
@@ -979,6 +1028,7 @@ public partial class PodField : Node
             _state[i] = PodState.Regrowing;
             _timer[i] = Stats.RegrowSeconds / GrowSpeed(vine);
             _regrowing.Add(i);
+            room--;
             MarkDirty(vine.Cell);
         }
         for (int k = _regrowing.Count - 1; k >= 0; k--)
@@ -1005,7 +1055,6 @@ public partial class PodField : Node
                 _hanging.Add(i);
             }
         }
-        HordeManager horde = Horde != null && IsInstanceValid(Horde) ? Horde.Manager : null;
         for (int k = _hanging.Count - 1; k >= 0; k--)
         {
             int i = _hanging[k];
@@ -1057,6 +1106,13 @@ public partial class PodField : Node
     }
 
     public void PrintBenchStatus() => GD.Print(Summary());
+
+    /// <summary>For <c>bench.gd</c>: the colony harmed where the camera is.</summary>
+    public void BenchWake()
+    {
+        Camera3D camera = GetViewport()?.GetCamera3D();
+        Aggravate(camera?.GlobalPosition ?? Vector3.Zero);
+    }
 
     /// <summary>For the checks: pods that found no voxel to hang from.</summary>
     public int Unheld()

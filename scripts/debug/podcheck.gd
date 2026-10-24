@@ -119,28 +119,42 @@ func _run() -> void:
 	_check("into the horde, as pod pickles", horde != null and horde.Manager.ExtraCount(5) == pods.Dropped,
 		"%d in the horde from pods, %d agents in all" % [horde.Manager.ExtraCount(5) if horde else -1, horde.Manager.AgentCount if horde else -1])
 
-	# Emptied pods grow their pickles again, RegrowSeconds after they emptied
-	# (at most MaxRegrowing at once), and in an awake colony a regrown one
-	# hangs AwakeHangSeconds and drops to fight.
+	# Emptied pods grow their pickles again, RegrowSeconds after they emptied,
+	# but the colony never grows past its pods: a pod regrows only for a
+	# pickle that died (the nine shot before the wake), not for one fighting
+	# in the horde. In an awake colony a regrown one hangs AwakeHangSeconds
+	# and then drops to fight.
 	var stats = pods.Stats
 	var regrow_started := Time.get_ticks_msec()
-	var most_regrowing: int = pods.Regrowing
+	var most_alive := 0
 	while pods.Regrown == 0 and Time.get_ticks_msec() - regrow_started < (stats.RegrowSeconds + 5.0) * 1000.0:
 		await physics_frame
-		most_regrowing = maxi(most_regrowing, pods.Regrowing)
+		most_alive = maxi(most_alive, pods.Full + pods.Regrowing + horde.Manager.ExtraCount(5))
 	var first_regrown := (Time.get_ticks_msec() - wake_started) / 1000.0
 	var dropped_before: int = pods.Dropped
 	var hang_started := Time.get_ticks_msec()
 	while pods.Dropped == dropped_before and Time.get_ticks_msec() - hang_started < (stats.AwakeHangSeconds + 3.0) * 1000.0:
 		await physics_frame
+		most_alive = maxi(most_alive, pods.Full + pods.Regrowing + horde.Manager.ExtraCount(5))
 	var hung := (Time.get_ticks_msec() - hang_started) / 1000.0
 	print(pods.Summary())
 	_check("an emptied pod regrows its pickle", pods.Regrown > 0 and absf(first_regrown - stats.RegrowSeconds) < 3.0,
 		"the first %.1f s after the wake began, RegrowSeconds %.0f" % [first_regrown, stats.RegrowSeconds])
-	_check("no more regrow at once than MaxRegrowing", most_regrowing == mini(stats.MaxRegrowing, pods.Count),
-		"at most %d at once, MaxRegrowing %d" % [most_regrowing, stats.MaxRegrowing])
+	_check("the colony never grows past its pods", most_alive <= pods.Count,
+		"at most %d hanging, regrowing or fighting, %d pods" % [most_alive, pods.Count])
 	_check("regrown in an awake colony, it drops to fight", pods.Dropped > dropped_before and horde.Manager.ExtraCount(5) == pods.Dropped,
 		"%d more dropped after %.1f s" % [pods.Dropped - dropped_before, hung])
+
+	# 300 of the horde killed frees their pods to regrow, at most
+	# MaxRegrowing at once (held at 100 for the check).
+	var cap: int = stats.MaxRegrowing
+	stats.MaxRegrowing = 100
+	horde.Manager.SetAgentCount(horde.Manager.AgentCount - 300, Vector3.ZERO, 0.0)
+	for i in 5:
+		await physics_frame
+	_check("their pods regrow, no more at once than MaxRegrowing", pods.Regrowing == 100,
+		"%d regrowing, MaxRegrowing 100" % pods.Regrowing)
+	stats.MaxRegrowing = cap
 
 	# Craters the heart's vine out from under it: it falls, and its pods with it.
 	var heart: Vector3 = builder.BenchHeart("0")
