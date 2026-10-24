@@ -269,7 +269,9 @@ editor reloading the project's code, so the plugin rebuilds its panel and
 dock on the first frame after a reload; `--editor -- reload-check` proves it
 (rebuild the code under it, then make `user://reload_go`). **It once
 reset every `art/voxels/*.vox.import` to the importer's defaults** (voxel
-size 0.1): snapshot them first and restore them after, or run it on a copy.
+size 0.1): the check now copies them aside before the reload, puts back
+any that changed and names them (`FAIL: ... changed under the reload`; then
+`--editor --quit` reimports them). Why a reload did it is not yet known.
 What comes next is `docs/handoffs/vine-tool-4.md`.
 
 **Nothing that scales with a model's voxels runs in the frame**

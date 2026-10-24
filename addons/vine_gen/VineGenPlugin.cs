@@ -66,7 +66,9 @@ public partial class VineGenPlugin : EditorPlugin
     // editor is told it has the focus again, which is when it reloads the
     // project's code; after the reload, the Nest tab's Roll and the Vine
     // tab's Good are pressed, whether each did its work is printed, and the
-    // editor quits.
+    // editor quits. A reload once rewrote every art/voxels/*.vox.import with
+    // the importer's defaults (voxel size 0.1), so they are copied aside
+    // before it and put back after, and any that changed are named.
     private bool _rebuilt;
     private double _checkWait;
 
@@ -77,6 +79,7 @@ public partial class VineGenPlugin : EditorPlugin
         _checkWait += delta;
         if (!_rebuilt)
         {
+            SnapshotImports();
             if (FileAccess.FileExists("user://reload_go") && _checkWait > 1.0)
             {
                 _checkWait = 0.0;
@@ -86,6 +89,7 @@ public partial class VineGenPlugin : EditorPlugin
             if (_checkWait > 120.0)
             {
                 GD.Print("[reloadcheck] FAIL: no reload in 120 s");
+                RestoreImports();
                 GetTree().Quit();
             }
             return;
@@ -107,7 +111,50 @@ public partial class VineGenPlugin : EditorPlugin
         good?.EmitSignal(BaseButton.SignalName.Pressed);
         Label logged = vine?.FindChildren("*", nameof(Label), true, false).Cast<Label>().FirstOrDefault(l => l.Text.StartsWith("Logged "));
         GD.Print($"[reloadcheck] {(logged != null ? "PASS" : "FAIL")}: after the reload, the Vine tab's Good {(logged != null ? "said: " + logged.Text : "logged nothing")}");
+        RestoreImports();
         GetTree().Quit();
+    }
+
+    private const string VoxFolder = "res://art/voxels";
+    private const string ImportSnapshot = "user://reloadcheck_imports";
+
+    // Once a run, before the reload. A folder left by a run that died holds
+    // the state before that run, and is kept.
+    private static void SnapshotImports()
+    {
+        string snapshot = ProjectSettings.GlobalizePath(ImportSnapshot);
+        if (DirAccess.DirExistsAbsolute(snapshot))
+            return;
+        DirAccess.MakeDirRecursiveAbsolute(snapshot);
+        int count = 0;
+        foreach (string file in DirAccess.GetFilesAt(VoxFolder).Where(f => f.EndsWith(".vox.import")))
+        {
+            System.IO.File.Copy(ProjectSettings.GlobalizePath($"{VoxFolder}/{file}"), System.IO.Path.Combine(snapshot, file), true);
+            count++;
+        }
+        GD.Print($"[reloadcheck] {count} .vox.import files copied aside");
+    }
+
+    private static void RestoreImports()
+    {
+        string snapshot = ProjectSettings.GlobalizePath(ImportSnapshot);
+        if (!DirAccess.DirExistsAbsolute(snapshot))
+            return;
+        var changed = new System.Collections.Generic.List<string>();
+        foreach (string saved in System.IO.Directory.GetFiles(snapshot))
+        {
+            string live = ProjectSettings.GlobalizePath($"{VoxFolder}/{System.IO.Path.GetFileName(saved)}");
+            byte[] was = System.IO.File.ReadAllBytes(saved);
+            if (!System.IO.File.Exists(live) || !was.SequenceEqual(System.IO.File.ReadAllBytes(live)))
+            {
+                System.IO.File.WriteAllBytes(live, was);
+                changed.Add(System.IO.Path.GetFileName(saved));
+            }
+        }
+        System.IO.Directory.Delete(snapshot, true);
+        GD.Print(changed.Count == 0
+            ? "[reloadcheck] PASS: no .vox.import changed under the reload"
+            : $"[reloadcheck] FAIL: {changed.Count} .vox.import changed under the reload and were put back ({string.Join(", ", changed)}); --editor --quit reimports them");
     }
 
     private void Build()
