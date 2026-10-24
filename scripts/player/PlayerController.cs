@@ -124,6 +124,26 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
     private SoundLoop _jetpackLoop;
 
     private Vector3 _pendingImpulse;
+    private int _pendingShoves;
+    private float _largestShove;
+
+    // The fling guard: where the last tick left the body, and what the shoves
+    // of this tick were before the cap.
+    private Vector3 _tickEnd;
+    private bool _tickEndValid;
+    private Vector3 _shoveThisTick;
+    private int _shovesThisTick;
+    private float _largestThisTick;
+    private ulong _lastFlingReportMs;
+
+    /// <summary>How many flings the guard has reported (<see cref="ReportFling"/>).</summary>
+    public int Flings { get; private set; }
+
+    /// <summary>Faster than anything the player does on purpose (the grapple's cap is 45).</summary>
+    private const float FlingSpeed = 70.0f;
+
+    /// <summary>Further than a tick's own movement could take the body.</summary>
+    private const float FlingJumpMetres = 20.0f;
 
     public bool IsCrouched => _isCrouched;
     public bool IsSprinting { get; private set; }
@@ -403,7 +423,7 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
 
     private void OnWeaponThrust(Vector3 impulse)
     {
-        _pendingImpulse += impulse;
+        QueueShove(impulse);
     }
 
     private void OnWeaponAimStateChanged(bool aiming, float fovScale, float transitionSpeed)
@@ -523,6 +543,12 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
     {
         float dt = (float)delta;
 
+        // Moved since the last tick by something else (a rescue, a seat).
+        if (_tickEndValid && GlobalPosition.DistanceSquaredTo(_tickEnd) > FlingJumpMetres * FlingJumpMetres)
+        {
+            ReportFling(System.FormattableString.Invariant($"moved {GlobalPosition.DistanceTo(_tickEnd):F0} m between ticks, from {Metres(_tickEnd)}"));
+        }
+
         // Before movement, so a stick turn faces the step that is about to
         // read the body's axes. The mouse does this from _UnhandledInput,
         // which has already run this frame.
@@ -536,6 +562,9 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
         UpdateStance(dt);
 
         Vector3 velocity = Velocity;
+        _shoveThisTick = Vector3.Zero;
+        _shovesThisTick = 0;
+        _largestThisTick = 0.0f;
         ConsumeBlastImpulse(ref velocity);
         bool onFloor = IsOnFloor();
 
@@ -612,10 +641,55 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
         FloorSnapLength = IsFlying || _swinging || velocity.Dot(UpDirection) > 0.0f
             ? 0.0f
             : FloorSnapDistance;
+        Vector3 start = GlobalPosition;
         MoveAndSlide();
 
         DetectLanding();
         UpdateState();
+
+        float moved = GlobalPosition.DistanceTo(start);
+        if (Velocity.LengthSquared() > FlingSpeed * FlingSpeed || moved > FlingJumpMetres)
+        {
+            ReportFling(System.FormattableString.Invariant($"moving {Velocity.Length():F0} m/s, moved {moved:F1} m this tick"));
+        }
+        _tickEnd = GlobalPosition;
+        _tickEndValid = true;
+    }
+
+    /// <summary>
+    /// The fling guard (docs/handoffs/vine-tool-4.md, report 2): the player
+    /// thrown faster than anything they do on purpose, or moved further than a
+    /// tick goes, is printed and logged with what pushed them, at most once a
+    /// second.
+    /// </summary>
+    private static string Metres(Vector3 v) => System.FormattableString.Invariant($"({v.X:F0}, {v.Y:F0}, {v.Z:F0})");
+
+    private void ReportFling(string what)
+    {
+        ulong now = Time.GetTicksMsec();
+        if (now - _lastFlingReportMs < 1000)
+        {
+            return;
+        }
+        _lastFlingReportMs = now;
+        Flings++;
+
+        string floor = "none";
+        for (int i = 0; i < GetSlideCollisionCount(); i++)
+        {
+            if (GetSlideCollision(i).GetCollider() is Node node)
+            {
+                floor = node.Name;
+                break;
+            }
+        }
+        string text = System.FormattableString.Invariant(
+            $"[fling] {Name} {what}; at {Metres(GlobalPosition)}; shoves this tick {_shovesThisTick} adding to {_shoveThisTick.Length():F0} m/s (largest {_largestThisTick:F0}, capped at {Tuning.MaxShoveSpeed:F0}); platform {GetPlatformVelocity().Length():F0} m/s; touching {floor}; swinging {_swinging}, flying {IsFlying}, on floor {IsOnFloor()}");
+        GD.Print(text);
+        if (PerfLog.Recording)
+        {
+            PerfLog.Event(text);
+        }
     }
 
     /// <summary>
@@ -1713,7 +1787,14 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
     /// </summary>
     public void ApplyBlastImpulse(Vector3 impulse)
     {
+        QueueShove(impulse);
+    }
+
+    private void QueueShove(Vector3 impulse)
+    {
         _pendingImpulse += impulse;
+        _pendingShoves++;
+        _largestShove = Mathf.Max(_largestShove, impulse.Length());
     }
 
     /// <summary>
@@ -1809,8 +1890,14 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
             return;
         }
 
-        velocity += _pendingImpulse;
+        // Every shove of the tick together, at most MaxShoveSpeed.
+        _shoveThisTick = _pendingImpulse;
+        _shovesThisTick = _pendingShoves;
+        _largestThisTick = _largestShove;
+        velocity += _pendingImpulse.LimitLength(Tuning.MaxShoveSpeed);
         _pendingImpulse = Vector3.Zero;
+        _pendingShoves = 0;
+        _largestShove = 0.0f;
 
         // Being thrown means leaving the ground, and the coyote timer would
         // otherwise let the player jump out of it for free.
@@ -1847,12 +1934,15 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
             ? 0u
             : GameLayers.Mask(GameLayers.World, GameLayers.Prop, GameLayers.Enemy);
 
+        // Getting on or off moves the body: not a fling.
+        _tickEndValid = false;
         if (stowed)
         {
             // A line left attached would tow a body that is no longer simulating.
             Grapple?.Release(false);
             _momentumCarry = false;
             Velocity = Vector3.Zero;
+            _pendingImpulse = Vector3.Zero;
             Loadout?.SetStowed(true);
             Loadout?.SetProcess(false);
         }

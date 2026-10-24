@@ -70,6 +70,15 @@ public partial class MovementTuning : Resource
     [Export(PropertyHint.Range, "0,0.5,0.005,suffix:s")]
     public float JumpBufferTime { get; set; } = 0.14f;
 
+    /// <summary>
+    /// The most every shove in one tick together adds to the player's speed:
+    /// blasts, the crowd, a weapon's thrust. One HE warhead at its centre is
+    /// 44. Before this they added up without limit, and a few landing in the
+    /// same tick could throw the player kilometres over the planet.
+    /// </summary>
+    [Export(PropertyHint.Range, "5,200,1,suffix:m/s")]
+    public float MaxShoveSpeed { get; set; } = 50.0f;
+
     // ---------------- Stance ----------------
 
     [ExportGroup("Stance")]

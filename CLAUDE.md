@@ -340,6 +340,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --headless --path . --script scripts/debug/seedcheck.gd -- 20                                      # same seed, same planet; cube seams
 "$GODOT" --headless --path . --script scripts/debug/graphcheck.gd -- 40                                     # chunk graph vs a cell flood: what falls, what floats
 "$GODOT" --headless --path . --script scripts/debug/flexcheck.gd                                            # a plant's spine: its period, settling, a pull, a cut
+"$GODOT" --headless --path . --script scripts/debug/flingcheck.gd                                           # shoves in one tick capped; a fling ([fling] lines) reported
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd                                            # vine generator vs its golden vines; every baked vine's wrapper and foot
 "$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- record                                  # re-record the golden vines, only after a change meant to move them
 "$GODOT" --headless --path . --script scripts/debug/podcheck.gd -- pop=3000                                 # a nest's pods: in the field, on voxels, bending; a shot, a blast; the wake into the horde; regrowth; a felled vine takes its own; the win and the bonus
