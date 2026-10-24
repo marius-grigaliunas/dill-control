@@ -205,11 +205,22 @@ weeping 95 %, leafy 53 %. 25,000 is 117 vines, 25,062 pods, 393 m out
 
 ## Known and not yet done
 
-- **The working tree has 28 modified `art/voxels/*.vox.import` files** that
-  aren't this session's work. The editor rewrote them when it reimported
-  after the re-bake. Leave them out of commits until the user says whether
-  to keep them; check with `git diff` what changed (probably settings the
-  importer now writes out).
+- **The `reload-check` reset every `.vox` file's import settings.** At
+  11:03 on 24 October a headless editor running `--editor -- reload-check`
+  reloaded the project's C# under itself; the voxel importer
+  (`addons/vox_importer`, C# too) was reloading when the editor reimported
+  the `.vox` files, and every `art/voxels/*.vox.import` was rewritten with
+  the default options: `voxel/size` 0.1 instead of 0.5 (0.04 and 0.11 for two
+  mechs), and new uids. Vines, trees, towers and mechs imported at a fifth of
+  their size. The `.import` files were restored from git
+  (`git checkout -- art/voxels/*.vox.import`); **the reimport still has to
+  be done with the editor closed**: delete `.godot/imported/*.vox-*`, run
+  `--headless --editor --quit`, and check a vine's imported height (74 m or
+  so, not 15). **Before running `reload-check` again**, make it safe: run
+  it on a copy of the project, or snapshot `art/voxels/*.vox.import` first
+  and restore them after. And find out why a reload makes the editor
+  reimport with defaults: it may also happen in the user's own editor on a
+  rebuild while a `.vox` is being reimported.
 
 - **A rifle round on bare ground near the nest doesn't wake the colony**;
   nothing broadcasts a ground hit. A new `EventBus` signal needs a decision
