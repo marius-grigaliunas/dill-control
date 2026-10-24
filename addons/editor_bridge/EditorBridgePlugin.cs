@@ -57,6 +57,7 @@ public partial class EditorBridgePlugin : EditorPlugin
             }).ToArray()));
         ViewCommands.Register();
         PlaceCommands.Register();
+        NodeCommands.Register();
         _server = new BridgeServer();
         _server.Start();
         _startedByThisCode = true;

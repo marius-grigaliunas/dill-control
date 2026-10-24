@@ -141,7 +141,12 @@ it is on, and `tools/editor-bridge/godot_mcp.py` (the project's `.mcp.json`)
 gives its commands to Claude Code. Everything in a scene is the real thing,
 visible in the editor as itself: no markers that become content at load.
 Every command that changes a scene is one undo. While a scene is open in the
-editor, change it through the bridge, never by editing its `.tscn`. A tool
+editor, change it through the bridge, never by editing its `.tscn`. A command makes
+its change at once and records it (`Bridge.BeginAction`/`EndAction`), so
+`batch` is one undo in which a later command sees an earlier one's nodes.
+`history` lists the scene's undo steps; `undo`/`redo` press the editor's own
+menu items. Ctrl+Z goes to the panel with the keyboard focus: click the 3D
+view first. A tool
 adds its own commands with `Bridge.Register`. To try one by hand:
 `python tools/editor-bridge/godot_mcp.py call view '{}' --png perflogs/v.png`.
 The Vines tool's own commands (`vine_kinds`, `vine_kind`, `vine_roll`,

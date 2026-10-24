@@ -35,6 +35,54 @@ public static class Bridge
     /// <summary>A mistake in a command's arguments or state: its message goes back as the error.</summary>
     public sealed class Refused(string message) : Exception(message);
 
+    // ---------------- Undo ----------------
+
+    // Every command makes its change at once, then records how to do and
+    // undo it, and commits without doing it again: so inside a batch, a later
+    // command sees what an earlier one made, and the batch is one undo.
+    private static int _batch;
+    private static bool _batchOpen;
+
+    public static bool InBatch => _batch > 0;
+
+    /// <summary>The undo action a change is recorded in: its own, or the batch's.</summary>
+    public static EditorUndoRedoManager BeginAction(string name)
+    {
+        EditorUndoRedoManager undo = EditorInterface.Singleton.GetEditorUndoRedo();
+        if (_batch == 0 || !_batchOpen)
+        {
+            undo.CreateAction(_batch > 0 ? "Bridge: batch" : "Bridge: " + name, UndoRedo.MergeMode.Disable, SceneRoot);
+            _batchOpen = _batch > 0;
+        }
+        return undo;
+    }
+
+    /// <summary>After the change is made and recorded.</summary>
+    public static void EndAction(EditorUndoRedoManager undo)
+    {
+        if (_batch == 0)
+            undo.CommitAction(false);
+    }
+
+    public static async Task<JsonNode> Batch(Func<Task<JsonNode>> run)
+    {
+        if (_batch > 0)
+            throw new Refused("a batch cannot hold a batch");
+        _batch = 1;
+        _batchOpen = false;
+        try
+        {
+            return await run();
+        }
+        finally
+        {
+            _batch = 0;
+            if (_batchOpen)
+                EditorInterface.Singleton.GetEditorUndoRedo().CommitAction(false);
+            _batchOpen = false;
+        }
+    }
+
     // ---------------- Waiting for the editor ----------------
 
     private static SceneTree Tree => (SceneTree)Engine.GetMainLoop();
@@ -77,8 +125,11 @@ public static class Bridge
     public static string Text(JsonObject args, string key, string fallback = null) =>
         args.TryGetPropertyValue(key, out JsonNode v) && v != null ? v.GetValue<string>() : fallback;
 
+    // Read from its text: a value made in C# as an int will not give a double.
     public static double Number(JsonObject args, string key, double fallback) =>
-        args.TryGetPropertyValue(key, out JsonNode v) && v != null ? v.GetValue<double>() : fallback;
+        args.TryGetPropertyValue(key, out JsonNode v) && v != null
+            ? double.Parse(v.ToJsonString(), NumberStyles.Float, CultureInfo.InvariantCulture)
+            : fallback;
 
     public static bool Flag(JsonObject args, string key, bool fallback) =>
         args.TryGetPropertyValue(key, out JsonNode v) && v != null ? v.GetValue<bool>() : fallback;

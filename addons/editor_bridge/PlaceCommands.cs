@@ -52,22 +52,23 @@ public static class PlaceCommands
         // A node under another being deleted goes with it.
         nodes.RemoveAll(n => nodes.Any(other => other != n && other.IsAncestorOf(n)));
 
-        EditorUndoRedoManager undo = EditorInterface.Singleton.GetEditorUndoRedo();
-        undo.CreateAction($"Bridge: delete {string.Join(", ", nodes.Select(n => n.Name))}", UndoRedo.MergeMode.Disable, root);
+        EditorUndoRedoManager undo = Bridge.BeginAction($"delete {string.Join(", ", nodes.Select(n => n.Name))}");
         var deleted = new JsonArray();
         foreach (Node node in nodes)
         {
             Node parent = node.GetParent();
             deleted.Add(Bridge.PathOf(node));
+            // Out of the tree a node loses its owner; the undo gives it back to all the scene owned.
+            Node[] owned = new[] { node }.Concat(node.FindChildren("*", "", true, true)).Where(n => n.Owner == root).ToArray();
             undo.AddDoMethod(parent, Node.MethodName.RemoveChild, node);
             undo.AddUndoMethod(parent, Node.MethodName.AddChild, node, true);
             undo.AddUndoMethod(parent, Node.MethodName.MoveChild, node, node.GetIndex());
-            // Out of the tree a node loses its owner; the undo gives it back to all the scene owned.
-            foreach (Node owned in new[] { node }.Concat(node.FindChildren("*", "", true, true)).Where(n => n.Owner == root))
-                undo.AddUndoProperty(owned, Node.PropertyName.Owner, root);
+            foreach (Node o in owned)
+                undo.AddUndoProperty(o, Node.PropertyName.Owner, root);
             undo.AddUndoReference(node);
+            parent.RemoveChild(node);
         }
-        undo.CommitAction();
+        Bridge.EndAction(undo);
         EditorInterface.Singleton.GetSelection().Clear();
         return new JsonObject { ["deleted"] = deleted };
     }
@@ -108,13 +109,14 @@ public static class PlaceCommands
         var world = new Transform3D(new Basis(Vector3.Up, Mathf.DegToRad((float)Bridge.Number(args, "yaw", 0.0))), at);
         node.Transform = parent is Node3D p3 ? p3.GlobalTransform.AffineInverse() * world : world;
 
-        EditorUndoRedoManager undo = EditorInterface.Singleton.GetEditorUndoRedo();
-        undo.CreateAction($"Bridge: place {node.Name}", UndoRedo.MergeMode.Disable, root);
+        parent.AddChild(node, true);
+        node.Owner = root;
+        EditorUndoRedoManager undo = Bridge.BeginAction($"place {node.Name}");
         undo.AddDoMethod(parent, Node.MethodName.AddChild, node, true);
         undo.AddDoProperty(node, Node.PropertyName.Owner, root);
         undo.AddDoReference(node);
         undo.AddUndoMethod(parent, Node.MethodName.RemoveChild, node);
-        undo.CommitAction();
+        Bridge.EndAction(undo);
 
         EditorSelection selection = EditorInterface.Singleton.GetSelection();
         selection.Clear();
