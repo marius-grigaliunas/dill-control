@@ -158,7 +158,12 @@ The Vines tool's own commands (`vine_kinds`, `vine_kind`, `vine_roll`,
 holds the heights (scaled by the spacing; Jolt takes it), and chunk meshes,
 all saved in `<scene>_terrain/` beside the scene; the horde reads the same
 heights. Select it and the 3D view's bar (`addons/terrain_brush`) raises,
-lowers, smooths or flattens, a stroke an undo; Claude uses `sculpt`. The
+lowers, smooths or flattens; Scatter paints real instances of the ticked
+palette's scenes (Shift erases); Water floods a hollow. A stroke or a
+click is one undo; Claude uses `sculpt`, `scatter` and `flood`. **Water is
+shallow** (`docs/decisions/0045`): a `WaterBody` under Water, wet cells
+and a saved surface in `<scene>_water/`; it slows the player and the horde
+(`water_default.tres`), and everything asks `WaterBody.DepthAt`. The
 editor runs frames inside its own work (a save's progress bar), so the
 bridge never answers while it is already answering: a save once re-entered
 its own request until the stack overflowed and the editor died. Claude may judge vines, its

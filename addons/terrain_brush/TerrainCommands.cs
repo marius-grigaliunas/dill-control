@@ -53,6 +53,31 @@ public static class TerrainCommands
             }}
             """,
             Sculpt);
+        Bridge.Register("scatter",
+            "Paint real instances of scenes onto a SculptedTerrain, as the brush's Scatter does: along 'points' (or at 'at'), " +
+            "up to 'density' per 1,000 m² within 'radius', 'spacing' metres from anything standing, no steeper than 'max_slope', never in water; " +
+            "each stood on the ground with a random turn, under Foliage or Props. 'erase' takes the scenes' instances away instead. One undo.",
+            """
+            {"type":"object","required":["scenes","radius"],"properties":{
+              "terrain":{"type":"string"},
+              "scenes":{"type":"array","items":{"type":"string"},"description":"res:// paths or names in scenes/props, e.g. prp_tree_tall_a"},
+              "at":{"type":"array","items":{"type":"number"}},"points":{"type":"array","items":{"type":"array","items":{"type":"number"}}},
+              "radius":{"type":"number"},"density":{"type":"number","description":"default 2"},"spacing":{"type":"number","description":"default 12"},
+              "max_slope":{"type":"number","description":"degrees, default 30"},"erase":{"type":"boolean"}
+            }}
+            """,
+            ScatterCommand);
+        Bridge.Register("flood",
+            "Flood a hollow of a SculptedTerrain with shallow water (decision 0045), as the brush's Water does: from 'at' [x, z], every connected cell " +
+            "with ground below the level gets water, flat at the level. The level is 'level' (world height) or 'depth' metres over the ground at 'at' (default 0.8). " +
+            "Refuses when the water would run off the terrain's edge. Makes a WaterBody under Water; one undo.",
+            """
+            {"type":"object","required":["at"],"properties":{
+              "terrain":{"type":"string"},"at":{"type":"array","items":{"type":"number"}},
+              "level":{"type":"number"},"depth":{"type":"number"},"name":{"type":"string"}
+            }}
+            """,
+            Flood);
         Bridge.Register("terrain",
             "A SculptedTerrain's size, spacing, lowest and highest ground, and the ground's height at 'points' [[x, z], ...].",
             """
@@ -245,6 +270,95 @@ public static class TerrainCommands
             ["most_changed_m"] = Math.Round(most, 2),
             ["heights_at_points"] = new JsonArray(points.Select(p => (JsonNode)Math.Round(h.HeightAt(p.X, p.Y), 2)).ToArray()),
             ["note"] = "saved to its files with the scene",
+        };
+    }
+
+    private static List<Vector2> Points(JsonObject args)
+    {
+        var points = new List<Vector2>();
+        if (args["points"] is JsonArray list)
+            points.AddRange(list.Select(XZ));
+        if (args["at"] != null)
+            points.Add(XZ(args["at"]));
+        if (points.Count == 0)
+            throw new Bridge.Refused("give 'at' or 'points'");
+        return points;
+    }
+
+    private static JsonNode ScatterCommand(JsonObject args)
+    {
+        SculptedTerrain terrain = Find(args);
+        List<string> scenes = (args["scenes"] as JsonArray ?? throw new Bridge.Refused("'scenes' is missing"))
+            .Select(s => PlaceCommands.ScenePath(s!.GetValue<string>())).ToList();
+        var settings = new Scatter.Settings
+        {
+            RadiusM = (float)Bridge.Number(args, "radius", 20),
+            Density = (float)Bridge.Number(args, "density", 2),
+            SpacingM = (float)Bridge.Number(args, "spacing", 12),
+            MaxSlopeDeg = (float)Bridge.Number(args, "max_slope", 30),
+        };
+        bool erase = Bridge.Flag(args, "erase", false);
+        List<Vector2> points = Points(args);
+        var scatter = new Scatter(terrain, scenes);
+        float step = Mathf.Max(settings.RadiusM * 0.5f, 1.0f);
+        for (int i = 0; i < points.Count; i++)
+        {
+            Vector2 a = points[i];
+            Vector2 b = i + 1 < points.Count ? points[i + 1] : a;
+            int n = i + 1 < points.Count ? Math.Max(1, Mathf.CeilToInt(a.DistanceTo(b) / step)) : 1;
+            for (int k = 0; k < n; k++)
+            {
+                Vector2 p = a.Lerp(b, (float)k / Math.Max(n, 1));
+                if (erase)
+                    scatter.Erase(p.X, p.Y, settings);
+                else
+                    scatter.Paint(p.X, p.Y, settings);
+            }
+        }
+        if (scatter.Changed)
+        {
+            EditorUndoRedoManager undo = Bridge.BeginAction(erase ? "scatter: erase" : "scatter");
+            scatter.Record(undo);
+            Bridge.EndAction(undo);
+        }
+        return new JsonObject
+        {
+            ["added"] = scatter.Added.Count,
+            ["removed"] = scatter.Removed.Count,
+            ["now_placed"] = Scatter.Count(Bridge.SceneRoot, scenes),
+            ["nodes"] = new JsonArray(scatter.Added.Take(50).Select(n => (JsonNode)Bridge.PathOf(n)).ToArray()),
+        };
+    }
+
+    private static JsonNode Flood(JsonObject args)
+    {
+        SculptedTerrain terrain = Find(args);
+        Vector2 at = XZ(args["at"] ?? throw new Bridge.Refused("'at' is missing"));
+        float ground = terrain.Heights.HeightAt(at.X, at.Y);
+        float level = (float)Bridge.Number(args, "level", ground + Bridge.Number(args, "depth", 0.8));
+        EditorUndoRedoManager undo = Bridge.BeginAction("flood");
+        WaterBody body;
+        try
+        {
+            body = WaterFlood.Flood(terrain, at.X, at.Y, level, undo);
+        }
+        catch (WaterFlood.Refused e)
+        {
+            Bridge.EndAction(undo);
+            throw new Bridge.Refused(e.Message);
+        }
+        if (Bridge.Text(args, "name") is { } name)
+            body.Name = name;
+        Bridge.EndAction(undo);
+        int cells = body.Cells.Count(c => c != 0);
+        return new JsonObject
+        {
+            ["node"] = Bridge.PathOf(body),
+            ["level"] = Math.Round(level, 2),
+            ["ground_at_point"] = Math.Round(ground, 2),
+            ["cells"] = cells,
+            ["area_m2"] = Math.Round(cells * body.CellSize * body.CellSize),
+            ["extent_m"] = new JsonArray(body.Width * body.CellSize, body.Length * body.CellSize),
         };
     }
 

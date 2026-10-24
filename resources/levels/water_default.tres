@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="WaterStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/WaterStats.cs" id="1_script"]
+
+[resource]
+resource_name = "WaterDefault"
+script = ExtResource("1_script")

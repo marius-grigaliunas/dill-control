@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://dten1h12v4klo"]
+[gd_scene format=4 uid="uid://dten1h12v4klo"]
 
 [ext_resource type="Script" uid="uid://br5rfr1owyw11" path="res://scripts/levels/LevelRoot.cs" id="1_root"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
@@ -112,8 +112,22 @@
 [ext_resource type="ArrayMesh" uid="uid://dthr7uau3yn7b" path="res://scenes/levels/lvl_drop_test_terrain/chunk_5_9.res" id="105_kgq8o"]
 [ext_resource type="ArrayMesh" uid="uid://ch6cisf2vc1g6" path="res://scenes/levels/lvl_drop_test_terrain/chunk_6_9.res" id="106_jibdt"]
 [ext_resource type="ArrayMesh" uid="uid://0celn6348ho" path="res://scenes/levels/lvl_drop_test_terrain/chunk_7_9.res" id="107_e3r0f"]
+[ext_resource type="Script" uid="uid://q7wcbmtt2hwq" path="res://scripts/levels/WaterBody.cs" id="107_gu2g7"]
 [ext_resource type="ArrayMesh" uid="uid://dbwirj3uks8w5" path="res://scenes/levels/lvl_drop_test_terrain/chunk_8_9.res" id="108_8421x"]
+[ext_resource type="Resource" path="res://resources/levels/water_default.tres" id="108_hlwg8"]
 [ext_resource type="ArrayMesh" uid="uid://502kl4fgxmy0" path="res://scenes/levels/lvl_drop_test_terrain/chunk_9_9.res" id="109_jhirv"]
+[ext_resource type="ArrayMesh" uid="uid://3paenhxd4iqr" path="res://scenes/levels/lvl_drop_test_water/Pond_1792876512.res" id="109_maops"]
+[ext_resource type="PackedScene" uid="uid://c4dxvh5qnunot" path="res://scenes/props/prp_tree_small_c.tscn" id="110_xxv3b"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_9001172.tscn" id="111_c0elh"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_3733469.tscn" id="112_j13ci"]
+[ext_resource type="PackedScene" uid="uid://gpccog68au1x" path="res://scenes/props/prp_tree_small_e.tscn" id="113_nccdc"]
+[ext_resource type="PackedScene" uid="uid://b3v8kdq1gssiy" path="res://scenes/props/prp_tree_small_a.tscn" id="114_8o185"]
+[ext_resource type="PackedScene" uid="uid://bd2xhlmhl3dw4" path="res://scenes/props/prp_tree_small_d.tscn" id="115_ifwnh"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_5248791.tscn" id="116_26nkk"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_2326491.tscn" id="117_nko6g"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_5951102.tscn" id="118_8k8jm"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_9582358.tscn" id="119_uvdsy"]
+[ext_resource type="PackedScene" uid="uid://qlhkgutgdjsm" path="res://scenes/props/prp_tree_small_b.tscn" id="120_ekuyq"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
 sky_top_color = Color(0.3, 0.52, 0.84, 1)
@@ -458,7 +472,128 @@ mesh = ExtResource("109_jhirv")
 
 [node name="Water" type="Node3D" parent="." unique_id=2030301993]
 
+[node name="Pond" type="Node3D" parent="Water" unique_id=423660729]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, -8.4, 178)
+script = ExtResource("107_gu2g7")
+Stats = ExtResource("108_hlwg8")
+Corner = Vector2(-24, -26)
+Width = 12
+Length = 13
+Cells = PackedByteArray("AAAAAAEBAAAAAAAAAAEBAQEBAQEBAAAAAAEBAQEBAQEBAQAAAQEBAQEBAQEBAQEAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAEBAQEBAQEBAQEBAAEBAQEBAQEBAQEAAAEBAQEBAQEBAQEAAAABAQEBAQEBAQAA")
+
+[node name="Surface" type="MeshInstance3D" parent="Water/Pond" unique_id=951880679]
+cast_shadow = 0
+mesh = ExtResource("109_maops")
+
 [node name="Foliage" type="Node3D" parent="." unique_id=1321715712]
+
+[node name="TreeSmallC" parent="Foliage" unique_id=174060837 instance=ExtResource("110_xxv3b")]
+transform = Transform3D(0.7487187, 0, -0.6628879, 0, 1, 0, 0.6628879, 0, 0.7487187, -3.6570654, -2.1898332, 169.04628)
+
+[node name="VineShrub9001172" parent="Foliage" unique_id=974012442 instance=ExtResource("111_c0elh")]
+transform = Transform3D(-0.7140501, 0, -0.7000946, 0, 1, 0, 0.7000946, 0, -0.7140501, -8.550404, -2.9831052, 189.27306)
+
+[node name="VineShrub3733469" parent="Foliage" unique_id=37998404 instance=ExtResource("112_j13ci")]
+transform = Transform3D(0.9292789, 0, -0.3693789, 0, 1, 0, 0.3693789, 0, 0.9292789, -18.952957, -4.2844453, 201.26443)
+
+[node name="TreeSmallE" parent="Foliage" unique_id=348414024 instance=ExtResource("113_nccdc")]
+transform = Transform3D(0.6663037, 0, 0.74568045, 0, 1, 0, -0.74568045, 0, 0.6663037, -26.132019, -3.9050744, 215.06853)
+
+[node name="TreeSmallA" parent="Foliage" unique_id=1525281056 instance=ExtResource("114_8o185")]
+transform = Transform3D(0.6653962, 0, 0.74649036, 0, 1, 0, -0.74649036, 0, 0.6653962, -7.382372, -2.3811488, 205.24521)
+
+[node name="TreeSmallD" parent="Foliage" unique_id=753233032 instance=ExtResource("115_ifwnh")]
+transform = Transform3D(-0.7266106, 0, -0.6870495, 0, 1, 0, 0.6870495, 0, -0.7266106, -40.492256, -6.7590632, 209.1576)
+
+[node name="VineShrub9001173" parent="Foliage" unique_id=1751808561 instance=ExtResource("111_c0elh")]
+transform = Transform3D(-0.4871975, 0, -0.8732918, 0, 1, 0, 0.8732918, 0, -0.4871975, -33.165535, -1.9586339, 232.43196)
+
+[node name="VineShrub5248791" parent="Foliage" unique_id=566310854 instance=ExtResource("116_26nkk")]
+transform = Transform3D(0.73631805, 0, 0.67663556, 0, 1, 0, -0.67663556, 0, 0.73631805, -38.010235, -4.3145823, 222.16103)
+
+[node name="TreeSmallC2" parent="Foliage" unique_id=1841072993 instance=ExtResource("110_xxv3b")]
+transform = Transform3D(0.8282431, 0, -0.560369, 0, 1, 0, 0.560369, 0, 0.8282431, -54.626675, -2.4028697, 235.7297)
+
+[node name="VineShrub2326491" parent="Foliage" unique_id=23501525 instance=ExtResource("117_nko6g")]
+transform = Transform3D(0.52408063, 0, -0.85166866, 0, 1, 0, 0.85166866, 0, 0.52408063, -64.913246, -5.470358, 220.9384)
+
+[node name="VineShrub5951102" parent="Foliage" unique_id=1071282371 instance=ExtResource("118_8k8jm")]
+transform = Transform3D(-0.9995225, 0, 0.030898571, 0, 1, 0, -0.030898571, 0, -0.9995225, -54.868923, -6.410959, 216.4222)
+
+[node name="VineShrub2326492" parent="Foliage" unique_id=426281646 instance=ExtResource("117_nko6g")]
+transform = Transform3D(0.0901579, 0, 0.9959275, 0, 1, 0, -0.9959275, 0, 0.0901579, -65.94426, -2.9566042, 233.16931)
+
+[node name="VineShrub9582358" parent="Foliage" unique_id=1475980203 instance=ExtResource("119_uvdsy")]
+transform = Transform3D(-0.97029334, 0, 0.24193157, 0, 1, 0, -0.24193157, 0, -0.97029334, -86.71494, -3.5249677, 227.71623)
+
+[node name="VineShrub2326493" parent="Foliage" unique_id=1456647631 instance=ExtResource("117_nko6g")]
+transform = Transform3D(0.80507153, 0, 0.59317774, 0, 1, 0, -0.59317774, 0, 0.80507153, -75.31673, -7.153039, 209.86455)
+
+[node name="VineShrub9001174" parent="Foliage" unique_id=210344743 instance=ExtResource("111_c0elh")]
+transform = Transform3D(0.6122579, 0, -0.7906581, 0, 1, 0, 0.7906581, 0, 0.6122579, -96.090904, -4.282981, 216.59134)
+
+[node name="VineShrub5248792" parent="Foliage" unique_id=1058540453 instance=ExtResource("116_26nkk")]
+transform = Transform3D(0.33534, 0, 0.9420972, 0, 1, 0, -0.9420972, 0, 0.33534, -92.960754, -6.337011, 198.35051)
+
+[node name="VineShrub9001175" parent="Foliage" unique_id=167284995 instance=ExtResource("111_c0elh")]
+transform = Transform3D(0.90741014, 0, 0.42024618, 0, 1, 0, -0.42024618, 0, 0.90741014, -111.846634, -2.8010445, 213.83403)
+
+[node name="TreeSmallB" parent="Foliage" unique_id=2081329158 instance=ExtResource("120_ekuyq")]
+transform = Transform3D(-0.857777, 0, 0.514022, 0, 1, 0, -0.514022, 0, -0.857777, -114.04283, -4.0475526, 188.10162)
+
+[node name="VineShrub5951103" parent="Foliage" unique_id=838223247 instance=ExtResource("118_8k8jm")]
+transform = Transform3D(0.8687112, 0, 0.495319, 0, 1, 0, -0.495319, 0, 0.8687112, -101.84834, -5.2937183, 173.34927)
+
+[node name="TreeSmallA2" parent="Foliage" unique_id=482769295 instance=ExtResource("114_8o185")]
+transform = Transform3D(-0.4866948, 0, -0.87357205, 0, 1, 0, 0.87357205, 0, -0.4866948, -113.42009, -2.7604895, 162.83388)
+
+[node name="TreeSmallA3" parent="Foliage" unique_id=1561895220 instance=ExtResource("114_8o185")]
+transform = Transform3D(-0.19582896, 0, 0.9806381, 0, 1, 0, -0.9806381, 0, -0.19582896, -95.625275, -4.8710914, 151.02847)
+
+[node name="VineShrub2326494" parent="Foliage" unique_id=1239593835 instance=ExtResource("117_nko6g")]
+transform = Transform3D(-0.67504036, 0, 0.7377808, 0, 1, 0, -0.7377808, 0, -0.67504036, -86.878426, -7.0787487, 158.05095)
+
+[node name="VineShrub5248793" parent="Foliage" unique_id=1213753177 instance=ExtResource("116_26nkk")]
+transform = Transform3D(0.92328775, 0, -0.384109, 0, 1, 0, 0.384109, 0, 0.92328775, -104.00065, -2.288865, 141.24866)
+
+[node name="TreeSmallC3" parent="Foliage" unique_id=1536481719 instance=ExtResource("110_xxv3b")]
+transform = Transform3D(0.05649426, 0, 0.99840295, 0, 1, 0, -0.99840295, 0, 0.05649426, -72.251205, -3.8330216, 130.27371)
+
+[node name="TreeSmallB2" parent="Foliage" unique_id=2115355685 instance=ExtResource("120_ekuyq")]
+transform = Transform3D(0.6996933, 0, -0.7144433, 0, 1, 0, 0.7144433, 0, 0.6996933, -85.02959, -1.5895932, 124.429245)
+
+[node name="VineShrub5248794" parent="Foliage" unique_id=1038077294 instance=ExtResource("116_26nkk")]
+transform = Transform3D(0.983098, 0, 0.18308039, 0, 1, 0, -0.18308039, 0, 0.983098, -86.51659, -4.354495, 138.3053)
+
+[node name="TreeSmallC4" parent="Foliage" unique_id=335237810 instance=ExtResource("110_xxv3b")]
+transform = Transform3D(0.20466658, 0, 0.97883177, 0, 1, 0, -0.97883177, 0, 0.20466658, -62.928757, -1.1173031, 115.69144)
+
+[node name="TreeSmallD2" parent="Foliage" unique_id=1738961662 instance=ExtResource("115_ifwnh")]
+transform = Transform3D(0.05484291, 0, 0.998495, 0, 1, 0, -0.998495, 0, 0.05484291, -75.66819, -6.6032133, 144.34903)
+
+[node name="VineShrub3733470" parent="Foliage" unique_id=1443501911 instance=ExtResource("112_j13ci")]
+transform = Transform3D(-0.9998154, 0, 0.019214313, 0, 1, 0, -0.019214313, 0, -0.9998154, -51.488564, -5.5802794, 141.6847)
+
+[node name="VineShrub2326495" parent="Foliage" unique_id=1184517274 instance=ExtResource("117_nko6g")]
+transform = Transform3D(-0.9226139, 0, 0.38572466, 0, 1, 0, -0.38572466, 0, -0.9226139, -45.31608, -1.5862061, 122.76107)
+
+[node name="VineShrub2326496" parent="Foliage" unique_id=185885690 instance=ExtResource("117_nko6g")]
+transform = Transform3D(-0.3424518, 0, 0.9395354, 0, 1, 0, -0.9395354, 0, -0.3424518, -36.251587, -2.492803, 129.58621)
+
+[node name="VineShrub9001176" parent="Foliage" unique_id=1743203466 instance=ExtResource("111_c0elh")]
+transform = Transform3D(-0.9547307, 0, -0.2974716, 0, 1, 0, 0.2974716, 0, -0.9547307, -25.452938, -3.0029433, 138.65692)
+
+[node name="VineShrub9001177" parent="Foliage" unique_id=1246233002 instance=ExtResource("111_c0elh")]
+transform = Transform3D(-0.7423677, 0, 0.6699927, 0, 1, 0, -0.6699927, 0, -0.7423677, -14.415719, -3.6176486, 156.88849)
+
+[node name="TreeSmallD3" parent="Foliage" unique_id=1346055602 instance=ExtResource("115_ifwnh")]
+transform = Transform3D(-0.8614843, 0, 0.50778425, 0, 1, 0, -0.50778425, 0, -0.8614843, -31.021406, -6.3272867, 159.4981)
+
+[node name="TreeSmallE2" parent="Foliage" unique_id=1234434195 instance=ExtResource("113_nccdc")]
+transform = Transform3D(0.3460049, 0, -0.9382327, 0, 1, 0, 0.9382327, 0, 0.3460049, -0.10826874, -1.9369007, 155.19601)
+
+[node name="VineShrub5951104" parent="Foliage" unique_id=575771807 instance=ExtResource("118_8k8jm")]
+transform = Transform3D(-0.04158155, 0, -0.99913514, 0, 1, 0, 0.99913514, 0, -0.04158155, -23.127804, -5.75282, 177.96979)
 
 [node name="Props" type="Node3D" parent="." unique_id=1722497761]
 

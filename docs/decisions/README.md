@@ -55,3 +55,4 @@ Number them in order, `NNNN-short-title.md`.
 | [0042](0042-vines-leave-no-rubble.md) | Vines leave no rubble (an exception to 0016): never heaped, snap into logs, crumble after 20 s; to be revisited by the path of destruction |
 | [0043](0043-the-vines-tool.md) | The Vines tool: a main screen that generates a nest, shows it, plays it and logs Good/Bad as training data; rebuilt after every reload |
 | [0044](0044-the-editor-bridge.md) | The editor bridge: Claude works in the running editor on the real scene (localhost, token, every change one undo); terrain is sculpted with our own brushes, not generated; tools register commands |
+| [0045](0045-shallow-water.md) | Water is shallow (wade, splash, the horde slower and routing round) and made by flooding a hollow to a level: a WaterBody of wet cells and a saved surface |

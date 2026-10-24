@@ -149,7 +149,7 @@ public static class PlaceCommands
         return n.Length == 2 ? new Vector3(n[0], 0.0f, n[1]) : new Vector3(n[0], n[1], n[2]);
     }
 
-    private static string ScenePath(string scene)
+    public static string ScenePath(string scene)
     {
         if (scene.StartsWith("res://"))
             return scene.EndsWith(".tscn") || scene.EndsWith(".scn") ? scene : scene + ".tscn";
@@ -158,7 +158,7 @@ public static class PlaceCommands
     }
 
     // The level tree's branches (CLAUDE.md): plants under Foliage, the rest under Props.
-    private static Node DefaultParent(Node root, string path)
+    public static Node DefaultParent(Node root, string path)
     {
         string file = path.GetFile();
         string branch = file.StartsWith("prp_tree") || file.StartsWith("prp_vine") ? "Foliage" : "Props";
@@ -166,7 +166,7 @@ public static class PlaceCommands
     }
 
     // prp_tree_tall_a.tscn -> TreeTallA
-    private static string NameOf(string path)
+    public static string NameOf(string path)
     {
         string stem = path.GetFile().GetBaseName();
         foreach (string prefix in new[] { "prp_", "nme_", "shp_", "mch_", "vxl_" })

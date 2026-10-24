@@ -1,6 +1,7 @@
 using Godot;
 using DillControl.Audio;
 using DillControl.Core;
+using DillControl.Levels;
 using DillControl.Weapons;
 
 namespace DillControl.Player;
@@ -990,6 +991,24 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
         }
     }
 
+    private bool _wasWading;
+
+    // Shallow water (docs/decisions/0045): slower the deeper, down to the
+    // water's share at its full depth; stepping in splashes.
+    private float Wading(Vector3 velocity)
+    {
+        float depth = WaterBody.DepthAt(GlobalPosition, out WaterBody water);
+        bool wading = depth > 0.0f;
+        if (wading && !_wasWading)
+        {
+            WaterStats stats = water.Stats ?? new WaterStats();
+            if (velocity.Length() >= stats.SplashMinSpeed)
+                AudioDirector.PlayAt(Sfx.ImpactWater, GlobalPosition);
+        }
+        _wasWading = wading;
+        return wading ? water.Pace(depth, (water.Stats ?? new WaterStats()).PlayerWadeShare) : 1.0f;
+    }
+
     private void ApplyHorizontal(ref Vector3 velocity, float dt, bool onFloor)
     {
         Vector2 input = Input.GetVector("move_left", "move_right", "move_forward", "move_back");
@@ -1008,6 +1027,7 @@ public partial class PlayerController : CharacterBody3D, IBlastReceiver
         float targetSpeed = _isCrouched
             ? Tuning.CrouchSpeed
             : IsSprinting ? Tuning.SprintSpeed : Tuning.WalkSpeed;
+        targetSpeed *= Wading(velocity);
 
         // Split along gravity rather than along Y. Acceleration and friction
         // act on the tangential part only; the part along up belongs to gravity

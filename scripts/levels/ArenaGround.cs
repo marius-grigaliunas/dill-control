@@ -8,9 +8,10 @@ namespace DillControl.Levels;
 /// eight-neighbour cells, standing on <see cref="ArenaHeights"/> instead of
 /// one height, with the planet's slope costs (dearer the steeper, a wall
 /// past <c>MaxSlopeDegrees</c>). The terrain's own colliders are never an
-/// obstacle; what stands on it is.
+/// obstacle; what stands on it is. Shallow water slows a pickle and costs
+/// more to cross (decision 0045), read once when the ground is made.
 /// </summary>
-public sealed class ArenaGround : IHordeGround, IFlowGraph, IObstacleGround
+public sealed class ArenaGround : IHordeGround, IFlowGraph, IObstacleGround, IGroundPace
 {
     private static readonly int[] StepU = { 1, 1, 0, -1, -1, -1, 0, 1 };
     private static readonly int[] StepV = { 0, 1, 1, 1, 0, -1, -1, -1 };
@@ -56,7 +57,29 @@ public sealed class ArenaGround : IHordeGround, IFlowGraph, IObstacleGround
             float z = _min.Y + ((v + 0.5f) * CellSize);
             _centre[cell] = new Vector3(x, heights.HeightAt(x, z), z);
             _slopeWeight[cell] = SlopeWeight(heights.SlopeAt(x, z, CellSize * 0.5f));
+            Wade(cell);
         }
+    }
+
+    private float[] _pace;
+
+    public float PaceAt(int cell) => _pace == null || cell < 0 || cell >= _pace.Length ? 1.0f : _pace[cell];
+
+    // The water over a cell's middle, if any: slower, and dearer to route through.
+    private void Wade(int cell)
+    {
+        float depth = WaterBody.DepthAt(_centre[cell], out WaterBody water);
+        if (depth <= 0.0f || water == null || _slopeWeight[cell] == FlowField.Blocked)
+            return;
+        WaterStats stats = water.Stats ?? new WaterStats();
+        if (_pace == null)
+        {
+            _pace = new float[CellCount];
+            System.Array.Fill(_pace, 1.0f);
+        }
+        _pace[cell] = water.Pace(depth, stats.HordeWadeShare);
+        float full = Mathf.Clamp(depth / stats.FullSlowDepthM, 0.0f, 1.0f);
+        _slopeWeight[cell] = (byte)Mathf.Clamp(_slopeWeight[cell] + Mathf.RoundToInt(full * stats.HordeFlowCost), 1, FlowField.MaxWeight);
     }
 
     public float CellSize { get; }

@@ -2637,6 +2637,12 @@ public partial class HordeManager : Node3D
         // agent, so it has to be re-projected or agents drift off-surface.
         desired = desired.Slide(up);
 
+        // Shallow water slows the wading (decision 0045).
+        if (_ground is IGroundPace ground)
+        {
+            pace *= ground.PaceAt(agent.Cell);
+        }
+
         float speed = agent.TargetSpeed * pace;
         AgentKindStats stats = _kindStats[agent.Kind];
 
