@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="VineKind" format=3 uid="uid://bepd7grf2pvnc"]
+
+[ext_resource type="Resource" path="res://resources/foliage/vine_palette_fruiting.tres" id="1_b83b2"]
+[ext_resource type="Script" uid="uid://l0dk80owbtw7" path="res://scripts/foliage/VineKind.cs" id="2_thdkx"]
+
+[resource]
+resource_name = "VineKindShrub"
+script = ExtResource("2_thdkx")
+KindName = "Shrub"
+Zone = Vector2(0.6, 1)
+HeightM = Vector2(8, 10)
+RingCount = Vector2(2, 3)
+BareStalkM = Vector2(3.5, 4.5)
+WobbleM = Vector2(0.1, 0.3)
+LeanDeg = Vector2(0, 4)
+TipNodDeg = Vector2(10, 20)
+Irregularity = Vector2(0.4, 0.7)
+BaseRadiusM = Vector2(0.8, 1)
+TipRadiusM = Vector2(0.5, 0.6)
+KnuckleBulge = Vector2(0, 0.1)
+ArmLengthM = Vector2(3, 4.5)
+ArmRiseDeg = Vector2(15, 25)
+ArmSag = Vector2(0.3, 0.45)
+ArmTaper = Vector2(0.15, 0.35)
+PodsPerRing = Vector2(5, 7)
+PodTwistDeg = Vector2(40, 50)
+PedicelM = Vector2(1.75, 2.25)
+LeavesPerRing = Vector2(1, 1)
+LeavesPerArm = Vector2(1, 1)
+LeafSizeM = Vector2(3, 4.5)
+LeafTiltDeg = Vector2(12, 25)
+LeafStemM = Vector2(1, 2)
+LeafStemRiseDeg = Vector2(20, 40)
+Palette = ExtResource("1_b83b2")
+LeafLobes = Vector2(1, 2)
+LeafNotch = Vector2(0.1, 0.2)

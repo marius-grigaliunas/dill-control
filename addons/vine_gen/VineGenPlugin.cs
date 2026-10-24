@@ -164,6 +164,7 @@ public partial class VineGenPlugin : EditorPlugin
         _panel = new VineToolPanel { Name = PanelName };
         EditorInterface.Singleton.GetEditorMainScreen().AddChild(_panel);
         _panel.Visible = _visible;
+        VineCommands.Register();
         _builtByThisCode = true;
     }
 

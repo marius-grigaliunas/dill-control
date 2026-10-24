@@ -70,7 +70,7 @@ public sealed class VineParams
     public static readonly IReadOnlyList<Field> Fields = new[]
     {
         F("seed", 0, 9999999, 1, 3, p => p.Seed, (p, v) => p.Seed = v, integer: true),
-        F("heightM", 16, 120, 1, 80, p => p.HeightM, (p, v) => p.HeightM = v),
+        F("heightM", 6, 120, 1, 80, p => p.HeightM, (p, v) => p.HeightM = v),
         F("voxelSize", 0.1, 1, 0.05, 0.5, p => p.VoxelSize, (p, v) => p.VoxelSize = v, global: true),
         F("ringCount", 1, 40, 1, 10, p => p.RingCount, (p, v) => p.RingCount = v, integer: true),
         F("bareStalkM", 0, 60, 0.5, 24, p => p.BareStalkM, (p, v) => p.BareStalkM = v),

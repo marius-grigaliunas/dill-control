@@ -82,13 +82,13 @@ public static class VineLogs
 
     /// <summary>One vine's verdict, in the same shape from the range lab and the Vine tab.</summary>
     public static void JudgeVine(bool good, string note, VineKind kind, int seed, int attempt, bool changed,
-        VineParams settings, VineGenerator.Result vine, VineValidator.Verdict verdict)
+        VineParams settings, VineGenerator.Result vine, VineValidator.Verdict verdict, string by = null)
     {
         var values = new Dictionary<string, object>();
         foreach (VineParams.Field field in VineParams.Fields)
             values[field.Key] = field.Get(settings);
         VineGenerator.Counts c = vine.Counts;
-        Append(VineVerdicts, new Dictionary<string, object>
+        var record = new Dictionary<string, object>
         {
             ["time"] = Now(),
             ["verdict"] = good ? "good" : "bad",
@@ -111,7 +111,11 @@ public static class VineLogs
                 ["kink_deg"] = Math.Round(verdict.KinkDeg, 3),
                 ["sag_m"] = Math.Round(verdict.SagM, 2),
             },
-        });
+        };
+        // Claude's verdicts say so (docs/decisions/0044); the user's carry no "by".
+        if (by != null)
+            record["by"] = by;
+        Append(VineVerdicts, record);
     }
 
     /// <summary>Adds one record to a log, its about line first if it is new.</summary>

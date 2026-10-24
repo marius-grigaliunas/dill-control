@@ -31,6 +31,45 @@ public static class PlaceCommands
             }}
             """,
             Place);
+        Bridge.Register("delete",
+            "Take nodes out of the open scene, as one undo. Never the scene's root.",
+            """
+            {"type":"object","required":["nodes"],"properties":{
+              "nodes":{"type":"array","items":{"type":"string"},"description":"paths from the scene's root"}
+            }}
+            """,
+            Delete);
+    }
+
+    private static JsonNode Delete(JsonObject args)
+    {
+        Node root = Bridge.SceneRoot;
+        if (args["nodes"] is not JsonArray paths || paths.Count == 0)
+            throw new Bridge.Refused("'nodes' wants a list of paths");
+        var nodes = paths.Select(p => Bridge.NodeAt(p!.GetValue<string>())).Distinct().ToList();
+        if (nodes.Contains(root))
+            throw new Bridge.Refused("the scene's root cannot be deleted");
+        // A node under another being deleted goes with it.
+        nodes.RemoveAll(n => nodes.Any(other => other != n && other.IsAncestorOf(n)));
+
+        EditorUndoRedoManager undo = EditorInterface.Singleton.GetEditorUndoRedo();
+        undo.CreateAction($"Bridge: delete {string.Join(", ", nodes.Select(n => n.Name))}", UndoRedo.MergeMode.Disable, root);
+        var deleted = new JsonArray();
+        foreach (Node node in nodes)
+        {
+            Node parent = node.GetParent();
+            deleted.Add(Bridge.PathOf(node));
+            undo.AddDoMethod(parent, Node.MethodName.RemoveChild, node);
+            undo.AddUndoMethod(parent, Node.MethodName.AddChild, node, true);
+            undo.AddUndoMethod(parent, Node.MethodName.MoveChild, node, node.GetIndex());
+            // Out of the tree a node loses its owner; the undo gives it back to all the scene owned.
+            foreach (Node owned in new[] { node }.Concat(node.FindChildren("*", "", true, true)).Where(n => n.Owner == root))
+                undo.AddUndoProperty(owned, Node.PropertyName.Owner, root);
+            undo.AddUndoReference(node);
+        }
+        undo.CommitAction();
+        EditorInterface.Singleton.GetSelection().Clear();
+        return new JsonObject { ["deleted"] = deleted };
     }
 
     private static JsonNode Place(JsonObject args)

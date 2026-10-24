@@ -43,7 +43,9 @@ public partial class VineCheck : Node
         _pass = true;
         var stats = GD.Load<VineBakeStats>(VineBakeStats.DefaultPath);
         Dictionary<string, VineKind> kinds = LoadKinds();
-        Check("bake stats and four kinds load", stats != null && kinds.Count == 4,
+        // The nest's four, and any kind made since (a Shrub for set pieces, 0044).
+        Check("bake stats and the nest's four kinds load", stats != null
+            && new[] { "Fruiting", "Heart", "Leafy", "Weeping" }.All(kinds.ContainsKey),
             $"kinds: {string.Join(", ", kinds.Keys)}");
         if (stats == null)
             return "FAIL\n" + _report;

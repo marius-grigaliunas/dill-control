@@ -144,6 +144,10 @@ Every command that changes a scene is one undo. While a scene is open in the
 editor, change it through the bridge, never by editing its `.tscn`. A tool
 adds its own commands with `Bridge.Register`. To try one by hand:
 `python tools/editor-bridge/godot_mcp.py call view '{}' --png perflogs/v.png`.
+The Vines tool's own commands (`vine_kinds`, `vine_kind`, `vine_roll`,
+`vine_bake`, `vine_judge`) call the classes its tabs call, never its buttons.
+`vine_kind_shrub.tres` is a 9-12 m kind fought from the ground (pickles
+0.4-5.4 m up), for set pieces; no nest kit names it.
 Terrain is sculpted with our own brushes into a `HeightMapShape3D` and saved
 chunk meshes, never generated from markers. Claude may judge vines, its
 verdicts marked `"by": "claude"`, and may open the game window unasked.
