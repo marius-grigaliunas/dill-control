@@ -447,6 +447,57 @@ public partial class PlantFlex : Node, IVoxelBend
             spin = (spin ?? Vector3.Zero) + turning;
         }
         Released++;
+        if (bounds.GetLongestAxisSize() >= Stats.SlenderMetres)
+        {
+            FallDust(pivot, (at * bounds.GetCenter()) - Foot, bounds.GetLongestAxisSize());
+        }
+    }
+
+    private double _fallDustAt = -10.0;
+
+    /// <summary>
+    /// A long piece of it has gone: big dark clouds burst where it broke, and
+    /// when it has had time to come down, along the ground the way it went.
+    /// Once a fall, however many pieces it breaks into.
+    /// </summary>
+    private void FallDust(Vector3 broke, Vector3 outward, float length)
+    {
+        VoxelDebris debris = VoxelDebris.Current;
+        double now = Time.GetTicksMsec() / 1000.0;
+        if (Stats.FallDustPuffs <= 0 || debris == null || now - _fallDustAt < 2.0)
+        {
+            return;
+        }
+        _fallDustAt = now;
+        Color colour = Stats.FallDustColour;
+        float edge = Stats.FallDustEdgeM;
+        Vector3 side = AxisX;
+        for (int k = 0; k < Stats.FallDustPuffs; k++)
+        {
+            Vector3 round = side.Rotated(Up, k * Mathf.Tau / Stats.FallDustPuffs) * (edge * 0.35f);
+            debris.Dust(broke + round, Up, round * 0.4f, colour, edge);
+        }
+
+        // Where it lands: from the foot out the way it is falling, as far as it is long.
+        Vector3 over = outward.Slide(Up);
+        over = over.LengthSquared() > 0.01f ? over.Normalized() : (FlexField.Wind?.Direction.Slide(Up).Normalized() ?? AxisX);
+        Vector3 foot = Foot, up = Up;
+        float step = Stats.FallDustStepM;
+        float landIn = Stats.FallLandK * Mathf.Sqrt(length / 9.8f);
+        GetTree().CreateTimer(landIn).Timeout += () =>
+        {
+            if (VoxelDebris.Current == null)
+            {
+                return;
+            }
+            for (float d = length * 0.3f; d <= length; d += step)
+            {
+                Vector3 at = foot + (over * d);
+                // On a planet the ground falls away under a straight line.
+                float drop = d * up.AngleTo(WorldUp.At(at)) * 0.5f;
+                VoxelDebris.Current.Dust(at - (up * drop), WorldUp.At(at), over * 2.0f, colour, edge);
+            }
+        };
     }
 
     internal int Released { get; private set; }

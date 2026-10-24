@@ -124,6 +124,29 @@ public partial class FlexStats : Resource
     [Export(PropertyHint.Range, "1,16,1")]
     public int StepFarEvery { get; set; } = 4;
 
+    [ExportGroup("Falling")]
+    /// <summary>When a long piece of it falls (cut, given way or unrooted),
+    /// this many big clouds burst round where it broke; and where it comes
+    /// down, a cloud every <see cref="FallDustStepM"/> along it. 0: none.</summary>
+    [Export(PropertyHint.Range, "0,24,1")]
+    public int FallDustPuffs { get; set; }
+
+    /// <summary>Each cloud's width.</summary>
+    [Export(PropertyHint.Range, "1,40,0.5,suffix:m")]
+    public float FallDustEdgeM { get; set; } = 12.0f;
+
+    [Export(PropertyHint.Range, "2,40,0.5,suffix:m")]
+    public float FallDustStepM { get; set; } = 9.0f;
+
+    /// <summary>How long it takes to come down, as this times the square root of
+    /// its length over g: a rod toppling from its foot.</summary>
+    [Export(PropertyHint.Range, "0.5,4,0.05")]
+    public float FallLandK { get; set; } = 1.6f;
+
+    /// <summary>The clouds' colour: dark, so they read against the deep greens.</summary>
+    [Export]
+    public Color FallDustColour { get; set; } = new(0.24f, 0.24f, 0.17f);
+
     [ExportGroup("Recount")]
     /// <summary>Seconds between recounts of what is left after damage (worked out on a voxel worker).</summary>
     [Export(PropertyHint.Range, "0.05,2,0.05,suffix:s")]
