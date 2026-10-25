@@ -24,7 +24,8 @@ public static class ViewCommands
               "at":{"type":"array","items":{"type":"number"},"description":"the point looked at [x, y, z]"},
               "node":{"type":"string","description":"look at this node, from 'from' or from a little above and to one side"},
               "fov":{"type":"number","description":"degrees, vertical; default 70"},
-              "width":{"type":"integer","description":"pixels, at most 1920; default 1280"}
+              "width":{"type":"integer","description":"pixels, at most 1920; default 1280"},
+              "fog":{"type":"boolean","description":"Claude's own camera only: false draws without the level's fog, for an overview; default true"}
             }}
             """,
             View);
@@ -58,7 +59,7 @@ public static class ViewCommands
         }
         if (from == null || at == null)
             throw new Bridge.Refused("give both 'from' and 'at', or a 'node'");
-        return await OwnView(root, from.Value, at.Value, (float)Bridge.Number(args, "fov", 70.0), width);
+        return await OwnView(root, from.Value, at.Value, (float)Bridge.Number(args, "fov", 70.0), width, Bridge.Flag(args, "fog", true));
     }
 
     private static async Task<JsonNode> UserView(Node root, int width)
@@ -75,7 +76,7 @@ public static class ViewCommands
         return result;
     }
 
-    private static async Task<JsonNode> OwnView(Node root, Vector3 from, Vector3 at, float fov, int width)
+    private static async Task<JsonNode> OwnView(Node root, Vector3 from, Vector3 at, float fov, int width, bool fog = true)
     {
         if (from.IsEqualApprox(at))
             throw new Bridge.Refused("'from' and 'at' are the same point");
@@ -95,6 +96,14 @@ public static class ViewCommands
             Transform = new Transform3D(Basis.LookingAt(forward, up), from),
             Current = true,
         };
+        // Without fog: a copy of the level's environment on this camera only.
+        if (!fog && viewport.World3D?.Environment is Godot.Environment environment)
+        {
+            var clear = (Godot.Environment)environment.Duplicate();
+            clear.FogEnabled = false;
+            clear.VolumetricFogEnabled = false;
+            camera.Environment = clear;
+        }
         viewport.AddChild(camera);
         EditorInterface.Singleton.GetBaseControl().AddChild(viewport);
         try

@@ -134,6 +134,14 @@
 [ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_3132537.tscn" id="124_26nkk"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_9610770.tscn" id="125_nko6g"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_8437195.tscn" id="126_8k8jm"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_column.tscn" id="130_ux08h"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_pillar.tscn" id="131_cjbi3"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_tower_a.tscn" id="132_8q0mg"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_block.tscn" id="133_yapua"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_tower_b.tscn" id="134_1wlav"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_tower_c.tscn" id="136_qmhkr"]
+[ext_resource type="PackedScene" uid="uid://bgwpipnjgm5pj" path="res://scenes/props/prp_tree_tall_c.tscn" id="227_iu716"]
+[ext_resource type="PackedScene" uid="uid://dyhlbin1lwkdp" path="res://scenes/props/prp_tree_tall_b.tscn" id="228_1gn5a"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
 sky_top_color = Color(0.3, 0.52, 0.84, 1)
@@ -799,9 +807,245 @@ transform = Transform3D(-0.24355528, 0, -0.969887, 0, 1, 0, 0.969887, 0, -0.2435
 [node name="VineShrub8437195" parent="Foliage" unique_id=1153510154 instance=ExtResource("126_8k8jm")]
 transform = Transform3D(0.23110098, 0, -0.9729298, 0, 1, 0, 0.9729298, 0, 0.23110098, 126.21811, -3.6388743, -72.78629)
 
+[node name="LookoutToForestTree" parent="Foliage" unique_id=636950089 instance=ExtResource("122_8o185")]
+transform = Transform3D(0.76604444, 0, 0.6427876, 0, 1, 0, -0.6427876, 0, 0.76604444, -282, 0.32714844, 12)
+
+[node name="CampToHillTree" parent="Foliage" unique_id=1811635620 instance=ExtResource("228_1gn5a")]
+transform = Transform3D(0.34202015, 0, 0.9396926, 0, 1, 0, -0.9396926, 0, 0.34202015, 212, 2.9042969, 112)
+
+[node name="HillEastTree" parent="Foliage" unique_id=14155075 instance=ExtResource("227_iu716")]
+transform = Transform3D(0.9848077, 0, 0.17364818, 0, 1, 0, -0.17364818, 0, 0.9848077, 300, 31.916992, 84)
+
 [node name="Props" type="Node3D" parent="." unique_id=1722497761]
 
 [node name="Jar" parent="Props" unique_id=235881704 instance=ExtResource("10_jar")]
+
+[node name="SignWelcome" type="Label3D" parent="Props" unique_id=1348237805]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 32, 350)
+pixel_size = 0.03
+billboard = 2
+modulate = Color(1, 0.95686275, 0.7607843, 1)
+outline_modulate = Color(0.105882354, 0.105882354, 0.105882354, 1)
+text = "WELCOME TO CLAIM 417
+Pleasant Acres Mining Co.
+Please cull responsibly."
+font_size = 72
+outline_size = 20
+
+[node name="WelcomePost" parent="Props" unique_id=1683156924 instance=ExtResource("130_ux08h")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0.9638672, 350)
+
+[node name="RoadPylon1" parent="Props" unique_id=769108267 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, -0.4970703, 300)
+
+[node name="RoadPylon2" parent="Props" unique_id=43671946 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0.6455078, 232)
+
+[node name="RoadPylon3" parent="Props" unique_id=502093912 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, -4.5996094, 164)
+
+[node name="RoadPylon4" parent="Props" unique_id=1994973844 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 1.703125, 96)
+
+[node name="CourtColumn1" parent="Props" unique_id=1226861753 instance=ExtResource("130_ux08h")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, -0.024414063, 26)
+
+[node name="CourtColumn3" parent="Props" unique_id=1761720849 instance=ExtResource("130_ux08h")]
+transform = Transform3D(0.8290376, 0, 0.5591929, 0, 1, 0, -0.5591929, 0, 0.8290376, -45, 0.14941406, 26)
+
+[node name="CourtColumn4" parent="Props" unique_id=707333488 instance=ExtResource("130_ux08h")]
+transform = Transform3D(0.62932044, 0, 0.7771459, 0, 1, 0, -0.7771459, 0, 0.62932044, -45, -0.09667969, -26)
+
+[node name="CourtColumn5" parent="Props" unique_id=543603104 instance=ExtResource("130_ux08h")]
+transform = Transform3D(0.37460664, 0, 0.92718387, 0, 1, 0, -0.92718387, 0, 0.37460664, 0, -0.32910156, -52)
+
+[node name="CourtColumn6" parent="Props" unique_id=827323785 instance=ExtResource("130_ux08h")]
+transform = Transform3D(0.087155804, 0, 0.9961947, 0, 1, 0, -0.9961947, 0, 0.087155804, 45, -0.3544922, -26)
+
+[node name="CourtTowerEast" parent="Props" unique_id=1289762184 instance=ExtResource("132_8q0mg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, -3.359375, -45)
+
+[node name="CourtTowerWest" parent="Props" unique_id=1621983951 instance=ExtResource("132_8q0mg")]
+transform = Transform3D(0.90630776, 0, 0.42261827, 0, 1, 0, -0.42261827, 0, 0.90630776, -75, 2.118164, 30)
+
+[node name="SignJar" type="Label3D" parent="Props" unique_id=1995820835]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 34, 64)
+pixel_size = 0.026
+billboard = 2
+modulate = Color(1, 0.95686275, 0.7607843, 1)
+outline_modulate = Color(0.105882354, 0.105882354, 0.105882354, 1)
+text = "HIVE JAR
+Property of: nobody, yet.
+Cracking is included in your contract."
+font_size = 72
+outline_size = 20
+
+[node name="CampCabin1" parent="Props" unique_id=1577012653 instance=ExtResource("133_yapua")]
+transform = Transform3D(0.9781476, 0, 0.2079117, 0, 1, 0, -0.2079117, 0, 0.9781476, 118, 28.5, 128)
+
+[node name="CampCabin2" parent="Props" unique_id=1169629191 instance=ExtResource("133_yapua")]
+transform = Transform3D(0.9396926, 0, -0.34202012, 0, 1, 0, 0.34202012, 0, 0.9396926, 132, 28.5, 146)
+
+[node name="CampCabin3" parent="Props" unique_id=1642134881 instance=ExtResource("133_yapua")]
+transform = Transform3D(0.76604444, 0, 0.6427876, 0, 1, 0, -0.6427876, 0, 0.76604444, 112, 28.986328, 152)
+
+[node name="CampMast" parent="Props" unique_id=59555242 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126, 28.5, 134)
+
+[node name="CampCommsTowerFallen" parent="Props" unique_id=1507943525 instance=ExtResource("134_1wlav")]
+transform = Transform3D(0.8660254, -0.18730329, -0.46359193, 0, 0.92718387, -0.37460658, 0.5, 0.3244188, 0.80296475, 152, 0.7089844, 174)
+
+[node name="SignCamp" type="Label3D" parent="Props" unique_id=827397955]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108, 44, 138)
+pixel_size = 0.026
+billboard = 2
+modulate = Color(1, 0.95686275, 0.7607843, 1)
+outline_modulate = Color(0.105882354, 0.105882354, 0.105882354, 1)
+text = "SURVEY CAMP 3
+Evacuated in an orderly fashion.
+The pickles were very polite about it."
+font_size = 72
+outline_size = 20
+
+[node name="WreckPodContractor2" parent="Props" unique_id=1779110709 instance=ExtResource("14_pod")]
+transform = Transform3D(2.5825157, 1.2949381, 0.80854666, -0.5719112, 2.2938104, -1.8469845, -1.4154611, 1.4358165, 2.2214637, 262, -2.5, -112)
+script = null
+
+[node name="WreckCargo1" parent="Props" unique_id=1760371415 instance=ExtResource("133_yapua")]
+transform = Transform3D(0.7976231, -0.25916347, 0.54463905, 0.309017, 0.95105654, 0, -0.51798254, 0.16830273, 0.83867055, 275, -1.5, -98)
+
+[node name="WreckCargo2" parent="Props" unique_id=1381840241 instance=ExtResource("133_yapua")]
+transform = Transform3D(0.34202015, 0, 0.9396926, 0, 1, 0, -0.9396926, 0, 0.34202015, 247, -0.0234375, -127)
+
+[node name="MesaNorthEastTower" parent="Props" unique_id=305956805 instance=ExtResource("134_1wlav")]
+transform = Transform3D(0.9659258, 0, 0.25881904, 0, 1, 0, -0.25881904, 0, 0.9659258, 214, 45.23828, -246)
+
+[node name="PylonCourtToMesa" parent="Props" unique_id=838984612 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 150, -3.2949219, -75)
+
+[node name="SignContractor2" type="Label3D" parent="Props" unique_id=620465313]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 255, 16, -104)
+pixel_size = 0.026
+billboard = 2
+modulate = Color(1, 0.95686275, 0.7607843, 1)
+outline_modulate = Color(0.105882354, 0.105882354, 0.105882354, 1)
+text = "CONTRACTOR #2
+Contract void. Invoice paid in full.
+We are sure they are fine."
+font_size = 72
+outline_size = 20
+
+[node name="PylonToMesaNorthEast" parent="Props" unique_id=866914215 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 185, -0.07421875, -165)
+
+[node name="ColumnMesaToRig" parent="Props" unique_id=1426361140 instance=ExtResource("130_ux08h")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 150, -0.3828125, -290)
+
+[node name="DrillRig1" parent="Props" unique_id=153009057 instance=ExtResource("136_qmhkr")]
+transform = Transform3D(0.9848077, 0, 0.17364818, 0, 1, 0, -0.17364818, 0, 0.9848077, 95, 0.9121094, -325)
+
+[node name="DrillRigLegWest" parent="Props" unique_id=573413967 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78, 1.5917969, -309)
+
+[node name="DrillRigLegEast" parent="Props" unique_id=714104280 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112, 0.58496094, -342)
+
+[node name="SignDrillRig" type="Label3D" parent="Props" unique_id=1022910364]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 40, -300)
+pixel_size = 0.026
+billboard = 2
+modulate = Color(1, 0.95686275, 0.7607843, 1)
+outline_modulate = Color(0.105882354, 0.105882354, 0.105882354, 1)
+text = "DRILL RIG 1
+Awaiting site clearance.
+Days without incident: 0"
+font_size = 72
+outline_size = 20
+
+[node name="PylonToMesaWest" parent="Props" unique_id=549749222 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -155, 2.8251953, -12)
+
+[node name="SurveyLookout" parent="Props" unique_id=95436784 instance=ExtResource("132_8q0mg")]
+transform = Transform3D(0.9396926, 0, -0.34202012, 0, 1, 0, 0.34202012, 0, 0.9396926, -243, 32.773438, -72)
+
+[node name="SignLookout" type="Label3D" parent="Props" unique_id=1367691014]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -215, 62, -48)
+pixel_size = 0.026
+billboard = 2
+modulate = Color(1, 0.95686275, 0.7607843, 1)
+outline_modulate = Color(0.105882354, 0.105882354, 0.105882354, 1)
+text = "SURVEY LOOKOUT
+The view is billable."
+font_size = 72
+outline_size = 20
+
+[node name="PylonToNorthWest1" parent="Props" unique_id=1645358246 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -276, 1.4619141, -165)
+
+[node name="PylonToNorthWest2" parent="Props" unique_id=795822138 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -302, 0.19140625, -250)
+
+[node name="PylonToSouthEast1" parent="Props" unique_id=1162603560 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 322, 4.8945313, 172)
+
+[node name="PylonToSouthEast2" parent="Props" unique_id=616185470 instance=ExtResource("131_cjbi3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 336, 0.9169922, 252)
+
+[node name="SignPickupNorth" type="Label3D" parent="Props" unique_id=1022532254]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 22, -372)
+pixel_size = 0.026
+billboard = 2
+modulate = Color(1, 0.95686275, 0.7607843, 1)
+outline_modulate = Color(0.105882354, 0.105882354, 0.105882354, 1)
+text = "PICKUP ZONE
+Have your clone ID ready."
+font_size = 72
+outline_size = 20
+
+[node name="SignPickupNorthWest" type="Label3D" parent="Props" unique_id=1766453225]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -320, 22, -322)
+pixel_size = 0.026
+billboard = 2
+modulate = Color(1, 0.95686275, 0.7607843, 1)
+outline_modulate = Color(0.105882354, 0.105882354, 0.105882354, 1)
+text = "PICKUP ZONE
+Have your clone ID ready."
+font_size = 72
+outline_size = 20
+
+[node name="SignPickupWest" type="Label3D" parent="Props" unique_id=1535379246]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -362, 22, 60)
+pixel_size = 0.026
+billboard = 2
+modulate = Color(1, 0.95686275, 0.7607843, 1)
+outline_modulate = Color(0.105882354, 0.105882354, 0.105882354, 1)
+text = "PICKUP ZONE
+Have your clone ID ready."
+font_size = 72
+outline_size = 20
+
+[node name="SignPickupSouthEast" type="Label3D" parent="Props" unique_id=1779459737]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 322, 22, 322)
+pixel_size = 0.026
+billboard = 2
+modulate = Color(1, 0.95686275, 0.7607843, 1)
+outline_modulate = Color(0.105882354, 0.105882354, 0.105882354, 1)
+text = "PICKUP ZONE
+Have your clone ID ready."
+font_size = 72
+outline_size = 20
+
+[node name="SignPond" type="Label3D" parent="Props" unique_id=1510118064]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 4, 160)
+pixel_size = 0.026
+billboard = 2
+modulate = Color(1, 0.95686275, 0.7607843, 1)
+outline_modulate = Color(0.105882354, 0.105882354, 0.105882354, 1)
+text = "BRINE POND
+Do not drink. Do not swim.
+Do not ask."
+font_size = 72
+outline_size = 20
 
 [node name="Lighting" type="Node3D" parent="." unique_id=1660519070]
 

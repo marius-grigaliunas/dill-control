@@ -26,6 +26,18 @@ public static class NodeCommands
             }}
             """,
             Tree);
+        Bridge.Register("add",
+            "Add a built-in node (any Godot class that is a Node, e.g. Label3D, OmniLight3D, Marker3D) to the open scene, as one undo, " +
+            "with 'properties' set as in 'set' (e.g. {\"text\":\"...\",\"font_size\":64}). 'position' is world space; 'rotation_degrees' too. " +
+            "Default parent Props.",
+            """
+            {"type":"object","required":["type"],"properties":{
+              "type":{"type":"string"},"name":{"type":"string"},"parent":{"type":"string"},
+              "position":{"type":"array","items":{"type":"number"}},"rotation_degrees":{"type":"array","items":{"type":"number"}},
+              "properties":{"type":"object"}
+            }}
+            """,
+            Add);
         Bridge.Register("selection",
             "What the user has selected in the editor: each node's path, class, scene, world position and size.",
             """{"type":"object","properties":{}}""",
@@ -268,6 +280,53 @@ public static class NodeCommands
         if (stand)
             result["stood_on"] = stood;
         return result;
+    }
+
+    private static JsonNode Add(JsonObject args)
+    {
+        Node root = Bridge.SceneRoot;
+        string type = Bridge.Text(args, "type") ?? throw new Bridge.Refused("'type' is missing");
+        if (!ClassDB.ClassExists(type) || !ClassDB.CanInstantiate(type) || !ClassDB.IsParentClass(type, nameof(Node)))
+            throw new Bridge.Refused($"'{type}' is not a node class that can be made");
+        Node parent = Bridge.NodeAt(Bridge.Text(args, "parent", "Props"));
+        var node = (Node)ClassDB.Instantiate(type).AsGodotObject();
+
+        // Every value read and checked before the node joins the scene.
+        var values = new List<(string Name, Variant Value)>();
+        if (args["properties"] is JsonObject properties)
+        {
+            foreach ((string name, JsonNode value) in properties)
+            {
+                Godot.Collections.Dictionary info = Info(node, name);
+                if (info == null)
+                {
+                    node.Free();
+                    throw new Bridge.Refused($"a {type} has no property '{name}'");
+                }
+                var t = (Variant.Type)info["type"].AsInt32();
+                values.Add((name, Values.FromJson(value, t == Variant.Type.Nil ? node.Get(name).VariantType : t, info["class_name"].AsString(), name)));
+            }
+        }
+        foreach ((string name, Variant value) in values)
+            node.Set(name, value);
+        node.Name = Bridge.Text(args, "name") ?? type;
+        parent.AddChild(node, true);
+        node.Owner = root;
+        if (node is Node3D n3)
+        {
+            if (Bridge.Vec3(args, "position") is { } at)
+                n3.GlobalPosition = at;
+            if (Bridge.Vec3(args, "rotation_degrees") is { } r)
+                n3.GlobalRotationDegrees = r;
+        }
+
+        EditorUndoRedoManager undo = Bridge.BeginAction($"add {node.Name}");
+        undo.AddDoMethod(parent, Node.MethodName.AddChild, node, true);
+        undo.AddDoProperty(node, Node.PropertyName.Owner, root);
+        undo.AddDoReference(node);
+        undo.AddUndoMethod(parent, Node.MethodName.RemoveChild, node);
+        Bridge.EndAction(undo);
+        return Describe(node);
     }
 
     private static List<Node> Nodes(JsonArray paths) =>
