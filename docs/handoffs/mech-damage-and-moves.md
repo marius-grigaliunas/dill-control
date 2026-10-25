@@ -213,6 +213,16 @@ built and measured, and record the numbers in it.
   (9,242 verts, 3.8 × 5.9 × 1.6 m, rotated 90° on X), a camera and two
   lights, no armature or actions; `fighter.glb` beside it. Not used by the
   plan: the add-on imports the `.vox`.
+- **Step 1 is built** (`VoxDamageMap`, `mechcheck.gd`). A part's parent is
+  the part with a voxel nearest its pivot; the core is the one part with no
+  pivot. Contacts are a `Sole` (lowest layer at rest) and a `Tip` (far end
+  from the pivot: fist, knee, ankle). Mass is voxels times the stats'
+  `Density`, not baked. The copy for repair is `vox_cells`, never written.
+- **The tank has no `VoxelBody`**: its walker names `Voxels`, the wrapper
+  never had the node, so it takes no damage at all. `mechcheck` fails on it
+  until it is wired (with `Hinged` for every part but `Body`) and benched.
+- The fighter stands on two one-voxel spikes: its centre of mass is 0.08 m
+  outside its feet at rest. Only three or more feet are held to balance.
 - Blender facing and scale are still listed as unverified in CLAUDE.md;
   the add-on, doing its own `.vox` mapping, settles it. Update CLAUDE.md's
   table when it does.

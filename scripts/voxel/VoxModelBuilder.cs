@@ -61,6 +61,8 @@ public static class VoxModelBuilder
         public Vector3I Dims;
         public Vector3 Origin;
         public ChunkBake Chunks;
+        /// <summary>Its damage map, when the model is articulated.</summary>
+        public DamageBake Damage;
     }
 
     public sealed class Model
@@ -90,6 +92,7 @@ public static class VoxModelBuilder
                 AddShape(ctx, i, null, $"Model{i}", root);
             }
         }
+        VoxDamageMap.Bake(root, ctx.Pivoted, options.VoxelSize, options.Path);
         return new Model { Root = root, VoxelSize = options.VoxelSize, Palette = file.Palette, Emission = file.Emission };
     }
 
@@ -168,12 +171,16 @@ public static class VoxModelBuilder
         }
     }
 
-    /// <summary>A shape's voxels and chunk graph, on the node that draws it.</summary>
+    /// <summary>A shape's voxels, chunk graph and damage map, on the node that draws it.</summary>
     public static void ApplyMeta(GodotObject node, Part part)
     {
         node.SetMeta(VoxelMeta.Cells, part.Cells);
         node.SetMeta(VoxelMeta.Dims, part.Dims);
         node.SetMeta(VoxelMeta.Origin, part.Origin);
+        if (part.Damage != null)
+        {
+            VoxDamageMap.Write(node, part.Damage);
+        }
         ChunkBake bake = part.Chunks;
         if (bake == null)
         {
@@ -203,6 +210,8 @@ public static class VoxModelBuilder
         public VoxFile File;
         public Options Options;
         public int Unnamed;
+        /// <summary>The shapes whose origin is a pivot voxel.</summary>
+        public readonly HashSet<Part> Pivoted = new();
     }
 
     private static void WalkTransform(Context ctx, int id, Part parent, bool isRoot = false)
@@ -242,7 +251,8 @@ public static class VoxModelBuilder
 
         VoxFile.Model model = ctx.File.Models[modelIndex];
         bool marker = name.StartsWith('@');
-        Vector3 origin = marker ? VoxelCentre(model, -1) : PivotOrCentre(ctx, model, name);
+        bool pivoted = false;
+        Vector3 origin = marker ? VoxelCentre(model, -1) : PivotOrCentre(ctx, model, name, out pivoted);
 
         // The node sits where MagicaVoxel puts the chosen origin: the model is
         // centred on floor(size / 2), then rotated and translated.
@@ -276,7 +286,7 @@ public static class VoxModelBuilder
                 }
             }
         }
-        parent.Children.Add(new Part
+        var shape = new Part
         {
             Kind = PartKind.Shape,
             Name = name,
@@ -286,7 +296,12 @@ public static class VoxModelBuilder
             Dims = model.Size,
             Origin = origin,
             Chunks = BakeChunks(ctx, cells, model.Size, origin),
-        });
+        };
+        parent.Children.Add(shape);
+        if (pivoted)
+        {
+            ctx.Pivoted.Add(shape);
+        }
     }
 
     /// <summary>Chunks, their as-built contacts and boxes, after the pivot
@@ -303,8 +318,9 @@ public static class VoxModelBuilder
             VoxChunker.SeedOf(o.Path), origin, o.VoxelSize);
     }
 
-    private static Vector3 PivotOrCentre(Context ctx, VoxFile.Model model, string name)
+    private static Vector3 PivotOrCentre(Context ctx, VoxFile.Model model, string name, out bool pivoted)
     {
+        pivoted = false;
         int pivot = ctx.Options.PivotIndex;
         if (pivot < 1)
             return VoxSpace.Centre(model.Size);
@@ -320,6 +336,7 @@ public static class VoxModelBuilder
             return VoxSpace.Centre(model.Size);
         if (pivots.Count > 1)
             GD.PushWarning($"VoxModelBuilder: {ctx.Options.Path}: '{name}' has {pivots.Count} pivot voxels (index {pivot}); using the first.");
+        pivoted = true;
         return pivots[0];
     }
 

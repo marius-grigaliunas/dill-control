@@ -35,4 +35,15 @@ public static class VoxelMeta
     public const string ChunkBoxCentre = "vox_chunk_box_centre";
     public const string ChunkBoxSize = "vox_chunk_box_size";
     public const string ChunkGround = "vox_chunk_ground";
+
+    /// <summary>A mech part's damage map (docs/decisions/0046,
+    /// <see cref="VoxDamageMap"/>). Only on models with pivot voxels.</summary>
+    public const string PartVersion = "vox_part_version";
+    public const string PartParent = "vox_part_parent";
+    public const string PartVoxels = "vox_part_voxels";
+    public const string PartCentre = "vox_part_centre";
+    public const string PartHold = "vox_part_hold";
+    public const string PartContactKind = "vox_part_contact_kind";
+    public const string PartContactCentre = "vox_part_contact_centre";
+    public const string PartContactSize = "vox_part_contact_size";
 }
