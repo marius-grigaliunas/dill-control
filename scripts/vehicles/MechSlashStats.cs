@@ -46,15 +46,23 @@ public partial class MechSlashStats : Resource
     [Export(PropertyHint.Range, "0,90,1,suffix:°")]
     public float StrikeYaw { get; set; } = 28.0f;
 
-    [ExportGroup("Moves")]
-    /// <summary>The right arm's stroke as a move posed in Blender
-    /// (docs/decisions/0046). With one set, the arm follows it and the swing
-    /// angles above are not used; the timings above still place the hits.</summary>
+    [ExportGroup("Combo")]
+    /// <summary>The strokes one attack button flows through, in order, posed
+    /// in Blender (docs/decisions/0046). Held or pressed again, each blends
+    /// into the next once its blow has landed; let go past
+    /// <see cref="ComboWindow"/> and it starts again from the first. Hits land
+    /// on each move's 'hit' marker, from every arm it swings. Empty: the
+    /// procedural swing above, alternating arms.</summary>
     [Export]
-    public MechMove RightMove { get; set; }
+    public Godot.Collections.Array<MechMove> Combo { get; set; } = new();
 
-    [Export]
-    public MechMove LeftMove { get; set; }
+    /// <summary>How long after a stroke's blow lands the next may start.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01,suffix:s")]
+    public float ChainAfterHit { get; set; } = 0.12f;
+
+    /// <summary>How long one stroke takes to blend into the next.</summary>
+    [Export(PropertyHint.Range, "0,0.5,0.01,suffix:s")]
+    public float ChainBlend { get; set; } = 0.12f;
 
     [ExportGroup("Reach")]
     /// <summary>Blast spheres laid along the arm, so the slash has a length

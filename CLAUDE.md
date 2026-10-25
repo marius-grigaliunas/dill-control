@@ -33,7 +33,7 @@ A frame that misses it is a bug, on the same footing as a crash. Recorded in
 |---|---|
 | Engine | `4.7.2.stable.mono.official.ed1daf0bf`, on the Desktop, not on PATH: `C:\Users\Elena\Desktop\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe` |
 | Framework | `net8.0`, `Godot.NET.Sdk/4.7.2`, assembly `DillControl` |
-| Renderer | Forward+, D3D12. **D3D12 hangs in its first second about one start in three** on the Iris Xe (driver 32.0.101.7088, measured 25 October 2026): the main thread stops in native code, the window stops responding, nothing is logged; windowed, fullscreen and from the editor alike, and at `475ac45` too. Vulkan (`--rendering-driver vulkan`) did not in 12 starts. A hung start is killed and started again (`lab_test` does it); the renderer is the user's call. |
+| Renderer | Forward+, **Vulkan** (`docs/decisions/0048`): as fast idle and 1.5-3.5 ms faster under the horde than D3D12 on the Iris Xe, which also hung in its first second about one start in three. `lab_test` still restarts a start that hangs. |
 | Physics | `physics/3d/physics_engine="Jolt Physics"`, explicit. **`DEFAULT` is not Jolt in 4.7.2.** Never fall back to Godot Physics; raise it instead. Jolt's body limit is raised to 32,768 (`jolt_physics_3d/limits/max_bodies`); past it bodies silently fail and hinges error. `!bodies` in a bench timeline counts them. |
 | Input device ids | Keyboard events arrive as device `16`, mouse as `32`. A stored event with device `0` never matches. Hand-edited input maps keep `16`/`32`, or `-1` for any. |
 | Art facing | **MagicaVoxel: verified.** A `.vox` model's front (`-Y`) arrives facing Godot's `+Z` (`Vector3.ModelFront`); the tank in `lvl_pipeline_test`. **Blender: `.vox` mechs verified** through our add-on (`tools/blender/dill_mech`: MagicaVoxel's axes are Blender's; export turns Blender (x, y, z) into Godot (x, z, -y); every part matches the import, `check_rig.py`). **Blender `.glb`: not yet verified.** Expected the same from Blender's `-Y`; confirm with a Blender test asset. |
@@ -153,6 +153,7 @@ commands through `python tools/editor-bridge/godot_mcp.py call <command>
 | For | Commands |
 |---|---|
 | Seeing | `view` (the user's view, or a camera of Claude's own; `fog:false` for an overview), `here`, `tree`, `selection`, `get`, `history`, `debugger` (is the playing game held at a break, its stack, errors) |
+| Project | `project_setting` (read or set one and save project.godot; never edit it by hand while the editor is open) |
 | Making and changing | `new_level` (the eight branches, the player wired), `place` (a scene stood on what is under it), `add` (any built-in node, with our `script`), `set` (with `stand`; a new resource inline as `{"class":"BoxShape3D","size":[4,1,4]}`), `delete`, `batch` (one undo), `undo`, `redo` |
 | Ground, plants, water | `terrain_create`, `sculpt`, `terrain`, `terrain_reload`, `scatter`, `forest`, `vines`, `flood`, `water_paint` |
 | Vines | `vine_kinds`, `vine_kind`, `vine_roll`, `vine_bake`, `vine_judge` |
@@ -280,7 +281,7 @@ from what is left (`MechWalker.CurrentStance`: walk, limp, hop on a
 crutch arm, crawl, sit); and mechs mend themselves (`MechCare` asks over
 the bus and orders a lost limb by pod, the storage bot's `MechMender`
 regrows voxels, `Session.Bill` keeps the ledger; numbers in
-`mech_repair_default.tres`, prices placeholders); and moves are posed in
+`mech_repair_default.tres`: 2 credits a voxel, 500 a part); and moves are posed in
 Blender on rigid parts with our add-on (`tools/blender/dill_mech`) and
 baked to `MechMove`s the walker plays (`PlayMove`; the fighter's slam is
 `resources/vehicles/moves/mch_field_fighter_slam_*.tres`). A melee stroke is the

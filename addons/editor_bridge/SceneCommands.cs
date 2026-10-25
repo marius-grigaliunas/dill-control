@@ -25,6 +25,12 @@ public static class SceneCommands
             "'scene' is its res:// path, e.g. res://scenes/levels/lvl_x.tscn. Refuses to overwrite.",
             """{"type":"object","required":["scene"],"properties":{"scene":{"type":"string"}}}""",
             NewLevel);
+        Bridge.Register("project_setting",
+            "Read a project setting, or with 'value' set it and save project.godot, as Project Settings does (the editor keeps its own " +
+            "copy and writes it back, so never edit project.godot by hand while it is open). 'name' as in project.godot with its section, " +
+            "e.g. rendering/rendering_device/driver.windows. Some settings apply when the editor or the game next starts.",
+            """{"type":"object","required":["name"],"properties":{"name":{"type":"string"},"value":{}}}""",
+            ProjectSetting);
         Bridge.Register("plugin",
             "Switch one of our own editor plugins (a folder in addons/) on or off, as Project Settings > Plugins does.",
             """{"type":"object","required":["plugin"],"properties":{"plugin":{"type":"string","description":"its folder, e.g. terrain_brush"},"enabled":{"type":"boolean"}}}""",
@@ -40,6 +46,27 @@ public static class SceneCommands
                     throw new Bridge.Refused($"not saved: {error}");
                 return new JsonObject { ["saved"] = root.SceneFilePath };
             });
+    }
+
+    private static JsonNode ProjectSetting(JsonObject args)
+    {
+        string name = Bridge.Text(args, "name") ?? throw new Bridge.Refused("'name' is missing");
+        if (!ProjectSettings.HasSetting(name))
+            throw new Bridge.Refused($"no project setting '{name}'");
+        Variant was = ProjectSettings.GetSetting(name);
+        var result = new JsonObject { ["name"] = name, ["value"] = Values.ToJson(was) };
+        if (args["value"] is JsonNode value)
+        {
+            Variant set = Values.FromJson(value, was.VariantType, "", name);
+            ProjectSettings.SetSetting(name, set);
+            Error error = ProjectSettings.Save();
+            if (error != Error.Ok)
+                throw new Bridge.Refused($"not saved: {error}");
+            result["was"] = Values.ToJson(was);
+            result["value"] = Values.ToJson(set);
+            result["saved"] = true;
+        }
+        return result;
     }
 
     // Only ours, under addons/ (CLAUDE.md rule 7).

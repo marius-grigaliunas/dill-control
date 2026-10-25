@@ -60,11 +60,12 @@ public partial class MechRepairStats : Resource
     public float FitRange { get; set; } = 4.5f;
 
     [ExportGroup("Prices")]
-    /// <summary>One voxel put back. Placeholder until the economy is designed.</summary>
+    /// <summary>One voxel put back, in credits.</summary>
     [Export(PropertyHint.Range, "0,1000,0.01")]
-    public float VoxelPrice { get; set; } = 1.0f;
+    public float VoxelPrice { get; set; } = 2.0f;
 
-    /// <summary>A part fitted new, besides its voxels. Placeholder.</summary>
+    /// <summary>A part fitted new, besides its voxels, in credits. A lost
+    /// fighter leg is about 1,750 with them.</summary>
     [Export(PropertyHint.Range, "0,100000,1")]
-    public float PartPrice { get; set; } = 250.0f;
+    public float PartPrice { get; set; } = 500.0f;
 }

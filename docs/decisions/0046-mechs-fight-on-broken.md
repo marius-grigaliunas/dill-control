@@ -118,6 +118,14 @@ mirror sends the pose to the bridge's `lab_pose`, which poses the mech in
 the Lab tab. Not built: mirroring a move for the other side, and reloading
 a changed move in a game already playing (the lab's `move` reads it fresh).
 
+*Step 6, the combo:* one attack button flows through
+`MechSlashStats.Combo` (the fighter's: slam right, slam left, uppercut,
+backhand, both-fisted smash), each stroke blending into the next once its
+blow has landed (`ChainAfterHit`, `ChainBlend`), hits on each move's `hit`
+marker from every arm it swings, moves for a lost arm skipped, idle past
+`ComboWindow` and it starts over. The mechs' own AI attacks use the same
+chain. Repair prices set: 2 credits a voxel, 500 a part.
+
 **Two tools.** A mech lab in the Godot editor (`addons/mech_lab`, a main
 screen beside Vines, and bridge commands): the damage map drawn, parts shot
 off on purpose, balance and gait watched at any speed, repair played. And

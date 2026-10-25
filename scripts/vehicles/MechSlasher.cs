@@ -74,6 +74,15 @@ public partial class MechSlasher : Node
 
         // Pose the stroke before the walker applies it this frame.
         ProcessPhysicsPriority = -1;
+        Walker.MoveEvent += OnMoveEvent;
+    }
+
+    public override void _ExitTree()
+    {
+        if (Walker != null)
+        {
+            Walker.MoveEvent -= OnMoveEvent;
+        }
     }
 
     public override void _PhysicsProcess(double delta)
@@ -85,6 +94,12 @@ public partial class MechSlasher : Node
 
         float dt = (float)delta;
         bool want = Preview || (Manual ? Trigger : AutoWants());
+
+        if (Stats.Combo.Count > 0)
+        {
+            ComboStep(dt, want);
+            return;
+        }
 
         if (_phase == Phase.Ready)
         {
@@ -157,7 +172,6 @@ public partial class MechSlasher : Node
 
         Vector3 shoulder = Walker.Arms[_arm].GlobalPosition;
         AudioDirector.PlayAt(Sfx.MeleeSwingLight, shoulder);
-        _moving = Walker.PlayMove(_arm == 0 ? Stats.RightMove : Stats.LeftMove, 0.0f);
         PoseStroke();
 
         if (_remaining <= 0.0f)
@@ -189,15 +203,90 @@ public partial class MechSlasher : Node
         }
     }
 
-    // The stroke is a Blender move the walker plays (Stats.RightMove/LeftMove).
-    private bool _moving;
+    // ---------------- The combo ----------------
 
-    private void PoseStroke()
+    private MechMove _stroke;
+    private int _chain;
+    private float _sinceStroke = float.MaxValue;
+
+    /// <summary>
+    /// One button, a flowing chain of smashes: the stroke playing runs on;
+    /// with the trigger held (or the crowd still there), the next starts once
+    /// this one's blow has landed and blends out of wherever it is; idle past
+    /// the combo window, the chain starts from its first stroke again.
+    /// </summary>
+    private void ComboStep(float dt, bool want)
     {
-        if (_moving)
+        bool playing = _stroke != null && Walker.PlayingMove == _stroke;
+        if (!playing)
+        {
+            _stroke = null;
+            _sinceStroke += dt;
+            if (want)
+            {
+                if (_sinceStroke > Stats.ComboWindow)
+                {
+                    _chain = 0;
+                }
+                StartComboStroke();
+            }
+            return;
+        }
+        _sinceStroke = 0.0f;
+        float hit = _stroke.EventTime("hit");
+        float chainable = (hit >= 0.0f ? hit : _stroke.Length * 0.6f) + Stats.ChainAfterHit;
+        if (want && Walker.MoveTime >= chainable)
+        {
+            StartComboStroke();
+        }
+    }
+
+    /// <summary>The next stroke of the chain that it still has the arms for.</summary>
+    private void StartComboStroke()
+    {
+        int count = Stats.Combo.Count;
+        for (int k = 0; k < count; k++)
+        {
+            MechMove move = Stats.Combo[(_chain + k) % count];
+            if (move != null && Walker.PlayMove(move, _stroke == null ? 0.08f : Stats.ChainBlend))
+            {
+                _stroke = move;
+                _chain = (_chain + k + 1) % count;
+                _sinceStroke = 0.0f;
+                foreach (int arm in Walker.MoveArms())
+                {
+                    AudioDirector.PlayAt(Sfx.MeleeSwingLight, Walker.Arms[arm].GlobalPosition);
+                    break;
+                }
+                return;
+            }
+        }
+    }
+
+    private void OnMoveEvent(string name)
+    {
+        if (_stroke == null || Walker.PlayingMove != _stroke)
         {
             return;
         }
+        if (name == "hit")
+        {
+            foreach (int arm in Walker.MoveArms())
+            {
+                _arm = arm;
+                _hitThisStrike = false;
+                Slice();
+            }
+        }
+        else if (name == "shake")
+        {
+            // Nose down into the blow. The sink sells the impact.
+            Walker.Kick(Walker.GlobalBasis.Z * 2.6f);
+        }
+    }
+
+    private void PoseStroke()
+    {
         ArmAngles(_elapsed, out float pitch, out float yaw);
         Walker.StrokeArm(_arm, pitch, yaw, 1.0f);
     }

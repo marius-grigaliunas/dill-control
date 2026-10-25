@@ -776,6 +776,25 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	/// <summary>The move playing, or null.</summary>
 	public MechMove PlayingMove { get; private set; }
 
+	/// <summary>How far into the move playing it is, seconds.</summary>
+	public float MoveTime => _moveTime;
+
+	/// <summary>The arms the move playing swings, by index into <see cref="Arms"/>.</summary>
+	public System.Collections.Generic.IEnumerable<int> MoveArms()
+	{
+		if (PlayingMove == null)
+		{
+			yield break;
+		}
+		for (int i = 0; i < Arms.Count; i++)
+		{
+			if (Array.IndexOf(_moveParts, Arms[i]) >= 0)
+			{
+				yield return i;
+			}
+		}
+	}
+
 	private Node3D[] _moveParts = Array.Empty<Node3D>();
 	private float _moveTime;
 	private float _moveBlend;
@@ -1342,11 +1361,9 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		{
 			return GlobalPosition;
 		}
-		Transform3D rest = _armRest[arm];
+		// Where the arm is, however it was posed: a swing, a move, a crutch.
 		ArmPose pose = _arms[arm];
-		Basis swing = new Basis(Vector3.Right, pose.StrokePitch) * new Basis(Vector3.Up, pose.StrokeYaw);
-		Vector3 local = swing * (rest.Basis * pose.Pointing) * pose.Reach;
-		return Model.ToGlobal(rest.Origin + local);
+		return Arms[arm].GlobalTransform * (pose.Pointing * pose.Reach);
 	}
 
 	/// <summary>Whether this arm is mid-slash, so a gun on it should hold.</summary>

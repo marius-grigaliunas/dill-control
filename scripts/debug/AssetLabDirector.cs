@@ -578,6 +578,7 @@ public partial class AssetLabDirector : Node
             ["speed"] = Mathf.Snapped((_asset as CharacterBody3D)?.Velocity.Length() ?? 0.0f, 0.01),
             ["grounded"] = Walker?.IsGrounded ?? false,
             ["blockers"] = Walker?.Blockers ?? "",
+            ["move"] = Walker?.PlayingMove == null ? "" : $"{Walker.PlayingMove.ResourcePath.GetFile()} at {Walker.MoveTime:0.00} s",
             ["missing_voxels"] = Walker?.MissingVoxels() ?? 0,
             ["lost_limbs"] = Walker?.LostLimbs().Count ?? 0,
             ["care"] = Walker?.GetNodeOrNull<MechCare>("Care")?.State ?? "",
