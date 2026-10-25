@@ -183,6 +183,12 @@ Godot timeline (the user works in Blender); a hollow layered remodel.
    fighter), then export, `MechMove` playback, the live mirror and the hot
    reload. Rebuild the slam as a Blender action to prove the path end to end.
 6. **New attacks** and the walk's style loop, made with the tools.
+   *Begun: `tools/blender/make_moves.py` blocked out first passes in
+   `fighter_moves.blend` and exported them: `smash` (both fists overhead,
+   then down together), `uppercut_r`, `backhand_l`, each with a `hit`
+   marker. They play in the asset lab (`lab_do move`) but nothing triggers
+   them in play yet: which input or combo calls which move is the user's.
+   No style loop for the walk yet.*
 
 Bench every stage on the target machine (60 fps at 1080p on Iris Xe;
 `bench.gd`; `mech`, `mechs`, `mechwreck` modes exist in
