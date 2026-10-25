@@ -207,6 +207,38 @@ public partial class MechTuning : Resource
     [Export(PropertyHint.Range, "0,5,0.05,suffix:m")]
     public float StompRadius { get; set; } = 1.0f;
 
+    [ExportGroup("Broken")]
+    /// <summary>Top speed is multiplied by this for every leg lost while some
+    /// are left: it limps, one leg at a time (docs/decisions/0046).</summary>
+    [Export(PropertyHint.Range, "0.1,1,0.01")]
+    public float LimpSpeedPerLostLeg { get; set; } = 0.7f;
+
+    /// <summary>Share of top speed on one leg, with an arm as a crutch.</summary>
+    [Export(PropertyHint.Range, "0.05,1,0.01")]
+    public float HopSpeedScale { get; set; } = 0.35f;
+
+    /// <summary>Share of top speed with no legs, hauled along on its arms.</summary>
+    [Export(PropertyHint.Range, "0.02,1,0.01")]
+    public float CrawlSpeedScale { get; set; } = 0.2f;
+
+    /// <summary>How long one step of a crutch or a hauling arm takes.</summary>
+    [Export(PropertyHint.Range, "0.1,3,0.05,suffix:s")]
+    public float CrutchStepSeconds { get; set; } = 0.7f;
+
+    /// <summary>How far out from the shoulder a crutch is planted, sideways,
+    /// as a share of the arm's length.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float CrutchSpread { get; set; } = 0.35f;
+
+    /// <summary>The body leans toward each leg it has lost: the weight hangs
+    /// over the corner nothing holds.</summary>
+    [Export(PropertyHint.Range, "0,30,0.5,suffix:°")]
+    public float MissingLegSagDegrees { get; set; } = 6.0f;
+
+    /// <summary>How far above the ground its belly rests once nothing holds it up.</summary>
+    [Export(PropertyHint.Range, "0,2,0.05,suffix:m")]
+    public float BellyClearance { get; set; } = 0.1f;
+
     [ExportGroup("Body")]
     /// <summary>How far the body sinks at full speed, to give the legs more
     /// reach. The voxel legs are short; without it a stride is half a metre.</summary>

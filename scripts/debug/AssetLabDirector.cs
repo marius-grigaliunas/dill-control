@@ -463,6 +463,10 @@ public partial class AssetLabDirector : Node
 
     private string BreakNamed(string name, Vector3 direction)
     {
+        if (name == "next")
+        {
+            return Walker?.BenchBreakNext() == true ? "broke the next limb away" : "break: no limb left";
+        }
         foreach (VoxelBody body in Bodies)
         {
             foreach (Node host in body.Model?.FindChildren("*", "", true, false) ?? new Godot.Collections.Array<Node>())
@@ -515,6 +519,15 @@ public partial class AssetLabDirector : Node
             ["parts_lost"] = lost,
             ["loose_pieces"] = VoxelDebris.Current?.ChunkCount ?? 0,
             ["destroyed"] = Walker?.IsDestroyed ?? false,
+            ["stance"] = Walker?.CurrentStance.ToString().ToLowerInvariant() ?? "",
+            ["drop_m"] = Mathf.Snapped(Walker?.BodyDrop ?? 0.0f, 0.01),
+            ["position"] = _asset == null ? new Godot.Collections.Array() : new Godot.Collections.Array
+            {
+                Mathf.Snapped(_asset.GlobalPosition.X, 0.01), Mathf.Snapped(_asset.GlobalPosition.Y, 0.01), Mathf.Snapped(_asset.GlobalPosition.Z, 0.01),
+            },
+            ["speed"] = Mathf.Snapped((_asset as CharacterBody3D)?.Velocity.Length() ?? 0.0f, 0.01),
+            ["grounded"] = Walker?.IsGrounded ?? false,
+            ["blockers"] = Walker?.Blockers ?? "",
             ["in_control"] = InControl,
             ["tool"] = _tool.ToString().ToLowerInvariant(),
             ["strength"] = Mathf.Snapped(_strength, 0.01),
@@ -529,7 +542,8 @@ public partial class AssetLabDirector : Node
         text.AppendLine($"LAB  {_assetPath.GetFile()}   {m["fps"]} fps   frame {m["frame_ms"]} ms   physics {m["physics_ms"]} ms   gpu {m["gpu_ms"]} ms   draws {m["draws"]}");
         if (m["voxels_built"].AsInt32() > 0)
         {
-            text.AppendLine($"voxels {m["voxels"]} / {m["voxels_built"]}   parts lost {m["parts_lost"]} / {m["parts"]}   loose pieces {m["loose_pieces"]}{(m["destroyed"].AsBool() ? "   DESTROYED" : "")}");
+            string stance = m["stance"].AsString() is { Length: > 0 } st ? $"   {st}" : "";
+            text.AppendLine($"voxels {m["voxels"]} / {m["voxels_built"]}   parts lost {m["parts_lost"]} / {m["parts"]}   loose pieces {m["loose_pieces"]}{stance}{(m["destroyed"].AsBool() ? "   DESTROYED" : "")}");
         }
         text.AppendLine($"tool {_tool} x{_strength:0.##}   time x{Engine.TimeScale:0.##}{(_paused ? " (paused)" : "")}");
         if (_help)

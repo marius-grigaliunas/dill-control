@@ -65,7 +65,7 @@ public static class AssetLabCommands
             "Tell the running asset lab (lab_test) to do something, and get its status back: fps, frame, physics and GPU ms, draws, voxels left " +
             "of those built, parts lost, loose pieces, destroyed. 'action': status | tool | time | board | leave | reset | drive | wait | shot. " +
             "tool: 'kind' bite, blast, cut or break, at the crosshair or at 'at': [x,y,z], a part's name (e.g. Head, ThighL) wherever it is now, " +
-            "or 'asset' (aimed from the camera); 'part' breaks a named part away; " +
+            "or 'asset' (aimed from the camera); 'part' breaks a named part away ('next': a walker's next limb, legs first); " +
             "'strength' scales it (default 1). time: 'scale' (0 pauses), 'step' frames. drive: 'actions' held for 'seconds' " +
             "(move_forward, move_back, move_left, move_right, sprint, jump, fire, alt_fire). wait: 'seconds'. " +
             "shot: a picture of the screen; or round the asset where it is now, 'distance' metres away at 'yaw' and 'pitch' degrees (0, 0 is its front); " +
@@ -119,9 +119,13 @@ public static class AssetLabCommands
                 why = "the lab did not start listening; 'output' shows the game's log";
                 continue;
             }
-            await Task.Delay(1500);
             try
             {
+                // Twice, a few seconds apart: the hang comes after the first
+                // frames, and a lab that answered once may not answer again.
+                await Task.Delay(3000);
+                await Send(new JsonObject { ["action"] = "status" }, TimeSpan.FromSeconds(10));
+                await Task.Delay(2000);
                 JsonNode status = await Send(new JsonObject { ["action"] = "status" }, TimeSpan.FromSeconds(10));
                 status["attempts"] = attempt;
                 return status;

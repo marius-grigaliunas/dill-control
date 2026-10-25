@@ -40,6 +40,21 @@ all turn on the spot and still shoot. `SpareLegs` goes. Each gait is a
 procedural rule the walker plans steps with, and any of them can take a
 style loop from Blender.
 
+*Built (step 3):* `MechWalker.CurrentStance` is Walk, Limp (each leg its
+own step group, `LimpSpeedPerLostLeg` a lost leg), Hop (one leg; the arm on
+the lost side planted as a crutch, the body down so it reaches), Crawl (no
+legs: belly down to the core's baked sole, the arms hauling in turn) or Sit
+(nothing left: it turns and shoots). Legs and crutch arms are one list of
+`MechStepper`s the gait plans over, in any number of groups. The body comes
+down on a spring and the hull box shrinks with it; it sags toward each lost
+leg. Numbers: `MechTuning`'s Broken group. Two faults found on the way and
+fixed: a mech standing on the pieces of its own broken leg was flung at
+200 m/s when it stepped off (platform velocity; only World and Structure
+carry it now), and a body down among its pieces was boxed in (loose voxel
+pieces it runs into are no longer collided with). `bench.gd ... limbs`
+breaks every limb of the three allies in turn: means 11-14 ms, a few frames
+to 21 ms as pieces spawn.
+
 **Mechs mend themselves, as AI.** A brain beside `MechCompanion` reads the
 damage map and asks for help through one `EventBus` signal (a damaged mech
 cannot name its repairer): light damage calls the mobile storage bot, which

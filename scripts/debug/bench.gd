@@ -295,6 +295,36 @@ const MECHWRECK_TIMELINE := [
 	["after shot", ["#mechwreck_after", WRECK_STATUS], [], 0.3],
 ]
 
+# Gaits from what is left (docs/decisions/0046): every limb of the three
+# allies broken off in turn, legs first then arms, each mech's stance printed
+# after each (walk, limp, hop, crawl, sit), and what it costs. The horde is
+# held off so the frames are the breaking and the walking on what is left.
+const LIMBS_TIMELINE := [
+	["hold the horde off", ["!set:Horde:Stats:HuntSeedMinRadius=400.0", "!call:Horde:BenchReseed"], [], 3.0],
+	["look at them", ["@aim:FieldFighter:3", MECH_STATUS], [], 1.0],
+	["fighter: a leg", ["!call:FieldFighter:BenchBreakNext"], [], 3.0],
+	["fighter hops", ["@aim:FieldFighter:2", MECH_STATUS, "#limbs_fighter_hop"], [], 0.3],
+	["fighter: both legs", ["!call:FieldFighter:BenchBreakNext"], [], 3.0],
+	["fighter crawls", ["@aim:FieldFighter:1", MECH_STATUS, "#limbs_fighter_crawl"], [], 0.3],
+	["fighter: an arm", ["!call:FieldFighter:BenchBreakNext"], [], 2.0],
+	["fighter: both arms", ["!call:FieldFighter:BenchBreakNext"], [], 3.0],
+	["fighter sits", ["@aim:FieldFighter:1", MECH_STATUS, "#limbs_fighter_sit"], [], 0.3],
+	["look at the tank", ["@aim:QuadrupedTank:2.5"], [], 0.5],
+	["tank: a leg", ["!call:QuadrupedTank:BenchBreakNext"], [], 3.0],
+	["tank limps", ["@aim:QuadrupedTank:2", MECH_STATUS, "#limbs_tank_limp"], [], 0.3],
+	["tank: two legs", ["!call:QuadrupedTank:BenchBreakNext"], [], 2.0],
+	["tank: three legs", ["!call:QuadrupedTank:BenchBreakNext"], [], 2.0],
+	["tank: four legs", ["!call:QuadrupedTank:BenchBreakNext"], [], 3.0],
+	["tank sits", ["@aim:QuadrupedTank:1.5", MECH_STATUS, "#limbs_tank_sit"], [], 0.3],
+	["look at the storage bot", ["@aim:MobileStorage:0.8"], [], 0.5],
+	["storage: a leg", ["!call:MobileStorage:BenchBreakNext"], [], 2.0],
+	["storage: two legs", ["!call:MobileStorage:BenchBreakNext"], [], 2.0],
+	["storage: three legs", ["!call:MobileStorage:BenchBreakNext"], [], 2.0],
+	["storage: four legs", ["!call:MobileStorage:BenchBreakNext"], [], 3.0],
+	["after", [MECH_STATUS], [], 4.0],
+	["after shot", ["@aim:MobileStorage:0.5", MECH_STATUS, "#limbs_after"], [], 0.3],
+]
+
 # A skyscraper brought down (docs/decisions/0013): first what standing in the
 # downtown block costs, then rockets and a strike into one tower's lobby until
 # it can no longer carry itself, the fall, and the rubble settling. The horde
@@ -957,6 +987,7 @@ func _initialize() -> void:
 		"arsenal": _timeline = _arsenal_timeline()
 		"wreck": _timeline = WRECK_TIMELINE
 		"mechwreck": _timeline = MECHWRECK_TIMELINE
+		"limbs": _timeline = LIMBS_TIMELINE
 		"collapse": _timeline = COLLAPSE_TIMELINE
 		"lasercut": _timeline = _lasercut_timeline()
 		"cut": _timeline = _cut_timeline("BenchCutThrough", "cut", args.size() > 2 and args[2] == "quiet",

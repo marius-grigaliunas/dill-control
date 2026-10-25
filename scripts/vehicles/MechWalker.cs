@@ -137,6 +137,43 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	}
 
 	private readonly List<MechLeg> _legs = new();
+
+	/// <summary>What it gets about on, from what is left of it (docs/decisions/0046).</summary>
+	public enum Stance
+	{
+		/// <summary>Every leg: it walks.</summary>
+		Walk,
+		/// <summary>Some legs lost: one leg at a time, slower, sagging toward what is gone.</summary>
+		Limp,
+		/// <summary>One leg, an arm planted as a crutch if it has one.</summary>
+		Hop,
+		/// <summary>No legs: belly down, hauled along on its arms.</summary>
+		Crawl,
+		/// <summary>Nothing to move with: it turns on the spot and still shoots.</summary>
+		Sit,
+	}
+
+	public Stance CurrentStance { get; private set; } = Stance.Walk;
+
+	/// <summary>How far the body has come down from its height on its legs, metres.</summary>
+	public float BodyDrop => _drop;
+
+	// Whatever it steps with now: its legs left, and arms planted as crutches.
+	private readonly List<MechStepper> _steppers = new();
+	private readonly List<MechCrutch> _crutches = new();
+	private int _groups = 2;
+
+	// How far the body has come down to what holds it, on a spring.
+	private float _drop;
+	private float _dropVelocity;
+	private float _dropTarget;
+	private Vector2 _sag;
+	private float _bellyHeight;
+	private CollisionShape3D _hull;
+	private BoxShape3D _hullShape;
+	private Vector3 _hullSize;
+	private float _hullBottom;
+
 	private readonly List<Transform3D> _armRest = new();
 	private readonly List<ArmPose> _arms = new();
 	private Transform3D _modelRest;
@@ -193,11 +230,13 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 
 		// The body tilts about its hips, not about the feet.
 		_pivotHeight = _legs.Count > 0 ? (_modelRest * Thighs[0].Transform.Origin).Y : 0.0f;
+		_steppers.AddRange(_legs);
 
 		HookVoxels();
 		AddToGroup(AllyGroup);
 		AddToGroup(IHordeTarget.GroupName);
 		MeasureHull();
+		_bellyHeight = BellyHeight();
 		_fuel = Tuning.JetFuelSeconds;
 		CollisionLayer = GameLayers.Mask(GameLayers.Prop);
 		// The player too, so a step that does come too close is blocked
@@ -205,6 +244,13 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		// with nothing.
 		CollisionMask = GameLayers.Mask(GameLayers.World, GameLayers.Prop, GameLayers.Player);
 		FloorSnapLength = 0.4f;
+		// Never carried by what it stands on: the pieces of its own broken
+		// leg spawn under it moving fast, and stepping off one added its
+		// speed (200 m/s, in the asset lab). Only the world is a floor that
+		// moves it.
+		PlatformFloorLayers = GameLayers.Mask(GameLayers.World, GameLayers.Structure);
+		PlatformWallLayers = 0;
+		PlatformOnLeave = PlatformOnLeaveEnum.DoNothing;
 
 		// Planted where they stand; the first steps correct anything off.
 		// The space cannot be queried outside a physics frame.
@@ -237,6 +283,13 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			{
 				_hullRadius = Mathf.Max(box.Size.X, box.Size.Z) * 0.5f;
 				_hullHeight = shape.Position.Y + box.Size.Y * 0.5f;
+				// Its own copy: it shrinks as the body comes down, and the
+				// scene's box is shared by every mech of the kind.
+				_hull = shape;
+				_hullShape = (BoxShape3D)box.Duplicate();
+				shape.Shape = _hullShape;
+				_hullSize = box.Size;
+				_hullBottom = shape.Position.Y - box.Size.Y * 0.5f;
 				return;
 			}
 		}
@@ -355,6 +408,213 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 				Voxels.PartOf(segment)?.BreakAway(Vector3.Zero);
 			}
 		}
+		UpdateStance();
+	}
+
+	// ---------------- What is left ----------------
+
+	private float StanceSpeed()
+	{
+		int lost = 0;
+		foreach (MechLeg leg in _legs)
+		{
+			lost += leg.Alive ? 0 : 1;
+		}
+		return CurrentStance switch
+		{
+			Stance.Walk => 1.0f,
+			Stance.Limp => Mathf.Pow(Tuning.LimpSpeedPerLostLeg, lost),
+			Stance.Hop => Tuning.HopSpeedScale,
+			Stance.Crawl => Tuning.CrawlSpeedScale,
+			_ => 0.0f,
+		};
+	}
+
+	/// <summary>
+	/// Works out what it gets about on from the legs and arms it has left:
+	/// which of them step, in what order, how low the body comes down to
+	/// them, and which way it sags. Called whenever a part goes.
+	/// </summary>
+	private void UpdateStance()
+	{
+		var legs = new List<MechLeg>();
+		foreach (MechLeg leg in _legs)
+		{
+			if (leg.Alive)
+			{
+				legs.Add(leg);
+			}
+		}
+		var arms = new List<int>();
+		for (int i = 0; i < Arms.Count; i++)
+		{
+			if (PartAlive(Arms[i]))
+			{
+				arms.Add(i);
+			}
+		}
+
+		_steppers.Clear();
+		_crutches.Clear();
+		_sag = Vector2.Zero;
+		float sag = Mathf.DegToRad(Tuning.MissingLegSagDegrees);
+		float lostSide = 0.0f;
+		foreach (MechLeg leg in _legs)
+		{
+			if (!leg.Alive)
+			{
+				// A front leg lost tips the nose down (+pitch); a leg on +X
+				// lost lowers that side (-roll).
+				Vector3 corner = new Vector3(leg.RestFoot.X, 0.0f, leg.RestFoot.Z).Normalized();
+				_sag += new Vector2(corner.Z, -corner.X) * sag;
+				lostSide += corner.X;
+			}
+		}
+
+		float belly = Mathf.Max(0.0f, _bellyHeight - Tuning.BellyClearance);
+		if (legs.Count == _legs.Count)
+		{
+			CurrentStance = Stance.Walk;
+			for (int i = 0; i < _legs.Count; i++)
+			{
+				// FL and BR step together, FR and BL; two legs alternate.
+				_legs[i].Group = i == 0 || i == 3 ? 0 : 1;
+			}
+			_steppers.AddRange(_legs);
+			_groups = _legs.Count > 1 ? 2 : 1;
+			_dropTarget = 0.0f;
+		}
+		else if (legs.Count >= 2)
+		{
+			CurrentStance = Stance.Limp;
+			for (int i = 0; i < legs.Count; i++)
+			{
+				legs[i].Group = i;
+			}
+			_steppers.AddRange(legs);
+			_groups = legs.Count;
+			_dropTarget = 0.0f;
+		}
+		else if (legs.Count == 1)
+		{
+			CurrentStance = Stance.Hop;
+			legs[0].Group = 0;
+			_steppers.Add(legs[0]);
+			_groups = 1;
+			_dropTarget = belly * 0.15f;
+			// The arm on the side that lost its leg, else any.
+			int arm = -1;
+			foreach (int i in arms)
+			{
+				float side = (_modelRest * _armRest[i].Origin).X;
+				if (arm < 0 || Mathf.Sign(side) == Mathf.Sign(lostSide))
+				{
+					arm = i;
+				}
+			}
+			if (arm >= 0)
+			{
+				AddCrutch(arm, 1, false, belly, out float drop);
+				_dropTarget = drop;
+				_groups = 2;
+			}
+		}
+		else if (arms.Count > 0)
+		{
+			CurrentStance = Stance.Crawl;
+			_groups = arms.Count > 1 ? 2 : 1;
+			_dropTarget = belly;
+			for (int k = 0; k < arms.Count; k++)
+			{
+				AddCrutch(arms[k], k % 2, true, belly, out _);
+			}
+		}
+		else
+		{
+			CurrentStance = Stance.Sit;
+			_groups = 1;
+			_dropTarget = belly;
+		}
+
+		Transform3D self = GlobalTransform;
+		foreach (MechStepper stepper in _steppers)
+		{
+			stepper.Stepping = false;
+			if (stepper is MechCrutch)
+			{
+				stepper.Planted = self * stepper.RestFoot;
+			}
+		}
+	}
+
+	/// <summary>
+	/// An arm as a support: where at rest it plants, and how far the body
+	/// must come down for it to reach the ground there. A crutch goes out to
+	/// the side of its shoulder; a hauling arm reaches ahead of a body down
+	/// on its belly.
+	/// </summary>
+	private void AddCrutch(int arm, int group, bool haul, float belly, out float drop)
+	{
+		Vector3 shoulder = _modelRest * _armRest[arm].Origin;
+		float length = Mathf.Max(0.5f, _arms[arm].Reach);
+		float side = shoulder.X < 0.0f ? -1.0f : 1.0f;
+		Vector3 spot;
+		if (haul)
+		{
+			drop = belly;
+			float height = Mathf.Max(0.0f, shoulder.Y - drop);
+			float ahead = Mathf.Sqrt(Mathf.Max(0.0f, length * length - height * height)) * 0.8f;
+			spot = new Vector3(shoulder.X + side * length * Tuning.CrutchSpread * 0.5f, 0.0f, shoulder.Z + ahead);
+		}
+		else
+		{
+			spot = new Vector3(shoulder.X + side * length * Tuning.CrutchSpread, 0.0f, shoulder.Z + length * 0.2f);
+			float reach = new Vector2(spot.X - shoulder.X, spot.Z - shoulder.Z).Length();
+			float height = Mathf.Sqrt(Mathf.Max(0.0f, length * length - reach * reach));
+			drop = Mathf.Clamp(shoulder.Y - height, 0.0f, belly);
+		}
+		var crutch = new MechCrutch(arm, spot, group);
+		_crutches.Add(crutch);
+		_steppers.Add(crutch);
+	}
+
+	/// <summary>How high its core's underside stands over the ground at rest,
+	/// from the damage map: what it comes down to with nothing to stand on.</summary>
+	private float BellyHeight()
+	{
+		if (Core != null && VoxDamageMap.TryRead(Core) is DamageBake bake)
+		{
+			int sole = Array.IndexOf(bake.ContactKinds, ContactKind.Sole);
+			if (sole >= 0)
+			{
+				Vector3 bottom = bake.ContactCentre[sole] - new Vector3(0.0f, bake.ContactSize[sole].Y * 0.5f, 0.0f);
+				return (_modelRest * Core.Transform * bottom).Y;
+			}
+		}
+		return _pivotHeight;
+	}
+
+	/// <summary>For <c>bench.gd</c> and the asset lab: breaks off the next
+	/// limb, legs first, then arms. False when none is left.</summary>
+	public bool BenchBreakNext()
+	{
+		foreach (MechLeg leg in _legs)
+		{
+			if (leg.Alive && Voxels?.PartOf(leg.Thigh) is VoxelPart part && !part.IsEmpty)
+			{
+				part.BreakAway(Vector3.Zero);
+				return true;
+			}
+		}
+		foreach (Node3D arm in Arms)
+		{
+			if (Voxels?.PartOf(arm) is VoxelPart part && !part.IsEmpty)
+			{
+				part.BreakAway(Vector3.Zero);
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/// <summary>Falls apart: every part left becomes loose chunks, thrown a
@@ -420,6 +680,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		{
 			top = Tuning.SprintSpeed;
 		}
+		top *= StanceSpeed();
 		Vector3 target = intent * top;
 		if (_windup >= 0.0f)
 		{
@@ -447,7 +708,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			{
 				vertical = Tuning.JumpSpeed;
 				IsGrounded = false;
-				foreach (MechLeg leg in _legs)
+				foreach (MechStepper leg in _steppers)
 				{
 					leg.Stepping = false;
 				}
@@ -473,7 +734,29 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 
 		Velocity = horizontal + Up * vertical;
 		MoveAndSlide();
+		WadeThroughDebris();
 	}
+
+	/// <summary>Loose pieces of voxels do not stop it: one it runs into is
+	/// no longer collided with, so a mech wades through rubble and through the
+	/// pieces of its own broken legs, which lay round a body come down on its
+	/// belly and boxed it in.</summary>
+	private void WadeThroughDebris()
+	{
+		Blockers = "";
+		for (int i = 0; i < GetSlideCollisionCount(); i++)
+		{
+			GodotObject collider = GetSlideCollision(i).GetCollider();
+			if (collider is VoxelChunk chunk)
+			{
+				AddCollisionExceptionWith(chunk);
+			}
+			Blockers += $"{(collider as Node)?.Name ?? collider?.GetClass()} ";
+		}
+	}
+
+	/// <summary>What it slid against this tick, for the asset lab.</summary>
+	public string Blockers { get; private set; } = "";
 
 	private void Turn(float dt)
 	{
@@ -495,7 +778,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	{
 		_sinkVelocity -= Mathf.Max(0.0f, fallSpeed) * Tuning.LandingKick;
 		Transform3D self = GlobalTransform;
-		foreach (MechLeg leg in _legs)
+		foreach (MechStepper leg in _steppers)
 		{
 			leg.Stepping = false;
 			leg.Planted = Ground(self * leg.RestFoot);
@@ -513,7 +796,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		{
 			// Legs hang toward rest in the air, a little extended.
 			float follow = 1.0f - Mathf.Exp(-12.0f * dt);
-			foreach (MechLeg leg in _legs)
+			foreach (MechStepper leg in _steppers)
 			{
 				if (!leg.Alive)
 				{
@@ -530,6 +813,11 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		{
 			stepSeconds = Mathf.Lerp(Tuning.StepSecondsFast, Tuning.SprintStepSeconds, sprint01);
 		}
+		if (_crutches.Count > 0)
+		{
+			// An arm hauls slower than a leg strides.
+			stepSeconds = Mathf.Max(stepSeconds, Tuning.CrutchStepSeconds);
+		}
 		float lead = Tuning.StepLeadSeconds + stepSeconds * 0.5f;
 		bool moving = horizontal.Length() > 0.2f || Mathf.Abs(_yawRate) > 0.3f;
 		float threshold = StrideThreshold(speed01, sprint01, moving);
@@ -537,7 +825,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 
 		// Where each foot would like to land: its rest spot carried forward by
 		// the body's motion over the lead time, turn included.
-		foreach (MechLeg leg in _legs)
+		foreach (MechStepper leg in _steppers)
 		{
 			if (!leg.Alive || !leg.Stepping)
 			{
@@ -555,7 +843,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		}
 
 		bool anyStepping = false;
-		foreach (MechLeg leg in _legs)
+		foreach (MechStepper leg in _steppers)
 		{
 			anyStepping |= leg.Stepping;
 		}
@@ -565,8 +853,8 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		}
 
 		// Neither pair in the air: the pair that has fallen furthest behind goes.
-		float[] worst = new float[2];
-		foreach (MechLeg leg in _legs)
+		float[] worst = new float[Mathf.Max(1, _groups)];
+		foreach (MechStepper leg in _steppers)
 		{
 			if (!leg.Alive)
 			{
@@ -575,13 +863,20 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			float error = (leg.Planted - self * leg.RestFoot).Slide(Up).Length();
 			worst[leg.Group] = Mathf.Max(worst[leg.Group], error);
 		}
-		int group = worst[0] >= worst[1] ? 0 : 1;
+		int group = 0;
+		for (int g = 1; g < worst.Length; g++)
+		{
+			if (worst[g] > worst[group])
+			{
+				group = g;
+			}
+		}
 		if (worst[group] < threshold)
 		{
 			return;
 		}
 
-		foreach (MechLeg leg in _legs)
+		foreach (MechStepper leg in _steppers)
 		{
 			if (leg.Group != group || !leg.Alive)
 			{
@@ -700,6 +995,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			Mathf.Clamp(-forwardAccel * Mathf.DegToRad(Tuning.LeanPerAcceleration), -maxLean, maxLean),
 			Mathf.Clamp(sideAccel * Mathf.DegToRad(Tuning.LeanPerAcceleration), -maxLean, maxLean));
 		tiltTarget.X += Mathf.DegToRad(Tuning.SprintLeanDegrees) * sprint01;
+		tiltTarget += _sag;
 
 		float k = Tuning.BodySpring;
 		float c = 2.0f * Tuning.BodyDamping * Mathf.Sqrt(k);
@@ -707,13 +1003,35 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		_sink += _sinkVelocity * dt;
 		_tiltVelocity += ((tiltTarget - _tilt) * k - _tiltVelocity * c) * dt;
 		_tilt += _tiltVelocity * dt;
+		_dropVelocity += ((_dropTarget - _drop) * k - _dropVelocity * c) * dt;
+		_drop += _dropVelocity * dt;
+		ShrinkHull();
 
 		var pivot = new Vector3(0.0f, _pivotHeight, 0.0f);
 		Basis tilt = new Basis(Vector3.Right, _tilt.X) * new Basis(Vector3.Back, _tilt.Y);
-		Transform3D sway = new Transform3D(Basis.Identity, pivot + Vector3.Up * _sink)
+		Transform3D sway = new Transform3D(Basis.Identity, pivot + Vector3.Up * (_sink - _drop))
 						   * new Transform3D(tilt, Vector3.Zero)
 						   * new Transform3D(Basis.Identity, -pivot);
 		Model.Transform = sway * _modelRest;
+	}
+
+	/// <summary>The hull comes down with the body, its bottom where it was,
+	/// so what is left of the mech is what collides. Changed in steps, not
+	/// every frame: Jolt rebuilds a shape that changes.</summary>
+	private void ShrinkHull()
+	{
+		if (_hullShape == null)
+		{
+			return;
+		}
+		float height = Mathf.Max(0.8f, _hullSize.Y - Mathf.Max(0.0f, _drop));
+		if (Mathf.Abs(height - _hullShape.Size.Y) < 0.05f)
+		{
+			return;
+		}
+		_hullShape.Size = new Vector3(_hullSize.X, height, _hullSize.Z);
+		_hull.Position = new Vector3(_hull.Position.X, _hullBottom + height * 0.5f, _hull.Position.Z);
+		_hullHeight = _hullBottom + height;
 	}
 
 	private void PoseLegs(float dt)
@@ -785,7 +1103,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	public bool ArmReady(Node3D node)
 	{
 		int i = ArmIndex(node);
-		return i < 0 || _arms[i].Raise >= Tuning.ArmReadyFraction;
+		return i < 0 || (CrutchOf(i) == null && _arms[i].Raise >= Tuning.ArmReadyFraction);
 	}
 
 	/// <summary>This frame's swing override for one arm. <paramref name="pitch"/>
@@ -823,6 +1141,19 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	{
 		int i = ArmIndex(arm);
 		return i >= 0 && _arms[i].StrokeWeight > 0.02f;
+	}
+
+	/// <summary>The crutch an arm is planted as, or null.</summary>
+	private MechCrutch CrutchOf(int arm)
+	{
+		foreach (MechCrutch crutch in _crutches)
+		{
+			if (crutch.Arm == arm)
+			{
+				return crutch;
+			}
+		}
+		return null;
 	}
 
 	private int ArmIndex(Node3D node)
@@ -945,6 +1276,19 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 				float t = pose.Raise * pose.Raise * (3.0f - 2.0f * pose.Raise);
 				posed = posed.InterpolateWith(AimPose(i, rest), t);
 			}
+			if (CrutchOf(i) is MechCrutch crutch)
+			{
+				// Planted, it points at its spot; stepping, at the arc to the next.
+				Vector3 sole = crutch.Planted;
+				if (crutch.Stepping)
+				{
+					float t = Mathf.Clamp(crutch.StepT, 0.0f, 1.0f);
+					sole = crutch.StepFrom.Lerp(crutch.StepTo, t * t * (3.0f - 2.0f * t)) + Up * (Mathf.Sin(Mathf.Pi * t) * Tuning.StepHeight);
+				}
+				crutch.Sole = sole;
+				Arms[i].Transform = PointPose(i, rest, sole - Model.GlobalTransform * rest.Origin);
+				continue;
+			}
 			if (pose.StrokeWeight > 1e-4f)
 			{
 				// Pitch then yaw, both in the model's space, so the fist
@@ -1047,6 +1391,6 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			legs += leg.Alive ? 1 : 0;
 		}
 		return System.FormattableString.Invariant(
-			$"{Name} body={health * 100.0f:F0}% legs={legs}/{_legs.Count} destroyed={IsDestroyed} pos=({p.X:F1},{p.Y:F1},{p.Z:F1}) speed={Velocity.Slide(Up).Length():F1} up={Velocity.Dot(Up):F1} grounded={IsGrounded} stepping={stepping} sprint={Sprint} fuel={JetFuel01:F2} turret={Mathf.RadToDeg(_turretYaw):F0}");
+			$"{Name} body={health * 100.0f:F0}% legs={legs}/{_legs.Count} stance={CurrentStance} drop={_drop:F2} destroyed={IsDestroyed} pos=({p.X:F1},{p.Y:F1},{p.Z:F1}) speed={Velocity.Slide(Up).Length():F1} up={Velocity.Dot(Up):F1} grounded={IsGrounded} stepping={stepping} sprint={Sprint} fuel={JetFuel01:F2} turret={Mathf.RadToDeg(_turretYaw):F0}");
 	}
 }

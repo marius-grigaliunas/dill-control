@@ -406,6 +406,7 @@ GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable
 "$GODOT" --path . --write-movie perflogs/slam/f.png --fixed-fps 10 --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn slam quiet
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn wreck     # the compound shot down
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mechwreck # the allies shot apart
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn limbs     # every limb broken in turn: walk, limp, hop, crawl, sit
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn collapse  # a skyscraper brought down
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut       # a tower cut through: drops whole, crushes down
 "$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cutside   # cut on one side: leans, tears, topples

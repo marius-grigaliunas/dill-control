@@ -51,6 +51,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 shape = SubResource("BoxShape3D_08whh")
 
 [node name="Mesh" type="MeshInstance3D" parent="Geometry/Floor" unique_id=182697587]
+cast_shadow = 0
 mesh = SubResource("BoxMesh_mvn6q")
 
 [node name="Ramp" type="StaticBody3D" parent="Geometry" unique_id=1229744412]

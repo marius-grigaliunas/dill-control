@@ -11,15 +11,11 @@ namespace DillControl.Vehicles;
 /// A plain class, not a node: it has no life of its own in the tree, and the
 /// parts it moves belong to the imported model.
 /// </summary>
-public sealed class MechLeg
+public sealed class MechLeg : MechStepper
 {
     public readonly Node3D Thigh;
     public readonly Node3D Shin;
     public readonly Node3D Foot;
-
-    /// <summary>0 or 1. Legs in the same group step together, diagonally
-    /// opposite pairs, which is a trot.</summary>
-    public readonly int Group;
 
     // Rest pose, in the model's space.
     private readonly Transform3D _thighRest;
@@ -31,26 +27,9 @@ public sealed class MechLeg
     private readonly float _upper;
     private readonly float _lower;
 
-    /// <summary>Where the foot meets the ground at rest, in the walker's own
-    /// space (origin at the feet).</summary>
-    public readonly Vector3 RestFoot;
-
     /// <summary>Ankle pivot height above the sole.</summary>
     public readonly float AnkleHeight;
 
-    /// <summary>False once a segment has been shot away: the rest of the leg
-    /// has fallen off and the walker stands on the others.</summary>
-    public bool Alive = true;
-
-    // Gait state, world space.
-    /// <summary>Where the sole was last posed, stepping or not.</summary>
-    public Vector3 Sole;
-
-    public Vector3 Planted;
-    public bool Stepping;
-    public float StepT;
-    public Vector3 StepFrom;
-    public Vector3 StepTo;
 
     public MechLeg(Node3D thigh, Node3D shin, Node3D foot, int group, Transform3D modelRest, Vector3 kneeBias)
     {
