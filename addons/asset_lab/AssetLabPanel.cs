@@ -92,6 +92,13 @@ public partial class AssetLabPanel : HSplitContainer
             }
         }));
         middle.AddChild(bar);
+        // A walker walks in the view, on a treadmill, without Test.
+        _walkBar = new HBoxContainer { Visible = false };
+        _walkBar.AddChild(new Label { Text = "Walk: click the view, then WASD, Q/E turn, Shift sprint.  Speed" });
+        var speed = new HSlider { MinValue = 0.05, MaxValue = 1, Step = 0.05, Value = 1, CustomMinimumSize = new Vector2(120, 0), TooltipText = "The share of its top speed WASD walks it at" };
+        speed.ValueChanged += value => Preview.WalkSpeed = (float)value;
+        _walkBar.AddChild(speed);
+        middle.AddChild(_walkBar);
         Preview = new LabPreview();
         middle.AddChild(Preview);
         middleAndRight.AddChild(middle);
@@ -137,6 +144,7 @@ public partial class AssetLabPanel : HSplitContainer
         }
     }
 
+    private HBoxContainer _walkBar;
     private Section _infoSection;
     private Section _tuneSection;
 
@@ -234,6 +242,7 @@ public partial class AssetLabPanel : HSplitContainer
         Current = path;
         EditorInterface.Singleton.GetEditorSettings().SetProjectMetadata(MetaSection, "asset", path);
         Preview.Show(scene);
+        _walkBar.Visible = Preview.Walker != null;
         Info = AssetInfo.Of(path, Preview.Asset, Preview.Bounds);
         _info.Text = Info.Text();
         Resources = AssetCatalog.ResourcesOf(Preview.Asset);

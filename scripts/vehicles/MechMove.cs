@@ -10,7 +10,7 @@ namespace DillControl.Vehicles;
 /// motion (<see cref="MechWalker.PlayMove"/>); the parts it does not claim
 /// keep walking. Written by the add-on: edit the action and export again.
 /// </summary>
-[GlobalClass]
+[GlobalClass, Tool]
 public partial class MechMove : Resource
 {
     /// <summary>The mech it was posed on (its .vox's name).</summary>

@@ -71,6 +71,19 @@ In the **Lab tab** (`addons/asset_lab`), with no Test and no physics:
 ## Suggested order, a commit each
 
 1. Walker lab mode and the treadmill in the tab (WASD, speed, direction).
+   *Built 25 October.* `MechWalker` is `[Tool]` and does nothing in the
+   editor unless `LabMode` is set before it enters the tree; the tab steps
+   it with `LabStep` (`LabPreview._Process`, `TimeScale` ready for the
+   transport). On the treadmill the body stays put and planted feet slide
+   back by `BeltTravel`, which also moves the view's tiled ground. Keys:
+   click the view, WASD, Q/E turn, Shift sprint; a speed slider under the
+   bar. Bridge: `lab_walk` (forward, right, turn, sprint, seconds).
+   `MechTuning`, `MechMove`, `MechSlashStats` are `[Tool]` too (a
+   resource script must be, to be read typed in the editor). The walker's
+   `Voxels` export is a plain `Node` now (in the editor `VoxelBody` is a
+   placeholder and a typed export threw); code reads `VoxelParts`.
+   `mechcheck.gd` passes, `bench.gd ... mechs` runs as before, and
+   `lvl_horde_flats` opens in the editor with no errors or changes.
 2. Clicking parts off and on, the stance following.
 3. The transport: move list, combo, play/pause/loop, speed, the timeline
    with markers, scrubbing.

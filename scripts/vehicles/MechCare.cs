@@ -92,7 +92,7 @@ public partial class MechCare : Node
 
         if (Companion != null)
         {
-            float core = Walker.Voxels?.PartOf(Walker.Core)?.Health01 ?? 1.0f;
+            float core = Walker.VoxelParts?.PartOf(Walker.Core)?.Health01 ?? 1.0f;
             Companion.FallBackDistance = core < Stats.FallBackBelowCore ? Stats.FallBackDistance : 0.0f;
         }
     }

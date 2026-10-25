@@ -10,7 +10,7 @@ namespace DillControl.Vehicles;
 /// Leg lengths are not here: they come from the model, measured between the
 /// pivot voxels at hip, knee and ankle.
 /// </summary>
-[GlobalClass]
+[GlobalClass, Tool]
 public partial class MechTuning : Resource
 {
     [ExportGroup("Movement")]

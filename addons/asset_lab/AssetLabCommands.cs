@@ -60,6 +60,12 @@ public static class AssetLabCommands
             "(mch_field_fighter), 'parts' maps a part to its transform in the model's space, 12 numbers: the basis' x, y and z columns, then the origin.",
             """{"type":"object","required":["mech","parts"],"properties":{"mech":{"type":"string"},"parts":{"type":"object"}}}""",
             Pose);
+        Bridge.Register("lab_walk",
+            "Walk the mech shown in the Lab tab on its treadmill, as WASD does there (no physics, no Test): 'forward' and 'right' -1 to 1 " +
+            "in its own frame (their length is the share of top speed), 'turn' -1 to 1 (+ to its right), 'sprint'. It keeps walking so until " +
+            "told otherwise ({} stops it). 'seconds' waits that long before answering. Returns its stance, speed and gait.",
+            """{"type":"object","properties":{"forward":{"type":"number"},"right":{"type":"number"},"turn":{"type":"number"},"sprint":{"type":"boolean"},"seconds":{"type":"number"}}}""",
+            Walk);
         Bridge.Register("lab_test",
             "Play the asset lab level with an asset (default: the one shown in the Lab tab), as the tab's Test does: it stands in front of the player, " +
             "who is put in its seat if it is a vehicle (WASD drives it) or steers it if it is a walker nobody rides ('board': false to stay on foot). 'with' lists more assets stood in a row beside it (a storage bot to mend it). " +
@@ -223,6 +229,24 @@ public static class AssetLabCommands
         }
         lab.Preview.Redraw();
         return new JsonObject { ["posed"] = posed, ["asset"] = lab.Current };
+    }
+
+    private static async Task<JsonNode> Walk(JsonObject args)
+    {
+        LabPreview preview = Lab().Preview;
+        if (preview.Walker == null)
+        {
+            throw new Bridge.Refused($"{Lab().Current} is not a walker; lab_open a mech");
+        }
+        preview.Drive = new Vector2((float)Bridge.Number(args, "right", 0), (float)Bridge.Number(args, "forward", 0));
+        preview.DriveTurn = (float)Bridge.Number(args, "turn", 0);
+        preview.DriveSprint = Bridge.Flag(args, "sprint", false);
+        ulong until = Time.GetTicksMsec() + (ulong)(Bridge.Number(args, "seconds", 0) * 1000.0);
+        while (Time.GetTicksMsec() < until)
+        {
+            await Bridge.NextFrame();
+        }
+        return new JsonObject { ["status"] = preview.Walker.BenchStatus(), ["belt"] = Bridge.Json(preview.Walker.BeltTravel) };
     }
 
     private static JsonNode Assets(JsonObject args)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DillControl.Planet;
+using DillControl.Vehicles;
 using DillControl.Voxel;
 using Godot;
 
@@ -14,6 +15,10 @@ namespace DillControl.Editor;
 /// wheel to zoom, middle-drag to pan. The asset's scripts do not run here
 /// (they are not tools), so it is shown as built; what needs physics is
 /// judged in the lab level.
+///
+/// A mech walks here (<see cref="MechWalker.LabMode"/>): on a treadmill, the
+/// ground sliding under it, steered by WASD (Q and E turn, Shift sprints)
+/// once the view has been clicked, or by <see cref="Drive"/>.
 ///
 /// The damage map (0046) is drawn over a mech: each part's centre of mass
 /// (white), the line to its parent, its soles (green) and tips (orange) as
@@ -39,6 +44,29 @@ public partial class LabPreview : SubViewportContainer
     private MeshInstance3D _overlay;
     private bool _damageMap = true;
     private float _sunElevation = 45.0f;
+    private MeshInstance3D _ground;
+    private List<(Node3D Node, DamageBake Bake)> _damageParts = new();
+
+    /// <summary>The walker shown, if the asset is one.</summary>
+    public MechWalker Walker { get; private set; }
+
+    /// <summary>How it is steered besides the keys, in its own frame:
+    /// x right, y forward, each -1 to 1; <see cref="DriveTurn"/> turns it
+    /// (+ to its right). Set by the bridge.</summary>
+    public Vector2 Drive;
+    public float DriveTurn;
+    public bool DriveSprint;
+
+    /// <summary>The share of its top speed the keys walk it at.</summary>
+    public float WalkSpeed = 1.0f;
+
+    /// <summary>How fast its time runs: 1 is the game's, 0 holds it.</summary>
+    public float TimeScale = 1.0f;
+
+    private readonly HashSet<Key> _held = new();
+
+    /// <summary>The ground's tiles, metres: the belt is seen moving by them.</summary>
+    private const float Tile = 2.0f;
 
     public override void _Ready()
     {
@@ -46,6 +74,8 @@ public partial class LabPreview : SubViewportContainer
         SizeFlagsHorizontal = SizeFlags.ExpandFill;
         SizeFlagsVertical = SizeFlags.ExpandFill;
         MouseFilter = MouseFilterEnum.Stop;
+        FocusMode = FocusModeEnum.All;
+        FocusExited += () => _held.Clear();
 
         _viewport = new SubViewport { OwnWorld3D = true, Msaa3D = Viewport.Msaa.Msaa2X, RenderTargetUpdateMode = SubViewport.UpdateMode.WhenVisible };
         AddChild(_viewport);
@@ -62,13 +92,24 @@ public partial class LabPreview : SubViewportContainer
         _sun = new DirectionalLight3D { ShadowEnabled = true, DirectionalShadowMaxDistance = 200.0f };
         _viewport.AddChild(_sun);
 
-        var ground = new MeshInstance3D
+        // Tiles of two close greys, so a treadmill's belt is seen moving.
+        Image tiles = Image.CreateEmpty(2, 2, false, Image.Format.Rgb8);
+        tiles.Fill(new Color(0.38f, 0.37f, 0.34f));
+        tiles.SetPixel(0, 0, new Color(0.34f, 0.33f, 0.30f));
+        tiles.SetPixel(1, 1, new Color(0.34f, 0.33f, 0.30f));
+        _ground = new MeshInstance3D
         {
             Name = "Ground",
             Mesh = new PlaneMesh { Size = new Vector2(400.0f, 400.0f) },
-            MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.38f, 0.37f, 0.34f), Roughness = 1.0f },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoTexture = ImageTexture.CreateFromImage(tiles),
+                TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+                Uv1Scale = new Vector3(400.0f / (Tile * 2.0f), 400.0f / (Tile * 2.0f), 1.0f),
+                Roughness = 1.0f,
+            },
         };
-        _viewport.AddChild(ground);
+        _viewport.AddChild(_ground);
 
         _camera = new Camera3D { Fov = 60.0f, Far = 2000.0f, Current = true };
         _viewport.AddChild(_camera);
@@ -108,6 +149,7 @@ public partial class LabPreview : SubViewportContainer
             Asset.QueueFree();
         }
         Asset = null;
+        Walker = null;
         if (scene != null)
         {
             Node made = scene.Instantiate();
@@ -115,6 +157,12 @@ public partial class LabPreview : SubViewportContainer
             if (Asset != made)
             {
                 Asset.AddChild(made);
+            }
+            // Before it enters the tree: its _Ready sets it up to walk here.
+            Walker = Asset as MechWalker ?? Asset.FindChildren("*", nameof(CharacterBody3D), true, false).OfType<MechWalker>().FirstOrDefault();
+            if (Walker != null)
+            {
+                Walker.LabMode = true;
             }
             _viewport.AddChild(Asset);
             // A wrapper's own cameras and screen hints are for the game.
@@ -137,7 +185,35 @@ public partial class LabPreview : SubViewportContainer
             Bounds = DrawnBounds(Asset);
             Frame();
         }
+        _damageParts = DamageParts();
+        _ground.Position = Vector3.Zero;
         DrawOverlay();
+    }
+
+    public override void _Process(double delta)
+    {
+        if (Walker == null || !IsInstanceValid(Walker))
+        {
+            return;
+        }
+        float Held(Key key) => _held.Contains(key) ? 1.0f : 0.0f;
+        var keys = new Vector2(Held(Key.D) - Held(Key.A), Held(Key.W) - Held(Key.S));
+        Vector2 steer = (keys * WalkSpeed + Drive).LimitLength(1.0f);
+        float turn = Mathf.Clamp(Held(Key.E) - Held(Key.Q) + DriveTurn, -1.0f, 1.0f);
+
+        // Its front is +Z, so its right is -X.
+        Basis basis = Walker.GlobalBasis;
+        Walker.MoveIntent = basis * new Vector3(-steer.X, 0.0f, steer.Y);
+        Walker.FaceDirection = Mathf.Abs(turn) > 0.01f ? basis.Z.Rotated(Vector3.Up, -Mathf.Sign(turn) * 1.5f) : Vector3.Zero;
+        Walker.Sprint = DriveSprint || _held.Contains(Key.Shift);
+
+        Walker.LabStep(Mathf.Min((float)delta, 1.0f / 20.0f) * TimeScale);
+        Vector3 belt = Walker.BeltTravel;
+        _ground.Position = new Vector3(Mathf.PosMod(belt.X, Tile * 2.0f), 0.0f, Mathf.PosMod(belt.Z, Tile * 2.0f));
+        if (_damageMap && _damageParts.Count > 0)
+        {
+            DrawOverlay();
+        }
     }
 
     /// <summary>Everything drawn under a node that is visible, in world space.</summary>
@@ -262,8 +338,21 @@ public partial class LabPreview : SubViewportContainer
                 AcceptEvent();
             }
         }
+        else if (@event is InputEventKey key && Walker != null && WalkKey(key.PhysicalKeycode))
+        {
+            if (key.Pressed)
+            {
+                _held.Add(key.PhysicalKeycode);
+            }
+            else
+            {
+                _held.Remove(key.PhysicalKeycode);
+            }
+            AcceptEvent();
+        }
         else if (@event is InputEventMouseButton { Pressed: true } button)
         {
+            GrabFocus();
             if (button.ButtonIndex == MouseButton.WheelUp || button.ButtonIndex == MouseButton.WheelDown)
             {
                 Distance *= button.ButtonIndex == MouseButton.WheelUp ? 0.9f : 1.1f;
@@ -272,6 +361,8 @@ public partial class LabPreview : SubViewportContainer
             }
         }
     }
+
+    private static bool WalkKey(Key key) => key is Key.W or Key.A or Key.S or Key.D or Key.Q or Key.E or Key.Shift;
 
     public Camera3D Camera => _camera;
 
@@ -323,7 +414,7 @@ public partial class LabPreview : SubViewportContainer
     {
         var mesh = (ImmediateMesh)_overlay.Mesh;
         mesh.ClearSurfaces();
-        List<(Node3D Node, DamageBake Bake)> parts = DamageParts();
+        List<(Node3D Node, DamageBake Bake)> parts = _damageParts;
         if (!_damageMap || parts.Count == 0)
         {
             return;

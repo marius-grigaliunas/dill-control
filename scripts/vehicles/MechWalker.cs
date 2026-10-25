@@ -27,9 +27,26 @@ namespace DillControl.Vehicles;
 /// and the jump each frame: <see cref="MechCompanion"/> for the player's ally.
 ///
 /// The model's front is +Z, as every imported model's is.
+///
+/// A tool script only for the asset lab (<see cref="LabMode"/>): in a scene
+/// open in the editor it does nothing at all.
 /// </summary>
+[Tool]
 public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, IHordeTarget
 {
+	/// <summary>
+	/// Walked in the asset lab's view, where there is no physics (docs/decisions/0047):
+	/// set before it enters the tree. The ground is the plane under it, nothing
+	/// is stamped on, and it walks on a treadmill: the body stays where it is
+	/// and planted feet slide back at its speed, as the belt under them does.
+	/// The lab steps it with <see cref="LabStep"/>.
+	/// </summary>
+	public bool LabMode { get; set; }
+
+	/// <summary>How far the treadmill's belt has carried what stands on it,
+	/// world space, since it was made.</summary>
+	public Vector3 BeltTravel { get; private set; }
+
 	[ExportGroup("Data")]
 	[Export]
 	public MechTuning Tuning { get; set; }
@@ -43,9 +60,14 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	[Export]
 	public Node3D Turret { get; set; }
 
-	/// <summary>What it is made of: hits break it (docs/decisions/0011).</summary>
+	/// <summary>What it is made of: hits break it (docs/decisions/0011). A
+	/// <see cref="VoxelBody"/>; held as a plain node because in the editor,
+	/// where the walker runs in the asset lab, its script is a placeholder.</summary>
 	[Export]
-	public VoxelBody Voxels { get; set; }
+	public Node Voxels { get; set; }
+
+	/// <summary><see cref="Voxels"/> as what it is, or null in the editor.</summary>
+	public VoxelBody VoxelParts => Voxels as VoxelBody;
 
 	/// <summary>The part whose loss kills it: worn down below
 	/// <see cref="MechTuning.BodyDeathFraction"/>, or emptied.</summary>
@@ -119,10 +141,10 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	public bool IsAlive => !IsDestroyed;
 
 	/// <summary>Whether the turret still has anything on it.</summary>
-	public bool TurretAlive => Turret != null && (Voxels?.PartOf(Turret) is not VoxelPart part || !part.IsEmpty);
+	public bool TurretAlive => Turret != null && (VoxelParts?.PartOf(Turret) is not VoxelPart part || !part.IsEmpty);
 
 	/// <summary>Whether a part (an arm, the turret) still exists.</summary>
-	public bool PartAlive(Node3D node) => Voxels?.PartOf(node) is not VoxelPart part || !part.IsEmpty;
+	public bool PartAlive(Node3D node) => VoxelParts?.PartOf(node) is not VoxelPart part || !part.IsEmpty;
 
 	/// <summary>Which way the turret points, world space.</summary>
 	public Vector3 TurretForward => Turret != null ? Turret.GlobalBasis.Z : GlobalBasis.Z;
@@ -197,6 +219,14 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 
 	public override void _Ready()
 	{
+		if (Engine.IsEditorHint())
+		{
+			SetPhysicsProcess(false);
+			if (!LabMode)
+			{
+				return;
+			}
+		}
 		if (Tuning == null || Model == null)
 		{
 			GD.PushError($"MechWalker '{Name}' needs Tuning and Model.");
@@ -302,7 +332,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	/// </summary>
 	public void TakeHordeHit(Vector3 from, float damage, Vector3 impulse)
 	{
-		if (IsDestroyed || Voxels == null)
+		if (IsDestroyed || VoxelParts == null)
 		{
 			return;
 		}
@@ -319,7 +349,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			// stopped by armour that stops rifle rounds.
 			IsSustained = true,
 		};
-		Voxels.ApplyDamage(info, this);
+		VoxelParts.ApplyDamage(info, this);
 		Velocity += impulse * Tuning.HordeShove;
 	}
 
@@ -327,7 +357,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	/// the bus, so only the horde hears it.</summary>
 	private void Stomp(Vector3 at)
 	{
-		if (Tuning.StompDamage <= 0.0f || Tuning.StompRadius <= 0.0f)
+		if (LabMode || Tuning.StompDamage <= 0.0f || Tuning.StompRadius <= 0.0f)
 		{
 			return;
 		}
@@ -349,14 +379,14 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 
 	private void HookVoxels()
 	{
-		if (Voxels == null)
+		if (VoxelParts == null)
 		{
 			return;
 		}
 
-		Voxels.Velocity = () => Velocity;
-		Voxels.PartEmptied += OnPartEmptied;
-		if (Voxels.PartOf(Core) is VoxelPart core)
+		VoxelParts.Velocity = () => Velocity;
+		VoxelParts.PartEmptied += OnPartEmptied;
+		if (VoxelParts.PartOf(Core) is VoxelPart core)
 		{
 			core.Carved += (part, _) =>
 			{
@@ -372,11 +402,11 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	{
 		if (!IsDestroyed)
 		{
-			Voxels?.ApplyDamage(info, this);
+			VoxelParts?.ApplyDamage(info, this);
 		}
 	}
 
-	public Vector3 NearestBlastPoint(Vector3 from) => Voxels?.NearestBlastPoint(from) ?? GlobalPosition;
+	public Vector3 NearestBlastPoint(Vector3 from) => VoxelParts?.NearestBlastPoint(from) ?? GlobalPosition;
 
 	/// <summary>
 	/// A part has nothing left, or nothing holds it. The core or the head and
@@ -405,7 +435,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			leg.Stepping = false;
 			foreach (Node3D segment in new[] { leg.Thigh, leg.Shin, leg.Foot })
 			{
-				Voxels.PartOf(segment)?.BreakAway(Vector3.Zero);
+				VoxelParts.PartOf(segment)?.BreakAway(Vector3.Zero);
 			}
 		}
 		UpdateStance();
@@ -623,7 +653,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	public int MissingVoxels()
 	{
 		int missing = 0;
-		foreach (VoxelPart part in Voxels?.Parts ?? Array.Empty<VoxelPart>())
+		foreach (VoxelPart part in VoxelParts?.Parts ?? Array.Empty<VoxelPart>())
 		{
 			if (!part.IsEmpty)
 			{
@@ -641,12 +671,12 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	public int Regrow(int voxels)
 	{
 		int done = 0;
-		if (Voxels == null || IsDestroyed)
+		if (VoxelParts == null || IsDestroyed)
 		{
 			return 0;
 		}
-		var parts = new List<VoxelPart>(Voxels.Parts);
-		VoxelPart core = Voxels.PartOf(Core);
+		var parts = new List<VoxelPart>(VoxelParts.Parts);
+		VoxelPart core = VoxelParts.PartOf(Core);
 		parts.Sort((a, b) => (a == core ? 0 : 1).CompareTo(b == core ? 0 : 1));
 		foreach (VoxelPart part in parts)
 		{
@@ -669,7 +699,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	/// </summary>
 	public int Refit(Node3D limb)
 	{
-		if (Voxels == null || IsDestroyed || limb == null)
+		if (VoxelParts == null || IsDestroyed || limb == null)
 		{
 			return 0;
 		}
@@ -682,14 +712,14 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			}
 			foreach (Node3D segment in new[] { leg.Thigh, leg.Shin, leg.Foot })
 			{
-				voxels += Voxels.Restore(segment, int.MaxValue);
+				voxels += VoxelParts.Restore(segment, int.MaxValue);
 			}
 			leg.Alive = true;
 			leg.Planted = GlobalTransform * leg.RestFoot;
 		}
 		if (ArmIndex(limb) >= 0)
 		{
-			voxels += Voxels.Restore(limb, int.MaxValue);
+			voxels += VoxelParts.Restore(limb, int.MaxValue);
 		}
 		UpdateStance();
 		return voxels;
@@ -701,7 +731,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	{
 		foreach (MechLeg leg in _legs)
 		{
-			if (leg.Alive && Voxels?.PartOf(leg.Thigh) is VoxelPart part && !part.IsEmpty)
+			if (leg.Alive && VoxelParts?.PartOf(leg.Thigh) is VoxelPart part && !part.IsEmpty)
 			{
 				part.BreakAway(Vector3.Zero);
 				return true;
@@ -709,7 +739,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		}
 		foreach (Node3D arm in Arms)
 		{
-			if (Voxels?.PartOf(arm) is VoxelPart part && !part.IsEmpty)
+			if (VoxelParts?.PartOf(arm) is VoxelPart part && !part.IsEmpty)
 			{
 				part.BreakAway(Vector3.Zero);
 				return true;
@@ -728,7 +758,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		}
 		IsDestroyed = true;
 		Destroyed?.Invoke();
-		Voxels?.BreakAll(Up * 3.0f);
+		VoxelParts?.BreakAll(Up * 3.0f);
 		SetPhysicsProcess(false);
 		CollisionLayer = 0;
 		CollisionMask = 0;
@@ -743,8 +773,27 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 
 	public override void _PhysicsProcess(double delta)
 	{
-		float dt = (float)delta;
-		Vector3 gravity = GetGravity() * Tuning.GravityScale;
+		if (Engine.IsEditorHint())
+		{
+			return;
+		}
+		Step((float)delta);
+	}
+
+	/// <summary>One frame in the asset lab, <paramref name="dt"/> seconds long.</summary>
+	public void LabStep(float dt)
+	{
+		if (LabMode && Tuning != null && Model != null && dt > 0.0f)
+		{
+			Step(dt);
+		}
+	}
+
+	private void Step(float dt)
+	{
+		Vector3 gravity = LabMode
+			? Vector3.Down * ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle()
+			: GetGravity() * Tuning.GravityScale;
 		Up = gravity.LengthSquared() > 1e-6f ? -gravity.Normalized() : Vector3.Up;
 		UpDirection = Up;
 
@@ -754,7 +803,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		Move(dt, gravity);
 		Turn(dt);
 
-		IsGrounded = IsOnFloor();
+		IsGrounded = LabMode || IsOnFloor();
 		if (IsGrounded && !wasGrounded)
 		{
 			Land(fallSpeed);
@@ -963,6 +1012,21 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 
 		_acceleration = _acceleration.Lerp((horizontal - _lastHorizontal) / Mathf.Max(dt, 1e-4f), 1.0f - Mathf.Exp(-10.0f * dt));
 		_lastHorizontal = horizontal;
+
+		if (LabMode)
+		{
+			// On the treadmill: no jump, and the world under it goes back
+			// instead of the body going on.
+			Velocity = horizontal;
+			Vector3 belt = -horizontal * dt;
+			BeltTravel += belt;
+			foreach (MechStepper stepper in _steppers)
+			{
+				stepper.Planted += belt;
+				stepper.StepFrom += belt;
+			}
+			return;
+		}
 
 		Velocity = horizontal + Up * vertical;
 		MoveAndSlide();
@@ -1182,6 +1246,10 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	/// ground plane when there is nothing to hit.</summary>
 	private Vector3 Ground(Vector3 point)
 	{
+		if (LabMode)
+		{
+			return point - Up * (point - GlobalPosition).Dot(Up);
+		}
 		PhysicsDirectSpaceState3D space = GetWorld3D().DirectSpaceState;
 		var query = PhysicsRayQueryParameters3D.Create(point + Up * 2.5f, point - Up * 3.0f,
 			GameLayers.Mask(GameLayers.World, GameLayers.Prop), new Godot.Collections.Array<Rid> { GetRid() });
@@ -1614,7 +1682,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			stepping += leg.Stepping ? 1 : 0;
 		}
 		Vector3 p = GlobalPosition;
-		float health = Voxels?.PartOf(Core)?.Health01 ?? 1.0f;
+		float health = VoxelParts?.PartOf(Core)?.Health01 ?? 1.0f;
 		int legs = 0;
 		foreach (MechLeg leg in _legs)
 		{

@@ -8,7 +8,7 @@ namespace DillControl.Vehicles;
 /// <see cref="MechSlasher"/>. Edit this resource, then swing again: the
 /// next stroke uses the new numbers. There is no balance number in the slasher.
 /// </summary>
-[GlobalClass]
+[GlobalClass, Tool]
 public partial class MechSlashStats : Resource
 {
     [ExportGroup("Strike")]

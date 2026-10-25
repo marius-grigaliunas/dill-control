@@ -78,9 +78,9 @@ public partial class MechCheck : Node
 
             var walker = packed.Instantiate<Vehicles.MechWalker>();
             AddChild(walker);
-            walker.Voxels.PartOf(walker.Thighs[0])?.BreakAway(Vector3.Zero);
+            walker.VoxelParts.PartOf(walker.Thighs[0])?.BreakAway(Vector3.Zero);
             bool standsOnLegLoss = !walker.IsDestroyed;
-            walker.Voxels.PartOf(walker.Head)?.BreakAway(Vector3.Zero);
+            walker.VoxelParts.PartOf(walker.Head)?.BreakAway(Vector3.Zero);
             bool diesOnHeadLoss = walker.IsDestroyed;
             walker.Free();
 
@@ -94,7 +94,7 @@ public partial class MechCheck : Node
 
     private static int RocketOnHead(Vehicles.MechWalker walker, out int voxels)
     {
-        VoxelPart head = walker.Voxels.PartOf(walker.Head);
+        VoxelPart head = walker.VoxelParts.PartOf(walker.Head);
         voxels = head.Grid.SolidCount;
         DamageBake bake = VoxDamageMap.TryRead(walker.Head);
         Vector3 at = walker.Head.GlobalTransform * (bake?.Centre ?? Vector3.Zero);
