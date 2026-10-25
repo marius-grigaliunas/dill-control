@@ -580,6 +580,7 @@ public partial class AssetLabDirector : Node
             ["blockers"] = Walker?.Blockers ?? "",
             ["missing_voxels"] = Walker?.MissingVoxels() ?? 0,
             ["lost_limbs"] = Walker?.LostLimbs().Count ?? 0,
+            ["care"] = Walker?.GetNodeOrNull<MechCare>("Care")?.State ?? "",
             ["with"] = WithStatus(),
             ["ledger"] = LedgerStatus(),
             ["in_control"] = InControl,

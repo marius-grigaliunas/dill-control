@@ -29,6 +29,11 @@ public partial class MechCare : Node
     [Export]
     public PackedScene PodScene { get; set; }
 
+    /// <summary>What it is doing about its losses, for the asset lab.</summary>
+    public string State => _pod == null
+        ? $"lost for {_lostFor:0.0} s"
+        : $"pod {(_podLanded ? "landed" : "falling")} {(IsInstanceValid(_pod) ? (_pod.GlobalPosition - Walker.GlobalPosition).Slide(Walker.Up).Length() : -1):0.0} m off";
+
     private float _check;
     private float _lostFor = -1.0f;
     private DropPod _pod;
@@ -106,7 +111,9 @@ public partial class MechCare : Node
         {
             side = -side;
         }
-        Vector3 landing = from + side * Stats.PodDistance;
+        // One that cannot get about has it dropped within reach.
+        float distance = Walker.CurrentStance == MechWalker.Stance.Sit ? Stats.FitRange * 0.85f : Stats.PodDistance;
+        Vector3 landing = from + side * distance;
         _pod = pod;
         _podLimb = limb;
         _podLanded = false;
@@ -135,6 +142,18 @@ public partial class MechCare : Node
         }
         if ((at - Walker.GlobalPosition).Slide(Walker.Up).Length() > Stats.FitRange)
         {
+            if (Walker.CurrentStance == MechWalker.Stance.Sit)
+            {
+                // It lost the last of what it moved with after this one was
+                // ordered: another comes down within reach.
+                _pod.QueueFree();
+                _pod = null;
+                _lostFor = Stats.PodDelaySeconds;
+                if (Companion != null)
+                {
+                    Companion.Errand = null;
+                }
+            }
             return;
         }
         int voxels = Walker.Refit(_podLimb);
