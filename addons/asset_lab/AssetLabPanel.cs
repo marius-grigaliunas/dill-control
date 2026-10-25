@@ -94,10 +94,12 @@ public partial class AssetLabPanel : HSplitContainer
         middle.AddChild(bar);
         // A walker walks in the view, on a treadmill, without Test.
         _walkBar = new HBoxContainer { Visible = false };
-        _walkBar.AddChild(new Label { Text = "Walk: click the view, then WASD, Q/E turn, Shift sprint.  Speed" });
+        _walkBar.AddChild(new Label { Text = "Walk: click the view, then WASD, Q/E turn, Shift sprint; click a limb to take it off or put it back.  Speed" });
         var speed = new HSlider { MinValue = 0.05, MaxValue = 1, Step = 0.05, Value = 1, CustomMinimumSize = new Vector2(120, 0), TooltipText = "The share of its top speed WASD walks it at" };
         speed.ValueChanged += value => Preview.WalkSpeed = (float)value;
         _walkBar.AddChild(speed);
+        _stance = new Label();
+        _walkBar.AddChild(_stance);
         middle.AddChild(_walkBar);
         Preview = new LabPreview();
         middle.AddChild(Preview);
@@ -145,6 +147,20 @@ public partial class AssetLabPanel : HSplitContainer
     }
 
     private HBoxContainer _walkBar;
+    private Label _stance;
+
+    public override void _Process(double delta)
+    {
+        if (_walkBar.Visible && Preview.Walker != null && IsInstanceValid(Preview.Walker))
+        {
+            string text = $"  {Preview.Walker.CurrentStance}" + (Preview.LastPick != "" ? $"  ({Preview.LastPick})" : "");
+            if (_stance.Text != text)
+            {
+                _stance.Text = text;
+            }
+        }
+    }
+
     private Section _infoSection;
     private Section _tuneSection;
 

@@ -63,8 +63,9 @@ public static class AssetLabCommands
         Bridge.Register("lab_walk",
             "Walk the mech shown in the Lab tab on its treadmill, as WASD does there (no physics, no Test): 'forward' and 'right' -1 to 1 " +
             "in its own frame (their length is the share of top speed), 'turn' -1 to 1 (+ to its right), 'sprint'. It keeps walking so until " +
-            "told otherwise ({} stops it). 'seconds' waits that long before answering. Returns its stance, speed and gait.",
-            """{"type":"object","properties":{"forward":{"type":"number"},"right":{"type":"number"},"turn":{"type":"number"},"sprint":{"type":"boolean"},"seconds":{"type":"number"}}}""",
+            "told otherwise ({} stops it). 'toggle' names parts (ThighL, ArmR...) whose limbs come off, or go back on if off, as a click on them " +
+            "in the tab does; the stance follows. 'click' names parts to click where they are drawn in the view, through the same picking as the mouse. 'seconds' waits that long before answering. Returns its stance, speed and gait.",
+            """{"type":"object","properties":{"forward":{"type":"number"},"right":{"type":"number"},"turn":{"type":"number"},"sprint":{"type":"boolean"},"toggle":{"type":"array","items":{"type":"string"}},"click":{"type":"array","items":{"type":"string"}},"seconds":{"type":"number"}}}""",
             Walk);
         Bridge.Register("lab_test",
             "Play the asset lab level with an asset (default: the one shown in the Lab tab), as the tab's Test does: it stands in front of the player, " +
@@ -241,12 +242,28 @@ public static class AssetLabCommands
         preview.Drive = new Vector2((float)Bridge.Number(args, "right", 0), (float)Bridge.Number(args, "forward", 0));
         preview.DriveTurn = (float)Bridge.Number(args, "turn", 0);
         preview.DriveSprint = Bridge.Flag(args, "sprint", false);
+        var toggled = new JsonArray();
+        foreach (JsonNode name in args["toggle"] as JsonArray ?? new JsonArray())
+        {
+            Node3D part = preview.Walker.Model.FindChild((string)name, true, false) as Node3D
+                ?? throw new Bridge.Refused($"no part {(string)name}");
+            toggled.Add(preview.Toggle(part));
+        }
+        foreach (JsonNode name in args["click"] as JsonArray ?? new JsonArray())
+        {
+            Node3D part = preview.Walker.Model.FindChild((string)name, true, false) as Node3D
+                ?? throw new Bridge.Refused($"no part {(string)name}");
+            Vector3 centre = Voxel.VoxDamageMap.TryRead(part) is Voxel.DamageBake bake ? part.GlobalTransform * bake.Centre : part.GlobalPosition;
+            Vector2 at = preview.Camera.UnprojectPosition(centre);
+            Node3D hit = preview.PartAt(at);
+            toggled.Add($"clicked {(string)name} at {at.X:0},{at.Y:0}: hit {hit?.Name ?? "nothing"}; {preview.Toggle(hit)}");
+        }
         ulong until = Time.GetTicksMsec() + (ulong)(Bridge.Number(args, "seconds", 0) * 1000.0);
         while (Time.GetTicksMsec() < until)
         {
             await Bridge.NextFrame();
         }
-        return new JsonObject { ["status"] = preview.Walker.BenchStatus(), ["belt"] = Bridge.Json(preview.Walker.BeltTravel) };
+        return new JsonObject { ["toggled"] = toggled, ["status"] = preview.Walker.BenchStatus(), ["belt"] = Bridge.Json(preview.Walker.BeltTravel) };
     }
 
     private static JsonNode Assets(JsonObject args)

@@ -64,6 +64,11 @@ public partial class LabPreview : SubViewportContainer
     public float TimeScale = 1.0f;
 
     private readonly HashSet<Key> _held = new();
+    private Vector2 _pressedAt;
+    private bool _dragged;
+
+    /// <summary>What the last click on a walker's part did, for the tab to show.</summary>
+    public string LastPick { get; private set; } = "";
 
     /// <summary>The ground's tiles, metres: the belt is seen moving by them.</summary>
     private const float Tile = 2.0f;
@@ -325,6 +330,7 @@ public partial class LabPreview : SubViewportContainer
         {
             if ((motion.ButtonMask & MouseButtonMask.Left) != 0 || (motion.ButtonMask & MouseButtonMask.Right) != 0)
             {
+                _dragged |= motion.Position.DistanceTo(_pressedAt) > 4.0f;
                 Yaw -= motion.Relative.X * 0.008f;
                 Pitch += motion.Relative.Y * 0.008f;
                 PlaceCamera();
@@ -350,9 +356,24 @@ public partial class LabPreview : SubViewportContainer
             }
             AcceptEvent();
         }
+        else if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false } release)
+        {
+            // A click, not a drag to orbit: a walker's limb clicked comes off,
+            // or goes back on.
+            if (!_dragged && Walker != null)
+            {
+                Toggle(PartAt(release.Position));
+                AcceptEvent();
+            }
+        }
         else if (@event is InputEventMouseButton { Pressed: true } button)
         {
             GrabFocus();
+            if (button.ButtonIndex == MouseButton.Left)
+            {
+                _pressedAt = button.Position;
+                _dragged = false;
+            }
             if (button.ButtonIndex == MouseButton.WheelUp || button.ButtonIndex == MouseButton.WheelDown)
             {
                 Distance *= button.ButtonIndex == MouseButton.WheelUp ? 0.9f : 1.1f;
@@ -360,6 +381,64 @@ public partial class LabPreview : SubViewportContainer
                 AcceptEvent();
             }
         }
+    }
+
+    /// <summary>Takes off or puts back the walker's limb that
+    /// <paramref name="part"/> is in. Returns what happened, in words.</summary>
+    public string Toggle(Node3D part)
+    {
+        if (Walker == null || part == null)
+        {
+            return LastPick = part == null ? "" : $"{part.Name}: not a walker";
+        }
+        bool? on = Walker.LabToggleLimb(part);
+        LastPick = on switch
+        {
+            null => $"{part.Name} is not a limb",
+            true => $"{part.Name} back on",
+            false => $"{part.Name} off",
+        };
+        return LastPick;
+    }
+
+    /// <summary>The visible voxel part under a point of the view, found by
+    /// walking the camera's ray through each part's cells; null for none.</summary>
+    public Node3D PartAt(Vector2 point)
+    {
+        Vector3 from = _camera.ProjectRayOrigin(point);
+        Vector3 along = _camera.ProjectRayNormal(point);
+        Node3D best = null;
+        float nearest = float.MaxValue;
+        foreach ((Node3D node, DamageBake _) in _damageParts)
+        {
+            if (!node.IsVisibleInTree())
+            {
+                continue;
+            }
+            float voxel = VoxelSizeOf(node);
+            Vector3I dims = node.GetMeta(VoxelMeta.Dims).AsVector3I();
+            Vector3 origin = node.GetMeta(VoxelMeta.Origin).AsVector3();
+            byte[] cells = node.GetMeta(VoxelMeta.Cells).AsByteArray();
+            Transform3D inverse = node.GlobalTransform.AffineInverse();
+            float step = voxel * 0.4f;
+            float far = Mathf.Min(nearest, from.DistanceTo(Target) + Bounds.Size.Length());
+            for (float t = 0.0f; t < far; t += step)
+            {
+                Vector3 v = VoxSpace.FromGodot(inverse * (from + along * t) / voxel) + origin;
+                int x = Mathf.FloorToInt(v.X), y = Mathf.FloorToInt(v.Y), z = Mathf.FloorToInt(v.Z);
+                if (x < 0 || y < 0 || z < 0 || x >= dims.X || y >= dims.Y || z >= dims.Z)
+                {
+                    continue;
+                }
+                if (cells[x + dims.X * (y + dims.Y * z)] != 0)
+                {
+                    nearest = t;
+                    best = node;
+                    break;
+                }
+            }
+        }
+        return best;
     }
 
     private static bool WalkKey(Key key) => key is Key.W or Key.A or Key.S or Key.D or Key.Q or Key.E or Key.Shift;
@@ -426,6 +505,10 @@ public partial class LabPreview : SubViewportContainer
         int total = 0;
         foreach ((Node3D node, DamageBake bake) in parts)
         {
+            if (!node.IsVisibleInTree())
+            {
+                continue;
+            }
             Transform3D t = node.GlobalTransform;
             Vector3 centre = t * bake.Centre;
             weighted += centre * bake.Voxels;

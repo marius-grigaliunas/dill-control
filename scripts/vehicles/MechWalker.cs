@@ -144,7 +144,63 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	public bool TurretAlive => Turret != null && (VoxelParts?.PartOf(Turret) is not VoxelPart part || !part.IsEmpty);
 
 	/// <summary>Whether a part (an arm, the turret) still exists.</summary>
-	public bool PartAlive(Node3D node) => VoxelParts?.PartOf(node) is not VoxelPart part || !part.IsEmpty;
+	public bool PartAlive(Node3D node) => !_labOff.Contains(node) && (VoxelParts?.PartOf(node) is not VoxelPart part || !part.IsEmpty);
+
+	// Parts the asset lab has taken off, which has no voxels to empty.
+	private readonly HashSet<Node3D> _labOff = new();
+
+	/// <summary>
+	/// For the asset lab: takes off the limb <paramref name="part"/> belongs
+	/// to (a whole leg, or an arm), or puts it back if it is off, and the
+	/// stance follows. Returns whether it is on now, or null when the part is
+	/// not a limb (the core, the head).
+	/// </summary>
+	public bool? LabToggleLimb(Node3D part)
+	{
+		if (!LabMode || part == null)
+		{
+			return null;
+		}
+		Node3D[] limb = null;
+		MechLeg owner = null;
+		foreach (MechLeg leg in _legs)
+		{
+			if (part == leg.Thigh || part == leg.Shin || part == leg.Foot)
+			{
+				owner = leg;
+				limb = new[] { leg.Thigh, leg.Shin, leg.Foot };
+			}
+		}
+		if (limb == null && ArmIndex(part) >= 0)
+		{
+			limb = new[] { part };
+		}
+		if (limb == null)
+		{
+			return null;
+		}
+		bool on = _labOff.Contains(limb[0]);
+		foreach (Node3D segment in limb)
+		{
+			segment.Visible = on;
+			if (on)
+			{
+				_labOff.Remove(segment);
+			}
+			else
+			{
+				_labOff.Add(segment);
+			}
+		}
+		if (owner != null)
+		{
+			owner.Alive = on;
+			owner.Stepping = false;
+			owner.Planted = GlobalTransform * owner.RestFoot;
+		}
+		UpdateStance();
+		return on;
+	}
 
 	/// <summary>Which way the turret points, world space.</summary>
 	public Vector3 TurretForward => Turret != null ? Turret.GlobalBasis.Z : GlobalBasis.Z;

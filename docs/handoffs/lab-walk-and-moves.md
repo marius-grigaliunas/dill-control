@@ -85,6 +85,14 @@ In the **Lab tab** (`addons/asset_lab`), with no Test and no physics:
    `mechcheck.gd` passes, `bench.gd ... mechs` runs as before, and
    `lvl_horde_flats` opens in the editor with no errors or changes.
 2. Clicking parts off and on, the stance following.
+   *Built 25 October.* A click (not a drag) on a part in the view marches
+   the camera ray through each visible part's cells (`LabPreview.PartAt`)
+   and `MechWalker.LabToggleLimb` takes the whole leg or the arm off, or
+   puts it back: hidden, marked off for `PartAlive`, `UpdateStance`. The
+   core and head are not limbs and stay. The walk bar shows the stance and
+   the last click. Bridge: `lab_walk` `toggle` (by part name) and `click`
+   (clicks where a part is drawn, through the same picking). Seen: hop on
+   a crutch arm, crawl on both arms, sit, and back to walking.
 3. The transport: move list, combo, play/pause/loop, speed, the timeline
    with markers, scrubbing.
 4. Onion skin or fist trails.
