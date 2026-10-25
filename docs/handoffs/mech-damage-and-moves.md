@@ -179,7 +179,7 @@ Godot timeline (the user works in Blender); a hollow layered remodel.
    regrowing cells, the part pod (`scripts/mission/DropPod.cs` is the
    company's existing pod: falls, lands like a bomb, opens; a starting
    point), the ledger in `Session`, the repair `.tres`.
-5. **The Blender add-on**: import and rig first (the user poses the
+5. *Built (0046, step 5): `tools/blender/README.md`.* **The Blender add-on**: import and rig first (the user poses the
    fighter), then export, `MechMove` playback, the live mirror and the hot
    reload. Rebuild the slam as a Blender action to prove the path end to end.
 6. **New attacks** and the walk's style loop, made with the tools.

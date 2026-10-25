@@ -46,6 +46,16 @@ public partial class MechSlashStats : Resource
     [Export(PropertyHint.Range, "0,90,1,suffix:°")]
     public float StrikeYaw { get; set; } = 28.0f;
 
+    [ExportGroup("Moves")]
+    /// <summary>The right arm's stroke as a move posed in Blender
+    /// (docs/decisions/0046). With one set, the arm follows it and the swing
+    /// angles above are not used; the timings above still place the hits.</summary>
+    [Export]
+    public MechMove RightMove { get; set; }
+
+    [Export]
+    public MechMove LeftMove { get; set; }
+
     [ExportGroup("Reach")]
     /// <summary>Blast spheres laid along the arm, so the slash has a length
     /// rather than a point.</summary>

@@ -316,6 +316,9 @@ public partial class LabPreview : SubViewportContainer
         return parts;
     }
 
+    /// <summary>The overlay again, after parts were moved (a pose from Blender).</summary>
+    public void Redraw() => DrawOverlay();
+
     private void DrawOverlay()
     {
         var mesh = (ImmediateMesh)_overlay.Mesh;

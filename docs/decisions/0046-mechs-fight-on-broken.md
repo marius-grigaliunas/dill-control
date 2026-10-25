@@ -99,6 +99,22 @@ in the game beyond `MechLeg`'s feet. While posing, the add-on mirrors the
 pose live into the Godot editor through the bridge, and a debug game
 reloads changed moves without a restart.
 
+*Built (step 5):* `tools/blender/dill_mech` (Blender 5.1 extension) reads
+the `.vox` with the importer's rules and its `.import` voxel size; every
+part lands where Godot puts it, to the half-voxel (`check_rig.py` against
+the imported scene). Bones chain as the damage map does, IK on the feet.
+Export samples each part in the rig's space, Blender's axes turned to
+Godot's ((x, y, z) is (x, z, -y)), keeps the parts that move and writes a
+`MechMove`. `MechWalker.PlayMove` plays it over the walk, blends in and
+out, skips parts that are gone, withholds a move that has lost most of
+them, raises its markers as `MoveEvent`, and plants the feet where a move
+that used the legs left them. The slam was rebuilt as two actions on the
+very curves `MechSlasher` computed (exported rotations within 1e-5 of
+them) and `MechSlashStats.RightMove`/`LeftMove` now play them. The live
+mirror sends the pose to the bridge's `lab_pose`, which poses the mech in
+the Lab tab. Not built: mirroring a move for the other side, and reloading
+a changed move in a game already playing (the lab's `move` reads it fresh).
+
 **Two tools.** A mech lab in the Godot editor (`addons/mech_lab`, a main
 screen beside Vines, and bridge commands): the damage map drawn, parts shot
 off on purpose, balance and gait watched at any speed, repair played. And

@@ -55,6 +55,11 @@ public static class AssetLabCommands
             }}
             """,
             ResourceCommand);
+        Bridge.Register("lab_pose",
+            "Pose a mech in the Lab tab, part by part, as the Dill Mech Blender add-on's live mirror does: 'mech' is its scene's name " +
+            "(mch_field_fighter), 'parts' maps a part to its transform in the model's space, 12 numbers: the basis' x, y and z columns, then the origin.",
+            """{"type":"object","required":["mech","parts"],"properties":{"mech":{"type":"string"},"parts":{"type":"object"}}}""",
+            Pose);
         Bridge.Register("lab_test",
             "Play the asset lab level with an asset (default: the one shown in the Lab tab), as the tab's Test does: it stands in front of the player, " +
             "who is put in its seat if it is a vehicle (WASD drives it) or steers it if it is a walker nobody rides ('board': false to stay on foot). 'with' lists more assets stood in a row beside it (a storage bot to mend it). " +
@@ -63,7 +68,8 @@ public static class AssetLabCommands
             Test);
         Bridge.Register("lab_do",
             "Tell the running asset lab (lab_test) to do something, and get its status back: fps, frame, physics and GPU ms, draws, voxels left " +
-            "of those built, parts lost, loose pieces, destroyed. 'action': status | tool | time | board | leave | reset | drive | wait | shot. " +
+            "of those built, parts lost, loose pieces, destroyed. 'action': status | tool | time | board | leave | reset | drive | move | wait | shot. " +
+            "move: plays the MechMove at 'move' (res://...), read fresh from disk. " +
             "tool: 'kind' bite, blast, cut, break or mend (fits lost limbs new and regrows lost voxels), at the crosshair or at 'at': [x,y,z], a part's name (e.g. Head, ThighL) wherever it is now, " +
             "or 'asset' (aimed from the camera); 'part' breaks a named part away ('next': a walker's next limb, legs first); " +
             "'strength' scales it (default 1). time: 'scale' (0 pauses), 'step' frames. drive: 'actions' held for 'seconds' " +
@@ -72,7 +78,7 @@ public static class AssetLabCommands
             "or from 'from' [x,y,z] looking at 'at' (a point, a part's name; default the asset). 'width' default 960.",
             """
             {"type":"object","required":["action"],"properties":{
-              "action":{"type":"string","enum":["status","tool","time","board","leave","reset","drive","wait","shot"]},
+              "action":{"type":"string","enum":["status","tool","time","board","leave","reset","drive","move","wait","shot"]},"move":{"type":"string"},
               "kind":{"type":"string","enum":["bite","blast","cut","break","mend"]},"at":{"description":"[x,y,z], a part's name, or 'asset'"},
               "part":{"type":"string"},"strength":{"type":"number"},"scale":{"type":"number"},"step":{"type":"integer"},
               "actions":{"type":"array","items":{"type":"string"}},"seconds":{"type":"number"},
@@ -193,6 +199,31 @@ public static class AssetLabCommands
     }
 
     private static AssetLabPanel Lab() => Panel?.Invoke() ?? throw new Bridge.Refused("the asset lab is not open: is the asset_lab plugin on?");
+
+    private static JsonNode Pose(JsonObject args)
+    {
+        AssetLabPanel lab = Lab();
+        string mech = Bridge.Text(args, "mech");
+        if (lab.Current.GetFile().GetBaseName() != mech)
+        {
+            AssetCatalog.Asset asset = AssetCatalog.Find(mech + ".tscn") ?? throw new Bridge.Refused($"no asset {mech}");
+            lab.Open(asset.Path);
+        }
+        Node3D shown = lab.Preview.Asset ?? throw new Bridge.Refused("nothing shown");
+        int posed = 0;
+        foreach ((string name, JsonNode value) in (JsonObject)args["parts"])
+        {
+            if (value is not JsonArray m || m.Count != 12 || shown.FindChild(name, true, false) is not Node3D part)
+            {
+                continue;
+            }
+            float F(int i) => (float)m[i];
+            part.Transform = new Transform3D(new Vector3(F(0), F(1), F(2)), new Vector3(F(3), F(4), F(5)), new Vector3(F(6), F(7), F(8)), new Vector3(F(9), F(10), F(11)));
+            posed++;
+        }
+        lab.Preview.Redraw();
+        return new JsonObject { ["posed"] = posed, ["asset"] = lab.Current };
+    }
 
     private static JsonNode Assets(JsonObject args)
     {

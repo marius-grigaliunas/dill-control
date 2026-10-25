@@ -230,7 +230,7 @@ scripts/        core/ player/ weapons/ enemies/ horde/ voxel/ planet/
                 vehicles/ mission/ levels/ ui/ audio/ debug/
 resources/      mirrors scripts/
 shaders/
-tools/          project-board/, vox-tools/, editor-bridge/ (and voxel-bench/ from M2). .gdignore'd.
+tools/          project-board/, vox-tools/, editor-bridge/, blender/ (and voxel-bench/ from M2). .gdignore'd.
 docs/           pitch.md, plan.md, decisions/, handoffs/, project_board.json
 perflogs/       recordings and bench screenshots. Gitignored.
 ```
@@ -280,8 +280,10 @@ from what is left (`MechWalker.CurrentStance`: walk, limp, hop on a
 crutch arm, crawl, sit); and mechs mend themselves (`MechCare` asks over
 the bus and orders a lost limb by pod, the storage bot's `MechMender`
 regrows voxels, `Session.Bill` keeps the ledger; numbers in
-`mech_repair_default.tres`, prices placeholders). Still proposed: moves
-posed in Blender on rigid parts and baked to data the walker plays. A melee stroke is the
+`mech_repair_default.tres`, prices placeholders); and moves are posed in
+Blender on rigid parts with our add-on (`tools/blender/dill_mech`) and
+baked to `MechMove`s the walker plays (`PlayMove`; the fighter's slam is
+`resources/vehicles/moves/mch_field_fighter_slam_*.tres`). A melee stroke is the
 same, poses in a resource rather than a clip: `docs/decisions/0028`.
 
 **Every voxel model is destructible, the same way** (`docs/decisions/0011`): a

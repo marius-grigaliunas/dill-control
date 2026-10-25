@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="MechSlashStats" format=3 uid="uid://cryqvio26ywpr"]
 
 [ext_resource type="Script" uid="uid://chdp8534hqwqi" path="res://scripts/vehicles/MechSlashStats.cs" id="1_script"]
+[ext_resource type="Resource" path="res://resources/vehicles/moves/mch_field_fighter_slam_r.tres" id="2_right"]
+[ext_resource type="Resource" path="res://resources/vehicles/moves/mch_field_fighter_slam_l.tres" id="3_left"]
 
 [resource]
 resource_name = "FieldFighterSlash"
@@ -13,3 +15,5 @@ Knockback = 14.0
 ComboWindow = 0.35
 AutoRange = 5.5
 AutoConeDegrees = 75.0
+RightMove = ExtResource("2_right")
+LeftMove = ExtResource("3_left")

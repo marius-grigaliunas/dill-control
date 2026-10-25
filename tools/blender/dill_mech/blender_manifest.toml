@@ -1,0 +1,14 @@
+schema_version = "1.0.0"
+
+id = "dill_mech"
+version = "1.0.0"
+name = "Dill Mech"
+tagline = "Pose Dill Control's voxel mechs and export their moves"
+maintainer = "Dill Control"
+type = "add-on"
+blender_version_min = "4.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
+
+[permissions]
+network = "Mirrors the pose to the Godot editor's bridge on 127.0.0.1"
+files = "Reads the mech's .vox and writes MechMove .tres files into the Godot project"

@@ -765,6 +765,118 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		UpdateArms(dt);
 		PoseLegs(dt);
 		AimTurret(dt);
+		ApplyMove(dt);
+	}
+
+	// ---------------- Moves ----------------
+
+	/// <summary>A marker on the move playing was passed: 'hit', 'sfx:name', 'shake'.</summary>
+	public event Action<string> MoveEvent;
+
+	/// <summary>The move playing, or null.</summary>
+	public MechMove PlayingMove { get; private set; }
+
+	private Node3D[] _moveParts = Array.Empty<Node3D>();
+	private float _moveTime;
+	private float _moveBlend;
+	private bool _moveUsesLegs;
+
+	/// <summary>
+	/// Plays a move posed in Blender (docs/decisions/0046) over whatever it is
+	/// doing: the parts the move claims follow it, eased in and out over
+	/// <paramref name="blend"/> seconds; every other part keeps walking. A
+	/// claimed part shot away is skipped; a move that has lost most of its
+	/// parts is not played. False when it was not.
+	/// </summary>
+	public bool PlayMove(MechMove move, float blend = 0.1f)
+	{
+		if (move == null || move.Frames <= 0 || IsDestroyed)
+		{
+			return false;
+		}
+		var parts = new Node3D[move.Parts.Length];
+		int alive = 0;
+		_moveUsesLegs = false;
+		for (int i = 0; i < parts.Length; i++)
+		{
+			parts[i] = Model.GetNodeOrNull<Node3D>(move.Parts[i]);
+			if (parts[i] != null && PartAlive(parts[i]))
+			{
+				alive++;
+			}
+			foreach (MechLeg leg in _legs)
+			{
+				_moveUsesLegs |= parts[i] == leg.Thigh || parts[i] == leg.Shin || parts[i] == leg.Foot;
+			}
+		}
+		if (alive * 2 < parts.Length)
+		{
+			return false;
+		}
+		PlayingMove = move;
+		_moveParts = parts;
+		_moveTime = 0.0f;
+		_moveBlend = Mathf.Max(blend, 0.0f);
+		return true;
+	}
+
+	public void StopMove()
+	{
+		if (PlayingMove == null)
+		{
+			return;
+		}
+		PlayingMove = null;
+		if (_moveUsesLegs)
+		{
+			// The feet stand where the move left them.
+			foreach (MechLeg leg in _legs)
+			{
+				if (leg.Alive)
+				{
+					leg.Planted = Ground(leg.Foot.GlobalPosition);
+					leg.Stepping = false;
+				}
+			}
+		}
+	}
+
+	private void ApplyMove(float dt)
+	{
+		if (PlayingMove == null)
+		{
+			return;
+		}
+		float before = _moveTime;
+		_moveTime += dt;
+		for (int e = 0; e < PlayingMove.EventNames.Length && e < PlayingMove.EventTimes.Length; e++)
+		{
+			float at = PlayingMove.EventTimes[e];
+			if (at >= before && at < _moveTime || (before == 0.0f && at <= 0.0f))
+			{
+				MoveEvent?.Invoke(PlayingMove.EventNames[e]);
+			}
+		}
+		float length = PlayingMove.Length;
+		float weight = 1.0f;
+		if (_moveBlend > 0.0f)
+		{
+			weight = Mathf.Clamp(Mathf.Min(_moveTime, length - _moveTime) / _moveBlend, 0.0f, 1.0f);
+		}
+		for (int i = 0; i < _moveParts.Length; i++)
+		{
+			Node3D part = _moveParts[i];
+			if (part == null || !PartAlive(part))
+			{
+				continue;
+			}
+			Transform3D posed = PlayingMove.Sample(i, Mathf.Min(_moveTime, length));
+			part.Transform = weight >= 0.999f ? posed : part.Transform.InterpolateWith(posed, weight);
+		}
+		if (_moveTime >= length)
+		{
+			StopMove();
+		}
 	}
 
 	// ---------------- Body motion ----------------
@@ -1241,7 +1353,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	public bool ArmStroking(Node3D arm)
 	{
 		int i = ArmIndex(arm);
-		return i >= 0 && _arms[i].StrokeWeight > 0.02f;
+		return i >= 0 && (_arms[i].StrokeWeight > 0.02f || (PlayingMove != null && Array.IndexOf(_moveParts, arm) >= 0));
 	}
 
 	/// <summary>The crutch an arm is planted as, or null.</summary>

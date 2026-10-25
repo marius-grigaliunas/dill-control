@@ -157,6 +157,7 @@ public partial class MechSlasher : Node
 
         Vector3 shoulder = Walker.Arms[_arm].GlobalPosition;
         AudioDirector.PlayAt(Sfx.MeleeSwingLight, shoulder);
+        _moving = Walker.PlayMove(_arm == 0 ? Stats.RightMove : Stats.LeftMove, 0.0f);
         PoseStroke();
 
         if (_remaining <= 0.0f)
@@ -188,8 +189,15 @@ public partial class MechSlasher : Node
         }
     }
 
+    // The stroke is a Blender move the walker plays (Stats.RightMove/LeftMove).
+    private bool _moving;
+
     private void PoseStroke()
     {
+        if (_moving)
+        {
+            return;
+        }
         ArmAngles(_elapsed, out float pitch, out float yaw);
         Walker.StrokeArm(_arm, pitch, yaw, 1.0f);
     }

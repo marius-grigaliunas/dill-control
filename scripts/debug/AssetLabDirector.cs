@@ -719,6 +719,17 @@ public partial class AssetLabDirector : Node
             case "drive":
                 await Drive(request);
                 break;
+            case "move":
+            {
+                // Read fresh from disk every time: export from Blender, play again.
+                string path = request.GetValueOrDefault("move", "").AsString();
+                var move = ResourceLoader.Load<MechMove>(path, "", ResourceLoader.CacheMode.Replace);
+                result["result"] = move == null ? $"no move at {path}"
+                    : Walker?.PlayMove(move) == true ? $"playing {path.GetFile()}: {move.Length:0.00} s, {string.Join(", ", move.Parts)}"
+                    : "the asset cannot play it";
+                Note(result["result"].AsString());
+                break;
+            }
             case "wait":
                 await ToSignal(GetTree().CreateTimer(request.GetValueOrDefault("seconds", 1.0).AsDouble(), true, false, true), SceneTreeTimer.SignalName.Timeout);
                 break;
@@ -726,7 +737,7 @@ public partial class AssetLabDirector : Node
                 result["image_png"] = await Shot(request);
                 break;
             default:
-                throw new System.ArgumentException($"no action {action}: status, tool, time, board, leave, reset, drive, wait, shot");
+                throw new System.ArgumentException($"no action {action}: status, tool, time, board, leave, reset, drive, move, wait, shot");
         }
         foreach ((Variant key, Variant value) in Measure())
         {
