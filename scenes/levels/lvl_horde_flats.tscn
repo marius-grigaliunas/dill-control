@@ -4,11 +4,17 @@
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
 [ext_resource type="Material" path="res://art/materials/mat_graybox_grid_ground.tres" id="3_ground"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_pillar.tscn" id="4_pillar"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_2326491.tscn" id="4_yw87t"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_column.tscn" id="5_column"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_9001172.tscn" id="5_yo0cq"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_graybox_block.tscn" id="6_block"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_3733469.tscn" id="6_kcv23"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_5951102.tscn" id="7_hm16h"]
 [ext_resource type="Script" uid="uid://bqbn1xwbwb346" path="res://scripts/horde/HordeDirector.cs" id="7_horde"]
-[ext_resource type="Resource" path="res://resources/horde/horde_stats_default.tres" id="8_stats"]
-[ext_resource type="Resource" path="res://resources/enemies/nme_composition_default.tres" id="9_comp"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_5248791.tscn" id="8_o7tuu"]
+[ext_resource type="Resource" uid="uid://utfjfvbk2vky" path="res://resources/horde/horde_stats_default.tres" id="8_stats"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_9582358.tscn" id="9_83rg6"]
+[ext_resource type="Resource" uid="uid://1rctlaen0pbe" path="res://resources/enemies/nme_composition_default.tres" id="9_comp"]
 [ext_resource type="PackedScene" uid="uid://ctd2f5fevifgy" path="res://scenes/vehicles/mch_quadruped_tank.tscn" id="10_tank"]
 [ext_resource type="PackedScene" path="res://scenes/vehicles/shp_hoverbike.tscn" id="11_bike"]
 [ext_resource type="PackedScene" path="res://scenes/vehicles/mch_field_fighter.tscn" id="12_fighter"]
@@ -84,6 +90,24 @@ shape = SubResource("GroundShape")
 [node name="Water" type="Node3D" parent="." unique_id=1879973252]
 
 [node name="Foliage" type="Node3D" parent="." unique_id=1629364632]
+
+[node name="VineShrub2326491" parent="Foliage" unique_id=2048147752 instance=ExtResource("4_yw87t")]
+transform = Transform3D(0.9396926, 0, 0.34202012, 0, 1, 0, -0.34202012, 0, 0.9396926, -96, 0, -92)
+
+[node name="VineShrub9001172" parent="Foliage" unique_id=648397782 instance=ExtResource("5_yo0cq")]
+transform = Transform3D(-0.34202012, 0, 0.9396926, 0, 1, 0, -0.9396926, 0, -0.34202012, -110, 0, -88)
+
+[node name="VineShrub3733469" parent="Foliage" unique_id=564385410 instance=ExtResource("6_kcv23")]
+transform = Transform3D(-0.34202006, 0, -0.9396927, 0, 1, 0, 0.9396927, 0, -0.34202006, -124, 0, -94)
+
+[node name="VineShrub5951102" parent="Foliage" unique_id=1200644765 instance=ExtResource("7_hm16h")]
+transform = Transform3D(0.4999999, 0, -0.86602545, 0, 1, 0, 0.86602545, 0, 0.4999999, -100, 0, -107)
+
+[node name="VineShrub5248791" parent="Foliage" unique_id=514602582 instance=ExtResource("8_o7tuu")]
+transform = Transform3D(-0.9396926, 0, 0.3420202, 0, 1, 0, -0.3420202, 0, -0.9396926, -128, 0, -110)
+
+[node name="VineShrub9582358" parent="Foliage" unique_id=735099688 instance=ExtResource("9_83rg6")]
+transform = Transform3D(0.25881907, 0, 0.9659258, 0, 1, 0, -0.9659258, 0, 0.25881907, -114, 0, -104)
 
 [node name="Props" type="Node3D" parent="." unique_id=2013008724]
 
@@ -273,10 +297,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -225.86023, 0, 141.73099)
 [node name="prp_vine_3142857" parent="Props/Trees" unique_id=1461444139 instance=ExtResource("27_60l8v")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -175.16225, -7.6293945e-06, 66.63972)
 
-[node name="prp_vine_fruiting_4532344" parent="Props/Trees" instance=ExtResource("29_baked")]
+[node name="prp_vine_fruiting_4532344" parent="Props/Trees" unique_id=1778308201 instance=ExtResource("29_baked")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -240, 0, -170)
 
-[node name="VineForest" parent="Props" instance=ExtResource("28_forest")]
+[node name="VineForest" parent="Props" unique_id=1802570324 instance=ExtResource("28_forest")]
 
 [node name="Lighting" type="Node3D" parent="." unique_id=285727487]
 

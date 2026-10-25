@@ -1,7 +1,7 @@
 {
   "version": 1,
   "title": "Dill Control — vertical slice",
-  "nextNumber": 12,
+  "nextNumber": 13,
   "columns": [
     {
       "id": "cmvhxnwyec",
@@ -13,7 +13,7 @@
         "kmvhxxa0e1w",
         "kmvhxxzbg1y",
         "kmvhxyep21z",
-        "kmvine11tool"
+        "kmvmftuf02"
       ]
     },
     {
@@ -182,21 +182,21 @@
       "created": "2026-10-21T10:00:20.198Z",
       "updated": "2026-10-21T10:00:20.198Z"
     },
-    "kmvine11tool": {
-      "id": "kmvine11tool",
-      "number": 11,
-      "title": "Vines tool: nest generator, sandbox and range lab (main-screen extension)",
-      "body": "Turn addons/vine_gen into a main-screen editor plugin: generate a nest on the 1,260 m planet, see it in the viewport, Play straight into it (horde on/off), mark Good/Bad, Save good nests. Range lab for tuning vine kinds; single-vine Bake kept.\n\nHandoff: docs/handoffs/vine-tool.md. Decisions: 0033 (open), 0034 (pods regrow).\n\nBuild order: 1 cleanup (delete tools/vine-gen, SeededRandom, planet 1,260 m); 2 vine built in memory; 3 valid-only generation; 4 leaves out of the voxel body; 5 colour/size ranges; 6 NestKit + NestBuilder on the planet; 7 pods and hanging pickles (0034); 8 the main-screen tool; 9 decide 0033.",
+    "kmvmftuf02": {
+      "id": "kmvmftuf02",
+      "number": 12,
+      "title": "Godot MCP/Harness-editor bridge, for harness to read godot's errors and develop in a human editable way",
+      "body": "",
       "type": "feature",
       "priority": 2,
       "points": null,
       "labels": [],
-      "milestone": "mmuz89xk91",
+      "milestone": null,
       "assignee": "",
       "checklist": [],
       "archived": false,
-      "created": "2026-10-21T15:00:00.000Z",
-      "updated": "2026-10-21T15:00:00.000Z"
+      "created": "2026-10-24T13:31:45.084Z",
+      "updated": "2026-10-24T13:31:45.084Z"
     }
   },
   "labels": [
