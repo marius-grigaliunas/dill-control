@@ -115,6 +115,11 @@ public static class TerrainCommands
             }}
             """,
             WaterPaintCommand);
+        Bridge.Register("terrain_reload",
+            "Give a SculptedTerrain the heights in its file again (as last saved, or as git restored it), redrawing its chunks; one undo. " +
+            "For throwing away sculpting the editor still holds.",
+            """{"type":"object","properties":{"terrain":{"type":"string"}}}""",
+            Reload);
         Bridge.Register("terrain",
             "A SculptedTerrain's size, spacing, lowest and highest ground, and the ground's height at 'points' [[x, z], ...].",
             """
@@ -487,6 +492,29 @@ public static class TerrainCommands
         float x = (float)a[0]!.GetValue<double>();
         float z = (float)a[a.Count - 1]!.GetValue<double>();
         return new Vector2(x, z);
+    }
+
+    private static JsonNode Reload(JsonObject args)
+    {
+        SculptedTerrain terrain = Find(args);
+        string path = terrain.Map?.ResourcePath ?? throw new Bridge.Refused("the terrain's heights have no file");
+        var disk = ResourceLoader.Load(path, cacheMode: ResourceLoader.CacheMode.Ignore) as HeightMapShape3D
+            ?? throw new Bridge.Refused($"{path} did not load");
+        float[] before = terrain.CopyHeights();
+        float[] after = disk.MapData;
+        if (after.Length != before.Length)
+            throw new Bridge.Refused($"{path} holds {after.Length} heights, the terrain {before.Length}");
+        int changed = 0;
+        for (int i = 0; i < after.Length; i++)
+        {
+            if (after[i] != before[i])
+                changed++;
+        }
+        terrain.SetHeights(after);
+        EditorUndoRedoManager undo = Bridge.BeginAction("terrain: reload heights");
+        TerrainSculpt.Record(undo, terrain, before, after);
+        Bridge.EndAction(undo);
+        return new JsonObject { ["terrain"] = Bridge.PathOf(terrain), ["from"] = path, ["samples_changed"] = changed };
     }
 
     private static JsonNode Info(JsonObject args)
