@@ -65,6 +65,21 @@ The storage bot is mainly storage and transforms to repair, and repairs the
 other bots too. If every bot is gone, a supply drop brings more. Repair is
 destruction played backward, on the same workers.
 
+*Built (step 4):* `MechCare` on every mech asks over
+`EventBus.MechNeedsRepair` once `CallAtMissingVoxels` are gone, orders a
+lost limb in the company's pod (`prp_drop_pod`, no landing blast) to its
+side after `PodDelaySeconds`, walks to it (a companion `Errand`) and has
+it fitted (`MechWalker.Refit`); with its core below `FallBackBelowCore` it
+follows `FallBackDistance` behind the player. The storage bot's
+`MechMender` takes the nearest asking mech, itself included, walks beside
+it and regrows `RegrowPerSecond` voxels outward from each hinge
+(`VoxelPart.Restore`, from the cells as built). Every voxel and part is
+billed in `Session.Ledger`, cleared when a contract is accepted. Tried in
+the asset lab: a bitten fighter mended by the bot; a lost leg dropped,
+walked to and fitted, the bill 250 for the part and 623 voxels. Not built:
+the bot's transform (not designed) and a supply drop of new bots. Regrown
+cells cut off from their part fall away and are regrown again, and billed.
+
 **Repair costs the material.** Each restored voxel, part and dropped bot is
 priced in `resources/vehicles/mech_repair_default.tres` and entered in the
 contract's ledger in `Session`. Once the fight cools, an owned mech's bill

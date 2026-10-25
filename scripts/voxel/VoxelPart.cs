@@ -780,6 +780,81 @@ public partial class VoxelPart : Node3D, IStrainHost
         Apply(Splitter(Grid).Breakup(VoxelBreakup.Fracture), push);
     }
 
+    // The cells it was built with, nearest its origin (a hinge's pivot) first.
+    private int[] _restoreOrder;
+
+    /// <summary>
+    /// Destruction played backward (docs/decisions/0046): puts back up to
+    /// <paramref name="maxCells"/> of the cells it was built with that are
+    /// gone, nearest its origin first, so a limb regrows outward from its
+    /// hinge. The cells as built are its node's <see cref="VoxelMeta.Cells"/>,
+    /// which the game never writes. A part that was emptied, shot off whole,
+    /// comes back with it. Returns how many were put back.
+    /// </summary>
+    public int Restore(int maxCells)
+    {
+        if (Grid == null || maxCells <= 0 || GetParent() is not Node host || !host.HasMeta(VoxelMeta.Cells))
+        {
+            return 0;
+        }
+        byte[] built = host.GetMeta(VoxelMeta.Cells).AsByteArray();
+        if (built.Length != Grid.Cells.Length)
+        {
+            return 0;
+        }
+        if (_restoreOrder == null)
+        {
+            var order = new List<int>();
+            for (int i = 0; i < built.Length; i++)
+            {
+                if (built[i] != 0)
+                {
+                    order.Add(i);
+                }
+            }
+            Vector3 origin = Grid.Origin;
+            order.Sort((a, b) =>
+            {
+                Vector3I ca = Grid.CellOf(a), cb = Grid.CellOf(b);
+                float da = (new Vector3(ca.X + 0.5f, ca.Y + 0.5f, ca.Z + 0.5f) - origin).LengthSquared();
+                float db = (new Vector3(cb.X + 0.5f, cb.Y + 0.5f, cb.Z + 0.5f) - origin).LengthSquared();
+                return da.CompareTo(db);
+            });
+            _restoreOrder = order.ToArray();
+        }
+
+        var fill = new List<(int index, byte colour)>();
+        var min = new Vector3I(int.MaxValue, int.MaxValue, int.MaxValue);
+        var max = new Vector3I(int.MinValue, int.MinValue, int.MinValue);
+        foreach (int i in _restoreOrder)
+        {
+            if (Grid.Cells[i] != 0)
+            {
+                continue;
+            }
+            fill.Add((i, built[i]));
+            Vector3I c = Grid.CellOf(i);
+            min = min.Min(c);
+            max = max.Max(c);
+            if (fill.Count >= maxCells)
+            {
+                break;
+            }
+        }
+        if (fill.Count == 0)
+        {
+            return 0;
+        }
+        Grid.Fill(fill);
+        _emptied = false;
+        MarkDirty(min, max);
+        RebuildCollisionNow(min, max);
+        return fill.Count;
+    }
+
+    /// <summary>How many of the cells it was built with are gone.</summary>
+    public int Missing => Grid == null ? 0 : Math.Max(0, Grid.InitialCount - Grid.SolidCount);
+
     /// <summary>
     /// Everything has gone: its collision goes now, in one step, rather than
     /// being re-boxed piece by piece as each one leaves (which cost a crumbling

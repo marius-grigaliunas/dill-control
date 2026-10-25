@@ -1,25 +1,28 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene format=3 uid="uid://hmi8kleb8hgg"]
 
 [ext_resource type="PackedScene" uid="uid://bm2p4imekmllq" path="res://art/voxels/mch_field_fighter.vox" id="1_model"]
-[ext_resource type="Script" path="res://scripts/vehicles/MechWalker.cs" id="2_walker"]
-[ext_resource type="Script" path="res://scripts/voxel/VoxelBody.cs" id="30_voxels"]
-[ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_mech.tres" id="31_armour"]
-[ext_resource type="Script" path="res://scripts/vehicles/MechCompanion.cs" id="3_companion"]
-[ext_resource type="Resource" path="res://resources/vehicles/mch_field_fighter_tuning.tres" id="4_tuning"]
-[ext_resource type="Script" path="res://scripts/player/ToonPass.cs" id="5_toon"]
-[ext_resource type="Script" path="res://scripts/vehicles/MechGunner.cs" id="6_gunner"]
-[ext_resource type="Resource" path="res://resources/vehicles/mch_field_fighter_guns.tres" id="7_guns"]
+[ext_resource type="Script" uid="uid://d3761xciwvqeq" path="res://scripts/vehicles/MechWalker.cs" id="2_walker"]
+[ext_resource type="Script" uid="uid://y2arq2sdad0e" path="res://scripts/vehicles/MechCompanion.cs" id="3_companion"]
+[ext_resource type="Resource" uid="uid://6cqdocdsom14" path="res://resources/vehicles/mch_field_fighter_tuning.tres" id="4_tuning"]
+[ext_resource type="Script" uid="uid://cpnhd5rjl1c43" path="res://scripts/player/ToonPass.cs" id="5_toon"]
+[ext_resource type="Script" uid="uid://cikoe6ufr6iuv" path="res://scripts/vehicles/MechGunner.cs" id="6_gunner"]
+[ext_resource type="Resource" uid="uid://hw8e5jvunvj2" path="res://resources/vehicles/mch_field_fighter_guns.tres" id="7_guns"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/fx_tracer.tscn" id="8_tracer"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/fx_impact.tscn" id="9_impact"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/fx_explosion.tscn" id="10_expl"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/fx_rocket.tscn" id="11_shell"]
-[ext_resource type="Script" path="res://scripts/vehicles/MechSlasher.cs" id="12_slash"]
-[ext_resource type="Resource" path="res://resources/vehicles/mch_field_fighter_slash.tres" id="13_slashstats"]
+[ext_resource type="Script" uid="uid://bciponcrtpxeu" path="res://scripts/vehicles/MechSlasher.cs" id="12_slash"]
+[ext_resource type="Resource" uid="uid://cryqvio26ywpr" path="res://resources/vehicles/mch_field_fighter_slash.tres" id="13_slashstats"]
+[ext_resource type="Script" uid="uid://dwpndhtpocq4h" path="res://scripts/vehicles/MechCare.cs" id="16_stjwc"]
+[ext_resource type="Resource" path="res://resources/vehicles/mech_repair_default.tres" id="17_f7f0b"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_drop_pod.tscn" id="18_7osid"]
+[ext_resource type="Script" uid="uid://csjy6ff4bwc1m" path="res://scripts/voxel/VoxelBody.cs" id="30_voxels"]
+[ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_mech.tres" id="31_armour"]
 
 [sub_resource type="BoxShape3D" id="HullShape"]
 size = Vector3(3.2, 6.4, 1.9)
 
-[node name="MchFieldFighter" type="CharacterBody3D" node_paths=PackedStringArray("Model", "Thighs", "Shins", "Feet", "Arms", "Mounted", "MountedOn", "Voxels", "Core", "Head")]
+[node name="MchFieldFighter" type="CharacterBody3D" unique_id=610237633 node_paths=PackedStringArray("Model", "Voxels", "Core", "Head", "Thighs", "Shins", "Feet", "Arms", "Mounted", "MountedOn")]
 script = ExtResource("2_walker")
 Tuning = ExtResource("4_tuning")
 Model = NodePath("Model")
@@ -33,44 +36,42 @@ Arms = [NodePath("Model/ArmR"), NodePath("Model/ArmL")]
 Mounted = [NodePath("Model/Muzzle"), NodePath("Model/Cannon")]
 MountedOn = [NodePath("Model/ArmR"), NodePath("Model/ArmL")]
 
-[node name="Model" parent="." instance=ExtResource("1_model")]
+[node name="Model" parent="." unique_id=1786170810 instance=ExtResource("1_model")]
 
-[node name="Voxels" type="Node" parent="." node_paths=PackedStringArray("Model", "Hinged", "Hardened")]
+[node name="Voxels" type="Node" parent="." unique_id=2049618392 node_paths=PackedStringArray("Model", "Hinged", "Hardened")]
 script = ExtResource("30_voxels")
 Model = NodePath("../Model")
 Stats = ExtResource("31_armour")
 Hinged = [NodePath("../Model/ThighL"), NodePath("../Model/ShinL"), NodePath("../Model/FootL"), NodePath("../Model/ThighR"), NodePath("../Model/ShinR"), NodePath("../Model/FootR"), NodePath("../Model/ArmR"), NodePath("../Model/ArmL"), NodePath("../Model/Head")]
 Hardened = [NodePath("../Model/Head")]
 
-[node name="Hull" type="CollisionShape3D" parent="."]
+[node name="Hull" type="CollisionShape3D" parent="." unique_id=950173918]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
 shape = SubResource("HullShape")
 
-[node name="Prompt" type="Label3D" parent="."]
+[node name="Prompt" type="Label3D" parent="." unique_id=655696303]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.6, 0)
 pixel_size = 0.006
 billboard = 1
 no_depth_test = true
 text = "F  ride"
 font_size = 48
-outline_size = 12
 
-[node name="CameraPivot" type="Node3D" parent="."]
+[node name="CameraPivot" type="Node3D" parent="." unique_id=2064915244]
 top_level = true
 
-[node name="Arm" type="SpringArm3D" parent="CameraPivot"]
+[node name="Arm" type="SpringArm3D" parent="CameraPivot" unique_id=529122002]
 spring_length = 15.0
 margin = 0.3
 
-[node name="Camera" type="Camera3D" parent="CameraPivot/Arm"]
-fov = 75.0
+[node name="Camera" type="Camera3D" parent="CameraPivot/Arm" unique_id=988525189]
 
-[node name="ToonPass" type="MeshInstance3D" parent="CameraPivot/Arm/Camera"]
+[node name="ToonPass" type="MeshInstance3D" parent="CameraPivot/Arm/Camera" unique_id=1276156372]
 script = ExtResource("5_toon")
 
-[node name="RideHint" type="CanvasLayer" parent="."]
+[node name="RideHint" type="CanvasLayer" parent="." unique_id=2112957609]
 
-[node name="Keys" type="Label" parent="RideHint"]
+[node name="Keys" type="Label" parent="RideHint" unique_id=1469817769]
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
@@ -85,7 +86,7 @@ text = "WASD  walk   Shift  sprint   Space  jump, hold for jets
 LMB  gun (1) / flamer (2) / slam (3)   RMB  arm cannon
 V  cockpit / chase view        F  climb off"
 
-[node name="Gunner" type="Node" parent="." node_paths=PackedStringArray("Walker", "TurretMuzzle", "CannonMuzzle")]
+[node name="Gunner" type="Node" parent="." unique_id=1218495556 node_paths=PackedStringArray("Walker", "TurretMuzzle", "CannonMuzzle")]
 script = ExtResource("6_gunner")
 Stats = ExtResource("7_guns")
 Walker = NodePath("..")
@@ -96,20 +97,27 @@ ImpactScene = ExtResource("9_impact")
 ExplosionScene = ExtResource("10_expl")
 ShellScene = ExtResource("11_shell")
 
-[node name="Slasher" type="Node" parent="." node_paths=PackedStringArray("Walker", "Gunner")]
+[node name="Slasher" type="Node" parent="." unique_id=602796245 node_paths=PackedStringArray("Walker", "Gunner")]
 script = ExtResource("12_slash")
 Stats = ExtResource("13_slashstats")
 Walker = NodePath("..")
 Gunner = NodePath("../Gunner")
 
-[node name="Companion" type="Node" parent="." node_paths=PackedStringArray("Walker", "Seat", "CameraPivot", "CameraArm", "Camera", "Prompt", "Gunner", "Slasher", "RideHint")]
+[node name="Companion" type="Node" parent="." unique_id=695545170 node_paths=PackedStringArray("Walker", "Seat", "CameraPivot", "CameraArm", "Camera", "Gunner", "Slasher", "RideHint", "Prompt")]
 script = ExtResource("3_companion")
 Walker = NodePath("..")
 Seat = NodePath("../Model/Seat")
 CameraPivot = NodePath("../CameraPivot")
 CameraArm = NodePath("../CameraPivot/Arm")
 Camera = NodePath("../CameraPivot/Arm/Camera")
-Prompt = NodePath("../Prompt")
 Gunner = NodePath("../Gunner")
 Slasher = NodePath("../Slasher")
 RideHint = NodePath("../RideHint")
+Prompt = NodePath("../Prompt")
+
+[node name="Care" type="Node" parent="." unique_id=1869663239 node_paths=PackedStringArray("Walker", "Companion")]
+script = ExtResource("16_stjwc")
+Stats = ExtResource("17_f7f0b")
+Walker = NodePath("..")
+Companion = NodePath("../Companion")
+PodScene = ExtResource("18_7osid")

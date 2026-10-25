@@ -65,6 +65,14 @@ public partial class MechCompanion : Node, IRideable
 
     public bool IsRidden { get; private set; }
 
+    /// <summary>Somewhere it has been sent, world space: it walks there
+    /// instead of following, until cleared (a part pod, a mech to mend).</summary>
+    public Vector3? Errand { get; set; }
+
+    /// <summary>Above zero, it follows this far behind the player instead
+    /// of at its own spot: badly hurt, it keeps out of the fight.</summary>
+    public float FallBackDistance { get; set; }
+
     /// <summary>For <c>bench.gd</c>, which cannot move the mouse: swings the
     /// ride camera a third of the way round.</summary>
     public void BenchTurnCamera()
@@ -308,8 +316,12 @@ public partial class MechCompanion : Node, IRideable
         Vector3 back = look.Z.Slide(up).Normalized();
         Vector3 side = look.X.Slide(up).Normalized();
         Vector3 spot = _player.GlobalPosition + back * Tuning.FollowBehind + side * Tuning.FollowSide;
+        if (FallBackDistance > 0.0f)
+        {
+            spot = _player.GlobalPosition + back * FallBackDistance + side * Tuning.FollowSide;
+        }
 
-        Vector3? threat = Gunner?.Target;
+        Vector3? threat = FallBackDistance > 0.0f || Errand != null ? null : Gunner?.Target;
         float fromPlayer = (Walker.GlobalPosition - _player.GlobalPosition).Slide(up).Length();
         bool leashed = fromPlayer > Tuning.LeashRange;
         if (threat is Vector3 danger && !leashed)
@@ -329,9 +341,15 @@ public partial class MechCompanion : Node, IRideable
             }
         }
 
+        if (Errand is Vector3 errand)
+        {
+            spot = errand;
+        }
         Vector3 toSpot = (spot - Walker.GlobalPosition).Slide(up);
         float distance = toSpot.Length();
-        float drive = Mathf.Clamp((distance - Tuning.FollowArriveRadius) / Mathf.Max(Tuning.FollowSlowRadius, 0.01f), 0.0f, 1.0f);
+        // Sent somewhere, it goes all the way: a part is fitted within a few metres.
+        float arrive = Errand != null ? 1.0f : Tuning.FollowArriveRadius;
+        float drive = Mathf.Clamp((distance - arrive) / Mathf.Max(Tuning.FollowSlowRadius, 0.01f), 0.0f, 1.0f);
         Vector3 desire = distance > 1e-3f ? toSpot / distance * drive : Vector3.Zero;
         Walker.MoveIntent = AroundPlayer(desire, up);
         Walker.Sprint = Tuning.FollowSprintDistance > 0.0f && distance > Tuning.FollowSprintDistance;

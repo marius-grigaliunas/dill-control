@@ -384,6 +384,10 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
     }
 
     /// <summary>Everything left falls apart as chunks: the thing is destroyed.</summary>
+    /// <summary>Puts back up to <paramref name="maxCells"/> of a part's lost
+    /// cells, outward from its origin (<see cref="VoxelPart.Restore"/>).</summary>
+    public int Restore(Node3D host, int maxCells) => PartOf(host)?.Restore(maxCells) ?? 0;
+
     public void BreakAll(Vector3 push)
     {
         foreach (VoxelPart part in _parts)

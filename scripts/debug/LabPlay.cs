@@ -14,9 +14,9 @@ public static class LabPlay
     public const string ListenerPath = "user://lab_game.json";
     public const string LevelPath = "res://scenes/levels/lvl_asset_lab.tscn";
 
-    public static void Write(string asset, bool board)
+    public static void Write(string asset, bool board, string[] with = null)
     {
-        var request = new Godot.Collections.Dictionary { ["asset"] = asset, ["board"] = board };
+        var request = new Godot.Collections.Dictionary { ["asset"] = asset, ["board"] = board, ["with"] = with ?? System.Array.Empty<string>() };
         using FileAccess file = FileAccess.Open(RequestPath, FileAccess.ModeFlags.Write);
         file?.StoreString(Json.Stringify(request));
     }

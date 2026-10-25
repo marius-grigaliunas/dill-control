@@ -42,10 +42,12 @@ public partial class AssetLabDirector : Node
     [Export]
     public PackedScene ExplosionScene { get; set; }
 
-    private enum Tool { Bite, Blast, Cut, Break }
+    private enum Tool { Bite, Blast, Cut, Break, Mend }
 
     private string _assetPath;
     private bool _boardAtStart;
+    private string[] _withPaths = System.Array.Empty<string>();
+    private readonly List<Node3D> _with = new();
     private Node3D _asset;
     private PlayerController _player;
     private LabListener _listener;
@@ -68,6 +70,7 @@ public partial class AssetLabDirector : Node
         Godot.Collections.Dictionary request = LabPlay.Take();
         _assetPath = request?.GetValueOrDefault("asset", DefaultAsset).AsString() ?? DefaultAsset;
         _boardAtStart = request?.GetValueOrDefault("board", true).AsBool() ?? true;
+        _withPaths = request?.GetValueOrDefault("with", new string[0]).AsStringArray() ?? System.Array.Empty<string>();
 
         var layer = new CanvasLayer { Layer = 50 };
         _hud = new Label { Position = new Vector2(16, 16) };
@@ -152,6 +155,25 @@ public partial class AssetLabDirector : Node
         GetParent().AddChild(_asset);
         _asset.GlobalTransform = at;
         Note($"{_assetPath.GetFile()} placed");
+
+        // Company for it, in a row to its right: a storage bot to mend it.
+        foreach (Node3D other in _with)
+        {
+            if (IsInstanceValid(other))
+            {
+                other.QueueFree();
+            }
+        }
+        _with.Clear();
+        for (int i = 0; i < _withPaths.Length; i++)
+        {
+            if (ResourceLoader.Load<PackedScene>(_withPaths[i])?.Instantiate() is Node3D other)
+            {
+                GetParent().AddChild(other);
+                other.GlobalTransform = at.Translated(at.Basis.X * (10.0f * (i + 1)));
+                _with.Add(other);
+            }
+        }
     }
 
     private IRideable Rideable => _asset == null ? null
@@ -273,7 +295,7 @@ public partial class AssetLabDirector : Node
                     BoardOrSteer();
                 }
                 break;
-            case Key.Y: _tool = (Tool)(((int)_tool + 1) % 4); _strength = 1.0f; break;
+            case Key.Y: _tool = (Tool)(((int)_tool + 1) % 5); _strength = 1.0f; break;
             case Key.X: Use(_tool, Aim()); break;
             case Key.Minus: _strength /= Stats.StrengthStep; break;
             case Key.Equal: _strength *= Stats.StrengthStep; break;
@@ -348,7 +370,11 @@ public partial class AssetLabDirector : Node
     private string Use(Tool tool, Hit? aimed, string part = null)
     {
         string result;
-        if (tool == Tool.Break && part != null)
+        if (tool == Tool.Mend)
+        {
+            result = Mend();
+        }
+        else if (tool == Tool.Break && part != null)
         {
             result = BreakNamed(part, aimed?.Direction ?? Vector3.Forward);
         }
@@ -437,6 +463,30 @@ public partial class AssetLabDirector : Node
             cut++;
         }
         return cut > 0 ? $"cut {thickness:0.0} m through {cut} parts" : "cut: no voxel part at that height";
+    }
+
+    /// <summary>Repair played at once (docs/decisions/0046): every lost limb
+    /// fitted new, then the voxels gone from the rest regrown, as many as the
+    /// strength allows.</summary>
+    private string Mend()
+    {
+        if (Walker is not MechWalker walker)
+        {
+            int back = 0;
+            foreach (VoxelPart part in Bodies.SelectMany(b => b.Parts))
+            {
+                back += part.Restore((int)(Stats.MendVoxels * _strength));
+            }
+            return $"mended {back} voxels";
+        }
+        int limbs = 0, voxels = 0;
+        foreach (Node3D limb in walker.LostLimbs())
+        {
+            voxels += walker.Refit(limb);
+            limbs++;
+        }
+        voxels += walker.Regrow((int)(Stats.MendVoxels * _strength));
+        return $"mended: {limbs} limbs fitted, {voxels} voxels back";
     }
 
     private string BreakNearest(Hit hit)
@@ -528,11 +578,41 @@ public partial class AssetLabDirector : Node
             ["speed"] = Mathf.Snapped((_asset as CharacterBody3D)?.Velocity.Length() ?? 0.0f, 0.01),
             ["grounded"] = Walker?.IsGrounded ?? false,
             ["blockers"] = Walker?.Blockers ?? "",
+            ["missing_voxels"] = Walker?.MissingVoxels() ?? 0,
+            ["lost_limbs"] = Walker?.LostLimbs().Count ?? 0,
+            ["with"] = WithStatus(),
+            ["ledger"] = LedgerStatus(),
             ["in_control"] = InControl,
             ["tool"] = _tool.ToString().ToLowerInvariant(),
             ["strength"] = Mathf.Snapped(_strength, 0.01),
             ["time_scale"] = Engine.TimeScale,
         };
+    }
+
+    private Godot.Collections.Array WithStatus()
+    {
+        var rows = new Godot.Collections.Array();
+        foreach (Node3D other in _with)
+        {
+            if (!IsInstanceValid(other) || other is not MechWalker walker)
+            {
+                continue;
+            }
+            var mender = walker.GetNodeOrNull<MechMender>("Mender");
+            rows.Add($"{walker.Name}: {walker.CurrentStance}, missing {walker.MissingVoxels()}, at {walker.GlobalPosition.DistanceTo(_asset?.GlobalPosition ?? Vector3.Zero):0.0} m"
+                + (mender?.Patient != null ? $", mending {mender.Patient.Name}" : ""));
+        }
+        return rows;
+    }
+
+    private static Godot.Collections.Array LedgerStatus()
+    {
+        var rows = new Godot.Collections.Array();
+        foreach (Mission.Session.LedgerLine line in Mission.Session.Instance?.Ledger ?? new List<Mission.Session.LedgerLine>())
+        {
+            rows.Add($"{line.For}: {line.What} x{line.Units} at {line.UnitPrice} = {line.Total}");
+        }
+        return rows;
     }
 
     private string HudText()
@@ -584,6 +664,7 @@ public partial class AssetLabDirector : Node
                     "bite" => Tool.Bite,
                     "cut" => Tool.Cut,
                     "break" => Tool.Break,
+                    "mend" => Tool.Mend,
                     _ => Tool.Blast,
                 };
                 _strength = (float)request.GetValueOrDefault("strength", 1.0).AsDouble();

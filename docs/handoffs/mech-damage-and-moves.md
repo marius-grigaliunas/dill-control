@@ -174,7 +174,8 @@ Godot timeline (the user works in Blender); a hollow layered remodel.
    and improved. *Built: the lab became the asset lab (0047); the gaits
    are in (0046, step 3); `limbs` is the bench. Walking a mech in the tab
    without Test is not built: Test walks it with real physics.*
-4. **Repair and resupply AI**: the brain, the bus signal, the storage bot
+4. *Built (0046, step 4), but for the bot's transform and the supply
+   drop of new bots.* **Repair and resupply AI**: the brain, the bus signal, the storage bot
    regrowing cells, the part pod (`scripts/mission/DropPod.cs` is the
    company's existing pod: falls, lands like a bomb, opens; a starting
    point), the ledger in `Session`, the repair `.tres`.

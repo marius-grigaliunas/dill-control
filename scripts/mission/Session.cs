@@ -33,6 +33,40 @@ public partial class Session : Node
 
     private List<ContractSpec> _offers;
 
+    /// <summary>One line of the contract's bill: what was spent, how many,
+    /// at what price each (docs/decisions/0046). Owned mechs settle in the
+    /// garage, hired ones at the contract's end; the screens come with the
+    /// economy.</summary>
+    public readonly record struct LedgerLine(string What, string For, int Units, float UnitPrice)
+    {
+        public float Total => Units * UnitPrice;
+    }
+
+    /// <summary>What the contract has cost so far: mech repairs, parts by pod.</summary>
+    public IReadOnlyList<LedgerLine> Ledger => _ledger;
+
+    private readonly List<LedgerLine> _ledger = new();
+
+    /// <summary>Enters a cost in the ledger; units of the same thing for the
+    /// same owner run on one line.</summary>
+    public void Bill(string what, string forWhom, int units, float unitPrice)
+    {
+        if (units <= 0)
+        {
+            return;
+        }
+        for (int i = _ledger.Count - 1; i >= 0; i--)
+        {
+            LedgerLine line = _ledger[i];
+            if (line.What == what && line.For == forWhom && Mathf.IsEqualApprox(line.UnitPrice, unitPrice))
+            {
+                _ledger[i] = line with { Units = line.Units + units };
+                return;
+            }
+        }
+        _ledger.Add(new LedgerLine(what, forWhom, units, unitPrice));
+    }
+
     public override void _EnterTree()
     {
         Instance = this;
@@ -60,7 +94,11 @@ public partial class Session : Node
     }
 
     /// <summary>The player took a contract. The contract level reads it when it loads.</summary>
-    public void Accept(ContractSpec contract) => Accepted = contract;
+    public void Accept(ContractSpec contract)
+    {
+        Accepted = contract;
+        _ledger.Clear();
+    }
 
     /// <summary>Back in the hub with nothing taken; a new set of offers.</summary>
     public void Return()

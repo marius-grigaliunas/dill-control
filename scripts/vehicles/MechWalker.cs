@@ -594,6 +594,107 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		return _pivotHeight;
 	}
 
+	// ---------------- Mending ----------------
+
+	/// <summary>Limbs shot away whole, each by the part a new one is fitted
+	/// at: a leg's thigh, an arm.</summary>
+	public List<Node3D> LostLimbs()
+	{
+		var lost = new List<Node3D>();
+		foreach (MechLeg leg in _legs)
+		{
+			if (!leg.Alive)
+			{
+				lost.Add(leg.Thigh);
+			}
+		}
+		foreach (Node3D arm in Arms)
+		{
+			if (!PartAlive(arm))
+			{
+				lost.Add(arm);
+			}
+		}
+		return lost;
+	}
+
+	/// <summary>Voxels gone from the parts it still has: what a repair
+	/// regrows. Lost limbs are not counted: they are fitted new.</summary>
+	public int MissingVoxels()
+	{
+		int missing = 0;
+		foreach (VoxelPart part in Voxels?.Parts ?? Array.Empty<VoxelPart>())
+		{
+			if (!part.IsEmpty)
+			{
+				missing += part.Missing;
+			}
+		}
+		return missing;
+	}
+
+	/// <summary>
+	/// Regrows up to <paramref name="voxels"/> of what its parts have lost,
+	/// the core first, then the rest, each outward from its hinge. Returns how
+	/// many went back.
+	/// </summary>
+	public int Regrow(int voxels)
+	{
+		int done = 0;
+		if (Voxels == null || IsDestroyed)
+		{
+			return 0;
+		}
+		var parts = new List<VoxelPart>(Voxels.Parts);
+		VoxelPart core = Voxels.PartOf(Core);
+		parts.Sort((a, b) => (a == core ? 0 : 1).CompareTo(b == core ? 0 : 1));
+		foreach (VoxelPart part in parts)
+		{
+			if (done >= voxels)
+			{
+				break;
+			}
+			if (!part.IsEmpty)
+			{
+				done += part.Restore(voxels - done);
+			}
+		}
+		return done;
+	}
+
+	/// <summary>
+	/// Fits a new limb where one was lost (<see cref="LostLimbs"/>): every
+	/// part of it put back whole at its hinge, and it walks on it again.
+	/// Returns the voxels it took.
+	/// </summary>
+	public int Refit(Node3D limb)
+	{
+		if (Voxels == null || IsDestroyed || limb == null)
+		{
+			return 0;
+		}
+		int voxels = 0;
+		foreach (MechLeg leg in _legs)
+		{
+			if (leg.Alive || leg.Thigh != limb)
+			{
+				continue;
+			}
+			foreach (Node3D segment in new[] { leg.Thigh, leg.Shin, leg.Foot })
+			{
+				voxels += Voxels.Restore(segment, int.MaxValue);
+			}
+			leg.Alive = true;
+			leg.Planted = GlobalTransform * leg.RestFoot;
+		}
+		if (ArmIndex(limb) >= 0)
+		{
+			voxels += Voxels.Restore(limb, int.MaxValue);
+		}
+		UpdateStance();
+		return voxels;
+	}
+
 	/// <summary>For <c>bench.gd</c> and the asset lab: breaks off the next
 	/// limb, legs first, then arms. False when none is left.</summary>
 	public bool BenchBreakNext()

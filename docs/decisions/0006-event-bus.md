@@ -40,6 +40,13 @@ name the horde, and the horde cannot know every building. The `HordeDirector`
 listens and asks physics again for the flow cells in the radius. Loose pieces
 and rubble heaps do not count as obstacles there: they are walked over.
 
+**`MechNeedsRepair(mech)`.** Emitted by a damaged mech's `MechCare` every few
+seconds while voxels are gone from it (0046). The mech cannot name its
+repairer: storage bots come and go, are destroyed, are dropped in new, and
+any of them may be the one free and near. Each living bot's `MechMender`
+listens and the nearest free one takes the job. A mech's lost limb does not
+go here: it orders its own part by pod.
+
 ## What is not on it
 
 Anything parent-to-child or between siblings in one scene: those use local

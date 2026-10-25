@@ -32,6 +32,11 @@ public partial class AssetLabStats : Resource
     [Export(PropertyHint.Range, "0,30,0.5,suffix:m/s")]
     public float BreakPush { get; set; } = 3.0f;
 
+    /// <summary>Voxels the mend tool regrows at strength 1, after fitting
+    /// every lost limb new.</summary>
+    [Export(PropertyHint.Range, "1,100000,1")]
+    public float MendVoxels { get; set; } = 500.0f;
+
     /// <summary>What - and = scale the chosen tool's strength by.</summary>
     [Export(PropertyHint.Range, "1.05,4,0.05")]
     public float StrengthStep { get; set; } = 1.5f;

@@ -57,14 +57,14 @@ public static class AssetLabCommands
             ResourceCommand);
         Bridge.Register("lab_test",
             "Play the asset lab level with an asset (default: the one shown in the Lab tab), as the tab's Test does: it stands in front of the player, " +
-            "who is put in its seat if it is a vehicle (WASD drives it) or steers it if it is a walker nobody rides ('board': false to stay on foot). " +
+            "who is put in its seat if it is a vehicle (WASD drives it) or steers it if it is a walker nobody rides ('board': false to stay on foot). 'with' lists more assets stood in a row beside it (a storage bot to mend it). " +
             "Waits until the lab answers, then returns its status. Drive it with lab_do; 'stop' ends it.",
-            """{"type":"object","properties":{"asset":{"type":"string"},"board":{"type":"boolean"}}}""",
+            """{"type":"object","properties":{"asset":{"type":"string"},"board":{"type":"boolean"},"with":{"type":"array","items":{"type":"string"}}}}""",
             Test);
         Bridge.Register("lab_do",
             "Tell the running asset lab (lab_test) to do something, and get its status back: fps, frame, physics and GPU ms, draws, voxels left " +
             "of those built, parts lost, loose pieces, destroyed. 'action': status | tool | time | board | leave | reset | drive | wait | shot. " +
-            "tool: 'kind' bite, blast, cut or break, at the crosshair or at 'at': [x,y,z], a part's name (e.g. Head, ThighL) wherever it is now, " +
+            "tool: 'kind' bite, blast, cut, break or mend (fits lost limbs new and regrows lost voxels), at the crosshair or at 'at': [x,y,z], a part's name (e.g. Head, ThighL) wherever it is now, " +
             "or 'asset' (aimed from the camera); 'part' breaks a named part away ('next': a walker's next limb, legs first); " +
             "'strength' scales it (default 1). time: 'scale' (0 pauses), 'step' frames. drive: 'actions' held for 'seconds' " +
             "(move_forward, move_back, move_left, move_right, sprint, jump, fire, alt_fire). wait: 'seconds'. " +
@@ -73,7 +73,7 @@ public static class AssetLabCommands
             """
             {"type":"object","required":["action"],"properties":{
               "action":{"type":"string","enum":["status","tool","time","board","leave","reset","drive","wait","shot"]},
-              "kind":{"type":"string","enum":["bite","blast","cut","break"]},"at":{"description":"[x,y,z], a part's name, or 'asset'"},
+              "kind":{"type":"string","enum":["bite","blast","cut","break","mend"]},"at":{"description":"[x,y,z], a part's name, or 'asset'"},
               "part":{"type":"string"},"strength":{"type":"number"},"scale":{"type":"number"},"step":{"type":"integer"},
               "actions":{"type":"array","items":{"type":"string"}},"seconds":{"type":"number"},
               "from":{"type":"array","items":{"type":"number"}},"distance":{"type":"number"},"yaw":{"type":"number"},"pitch":{"type":"number"},"width":{"type":"integer"}
@@ -83,13 +83,13 @@ public static class AssetLabCommands
     }
 
     /// <summary>Plays the lab level with an asset; what the tab's Test button does.</summary>
-    public static void Play(string asset, bool board)
+    public static void Play(string asset, bool board, string[] with = null)
     {
         if (Godot.FileAccess.FileExists(LabPlay.ListenerPath))
         {
             DirAccess.RemoveAbsolute(ProjectSettings.GlobalizePath(LabPlay.ListenerPath));
         }
-        LabPlay.Write(asset, board);
+        LabPlay.Write(asset, board, with);
         EditorInterface.Singleton.PlayCustomScene(LabPlay.LevelPath);
     }
 
@@ -102,6 +102,7 @@ public static class AssetLabCommands
             throw new Bridge.Refused(asset == null ? "no asset shown in the Lab tab; name one" : $"no asset '{asset}'");
         }
         bool board = Bridge.Flag(args, "board", true);
+        string[] with = (args["with"] as JsonArray)?.Select(w => AssetCatalog.Find((string)w)?.Path ?? (string)w).ToArray();
         // D3D12 on the Iris Xe hangs in its first second about one start in
         // three (CLAUDE.md, verified environment): a lab that does not answer
         // is started again.
@@ -109,7 +110,7 @@ public static class AssetLabCommands
         for (int attempt = 1; attempt <= 3; attempt++)
         {
             await StopAndWait();
-            Play(path, board);
+            Play(path, board, with);
             for (int frame = 0; frame < 1800 && !Godot.FileAccess.FileExists(LabPlay.ListenerPath); frame++)
             {
                 await Bridge.NextFrame();

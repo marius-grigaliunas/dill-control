@@ -1,16 +1,20 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene format=3 uid="uid://b5y8m7yf0545t"]
 
 [ext_resource type="PackedScene" uid="uid://685mpe2o71wn" path="res://art/voxels/mch_mobile_storage.vox" id="1_model"]
-[ext_resource type="Script" path="res://scripts/vehicles/MechWalker.cs" id="2_walker"]
-[ext_resource type="Script" path="res://scripts/voxel/VoxelBody.cs" id="30_voxels"]
-[ext_resource type="Script" path="res://scripts/vehicles/MechCompanion.cs" id="3_companion"]
+[ext_resource type="Script" uid="uid://d3761xciwvqeq" path="res://scripts/vehicles/MechWalker.cs" id="2_walker"]
+[ext_resource type="Script" uid="uid://y2arq2sdad0e" path="res://scripts/vehicles/MechCompanion.cs" id="3_companion"]
 [ext_resource type="Resource" path="res://resources/vehicles/mch_mobile_storage_tuning.tres" id="4_tuning"]
-[ext_resource type="Script" path="res://scripts/vehicles/MechSupply.cs" id="5_supply"]
+[ext_resource type="Script" uid="uid://bdkj5aa1mys24" path="res://scripts/vehicles/MechSupply.cs" id="5_supply"]
+[ext_resource type="Script" uid="uid://dwpndhtpocq4h" path="res://scripts/vehicles/MechCare.cs" id="7_6sdon"]
+[ext_resource type="Resource" path="res://resources/vehicles/mech_repair_default.tres" id="8_cb1cn"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_drop_pod.tscn" id="9_noobd"]
+[ext_resource type="Script" uid="uid://bewx2w3kbba8j" path="res://scripts/vehicles/MechMender.cs" id="10_1l584"]
+[ext_resource type="Script" uid="uid://csjy6ff4bwc1m" path="res://scripts/voxel/VoxelBody.cs" id="30_voxels"]
 
 [sub_resource type="BoxShape3D" id="HullShape"]
 size = Vector3(1.8, 1.8, 1.3)
 
-[node name="MchMobileStorage" type="CharacterBody3D" node_paths=PackedStringArray("Model", "Thighs", "Shins", "Feet", "Voxels", "Core")]
+[node name="MchMobileStorage" type="CharacterBody3D" unique_id=786214546 node_paths=PackedStringArray("Model", "Voxels", "Core", "Thighs", "Shins", "Feet")]
 script = ExtResource("2_walker")
 Tuning = ExtResource("4_tuning")
 Model = NodePath("Model")
@@ -20,33 +24,44 @@ Thighs = [NodePath("Model/ThighFL"), NodePath("Model/ThighFR"), NodePath("Model/
 Shins = [NodePath("Model/ShinFL"), NodePath("Model/ShinFR"), NodePath("Model/ShinBL"), NodePath("Model/ShinBR")]
 Feet = [NodePath("Model/FootFL"), NodePath("Model/FootFR"), NodePath("Model/FootBL"), NodePath("Model/FootBR")]
 
-[node name="Model" parent="." instance=ExtResource("1_model")]
+[node name="Model" parent="." unique_id=546829613 instance=ExtResource("1_model")]
 
-[node name="Voxels" type="Node" parent="." node_paths=PackedStringArray("Model", "Hinged")]
+[node name="Voxels" type="Node" parent="." unique_id=770545247 node_paths=PackedStringArray("Model", "Hinged")]
 script = ExtResource("30_voxels")
 Model = NodePath("../Model")
 Hinged = [NodePath("../Model/ThighFL"), NodePath("../Model/ShinFL"), NodePath("../Model/FootFL"), NodePath("../Model/ThighFR"), NodePath("../Model/ShinFR"), NodePath("../Model/FootFR"), NodePath("../Model/ThighBL"), NodePath("../Model/ShinBL"), NodePath("../Model/FootBL"), NodePath("../Model/ThighBR"), NodePath("../Model/ShinBR"), NodePath("../Model/FootBR")]
 
-[node name="Hull" type="CollisionShape3D" parent="."]
+[node name="Hull" type="CollisionShape3D" parent="." unique_id=137211706]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("HullShape")
 
-[node name="Indicator" type="Label3D" parent="."]
+[node name="Indicator" type="Label3D" parent="." unique_id=719508725]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, 0)
 visible = false
-pixel_size = 0.005
 billboard = 1
 no_depth_test = true
 modulate = Color(1, 0.85, 0.4, 1)
 text = "+ AMMO"
 font_size = 48
-outline_size = 12
 
-[node name="Companion" type="Node" parent="." node_paths=PackedStringArray("Walker")]
+[node name="Companion" type="Node" parent="." unique_id=2016798631 node_paths=PackedStringArray("Walker")]
 script = ExtResource("3_companion")
 Walker = NodePath("..")
 
-[node name="Supply" type="Node" parent="." node_paths=PackedStringArray("Walker", "Indicator")]
+[node name="Supply" type="Node" parent="." unique_id=1733892847 node_paths=PackedStringArray("Walker", "Indicator")]
 script = ExtResource("5_supply")
 Walker = NodePath("..")
 Indicator = NodePath("../Indicator")
+
+[node name="Care" type="Node" parent="." unique_id=895739716 node_paths=PackedStringArray("Walker", "Companion")]
+script = ExtResource("7_6sdon")
+Stats = ExtResource("8_cb1cn")
+Walker = NodePath("..")
+Companion = NodePath("../Companion")
+PodScene = ExtResource("9_noobd")
+
+[node name="Mender" type="Node" parent="." unique_id=708446091 node_paths=PackedStringArray("Walker", "Companion")]
+script = ExtResource("10_1l584")
+Stats = ExtResource("8_cb1cn")
+Walker = NodePath("..")
+Companion = NodePath("../Companion")

@@ -74,6 +74,15 @@ public partial class EventBus : Node
     [Signal]
     public delegate void ObstaclesChangedEventHandler(Vector3 centre, float radius);
 
+    /// <summary>
+    /// A mech has lost voxels and asks to be mended (docs/decisions/0046).
+    /// Emitted by its <c>MechCare</c> every few seconds while it still needs
+    /// it. A damaged mech cannot name its repairer: whichever storage bots
+    /// are alive in the level hear it, and the nearest free one goes.
+    /// </summary>
+    [Signal]
+    public delegate void MechNeedsRepairEventHandler(Node3D mech);
+
     public override void _EnterTree()
     {
         Instance = this;
@@ -112,6 +121,11 @@ public partial class EventBus : Node
     public static void EmitObstaclesChanged(Vector3 centre, float radius)
     {
         Instance?.EmitSignal(SignalName.ObstaclesChanged, centre, radius);
+    }
+
+    public static void EmitMechNeedsRepair(Node3D mech)
+    {
+        Instance?.EmitSignal(SignalName.MechNeedsRepair, mech);
     }
 }
 
