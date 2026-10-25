@@ -98,13 +98,13 @@ public partial class AssetLabPanel : HSplitContainer
 
         // What it is on top, scrolling in its own box; the parameters below
         // get the rest, and the split between them drags.
+        // Two sections that fold: what it is, and its parameters. Both open,
+        // the split between them drags; one folded, the other has the room.
         var right = new VSplitContainer { CustomMinimumSize = new Vector2(440, 0), SplitOffset = 220 };
-        var infoScroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 80), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var infoScroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 80), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, SizeFlagsVertical = SizeFlags.ExpandFill };
         _info = new RichTextLabel { BbcodeEnabled = true, FitContent = true, SelectionEnabled = true, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         infoScroll.AddChild(_info);
-        right.AddChild(infoScroll);
-        var tune = new VBoxContainer { CustomMinimumSize = new Vector2(0, 200) };
-        tune.AddChild(new Label { Text = "Parameters" });
+        var tune = new VBoxContainer { CustomMinimumSize = new Vector2(0, 200), SizeFlagsVertical = SizeFlags.ExpandFill };
         _resources = new OptionButton();
         _resources.ItemSelected += index => _inspector.Edit(index >= 0 && index < Resources.Count ? Resources[(int)index] : null);
         tune.AddChild(_resources);
@@ -116,7 +116,13 @@ public partial class AssetLabPanel : HSplitContainer
         tune.AddChild(buttons);
         _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         tune.AddChild(_status);
-        right.AddChild(tune);
+        _infoSection = new Section("Info", infoScroll, "info_open");
+        _tuneSection = new Section("Parameters", tune, "tune_open");
+        _infoSection.Toggled += () => ArrangeSections(right);
+        _tuneSection.Toggled += () => ArrangeSections(right);
+        right.AddChild(_infoSection);
+        right.AddChild(_tuneSection);
+        ArrangeSections(right);
         middleAndRight.AddChild(right);
 
         _confirm = new ConfirmationDialog { Title = "Save a shared resource", OkButtonText = "Save" };
@@ -129,6 +135,54 @@ public partial class AssetLabPanel : HSplitContainer
         {
             CallDeferred(MethodName.Open, last);
         }
+    }
+
+    private Section _infoSection;
+    private Section _tuneSection;
+
+    private void ArrangeSections(SplitContainer split)
+    {
+        bool info = _infoSection.Open, tune = _tuneSection.Open;
+        split.Collapsed = !(info && tune);
+        _infoSection.SizeFlagsVertical = info && !tune ? SizeFlags.ExpandFill : SizeFlags.Fill;
+        _tuneSection.SizeFlagsVertical = tune ? SizeFlags.ExpandFill : SizeFlags.Fill;
+    }
+
+    /// <summary>A heading that folds what is under it away and back,
+    /// remembered for the project.</summary>
+    private sealed partial class Section : VBoxContainer
+    {
+        private readonly Button _header;
+        private readonly Control _body;
+        private readonly string _key;
+
+        public event System.Action Toggled;
+
+        public bool Open => _body.Visible;
+
+        public Section() { }
+
+        public Section(string title, Control body, string key)
+        {
+            _body = body;
+            _key = key;
+            _header = new Button { Flat = true, Alignment = HorizontalAlignment.Left, Text = title };
+            _header.Pressed += Flip;
+            AddChild(_header);
+            AddChild(body);
+            body.Visible = EditorInterface.Singleton.GetEditorSettings().GetProjectMetadata(MetaSection, key, true).AsBool();
+            Label(title);
+        }
+
+        private void Flip()
+        {
+            _body.Visible = !_body.Visible;
+            EditorInterface.Singleton.GetEditorSettings().SetProjectMetadata(MetaSection, _key, _body.Visible);
+            Label(_header.Text.Substring(2));
+            Toggled?.Invoke();
+        }
+
+        private void Label(string title) => _header.Text = (_body.Visible ? "▾ " : "▸ ") + title;
     }
 
     private static Button Button(string text, System.Action pressed)
