@@ -153,12 +153,12 @@ commands through `python tools/editor-bridge/godot_mcp.py call <command>
 | For | Commands |
 |---|---|
 | Seeing | `view` (the user's view, or a camera of Claude's own; `fog:false` for an overview), `here`, `tree`, `selection`, `get`, `history` |
-| Making and changing | `place` (a scene stood on what is under it), `add` (any built-in node), `set` (with `stand`), `delete`, `batch` (one undo), `undo`, `redo` |
+| Making and changing | `new_level` (the eight branches, the player wired), `place` (a scene stood on what is under it), `add` (any built-in node, with our `script`), `set` (with `stand`), `delete`, `batch` (one undo), `undo`, `redo` |
 | Ground, plants, water | `terrain_create`, `sculpt`, `terrain`, `terrain_reload`, `scatter`, `forest`, `vines`, `flood`, `water_paint` |
 | Vines | `vine_kinds`, `vine_kind`, `vine_roll`, `vine_bake`, `vine_judge` |
 | Scenes and testing | `open`, `save`, `plugin`, `run`, `stop`, `output` (the game's log, or the editor's) |
 | Pointing | `select`, `frame` |
-| Any asset, in the Lab tab | `lab_assets`, `lab_open`, `lab_view`, `lab_resource` |
+| Any asset, in the Lab tab | `lab_assets`, `lab_open`, `lab_view`, `lab_resource`; in play `lab_test`, then `lab_do` (tools, time, drive, shot) |
 
 Build the code with `dotnet build`; the editor loads it when its window
 next gets the focus (the user's click). Check a level's routes against the
@@ -189,7 +189,11 @@ view of its own with its size, meshes, voxel parts and chunks, a mech's
 damage map drawn over it, and the resources it is tuned by in an
 inspector. Save writes the shared `.tres` after naming who else uses it
 (`voxel_destruction_mech.tres` tunes the jar too). Destruction and walking
-need physics, so they are tested by playing the lab level, not in the tab.
+need physics, so they are tested by **Test**, which plays `lvl_asset_lab`
+with the asset: a vehicle seats the player and WASD drives it, a walker
+nobody rides is steered, and the lab's tools (bite, blast, cut, break a
+part), pause, a frame at a time and slow motion act on it while a corner
+shows what it costs. Never rebuild while a test plays.
 **Terrain is sculpted, never generated from markers**: a `SculptedTerrain`
 (`scripts/levels/`) is a body, a `CollisionShape3D` whose `HeightMapShape3D`
 holds the heights (scaled by the spacing; Jolt takes it), and chunk meshes,

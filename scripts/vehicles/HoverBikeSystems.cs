@@ -15,7 +15,7 @@ namespace DillControl.Vehicles;
 /// knows both it and the rest of the game, the same role
 /// scripts/ui/GamePauseMenu.cs plays for ModularMenu.
 /// </summary>
-public partial class HoverBikeSystems : Node
+public partial class HoverBikeSystems : Node, IRideable
 {
     [ExportGroup("Data")]
     [Export]
@@ -359,6 +359,10 @@ public partial class HoverBikeSystems : Node
             Board();
         }
     }
+
+    public bool CanRide => Rig != null;
+
+    public bool IsRidden => IsPiloted;
 
     /// <summary>Gets off from anywhere, for a test harness.</summary>
     public void LeaveNow()

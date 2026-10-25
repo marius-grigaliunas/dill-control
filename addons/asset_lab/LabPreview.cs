@@ -179,10 +179,18 @@ public partial class LabPreview : SubViewportContainer
         _camera.LookAt(Target, Vector3.Up);
     }
 
+    // Guarded: after a reload of the code the editor sets properties back
+    // before _Ready has made the nodes.
     public bool Ink
     {
-        get => _ink.Visible;
-        set => _ink.Visible = value;
+        get => _ink?.Visible ?? true;
+        set
+        {
+            if (_ink != null)
+            {
+                _ink.Visible = value;
+            }
+        }
     }
 
     public bool DamageMap
@@ -191,7 +199,10 @@ public partial class LabPreview : SubViewportContainer
         set
         {
             _damageMap = value;
-            DrawOverlay();
+            if (_overlay != null)
+            {
+                DrawOverlay();
+            }
         }
     }
 
@@ -203,6 +214,10 @@ public partial class LabPreview : SubViewportContainer
         set
         {
             _sunElevation = Mathf.Clamp(value, 2.0f, 90.0f);
+            if (_sun == null)
+            {
+                return;
+            }
             _sun.Rotation = new Vector3(-Mathf.DegToRad(_sunElevation), Mathf.DegToRad(35.0f), 0.0f);
         }
     }

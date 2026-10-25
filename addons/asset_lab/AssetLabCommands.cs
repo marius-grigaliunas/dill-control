@@ -1,8 +1,12 @@
 #if TOOLS
 using System;
+using System.IO;
 using System.Linq;
+using System.Net.Sockets;
+using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using DillControl.Debug;
 using Godot;
 
 namespace DillControl.Editor;
@@ -51,6 +55,100 @@ public static class AssetLabCommands
             }}
             """,
             ResourceCommand);
+        Bridge.Register("lab_test",
+            "Play the asset lab level with an asset (default: the one shown in the Lab tab), as the tab's Test does: it stands in front of the player, " +
+            "who is put in its seat if it is a vehicle (WASD drives it) or steers it if it is a walker nobody rides ('board': false to stay on foot). " +
+            "Waits until the lab answers, then returns its status. Drive it with lab_do; 'stop' ends it.",
+            """{"type":"object","properties":{"asset":{"type":"string"},"board":{"type":"boolean"}}}""",
+            Test);
+        Bridge.Register("lab_do",
+            "Tell the running asset lab (lab_test) to do something, and get its status back: fps, frame, physics and GPU ms, draws, voxels left " +
+            "of those built, parts lost, loose pieces, destroyed. 'action': status | tool | time | board | leave | reset | drive | wait | shot. " +
+            "tool: 'kind' bite, blast, cut or break, at the crosshair or at 'at': [x,y,z], a part's name (e.g. Head, ThighL) wherever it is now, " +
+            "or 'asset' (aimed from the camera); 'part' breaks a named part away; " +
+            "'strength' scales it (default 1). time: 'scale' (0 pauses), 'step' frames. drive: 'actions' held for 'seconds' " +
+            "(move_forward, move_back, move_left, move_right, sprint, jump, fire, alt_fire). wait: 'seconds'. " +
+            "shot: a picture of the screen; or round the asset where it is now, 'distance' metres away at 'yaw' and 'pitch' degrees (0, 0 is its front); " +
+            "or from 'from' [x,y,z] looking at 'at' (a point, a part's name; default the asset). 'width' default 960.",
+            """
+            {"type":"object","required":["action"],"properties":{
+              "action":{"type":"string","enum":["status","tool","time","board","leave","reset","drive","wait","shot"]},
+              "kind":{"type":"string","enum":["bite","blast","cut","break"]},"at":{"description":"[x,y,z], a part's name, or 'asset'"},
+              "part":{"type":"string"},"strength":{"type":"number"},"scale":{"type":"number"},"step":{"type":"integer"},
+              "actions":{"type":"array","items":{"type":"string"}},"seconds":{"type":"number"},
+              "from":{"type":"array","items":{"type":"number"}},"distance":{"type":"number"},"yaw":{"type":"number"},"pitch":{"type":"number"},"width":{"type":"integer"}
+            }}
+            """,
+            Do);
+    }
+
+    /// <summary>Plays the lab level with an asset; what the tab's Test button does.</summary>
+    public static void Play(string asset, bool board)
+    {
+        if (Godot.FileAccess.FileExists(LabPlay.ListenerPath))
+        {
+            DirAccess.RemoveAbsolute(ProjectSettings.GlobalizePath(LabPlay.ListenerPath));
+        }
+        LabPlay.Write(asset, board);
+        EditorInterface.Singleton.PlayCustomScene(LabPlay.LevelPath);
+    }
+
+    private static async Task<JsonNode> Test(JsonObject args)
+    {
+        string asset = Bridge.Text(args, "asset", null);
+        string path = asset == null ? Lab().Current : AssetCatalog.Find(asset)?.Path;
+        if (string.IsNullOrEmpty(path))
+        {
+            throw new Bridge.Refused(asset == null ? "no asset shown in the Lab tab; name one" : $"no asset '{asset}'");
+        }
+        if (EditorInterface.Singleton.IsPlayingScene())
+        {
+            EditorInterface.Singleton.StopPlayingScene();
+            await Bridge.NextFrame();
+        }
+        Play(path, Bridge.Flag(args, "board", true));
+        for (int frame = 0; frame < 1800 && !Godot.FileAccess.FileExists(LabPlay.ListenerPath); frame++)
+        {
+            await Bridge.NextFrame();
+        }
+        if (!Godot.FileAccess.FileExists(LabPlay.ListenerPath))
+        {
+            throw new Bridge.Refused("the lab did not start listening; 'output' shows the game's log");
+        }
+        await Task.Delay(1500);
+        return await Send(new JsonObject { ["action"] = "status" });
+    }
+
+    private static Task<JsonNode> Do(JsonObject args) => Send(args);
+
+    /// <summary>One request to the running lab: a JSON line with its token, a JSON line back.</summary>
+    private static async Task<JsonNode> Send(JsonObject request)
+    {
+        if (!EditorInterface.Singleton.IsPlayingScene() || !Godot.FileAccess.FileExists(LabPlay.ListenerPath))
+        {
+            throw new Bridge.Refused("the asset lab is not playing; lab_test starts it");
+        }
+        JsonNode info = JsonNode.Parse(Godot.FileAccess.GetFileAsString(LabPlay.ListenerPath));
+        int port = (int)info["port"];
+        request = (JsonObject)request.DeepClone();
+        request["token"] = (string)info["token"];
+        using var client = new TcpClient();
+        await client.ConnectAsync("127.0.0.1", port);
+        using NetworkStream stream = client.GetStream();
+        byte[] line = Encoding.UTF8.GetBytes(request.ToJsonString() + "\n");
+        await stream.WriteAsync(line);
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        Task<string> reply = reader.ReadLineAsync();
+        if (await Task.WhenAny(reply, Task.Delay(TimeSpan.FromSeconds(120))) != reply || reply.Result == null)
+        {
+            throw new Bridge.Refused("the lab did not answer");
+        }
+        JsonNode answer = JsonNode.Parse(reply.Result);
+        if (answer?["ok"]?.GetValue<bool>() != true)
+        {
+            throw new Bridge.Refused((string)answer?["error"] ?? "the lab refused");
+        }
+        return answer;
     }
 
     private static AssetLabPanel Lab() => Panel?.Invoke() ?? throw new Bridge.Refused("the asset lab is not open: is the asset_lab plugin on?");

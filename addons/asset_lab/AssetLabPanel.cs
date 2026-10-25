@@ -80,6 +80,16 @@ public partial class AssetLabPanel : HSplitContainer
         var sun = new HSlider { MinValue = 2, MaxValue = 90, Value = 45, CustomMinimumSize = new Vector2(100, 0) };
         sun.ValueChanged += value => Preview.SunElevation = (float)value;
         bar.AddChild(sun);
+        bar.AddChild(new VSeparator());
+        var board = new CheckBox { Text = "Ride", ButtonPressed = true, TooltipText = "Test puts you in its seat if it is a vehicle, or steers a walker" };
+        bar.AddChild(board);
+        bar.AddChild(Button("Test", () =>
+        {
+            if (Current != "")
+            {
+                AssetLabCommands.Play(Current, board.ButtonPressed);
+            }
+        }));
         middle.AddChild(bar);
         Preview = new LabPreview();
         middle.AddChild(Preview);

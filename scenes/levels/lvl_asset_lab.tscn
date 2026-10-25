@@ -1,0 +1,76 @@
+[gd_scene format=3 uid="uid://dsqgmssiyle3"]
+
+[ext_resource type="Script" uid="uid://br5rfr1owyw11" path="res://scripts/levels/LevelRoot.cs" id="1_o8qs8"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_kl6b8"]
+[ext_resource type="Material" path="res://art/materials/mat_graybox_grid_ground.tres" id="3_08whh"]
+[ext_resource type="Material" path="res://art/materials/mat_graybox_floor.tres" id="4_mvn6q"]
+[ext_resource type="Script" uid="uid://sp1ap05x7jhs" path="res://scripts/debug/AssetLabDirector.cs" id="5_kk7gs"]
+[ext_resource type="Resource" path="res://resources/debug/asset_lab_default.tres" id="6_sw0hh"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_explosion.tscn" id="7_5kgu6"]
+[ext_resource type="Environment" path="res://resources/debug/lab_environment.tres" id="8_xh88g"]
+
+[node name="Level" type="Node3D" unique_id=116458126 node_paths=PackedStringArray("PlayerSpawn")]
+script = ExtResource("1_o8qs8")
+PlayerScene = ExtResource("2_kl6b8")
+PlayerSpawn = NodePath("Spawns/PlayerSpawn")
+
+[node name="Geometry" type="Node3D" parent="." unique_id=595493167]
+
+[node name="Floor" type="CSGBox3D" parent="Geometry" unique_id=621390308]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+use_collision = true
+size = Vector3(400, 1, 400)
+material = ExtResource("3_08whh")
+
+[node name="Ramp" type="CSGBox3D" parent="Geometry" unique_id=945730604]
+transform = Transform3D(0.9659258, -0.25881904, 0, 0.25881904, 0.9659258, 0, 0, 0, 1, 28, 1.8, -20)
+use_collision = true
+size = Vector3(16, 1, 10)
+material = ExtResource("4_mvn6q")
+
+[node name="Step1" type="CSGBox3D" parent="Geometry" unique_id=1561402245]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.25, -20)
+use_collision = true
+size = Vector3(10, 0.5, 10)
+material = ExtResource("4_mvn6q")
+
+[node name="Step2" type="CSGBox3D" parent="Geometry" unique_id=2016947450]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.75, -23)
+use_collision = true
+size = Vector3(10, 0.5, 4)
+material = ExtResource("4_mvn6q")
+
+[node name="Water" type="Node3D" parent="." unique_id=1945967491]
+
+[node name="Foliage" type="Node3D" parent="." unique_id=577574058]
+
+[node name="Props" type="Node3D" parent="." unique_id=1721744936]
+
+[node name="LabDirector" type="Node" parent="Props" unique_id=1634221594 node_paths=PackedStringArray("Level", "Spot")]
+script = ExtResource("5_kk7gs")
+Stats = ExtResource("6_sw0hh")
+Level = NodePath("../..")
+Spot = NodePath("../../Spawns/AssetSpot")
+ExplosionScene = ExtResource("7_5kgu6")
+
+[node name="Lighting" type="Node3D" parent="." unique_id=404226721]
+
+[node name="Sun" type="DirectionalLight3D" parent="Lighting" unique_id=603675197]
+transform = Transform3D(0.81915206, -0.3686878, 0.43938506, 0, 0.76604444, 0.6427876, -0.57357645, -0.52654076, 0.62750685, 0, 40, 0)
+shadow_enabled = true
+directional_shadow_max_distance = 140.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Lighting" unique_id=1146163910]
+environment = ExtResource("8_xh88g")
+
+[node name="Audio" type="Node3D" parent="." unique_id=1631018792]
+
+[node name="Spawns" type="Node3D" parent="." unique_id=1047912241]
+
+[node name="PlayerSpawn" type="Marker3D" parent="Spawns" unique_id=1341275413]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 6)
+
+[node name="AssetSpot" type="Marker3D" parent="Spawns" unique_id=1445602783]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -12)
+
+[node name="Navigation" type="Node3D" parent="." unique_id=2138601333]

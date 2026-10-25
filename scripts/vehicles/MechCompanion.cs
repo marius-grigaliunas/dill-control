@@ -24,7 +24,7 @@ namespace DillControl.Vehicles;
 /// <see cref="LevelRoot"/> instances it at runtime and nothing authored in a
 /// level can name it.
 /// </summary>
-public partial class MechCompanion : Node
+public partial class MechCompanion : Node, IRideable
 {
     [ExportGroup("Scene Wiring")]
     [Export]
@@ -425,6 +425,24 @@ public partial class MechCompanion : Node
     }
 
     // ---------------- Riding ----------------
+
+    public bool CanRide => Seat != null && Camera != null;
+
+    public void BoardNow()
+    {
+        if (!IsRidden && CanRide && _player != null && !Walker.IsDestroyed)
+        {
+            Mount();
+        }
+    }
+
+    public void LeaveNow()
+    {
+        if (IsRidden)
+        {
+            Dismount();
+        }
+    }
 
     private void Mount()
     {

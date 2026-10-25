@@ -29,10 +29,11 @@ public static class NodeCommands
         Bridge.Register("add",
             "Add a built-in node (any Godot class that is a Node, e.g. Label3D, OmniLight3D, Marker3D) to the open scene, as one undo, " +
             "with 'properties' set as in 'set' (e.g. {\"text\":\"...\",\"font_size\":64}). 'position' is world space; 'rotation_degrees' too. " +
-            "Default parent Props.",
+            "Default parent Props. 'script' (a res:// path) attaches our own script to it first, so its exports can be set: " +
+            "a node's export is 'node:<path>', e.g. {\"Level\":\"node:.\"}.",
             """
             {"type":"object","required":["type"],"properties":{
-              "type":{"type":"string"},"name":{"type":"string"},"parent":{"type":"string"},
+              "type":{"type":"string"},"name":{"type":"string"},"parent":{"type":"string"},"script":{"type":"string"},
               "position":{"type":"array","items":{"type":"number"}},"rotation_degrees":{"type":"array","items":{"type":"number"}},
               "properties":{"type":"object"}
             }}
@@ -290,6 +291,17 @@ public static class NodeCommands
             throw new Bridge.Refused($"'{type}' is not a node class that can be made");
         Node parent = Bridge.NodeAt(Bridge.Text(args, "parent", "Props"));
         var node = (Node)ClassDB.Instantiate(type).AsGodotObject();
+        // A script first, so its exports are properties that can be set.
+        if (Bridge.Text(args, "script") is string scriptPath)
+        {
+            var script = ResourceLoader.Exists(scriptPath) ? GD.Load<Script>(scriptPath) : null;
+            if (script == null || !ClassDB.IsParentClass(type, script.GetInstanceBaseType()))
+            {
+                node.Free();
+                throw new Bridge.Refused($"'{scriptPath}' is not a script for a {type}");
+            }
+            node.SetScript(script);
+        }
 
         // Every value read and checked before the node joins the scene.
         var values = new List<(string Name, Variant Value)>();

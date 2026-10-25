@@ -33,17 +33,34 @@ model (0043): plan in the tab, play in a lab level, survive a reload.
   leaves, guns) are edited in an inspector. **Save writes the shared
   `.tres`**, after naming every other asset that uses it.
 - **Test** writes `user://lab_play.json` and plays `lvl_asset_lab` with the
-  asset, as the Nest tab's Play does. The lab stands it on flat ground, a
-  slope or rubble; time pauses, steps a frame and runs slow; any real
-  weapon fires from the camera; precise tools take a bite here, set off a
-  blast of a radius, cut along a plane, break a named part away; a mech is
-  driven, and its gait and balance are drawn. What it costs is read from
-  the frame profiler while it runs.
+  asset, as the Nest tab's Play does (`LabPlay`, taken and deleted by the
+  level's `AssetLabDirector`). The asset stands in front of the player on a
+  grid floor with a ramp and steps. **WASD drives whatever can move**: a
+  vehicle seats the player at once (`IRideable.BoardNow`, the mechs and the
+  bike), a walker nobody rides is steered from a chase camera with its own
+  brain off, and anything else is walked round on foot. The player's own
+  weapons fire as in the game; the lab's tools act at the crosshair: a
+  bite (one direct hit), a blast of a radius, a slit cut right through at
+  that height, a part broken away. Time pauses, steps a frame and runs
+  slow. A corner shows what it costs: frame, physics and GPU ms, draws,
+  voxels left of those built, parts lost, loose pieces. Keys are letters
+  (rule 6): N board/leave or steer, Y tool, X use it, - = strength, P pause,
+  O one frame, T slower, K put it back, L help. Numbers in
+  `resources/debug/asset_lab_default.tres`.
+- **Walking a mech in the tab** (no physics: its feet stood on a flat
+  floor) comes with 0046's gaits; until then a mech walks in Test.
 - **Claude drives both.** The tab's actions are editor bridge commands
-  (`Bridge.Register`, 0044), so they are MCP tools. The running lab listens
-  on 127.0.0.1 for the same JSON, and the editor's `lab_*` commands forward
-  to it: one endpoint, the editor. A screenshot of either comes back as a
-  PNG. The game listens only in `lvl_asset_lab`, never in a contract.
+  (`Bridge.Register`, 0044), so they are MCP tools: `lab_assets`,
+  `lab_open`, `lab_view`, `lab_resource`. `lab_test` plays the lab; the
+  running lab listens on 127.0.0.1 (`LabListener`: one JSON line in, one
+  out, a token in `user://lab_game.json`) and `lab_do` forwards to it:
+  status, tools (aimed at the crosshair, a point, or a part by name
+  wherever it is now), time, board, leave, reset, drive (input actions
+  held for seconds), wait, and a shot of the screen or from a camera of
+  Claude's own round the asset, drawn in a viewport of its own so the
+  game's cameras are left alone. The game listens only in
+  `lvl_asset_lab`, never in a contract. **Never rebuild the code while a
+  test plays**: the editor's reload froze the game once.
 - **It survives a rebuild**, as the Vines tool does: panels are rebuilt on
   the first frame after the project's code reloads; Godot's JSON, not
   System.Text.Json, in editor code that keeps state.
