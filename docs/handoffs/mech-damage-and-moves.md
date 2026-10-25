@@ -55,13 +55,12 @@ can be repaired or delivered, the mech crawling to them if it must.
 - Core = the walker's `Core` export (today the `Body` part). Threshold
   today: `MechTuning.BodyDeathFraction`, default 0.45, on
   `VoxelPart.Health01` (solid / initial cells).
-- **No mech has a `Head` part yet.** The Field Fighter's head is inside
-  `Body`: split it out (see `tools/vox-tools/split_mech.py`, which split the
-  original one-model `.vox` into parts with pivot voxels). The tank and the
-  storage bot have no head: core only. *Open: the user has not yet said
-  whether the tank's `Turret` counts as its head.*
-- `SpareLegs` (in `MechTuning`; fighter `.tres` sets 0, so a biped dies on
-  one lost leg; the default is 1) goes away.
+- **Built (step 2).** The fighter's head is its own part, split by
+  `tools/vox-tools/split_part.py` (the visor block, z 16-18 of `Body`,
+  pivot at the neck). The user: the tank's `Turret` is its head, and it
+  must be extra hard to shoot off. Both heads are `Hardened` (0046).
+  `SpareLegs` is gone: legs lost leave a mech walking on what it has, until
+  step 3 gives it gaits for that.
 
 **The damage map, baked at import.** Beside what `VoxModelBuilder` already
 writes per part as node meta (`VoxelMeta.Cells`, `Dims`, `Origin`, the chunk
@@ -260,6 +259,5 @@ built and measured, and record the numbers in it.
   screenshots (`view`, Blender screenshots, `--write-movie`).
 - Plain words; no jargon dumps.
 - Proposes ideas freely and expects them weighed, not adopted blindly; ask
-  when a choice is genuinely theirs (the turret as head; the storage bot's
-  transform; prices).
-- Two items still open: the turret question and the transform's design.
+  when a choice is genuinely theirs (the storage bot's transform; prices).
+- Still open: the transform's design.

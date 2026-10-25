@@ -107,6 +107,9 @@ public partial class VoxelPart : Node3D, IStrainHost
 
     public VoxelGrid Grid { get; private set; }
     public VoxelAnchor Anchor { get; private set; }
+
+    /// <summary>Takes a smaller bite from every hit (<see cref="VoxelBody.Hardened"/>).</summary>
+    public bool Hardened { get; init; }
     public Color[] Palette { get; private set; }
     public float[] Emission { get; private set; }
     public Material Material { get; private set; }

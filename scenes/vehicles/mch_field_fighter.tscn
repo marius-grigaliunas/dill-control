@@ -19,12 +19,13 @@
 [sub_resource type="BoxShape3D" id="HullShape"]
 size = Vector3(3.2, 6.4, 1.9)
 
-[node name="MchFieldFighter" type="CharacterBody3D" node_paths=PackedStringArray("Model", "Thighs", "Shins", "Feet", "Arms", "Mounted", "MountedOn", "Voxels", "Core")]
+[node name="MchFieldFighter" type="CharacterBody3D" node_paths=PackedStringArray("Model", "Thighs", "Shins", "Feet", "Arms", "Mounted", "MountedOn", "Voxels", "Core", "Head")]
 script = ExtResource("2_walker")
 Tuning = ExtResource("4_tuning")
 Model = NodePath("Model")
 Voxels = NodePath("Voxels")
 Core = NodePath("Model/Body")
+Head = NodePath("Model/Head")
 Thighs = [NodePath("Model/ThighR"), NodePath("Model/ThighL")]
 Shins = [NodePath("Model/ShinR"), NodePath("Model/ShinL")]
 Feet = [NodePath("Model/FootR"), NodePath("Model/FootL")]
@@ -34,11 +35,12 @@ MountedOn = [NodePath("Model/ArmR"), NodePath("Model/ArmL")]
 
 [node name="Model" parent="." instance=ExtResource("1_model")]
 
-[node name="Voxels" type="Node" parent="." node_paths=PackedStringArray("Model", "Hinged")]
+[node name="Voxels" type="Node" parent="." node_paths=PackedStringArray("Model", "Hinged", "Hardened")]
 script = ExtResource("30_voxels")
 Model = NodePath("../Model")
 Stats = ExtResource("31_armour")
-Hinged = [NodePath("../Model/ThighL"), NodePath("../Model/ShinL"), NodePath("../Model/FootL"), NodePath("../Model/ThighR"), NodePath("../Model/ShinR"), NodePath("../Model/FootR"), NodePath("../Model/ArmR"), NodePath("../Model/ArmL")]
+Hinged = [NodePath("../Model/ThighL"), NodePath("../Model/ShinL"), NodePath("../Model/FootL"), NodePath("../Model/ThighR"), NodePath("../Model/ShinR"), NodePath("../Model/FootR"), NodePath("../Model/ArmR"), NodePath("../Model/ArmL"), NodePath("../Model/Head")]
+Hardened = [NodePath("../Model/Head")]
 
 [node name="Hull" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)

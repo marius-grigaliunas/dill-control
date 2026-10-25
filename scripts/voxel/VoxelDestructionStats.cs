@@ -53,6 +53,12 @@ public partial class VoxelDestructionStats : Resource
     [Export(PropertyHint.Range, "0,0.01,0.00001,suffix:m³")]
     public float CarveVolumePerDamage { get; set; } = 0.0f;
 
+    /// <summary>A hardened part's bite (<see cref="VoxelBody.Hardened"/>, a
+    /// mech's head) is this share of the radius anyone else's would be: 0.35
+    /// takes about a twentieth of the voxels. 1 for no difference.</summary>
+    [Export(PropertyHint.Range, "0.05,1,0.01")]
+    public float HardenedCarveScale { get; set; } = 1.0f;
+
     [ExportGroup("Structure")]
     /// <summary>How long after a hit a piece is checked for what has come
     /// loose. The check floods the piece's whole grid, so hits in one burst

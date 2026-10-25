@@ -117,7 +117,8 @@ public static class VoxelDamage
             {
                 continue;
             }
-            part.Carve(point, Mathf.Max(radius, part.Grid.VoxelSize * 0.5f));
+            float bite = part.Hardened ? radius * stats.HardenedCarveScale : radius;
+            part.Carve(point, Mathf.Max(bite, part.Grid.VoxelSize * 0.5f));
         }
 
         Report(info, parts, target);

@@ -45,6 +45,12 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
     [Export]
     public Godot.Collections.Array<Node3D> Hinged { get; set; } = new();
 
+    /// <summary>Parts that take a smaller bite from every hit
+    /// (<see cref="VoxelDestructionStats.HardenedCarveScale"/>): a mech's head,
+    /// so it is not shot off before the rest of it.</summary>
+    [Export]
+    public Godot.Collections.Array<Node3D> Hardened { get; set; } = new();
+
     /// <summary>Where thrown-off pieces get their speed. Defaults to still.</summary>
     public Func<Vector3> Velocity { get; set; } = () => Vector3.Zero;
 
@@ -120,7 +126,7 @@ public partial class VoxelBody : Node, IDamageable, IBlastSurface
             }
 
             VoxelAnchor anchor = Static ? VoxelAnchor.Ground : hinged.Contains(host) ? VoxelAnchor.Hinge : VoxelAnchor.Largest;
-            var part = new VoxelPart { Name = "Voxels", Velocity = () => Velocity(), DeferMeshes = whole };
+            var part = new VoxelPart { Name = "Voxels", Velocity = () => Velocity(), DeferMeshes = whole, Hardened = Hardened.Contains(host) };
             part.Setup(grid, anchor, palette, emission, material, Stats);
             if (whole)
             {

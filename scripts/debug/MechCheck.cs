@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Godot;
+using DillControl.Core;
 using DillControl.Voxel;
 
 namespace DillControl.Debug;
@@ -10,7 +11,7 @@ namespace DillControl.Debug;
 /// <c>mechcheck.gd</c> runs it (docs/decisions/0046). Per mech: one root,
 /// and it is the walker's core; every other part hangs from a part that
 /// exists, through a chain that reaches the core, and touches it; the
-/// walker's legs and arms are chained thigh, shin, foot from the core; every
+/// walker's legs, arms and head are chained thigh, shin, foot from the core; every
 /// part but the core is hinged; each foot has a sole on the ground; and at
 /// rest its weight stands over its feet, if it has three or more.
 /// </summary>
@@ -38,6 +39,67 @@ public partial class MechCheck : Node
             root.Free();
         }
         return (pass ? "PASS\n" : "FAIL\n") + report;
+    }
+
+    /// <summary>A rocket's splash at full strength (wpn_gherkin_volley.tres).</summary>
+    private const float RocketDamage = 260.0f;
+
+    /// <summary>
+    /// The rules alive, in the tree: what a rocket on its head takes, hardened
+    /// and not; a lost leg leaves it standing; a lost head destroys it.
+    /// </summary>
+    public string Live(string[] scenes)
+    {
+        var report = new StringBuilder();
+        bool pass = true;
+        foreach (string path in scenes)
+        {
+            var packed = GD.Load<PackedScene>(path);
+            string name = path.GetFile();
+            var probe = packed.Instantiate<Vehicles.MechWalker>();
+            AddChild(probe);
+            if (probe.Head == null)
+            {
+                report.AppendLine($"{name}: no head; only its core kills it");
+                probe.Free();
+                continue;
+            }
+            string headName = probe.Head.Name;
+            int hardened = RocketOnHead(probe, out int headVoxels);
+            probe.Free();
+
+            var soft = packed.Instantiate<Vehicles.MechWalker>();
+            var stats = (VoxelDestructionStats)soft.GetNode<VoxelBody>("Voxels").Stats.Duplicate();
+            stats.HardenedCarveScale = 1.0f;
+            soft.GetNode<VoxelBody>("Voxels").Stats = stats;
+            AddChild(soft);
+            int unhardened = RocketOnHead(soft, out _);
+            soft.Free();
+
+            var walker = packed.Instantiate<Vehicles.MechWalker>();
+            AddChild(walker);
+            walker.Voxels.PartOf(walker.Thighs[0])?.BreakAway(Vector3.Zero);
+            bool standsOnLegLoss = !walker.IsDestroyed;
+            walker.Voxels.PartOf(walker.Head)?.BreakAway(Vector3.Zero);
+            bool diesOnHeadLoss = walker.IsDestroyed;
+            walker.Free();
+
+            bool ok = standsOnLegLoss && diesOnHeadLoss && hardened < unhardened;
+            pass &= ok;
+            report.AppendLine($"{name}: {(ok ? "ok" : "FAIL")}  a rocket on its {headName} takes {hardened} of {headVoxels} voxels ({unhardened} unhardened); "
+                + $"a lost leg {(standsOnLegLoss ? "leaves it standing" : "DESTROYS it")}, a lost head {(diesOnHeadLoss ? "destroys it" : "LEAVES IT STANDING")}");
+        }
+        return (pass ? "PASS\n" : "FAIL\n") + report;
+    }
+
+    private static int RocketOnHead(Vehicles.MechWalker walker, out int voxels)
+    {
+        VoxelPart head = walker.Voxels.PartOf(walker.Head);
+        voxels = head.Grid.SolidCount;
+        DamageBake bake = VoxDamageMap.TryRead(walker.Head);
+        Vector3 at = walker.Head.GlobalTransform * (bake?.Centre ?? Vector3.Zero);
+        walker.ApplyDamage(new DamageInfo { Amount = RocketDamage, IsSplash = true, IsExplosive = true, Position = at });
+        return voxels - head.Grid.SolidCount;
     }
 
     private static bool Check(string name, SceneState state, Node root, StringBuilder report)
@@ -155,6 +217,7 @@ public partial class MechCheck : Node
             ExpectParent(bakes, arm, core, errors);
         }
         ExpectParent(bakes, Resolve(root, walker, "Turret"), core, errors);
+        ExpectParent(bakes, Resolve(root, walker, "Head"), core, errors);
 
         // Every part but the core hangs from its hinge.
         var hinged = new HashSet<string>();

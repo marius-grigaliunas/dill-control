@@ -37,7 +37,6 @@ ArmReadyFraction = 0.8
 HordeDamageScale = 0.2
 StompDamage = 90.0
 StompRadius = 1.2
-SpareLegs = 0
 WalkCrouch = 0.5
 StepBob = 0.08
 JumpCrouch = 0.45

@@ -16,9 +16,14 @@ for moves, without giving up voxel destruction or frame time.
 
 **Only the core or the head kills a mech.** The walker's `Core` (today the
 `Body` part) below `BodyDeathFraction`, or a `Head` part emptied or cut free.
-Every limb can go and it fights on. None of the three mechs has a `Head`
-part yet: the Field Fighter's is split out of `Body`; the tank and the
-storage bot have none, so only their core counts.
+Every limb can go and it fights on. The Field Fighter's head is split out
+of `Body` (its visor block, 42 voxels); the tank's head is its `Turret`; the
+storage bot has none, so only its core counts. **A head is hardened**: it is
+in its `VoxelBody`'s `Hardened`, and every hit's bite on it is
+`HardenedCarveScale` (0.35 in `voxel_destruction_mech.tres`) of the radius,
+so a head is not shot off before the rest. Measured by `mechcheck`: a rocket
+takes 2 of the fighter's 42 head voxels (34 unhardened) and 4 of the
+turret's 573 (56).
 
 **The importer bakes a mech's damage map**, beside the buildings' chunk
 graph (0027). Per part: voxel count and mass, centre of mass, the voxels

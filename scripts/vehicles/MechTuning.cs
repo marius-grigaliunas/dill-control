@@ -207,11 +207,6 @@ public partial class MechTuning : Resource
     [Export(PropertyHint.Range, "0,5,0.05,suffix:m")]
     public float StompRadius { get; set; } = 1.0f;
 
-    /// <summary>Legs it can lose and still walk. A four-legged walker limps on
-    /// three; a biped falls when it loses one.</summary>
-    [Export(PropertyHint.Range, "0,4,1")]
-    public int SpareLegs { get; set; } = 1;
-
     [ExportGroup("Body")]
     /// <summary>How far the body sinks at full speed, to give the legs more
     /// reach. The voxel legs are short; without it a stride is half a metre.</summary>

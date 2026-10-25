@@ -47,9 +47,16 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	[Export]
 	public VoxelBody Voxels { get; set; }
 
-	/// <summary>The part whose loss kills it.</summary>
+	/// <summary>The part whose loss kills it: worn down below
+	/// <see cref="MechTuning.BodyDeathFraction"/>, or emptied.</summary>
 	[Export]
 	public Node3D Core { get; set; }
+
+	/// <summary>The other part whose loss kills it: emptied or cut free. A
+	/// head, a tank's turret; none on the storage bot. Every other part can
+	/// go and it fights on (docs/decisions/0046).</summary>
+	[Export]
+	public Node3D Head { get; set; }
 
 	/// <summary>Front left, front right, back left, back right.</summary>
 	[Export]
@@ -319,9 +326,9 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	public Vector3 NearestBlastPoint(Vector3 from) => Voxels?.NearestBlastPoint(from) ?? GlobalPosition;
 
 	/// <summary>
-	/// A part has nothing left, or nothing holds it. A leg segment takes the
-	/// rest of its leg with it; too few legs, or the body, and the mech is
-	/// destroyed.
+	/// A part has nothing left, or nothing holds it. The core or the head and
+	/// the mech is destroyed; a leg segment takes the rest of its leg with it,
+	/// and the mech walks on what it has.
 	/// </summary>
 	private void OnPartEmptied(Node3D node, VoxelPart part)
 	{
@@ -329,7 +336,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		{
 			return;
 		}
-		if (node == Core)
+		if (node == Core || (Head != null && node == Head))
 		{
 			Destroy();
 			return;
@@ -347,16 +354,6 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			{
 				Voxels.PartOf(segment)?.BreakAway(Vector3.Zero);
 			}
-		}
-
-		int alive = 0;
-		foreach (MechLeg leg in _legs)
-		{
-			alive += leg.Alive ? 1 : 0;
-		}
-		if (_legs.Count > 0 && alive < _legs.Count - Tuning.SpareLegs)
-		{
-			Destroy();
 		}
 	}
 

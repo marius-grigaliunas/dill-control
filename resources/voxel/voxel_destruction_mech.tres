@@ -9,4 +9,5 @@ CarveMax = 1.2
 Armour = 28.0
 MinCarveDamage = 40.0
 CarveVolumePerDamage = 0.00025
+HardenedCarveScale = 0.35
 HingeRadius = 1.0

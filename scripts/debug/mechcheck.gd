@@ -3,7 +3,8 @@
 #
 #   Godot..._console.exe --headless --path . --script scripts/debug/mechcheck.gd
 #
-# Prints PASS or FAIL and a block per mech; exits 1 on FAIL.
+# Prints PASS or FAIL and a block per mech, then the rules alive (a rocket on
+# the head, a lost leg, a lost head); exits 1 on any FAIL.
 extends SceneTree
 
 func _initialize() -> void:
@@ -18,4 +19,11 @@ func _initialize() -> void:
 		quit(1)
 		return
 	print(report)
-	quit(0 if report.begins_with("PASS") else 1)
+	# The live rules need the tree running: _ready on what they add.
+	await process_frame
+	var live = check.call("Live", scenes)
+	if live == null:
+		quit(1)
+		return
+	print(live)
+	quit(0 if report.begins_with("PASS") and live.begins_with("PASS") else 1)
