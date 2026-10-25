@@ -63,7 +63,8 @@ Joypad events in the input map use device `-1` (any pad). The layout is
    debug key is a letter.
 7. **No third-party addons** without a proposal and a reason. Our own editor
    plugins live in `addons/` because Godot looks for them nowhere else; there
-   are four, `vox_importer`, `vine_gen`, `editor_bridge` and `terrain_brush`.
+   are five, `vox_importer`, `vine_gen`, `editor_bridge`, `terrain_brush` and
+   `asset_lab`.
 8. **Claude works with Godot through the editor bridge.** Creating, updating,
    testing and inspecting scenes, levels and assets go through the toolset
    (`docs/decisions/0044`; below) whenever the editor is open: look before and
@@ -157,6 +158,7 @@ commands through `python tools/editor-bridge/godot_mcp.py call <command>
 | Vines | `vine_kinds`, `vine_kind`, `vine_roll`, `vine_bake`, `vine_judge` |
 | Scenes and testing | `open`, `save`, `plugin`, `run`, `stop`, `output` (the game's log, or the editor's) |
 | Pointing | `select`, `frame` |
+| Any asset, in the Lab tab | `lab_assets`, `lab_open`, `lab_view`, `lab_resource` |
 
 Build the code with `dotnet build`; the editor loads it when its window
 next gets the focus (the user's click). Check a level's routes against the
@@ -181,6 +183,13 @@ The Vines tool's own commands (`vine_kinds`, `vine_kind`, `vine_roll`,
 `vine_bake`, `vine_judge`) call the classes its tabs call, never its buttons.
 `vine_kind_shrub.tres` is a 9-12 m kind fought from the ground (pickles
 0.4-5.4 m up), for set pieces; no nest kit names it.
+**The asset lab** (`addons/asset_lab`, `docs/decisions/0047`) is a main
+screen beside Vines: any wrapper scene or bare model, shown at rest in a
+view of its own with its size, meshes, voxel parts and chunks, a mech's
+damage map drawn over it, and the resources it is tuned by in an
+inspector. Save writes the shared `.tres` after naming who else uses it
+(`voxel_destruction_mech.tres` tunes the jar too). Destruction and walking
+need physics, so they are tested by playing the lab level, not in the tab.
 **Terrain is sculpted, never generated from markers**: a `SculptedTerrain`
 (`scripts/levels/`) is a body, a `CollisionShape3D` whose `HeightMapShape3D`
 holds the heights (scaled by the spacing; Jolt takes it), and chunk meshes,
@@ -204,7 +213,7 @@ verdicts marked `"by": "claude"`, and may open the game window unasked.
 ## Folder map
 
 ```
-addons/         our own editor plugins only (vox_importer, vine_gen, editor_bridge, terrain_brush)
+addons/         our own editor plugins only (vox_importer, vine_gen, editor_bridge, terrain_brush, asset_lab)
 art/
   _source/      .blend and paint sources, packs as downloaded. .gdignore'd, LFS.
   models/       .glb exports
