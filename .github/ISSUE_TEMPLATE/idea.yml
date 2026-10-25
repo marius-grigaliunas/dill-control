@@ -1,0 +1,17 @@
+name: Idea
+description: Park an idea so it is not lost. Triage comes later.
+title: "idea: "
+labels: ["idea", "status:inbox"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: One paragraph is plenty. Say it the way you would say it out loud.
+    validations:
+      required: true
+  - type: textarea
+    id: play
+    attributes:
+      label: What it changes in play
+      description: What the player does or feels differently. Leave empty if not known yet.
