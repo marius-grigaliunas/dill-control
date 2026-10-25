@@ -73,11 +73,11 @@ const IDLE_TIMELINE := [
 const DROP_TIMELINE := [
 	["landed, at the jar", ["@aim:Jar:20", "@status"], [], 4.0],
 	["landed shot", ["#drop_landed"], [], 1.0],
-	["west mesa", ["@goto:-230, 34, -40", "@aim:Jar:20"], [], 4.0],
+	["west mesa", ["@goto:-230, 56, -40", "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:Jar:20"], [], 4.0],
 	["west mesa shot", ["#drop_mesa"], [], 1.0],
-	["over the arena", ["@goto:0, 220, 520", "@aim:Jar:0"], [], 1.0],
+	["over the arena", ["@goto:0, 220, 520", "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:Jar:0"], [], 1.0],
 	["over the arena shot", ["#drop_overview"], [], 1.0],
-	["at the nest", ["@goto:0, 2, 120", "@aim:Jar:20"], [], 8.0],
+	["at the nest", ["@goto:0, 10.6, 120", "!set:Player:velocity=Vector3(0, 0, 0)", "@aim:Jar:20"], [], 8.0],
 	["at the nest shot", ["#drop_nest"], [], 1.0],
 ]
 

@@ -198,7 +198,7 @@ public partial class TerrainBrushPlugin : EditorPlugin
     /// <summary>The ticked palette; the trees until the user picks.</summary>
     public static List<string> Ticked()
     {
-        Variant saved = EditorInterface.Singleton.GetEditorSettings().GetProjectMetadata(SettingsSection, "palette", default);
+        Variant saved = EditorInterface.Singleton.GetEditorSettings().GetProjectMetadata(SettingsSection, "palette", false);
         if (saved.VariantType == Variant.Type.PackedStringArray)
             return saved.AsStringArray().ToList();
         return Scatter.ScenesStarting(new[] { "prp_tree_" });
