@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" path="res://scenes/weapons/fx_impact.tscn" id="9_impact"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/fx_explosion.tscn" id="10_expl"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/fx_rocket.tscn" id="11_shell"]
+[ext_resource type="Script" uid="uid://csjy6ff4bwc1m" path="res://scripts/voxel/VoxelBody.cs" id="30_voxels"]
+[ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_mech.tres" id="31_armour"]
 
 [sub_resource type="BoxShape3D" id="HullShape"]
 size = Vector3(3.6, 4.4, 4.4)
@@ -30,6 +32,12 @@ Mounted = [NodePath("Model/Seat"), NodePath("Model/TurretMuzzle")]
 MountedOn = [NodePath("Model/Turret"), NodePath("Model/Turret")]
 
 [node name="Model" parent="." unique_id=97900134 instance=ExtResource("1_model")]
+
+[node name="Voxels" type="Node" parent="." unique_id=1730562211 node_paths=PackedStringArray("Model", "Hinged")]
+script = ExtResource("30_voxels")
+Model = NodePath("../Model")
+Stats = ExtResource("31_armour")
+Hinged = [NodePath("../Model/Turret"), NodePath("../Model/ThighFL"), NodePath("../Model/ShinFL"), NodePath("../Model/FootFL"), NodePath("../Model/ThighFR"), NodePath("../Model/ShinFR"), NodePath("../Model/FootFR"), NodePath("../Model/ThighBL"), NodePath("../Model/ShinBL"), NodePath("../Model/FootBL"), NodePath("../Model/ThighBR"), NodePath("../Model/ShinBR"), NodePath("../Model/FootBR")]
 
 [node name="Hull" type="CollisionShape3D" parent="." unique_id=1305142044]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)

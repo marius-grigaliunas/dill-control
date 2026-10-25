@@ -218,9 +218,12 @@ built and measured, and record the numbers in it.
   pivot. Contacts are a `Sole` (lowest layer at rest) and a `Tip` (far end
   from the pivot: fist, knee, ankle). Mass is voxels times the stats'
   `Density`, not baked. The copy for repair is `vox_cells`, never written.
-- **The tank has no `VoxelBody`**: its walker names `Voxels`, the wrapper
-  never had the node, so it takes no damage at all. `mechcheck` fails on it
-  until it is wired (with `Hinged` for every part but `Body`) and benched.
+- **The tank had no `VoxelBody`** (its walker named `Voxels`, the wrapper
+  never had the node, so it took no damage). Wired on 25 October with the
+  mech armour and every part but `Body` hinged. Paired benches: `mech`
+  unchanged; `mechwreck` +0.5-1 ms mean while shooting, now that it breaks.
+  `mechwreck` barely touches it: the mechs follow the player out of its
+  aim (body 99 % at the end). Step 3's limb bench should pin them.
 - The fighter stands on two one-voxel spikes: its centre of mass is 0.08 m
   outside its feet at rest. Only three or more feet are held to balance.
 - Blender facing and scale are still listed as unverified in CLAUDE.md;
