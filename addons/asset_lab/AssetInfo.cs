@@ -86,18 +86,12 @@ public sealed class AssetInfo
             text.AppendLine($"{Voxels:N0} voxels of {VoxelSize:0.###} m in {Parts.Count} parts, {Parts.Sum(p => p.Chunks)} chunks");
             foreach (Part part in Parts)
             {
-                string map = part.Bake == null ? "" : $"  from {(part.Bake.Parent == "" ? "-" : part.Bake.Parent)}, held by {part.Bake.Hold.Length}";
-                text.AppendLine($"  {part.Name}: {part.Voxels:N0} voxels, {part.Chunks} chunks{map}");
+                // One line a part: its voxels, and what it hangs from.
+                string from = part.Bake == null || part.Bake.Parent == "" ? "" : $"  [color=#8a8a8a]< {part.Bake.Parent}[/color]";
+                text.AppendLine($"  {part.Name}  {part.Voxels:N0}{from}");
             }
         }
-        if (Resources.Count > 0)
-        {
-            text.AppendLine("Tuned by:");
-            foreach (string resource in Resources)
-            {
-                text.AppendLine($"  {resource.GetFile()}");
-            }
-        }
+
         return text.ToString();
     }
 

@@ -37,7 +37,7 @@ public partial class AssetLabPanel : HSplitContainer
         SizeFlagsHorizontal = SizeFlags.ExpandFill;
         SizeFlagsVertical = SizeFlags.ExpandFill;
 
-        var left = new VBoxContainer { CustomMinimumSize = new Vector2(240, 0) };
+        var left = new VBoxContainer { CustomMinimumSize = new Vector2(200, 0) };
         _filter = new LineEdit { PlaceholderText = "Filter assets", ClearButtonEnabled = true };
         _filter.TextChanged += _ => FillTree();
         left.AddChild(_filter);
@@ -96,21 +96,27 @@ public partial class AssetLabPanel : HSplitContainer
         middle.AddChild(Preview);
         middleAndRight.AddChild(middle);
 
-        var right = new VBoxContainer { CustomMinimumSize = new Vector2(320, 0) };
-        _info = new RichTextLabel { BbcodeEnabled = true, FitContent = true, SelectionEnabled = true };
-        right.AddChild(_info);
-        right.AddChild(new HSeparator());
+        // What it is on top, scrolling in its own box; the parameters below
+        // get the rest, and the split between them drags.
+        var right = new VSplitContainer { CustomMinimumSize = new Vector2(440, 0), SplitOffset = 220 };
+        var infoScroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 80), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        _info = new RichTextLabel { BbcodeEnabled = true, FitContent = true, SelectionEnabled = true, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        infoScroll.AddChild(_info);
+        right.AddChild(infoScroll);
+        var tune = new VBoxContainer { CustomMinimumSize = new Vector2(0, 200) };
+        tune.AddChild(new Label { Text = "Parameters" });
         _resources = new OptionButton();
         _resources.ItemSelected += index => _inspector.Edit(index >= 0 && index < Resources.Count ? Resources[(int)index] : null);
-        right.AddChild(_resources);
+        tune.AddChild(_resources);
         _inspector = new EditorInspector { SizeFlagsVertical = SizeFlags.ExpandFill };
-        right.AddChild(_inspector);
+        tune.AddChild(_inspector);
         var buttons = new HBoxContainer();
         buttons.AddChild(Button("Save", AskSave));
         buttons.AddChild(Button("Revert", Revert));
-        right.AddChild(buttons);
+        tune.AddChild(buttons);
         _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
-        right.AddChild(_status);
+        tune.AddChild(_status);
+        right.AddChild(tune);
         middleAndRight.AddChild(right);
 
         _confirm = new ConfirmationDialog { Title = "Save a shared resource", OkButtonText = "Save" };

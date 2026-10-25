@@ -51,6 +51,10 @@ public partial class AssetLabPlugin : EditorPlugin
 
     private void Build()
     {
+        // A reload makes a new plugin that does not know the Lab tab was the
+        // one showing: the editor remembers it for us.
+        _visible = EditorInterface.Singleton.GetEditorSettings().GetProjectMetadata("asset_lab", "visible", false).AsBool()
+            || !EditorInterface.Singleton.GetEditorMainScreen().GetChildren().OfType<Control>().Any(c => c.Visible && c is not AssetLabPanel);
         _panel = new AssetLabPanel { Name = "AssetLab", Visible = _visible };
         EditorInterface.Singleton.GetEditorMainScreen().AddChild(_panel);
         AssetLabCommands.Panel = () => _panel != null && IsInstanceValid(_panel) ? _panel : null;
@@ -73,6 +77,7 @@ public partial class AssetLabPlugin : EditorPlugin
     public override void _MakeVisible(bool visible)
     {
         _visible = visible;
+        EditorInterface.Singleton.GetEditorSettings().SetProjectMetadata("asset_lab", "visible", visible);
         if (_panel != null && IsInstanceValid(_panel))
             _panel.Visible = visible;
     }
