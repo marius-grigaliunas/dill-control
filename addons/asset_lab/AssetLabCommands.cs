@@ -101,28 +101,64 @@ public static class AssetLabCommands
         {
             throw new Bridge.Refused(asset == null ? "no asset shown in the Lab tab; name one" : $"no asset '{asset}'");
         }
+        bool board = Bridge.Flag(args, "board", true);
+        // D3D12 on the Iris Xe hangs in its first second about one start in
+        // three (CLAUDE.md, verified environment): a lab that does not answer
+        // is started again.
+        string why = "";
+        for (int attempt = 1; attempt <= 3; attempt++)
+        {
+            await StopAndWait();
+            Play(path, board);
+            for (int frame = 0; frame < 1800 && !Godot.FileAccess.FileExists(LabPlay.ListenerPath); frame++)
+            {
+                await Bridge.NextFrame();
+            }
+            if (!Godot.FileAccess.FileExists(LabPlay.ListenerPath))
+            {
+                why = "the lab did not start listening; 'output' shows the game's log";
+                continue;
+            }
+            await Task.Delay(1500);
+            try
+            {
+                JsonNode status = await Send(new JsonObject { ["action"] = "status" }, TimeSpan.FromSeconds(10));
+                status["attempts"] = attempt;
+                return status;
+            }
+            catch (Bridge.Refused refused)
+            {
+                why = refused.Message + " (it froze at the start)";
+            }
+        }
+        throw new Bridge.Refused($"three starts, none answered: {why}");
+    }
+
+    /// <summary>Stops the playing game and waits until its process has gone:
+    /// a game started while the last one was still shutting down froze at
+    /// its first frame now and then.</summary>
+    public static async Task StopAndWait()
+    {
+        int pid = 0;
+        if (Godot.FileAccess.FileExists(LabPlay.ListenerPath))
+        {
+            pid = (int?)JsonNode.Parse(Godot.FileAccess.GetFileAsString(LabPlay.ListenerPath))?["pid"] ?? 0;
+        }
         if (EditorInterface.Singleton.IsPlayingScene())
         {
             EditorInterface.Singleton.StopPlayingScene();
-            await Bridge.NextFrame();
         }
-        Play(path, Bridge.Flag(args, "board", true));
-        for (int frame = 0; frame < 1800 && !Godot.FileAccess.FileExists(LabPlay.ListenerPath); frame++)
+        for (int i = 0; i < 100 && pid > 0 && OS.IsProcessRunning(pid); i++)
         {
-            await Bridge.NextFrame();
+            await Task.Delay(100);
         }
-        if (!Godot.FileAccess.FileExists(LabPlay.ListenerPath))
-        {
-            throw new Bridge.Refused("the lab did not start listening; 'output' shows the game's log");
-        }
-        await Task.Delay(1500);
-        return await Send(new JsonObject { ["action"] = "status" });
+        await Task.Delay(500);
     }
 
-    private static Task<JsonNode> Do(JsonObject args) => Send(args);
+    private static Task<JsonNode> Do(JsonObject args) => Send(args, TimeSpan.FromSeconds(120));
 
     /// <summary>One request to the running lab: a JSON line with its token, a JSON line back.</summary>
-    private static async Task<JsonNode> Send(JsonObject request)
+    private static async Task<JsonNode> Send(JsonObject request, TimeSpan wait)
     {
         if (!EditorInterface.Singleton.IsPlayingScene() || !Godot.FileAccess.FileExists(LabPlay.ListenerPath))
         {
@@ -139,7 +175,7 @@ public static class AssetLabCommands
         await stream.WriteAsync(line);
         using var reader = new StreamReader(stream, Encoding.UTF8);
         Task<string> reply = reader.ReadLineAsync();
-        if (await Task.WhenAny(reply, Task.Delay(TimeSpan.FromSeconds(120))) != reply || reply.Result == null)
+        if (await Task.WhenAny(reply, Task.Delay(wait)) != reply || reply.Result == null)
         {
             throw new Bridge.Refused("the lab did not answer");
         }

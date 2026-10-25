@@ -7,7 +7,35 @@
 [ext_resource type="Script" uid="uid://sp1ap05x7jhs" path="res://scripts/debug/AssetLabDirector.cs" id="5_kk7gs"]
 [ext_resource type="Resource" path="res://resources/debug/asset_lab_default.tres" id="6_sw0hh"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/fx_explosion.tscn" id="7_5kgu6"]
-[ext_resource type="Environment" path="res://resources/debug/lab_environment.tres" id="8_xh88g"]
+[ext_resource type="Environment" uid="uid://d20y6m4jsr470" path="res://resources/debug/lab_environment.tres" id="8_xh88g"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_08whh"]
+size = Vector3(400, 1, 400)
+
+[sub_resource type="BoxMesh" id="BoxMesh_mvn6q"]
+material = ExtResource("3_08whh")
+size = Vector3(400, 1, 400)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_kk7gs"]
+size = Vector3(16, 1, 10)
+
+[sub_resource type="BoxMesh" id="BoxMesh_sw0hh"]
+material = ExtResource("4_mvn6q")
+size = Vector3(16, 1, 10)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_5kgu6"]
+size = Vector3(10, 0.5, 10)
+
+[sub_resource type="BoxMesh" id="BoxMesh_xh88g"]
+material = ExtResource("4_mvn6q")
+size = Vector3(10, 0.5, 10)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_m1lsu"]
+size = Vector3(10, 0.5, 4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_13sbb"]
+material = ExtResource("4_mvn6q")
+size = Vector3(10, 0.5, 4)
 
 [node name="Level" type="Node3D" unique_id=116458126 node_paths=PackedStringArray("PlayerSpawn")]
 script = ExtResource("1_o8qs8")
@@ -16,29 +44,43 @@ PlayerSpawn = NodePath("Spawns/PlayerSpawn")
 
 [node name="Geometry" type="Node3D" parent="." unique_id=595493167]
 
-[node name="Floor" type="CSGBox3D" parent="Geometry" unique_id=621390308]
+[node name="Floor" type="StaticBody3D" parent="Geometry" unique_id=584657657]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-use_collision = true
-size = Vector3(400, 1, 400)
-material = ExtResource("3_08whh")
 
-[node name="Ramp" type="CSGBox3D" parent="Geometry" unique_id=945730604]
+[node name="Shape" type="CollisionShape3D" parent="Geometry/Floor" unique_id=307433629]
+shape = SubResource("BoxShape3D_08whh")
+
+[node name="Mesh" type="MeshInstance3D" parent="Geometry/Floor" unique_id=182697587]
+mesh = SubResource("BoxMesh_mvn6q")
+
+[node name="Ramp" type="StaticBody3D" parent="Geometry" unique_id=1229744412]
 transform = Transform3D(0.9659258, -0.25881904, 0, 0.25881904, 0.9659258, 0, 0, 0, 1, 28, 1.8, -20)
-use_collision = true
-size = Vector3(16, 1, 10)
-material = ExtResource("4_mvn6q")
 
-[node name="Step1" type="CSGBox3D" parent="Geometry" unique_id=1561402245]
+[node name="Shape" type="CollisionShape3D" parent="Geometry/Ramp" unique_id=2096675159]
+transform = Transform3D(1.0000002, 0, 0, 0, 1.0000002, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("BoxShape3D_kk7gs")
+
+[node name="Mesh" type="MeshInstance3D" parent="Geometry/Ramp" unique_id=1579448916]
+transform = Transform3D(1.0000002, 0, 0, 0, 1.0000002, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("BoxMesh_sw0hh")
+
+[node name="Step1" type="StaticBody3D" parent="Geometry" unique_id=1440309122]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.25, -20)
-use_collision = true
-size = Vector3(10, 0.5, 10)
-material = ExtResource("4_mvn6q")
 
-[node name="Step2" type="CSGBox3D" parent="Geometry" unique_id=2016947450]
+[node name="Shape" type="CollisionShape3D" parent="Geometry/Step1" unique_id=1268154921]
+shape = SubResource("BoxShape3D_5kgu6")
+
+[node name="Mesh" type="MeshInstance3D" parent="Geometry/Step1" unique_id=1714634151]
+mesh = SubResource("BoxMesh_xh88g")
+
+[node name="Step2" type="StaticBody3D" parent="Geometry" unique_id=131289775]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.75, -23)
-use_collision = true
-size = Vector3(10, 0.5, 4)
-material = ExtResource("4_mvn6q")
+
+[node name="Shape" type="CollisionShape3D" parent="Geometry/Step2" unique_id=452127466]
+shape = SubResource("BoxShape3D_m1lsu")
+
+[node name="Mesh" type="MeshInstance3D" parent="Geometry/Step2" unique_id=1164875295]
+mesh = SubResource("BoxMesh_13sbb")
 
 [node name="Water" type="Node3D" parent="." unique_id=1945967491]
 

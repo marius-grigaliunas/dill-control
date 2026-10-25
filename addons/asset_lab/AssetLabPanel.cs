@@ -83,10 +83,11 @@ public partial class AssetLabPanel : HSplitContainer
         bar.AddChild(new VSeparator());
         var board = new CheckBox { Text = "Ride", ButtonPressed = true, TooltipText = "Test puts you in its seat if it is a vehicle, or steers a walker" };
         bar.AddChild(board);
-        bar.AddChild(Button("Test", () =>
+        bar.AddChild(Button("Test", async () =>
         {
             if (Current != "")
             {
+                await AssetLabCommands.StopAndWait();
                 AssetLabCommands.Play(Current, board.ButtonPressed);
             }
         }));

@@ -110,12 +110,14 @@ public static class Values
                 {
                     if (j == null)
                         return default;
+                    if (j is JsonObject made)
+                        return NewResource(made, key);
                     string text = j.GetValue<string>();
                     if (text.StartsWith("node:"))
                         return Bridge.NodeAt(text["node:".Length..]);
                     if (text.StartsWith("res://"))
                         return ResourceLoader.Load(text) ?? throw new Bridge.Refused($"'{text}' did not load");
-                    throw new Bridge.Refused($"'{key}' wants a res:// path or node:<path> ({className})");
+                    throw new Bridge.Refused($"'{key}' wants a res:// path, node:<path> or {{\"class\":...}} ({className})");
                 }
                 default:
                     throw new Bridge.Refused($"'{key}' is a {type}, which set cannot write yet");
@@ -125,6 +127,25 @@ public static class Values
         {
             throw new Bridge.Refused($"'{key}' wants a {type}: {e.Message}");
         }
+    }
+
+    /// <summary>A new resource kept in the scene, e.g. {"class":"BoxShape3D","size":[4,1,4]}:
+    /// its class, and its properties as 'set' writes them (nested resources too).</summary>
+    private static Resource NewResource(JsonObject spec, string key)
+    {
+        string cls = (string)spec["class"] ?? throw new Bridge.Refused($"'{key}': a new resource needs its \"class\"");
+        if (!ClassDB.ClassExists(cls) || !ClassDB.CanInstantiate(cls) || !ClassDB.IsParentClass(cls, nameof(Resource)))
+            throw new Bridge.Refused($"'{key}': {cls} is not a resource class that can be made");
+        var resource = (Resource)ClassDB.Instantiate(cls).AsGodotObject();
+        foreach ((string name, JsonNode value) in spec)
+        {
+            if (name == "class")
+                continue;
+            Godot.Collections.Dictionary info = resource.GetPropertyList().FirstOrDefault(p => p["name"].AsString() == name)
+                ?? throw new Bridge.Refused($"'{key}': a {cls} has no property '{name}'");
+            resource.Set(name, FromJson(value, (Variant.Type)info["type"].AsInt32(), info["class_name"].AsString(), $"{key}.{name}"));
+        }
+        return resource;
     }
 
     private static float[] Floats(JsonNode j, int count)
