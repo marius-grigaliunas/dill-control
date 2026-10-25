@@ -135,6 +135,12 @@ made once the builder says the frames have settled. See
 
 ## Working in the editor
 
+**Handcrafted levels are built with this toolset.** When the editor is open,
+use the `godot` MCP tools (`mcp__godot__*`: view, place, set, sculpt,
+scatter, forest, vines, flood, water_paint, ...) rather than editing scene
+files; if they are not in the tool list, the same commands run through
+`python tools/editor-bridge/godot_mcp.py call <command> '<json>'`.
+
 **Claude works in the user's running editor through the editor bridge**
 (`docs/decisions/0044`): `addons/editor_bridge` listens on 127.0.0.1 while
 it is on, and `tools/editor-bridge/godot_mcp.py` (the project's `.mcp.json`)
