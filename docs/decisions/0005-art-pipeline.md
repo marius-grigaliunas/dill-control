@@ -2,6 +2,8 @@
 
 *8 October 2026*
 
+Amended by 0046 (proposed): mechs fight on with lost limbs, mend themselves, and take their moves from Blender.
+
 ## Context
 
 One person makes the art, in Blender, for a cel-shaded game that draws 25,000 of

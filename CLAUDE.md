@@ -260,7 +260,10 @@ own importer: one node per MagicaVoxel object, colour per vertex on
 materials, palette index 255 marks a part's pivot, objects named `@Name` become
 markers. See `docs/decisions/0009` and `docs/art-to-game.md`.
 Everything not ours is listed in `credits.md` the day it arrives. Mechs are
-animated by code, never clips: `docs/decisions/0010`. A melee stroke is the
+animated by code, never clips: `docs/decisions/0010`. Proposed in
+`docs/decisions/0046`: only core or head kills a mech, the gait comes
+from what is left, mechs mend themselves, and moves are posed in Blender
+on rigid parts and baked to data the walker plays. A melee stroke is the
 same, poses in a resource rather than a clip: `docs/decisions/0028`.
 
 **Every voxel model is destructible, the same way** (`docs/decisions/0011`): a

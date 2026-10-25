@@ -2,6 +2,8 @@
 
 *8 October 2026*
 
+Amended by 0046 (proposed): mechs fight on with lost limbs, mend themselves, and take their moves from Blender.
+
 ## Context
 
 Destruction is meant to read like Red Faction Guerrilla: cut a structure and
