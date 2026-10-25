@@ -64,6 +64,15 @@ Joypad events in the input map use device `-1` (any pad). The layout is
 7. **No third-party addons** without a proposal and a reason. Our own editor
    plugins live in `addons/` because Godot looks for them nowhere else; there
    are four, `vox_importer`, `vine_gen`, `editor_bridge` and `terrain_brush`.
+8. **Claude works with Godot through the editor bridge.** Creating, updating,
+   testing and inspecting scenes, levels and assets go through the toolset
+   (`docs/decisions/0044`; below) whenever the editor is open: look before and
+   after every change (`view`), change through commands (one undo each), test
+   with `run` and `output`. **When the toolset cannot do what the work needs,
+   improve it**: add or extend a command (`addons/editor_bridge`, or
+   `Bridge.Register` in the tool's own plugin), then use it. Never work round
+   it by hand-editing an open scene's `.tscn`. Headless scripts (`bench.gd`,
+   the checks) stay for what needs no editor.
 
 ## The level tree
 
@@ -135,11 +144,24 @@ made once the builder says the frames have settled. See
 
 ## Working in the editor
 
-**Handcrafted levels are built with this toolset.** When the editor is open,
-use the `godot` MCP tools (`mcp__godot__*`: view, place, set, sculpt,
-scatter, forest, vines, flood, water_paint, ...) rather than editing scene
-files; if they are not in the tool list, the same commands run through
-`python tools/editor-bridge/godot_mcp.py call <command> '<json>'`.
+**Handcrafted levels are built with this toolset** (rule 8): the `godot` MCP
+tools (`mcp__godot__*`), or, when they are not in the tool list, the same
+commands through `python tools/editor-bridge/godot_mcp.py call <command>
+'<json>'` (`commands` lists them all). What there is:
+
+| For | Commands |
+|---|---|
+| Seeing | `view` (the user's view, or a camera of Claude's own; `fog:false` for an overview), `here`, `tree`, `selection`, `get`, `history` |
+| Making and changing | `place` (a scene stood on what is under it), `add` (any built-in node), `set` (with `stand`), `delete`, `batch` (one undo), `undo`, `redo` |
+| Ground, plants, water | `terrain_create`, `sculpt`, `terrain`, `terrain_reload`, `scatter`, `forest`, `vines`, `flood`, `water_paint` |
+| Vines | `vine_kinds`, `vine_kind`, `vine_roll`, `vine_bake`, `vine_judge` |
+| Scenes and testing | `open`, `save`, `plugin`, `run`, `stop`, `output` (the game's log, or the editor's) |
+| Pointing | `select`, `frame` |
+
+Build the code with `dotnet build`; the editor loads it when its window
+next gets the focus (the user's click). Check a level's routes against the
+grapple's 140 m (`grapple_tuning_default.tres`) and look at it from where a
+player stands, not only from above.
 
 **Claude works in the user's running editor through the editor bridge**
 (`docs/decisions/0044`): `addons/editor_bridge` listens on 127.0.0.1 while

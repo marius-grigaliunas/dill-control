@@ -20,6 +20,7 @@ namespace DillControl.Editor;
 public partial class EditorBridgePlugin : EditorPlugin
 {
     private BridgeServer _server;
+    private RunCommands.Catcher _catcher;
 
     // False again after every reload (statics start over with the new code).
     private static bool _startedByThisCode;
@@ -59,6 +60,9 @@ public partial class EditorBridgePlugin : EditorPlugin
         PlaceCommands.Register();
         NodeCommands.Register();
         SceneCommands.Register();
+        RunCommands.Register();
+        _catcher = new RunCommands.Catcher();
+        OS.AddLogger(_catcher);
         _server = new BridgeServer();
         _server.Start();
         _startedByThisCode = true;
@@ -66,6 +70,11 @@ public partial class EditorBridgePlugin : EditorPlugin
 
     private void Stop()
     {
+        if (_catcher != null)
+        {
+            OS.RemoveLogger(_catcher);
+            _catcher = null;
+        }
         _server?.Stop();
         _server = null;
     }
