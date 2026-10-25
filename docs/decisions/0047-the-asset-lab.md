@@ -1,8 +1,9 @@
 # 0047 The asset lab: one place to look at, tune and break any asset, in the editor and in play
 
-*25 October 2026. Agreed with the user; proposed, being built. Replaces the
-mech lab of 0046 (its step 3 keeps the gaits; this is where they are
-watched).*
+*25 October 2026. Agreed with the user; built the same day: the tab, Test,
+the lab level and Claude's commands. Replaces the mech lab of 0046 (its step
+3 keeps the gaits; this is where they are watched). Not built: walking a
+mech in the tab itself (Test walks it with real physics).*
 
 ## Context
 

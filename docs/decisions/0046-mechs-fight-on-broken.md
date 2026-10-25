@@ -1,6 +1,9 @@
 # 0046 Mechs fight on broken, mend themselves, and take their moves from Blender
 
-*25 October 2026. Agreed with the user; proposed, not yet built. Amends 0005,
+*25 October 2026. Agreed with the user. Built the same day, steps 1-5, step 6
+begun (each stage's note below). Measured on the target machine: the tank's
+destruction +0.5-1 ms while it breaks; `limbs` 11-14 ms mean, worst frames
+to 21-30 ms as pieces spawn and pods land; `mechs` unchanged. Amends 0005,
 0010 and 0011.*
 
 ## Context
