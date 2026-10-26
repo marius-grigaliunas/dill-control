@@ -934,9 +934,10 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	/// <summary>
 	/// Plays a move posed in Blender (docs/decisions/0046) over whatever it is
 	/// doing: the parts the move claims follow it, eased in and out over
-	/// <paramref name="blend"/> seconds; every other part keeps walking. A
-	/// claimed part shot away is skipped; a move that has lost most of its
-	/// parts is not played. False when it was not.
+	/// <paramref name="blend"/> seconds, or the move's own <see cref="MechMove.Blend"/>
+	/// when it has one; every other part keeps walking. A claimed part shot
+	/// away is skipped; a move that has lost most of its parts is not played.
+	/// False when it was not.
 	/// </summary>
 	public bool PlayMove(MechMove move, float blend = 0.1f)
 	{
@@ -966,7 +967,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		PlayingMove = move;
 		_moveParts = parts;
 		_moveTime = 0.0f;
-		_moveBlend = Mathf.Max(blend, 0.0f);
+		_moveBlend = Mathf.Max(move.Blend >= 0.0f ? move.Blend : blend, 0.0f);
 		return true;
 	}
 

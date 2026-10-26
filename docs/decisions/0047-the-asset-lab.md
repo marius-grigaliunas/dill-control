@@ -2,8 +2,13 @@
 
 *25 October 2026. Agreed with the user; built the same day: the tab, Test,
 the lab level and Claude's commands. Replaces the mech lab of 0046 (its step
-3 keeps the gaits; this is where they are watched). Not built: walking a
-mech in the tab itself (Test walks it with real physics).*
+3 keeps the gaits; this is where they are watched). Built 25-26 October,
+from the user's interview: a mech walks in the tab itself, without physics,
+on a treadmill (`MechWalker.LabMode`); a limb clicked comes off and the
+stance follows; its moves and the combo play on a timeline with markers,
+scrubbed, slowed, with fist trails and ghost poses; and their timing (speed,
+blend, markers) is edited there and read back into Blender. See
+`docs/handoffs/lab-walk-and-moves.md`.*
 
 ## Context
 
@@ -81,5 +86,9 @@ model (0043): plan in the tab, play in a lab level, survive a reload.
 - A fifth addon: CLAUDE.md's rule 7 and the folder map list it.
 - Two halves to keep in step: the tab and the lab level read the same
   request file, and the bridge forwards to a game that may not be running.
-- The preview in the tab is the asset at rest; anything that needs physics
-  is judged in Test.
+- The preview in the tab is the asset at rest, or a mech walking and
+  playing its moves on a flat floor with no physics; anything that needs
+  physics (destruction, real ground, the crowd) is judged in Test.
+- `MechWalker` is a tool script, and with it the resources it reads
+  (`MechTuning`, `MechMove`, `MechSlashStats`): in a scene being edited it
+  must do nothing, and does, unless `LabMode` is set.

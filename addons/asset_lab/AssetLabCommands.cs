@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using DillControl.Debug;
+using DillControl.Vehicles;
 using Godot;
 
 namespace DillControl.Editor;
@@ -74,6 +75,12 @@ public static class AssetLabCommands
             "Returns the clip's moves with their starts, blends and markers, and where the playhead is.",
             """{"type":"object","properties":{"clip":{"type":"string"},"play":{"type":"boolean"},"time":{"type":"number"},"step":{"type":"integer"},"speed":{"type":"number"},"loop":{"type":"boolean"},"trails":{"type":"boolean"},"ghosts":{"type":"boolean"},"seconds":{"type":"number"}}}""",
             PlayClip);
+        Bridge.Register("lab_timing",
+            "Edit the timing of a move in the Lab tab's clip, as its timing row and the timeline's markers do: 'move' its short name (default the " +
+            "one under the playhead), 'speed' times as fast as saved, 'blend' seconds (below 0: the player's), 'events' {\"hit\": seconds into the move}, " +
+            "snapped to its frames. 'save' writes every edited move's .tres, stamped for the Blender add-on's Read Timing; 'revert' puts them back as saved.",
+            """{"type":"object","properties":{"move":{"type":"string"},"speed":{"type":"number"},"blend":{"type":"number"},"events":{"type":"object"},"save":{"type":"boolean"},"revert":{"type":"boolean"}}}""",
+            Timing);
         Bridge.Register("lab_test",
             "Play the asset lab level with an asset (default: the one shown in the Lab tab), as the tab's Test does: it stands in front of the player, " +
             "who is put in its seat if it is a vehicle (WASD drives it) or steers it if it is a walker nobody rides ('board': false to stay on foot). 'with' lists more assets stood in a row beside it (a storage bot to mend it). " +
@@ -357,6 +364,66 @@ public static class AssetLabCommands
             ["walker_move"] = preview.Walker.PlayingMove == null ? null : LabTimeline.ShortName(preview.Walker.PlayingMove),
             ["segments"] = segments,
         };
+    }
+
+    private static JsonNode Timing(JsonObject args)
+    {
+        AssetLabPanel lab = Lab();
+        LabTransport transport = lab.Preview.Transport;
+        if (transport.Segments.Count == 0)
+        {
+            throw new Bridge.Refused("no clip in the Lab tab; lab_play one");
+        }
+        if (Bridge.Flag(args, "revert", false))
+        {
+            lab.RevertTiming();
+        }
+        string name = Bridge.Text(args, "move", null);
+        MechMove move = name == null
+            ? lab.TimingMove
+            : transport.Segments.Select(s => s.Move).FirstOrDefault(m => LabTimeline.ShortName(m) == name)
+              ?? throw new Bridge.Refused($"no move '{name}' in the clip: " + string.Join(", ", transport.Segments.Select(s => LabTimeline.ShortName(s.Move))));
+        if (args.ContainsKey("speed"))
+        {
+            lab.SetSpeed(move, Mathf.Clamp((float)Bridge.Number(args, "speed", 1), 0.25f, 4.0f));
+        }
+        if (args.ContainsKey("blend"))
+        {
+            float blend = (float)Bridge.Number(args, "blend", -1);
+            lab.SetBlend(move, blend < 0.0f ? -1.0f : blend);
+        }
+        if (args["events"] is JsonObject events)
+        {
+            foreach ((string key, JsonNode value) in events)
+            {
+                int index = Array.IndexOf(move.EventNames, key);
+                if (index < 0 || index >= move.EventTimes.Length)
+                {
+                    throw new Bridge.Refused($"{LabTimeline.ShortName(move)} has no marker '{key}'");
+                }
+                float into = Mathf.Clamp((float)value, 0.0f, move.Length);
+                lab.SetMarker(move, index, Mathf.Round(into * move.Fps) / move.Fps);
+            }
+        }
+        var result = new JsonObject();
+        if (Bridge.Flag(args, "save", false))
+        {
+            result["saved"] = new JsonArray(lab.SaveTiming().Select(p => (JsonNode)p).ToArray());
+        }
+        var marks = new JsonObject();
+        for (int e = 0; e < move.EventNames.Length && e < move.EventTimes.Length; e++)
+        {
+            marks[move.EventNames[e]] = Math.Round(move.EventTimes[e], 4);
+        }
+        result["move"] = LabTimeline.ShortName(move);
+        result["fps"] = Math.Round(move.Fps, 3);
+        result["speed"] = Math.Round(lab.SpeedOf(move), 3);
+        result["length"] = Math.Round(move.Length, 4);
+        result["blend"] = move.Blend;
+        result["events"] = marks;
+        result["stamp"] = move.TimingStamp;
+        result["clip_length"] = Math.Round(transport.Length, 3);
+        return result;
     }
 
     private static JsonNode Assets(JsonObject args)

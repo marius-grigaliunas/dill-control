@@ -42,6 +42,17 @@ public partial class MechMove : Resource
     [Export]
     public float[] EventTimes { get; set; } = Array.Empty<float>();
 
+    /// <summary>Seconds it eases in and out over, set in the asset lab;
+    /// below 0 the one who plays it says (a combo's chain blend).</summary>
+    [Export(PropertyHint.Range, "-1,1,0.01,suffix:s")]
+    public float Blend { get; set; } = -1.0f;
+
+    /// <summary>When the asset lab last saved its timing (speed, blend,
+    /// markers). The Blender add-on reads the timing back into the action
+    /// and keeps this, and will not export over a stamp it has not read.</summary>
+    [Export]
+    public string TimingStamp { get; set; } = "";
+
     public float Length => Frames > 1 ? (Frames - 1) / Fps : 0.0f;
 
     /// <summary>When its event of that name comes, or -1.</summary>

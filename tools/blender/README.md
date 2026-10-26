@@ -32,6 +32,16 @@ view's sidebar (N), tab **Dill**. Delete the zip afterwards; it is not kept.
 4. **Live to Godot** mirrors the pose into the Godot editor's Lab tab while
    you pose (the editor bridge's `lab_pose`), ten times a second while
    something changes.
+5. **Timing is set in Godot, poses here.** The Lab tab plays a move and
+   edits its speed, blend and marker times, and **Save timing** writes them
+   to the `.tres` with a stamp. **Read Timing** brings them into the
+   action: keys rescaled for the speed, markers moved (to whole frames: up
+   to half a frame off), the blend kept on the action (`dill_blend`).
+   **Export Move** will not write over a stamp the action has not read; it
+   says so, and Read Timing first is the fix (its `force` option exports
+   anyway, losing the Lab's timing).
+
+After changing the add-on, install the zip again (above).
 
 Work in your own `.blend` under `art/_source/<Mech>/`.
 `art/_source/FieldFighter/fighter_moves.blend` holds the fighter's slam
@@ -43,3 +53,8 @@ compute.
     blender --background --factory-startup --python tools/blender/check_rig.py -- art/voxels/mch_field_fighter.vox
     blender --background --factory-startup --python tools/blender/make_slam.py
     blender --background art/_source/FieldFighter/fighter_moves.blend --python tools/blender/check_live.py -- slam_r 17
+    blender --background <a copy of fighter_moves.blend> --python tools/blender/check_timing.py -- smash
+
+`check_timing.py` runs on a copy, after the Lab saved the move's timing
+(`lab_timing` ... `save`): it writes the move's `.tres`, so put it back
+from git afterwards unless the timing is wanted.

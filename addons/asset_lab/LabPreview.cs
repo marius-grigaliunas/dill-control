@@ -28,6 +28,14 @@ namespace DillControl.Editor;
 [Tool]
 public partial class LabPreview : SubViewportContainer
 {
+    // Made by _Ready in this load of the code. A code reload restores what
+    // Godot can keep of the old instance, never this, so the old one, which
+    // runs a frame before the plugin builds anew, does nothing.
+    private sealed class Built { }
+    private Built _built;
+
+    private bool Live => _built != null;
+
     public Node3D Asset { get; private set; }
     public Aabb Bounds { get; private set; }
 
@@ -169,6 +177,7 @@ public partial class LabPreview : SubViewportContainer
 
         SetLook(null);
         PlaceCamera();
+        _built = new Built();
     }
 
     /// <summary>Shows one asset, framed. Null clears the view.</summary>
@@ -227,7 +236,7 @@ public partial class LabPreview : SubViewportContainer
 
     public override void _Process(double delta)
     {
-        if (Walker == null || !IsInstanceValid(Walker))
+        if (!Live || Walker == null || !IsInstanceValid(Walker))
         {
             return;
         }
@@ -469,7 +478,7 @@ public partial class LabPreview : SubViewportContainer
     /// walker back where the playhead is.</summary>
     public void RebuildTrails()
     {
-        if (Walker == null || !IsInstanceValid(Walker))
+        if (!Live || Walker == null || !IsInstanceValid(Walker))
         {
             return;
         }

@@ -120,6 +120,29 @@ In the **Lab tab** (`addons/asset_lab`), with no Test and no physics:
    frame. `lab_play` `trails`, `ghosts`.
 5. Timing edits saved to the `.tres`, and the add-on reading them back into
    Blender (markers, key rescale for speed).
+   *Built 26 October.* A timing row under the timeline edits the move
+   under the playhead: speed × (its `Fps` up, its markers' times down,
+   always against what was saved), blend (`MechMove.Blend`, new; below 0
+   the player's, so nothing in play changed), and markers dragged on the
+   timeline, snapped to frames. Edits are kept per move until **Save
+   timing** (`ResourceSaver`, with `MechMove.TimingStamp`) or **Revert**;
+   the combo is laid out again as they change. Add-on: **Read Timing**
+   (`timing.py`), and Export refuses an unread stamp
+   (`TimingNotRead`). `tools/blender/check_timing.py` proved the round
+   trip on a copy of `fighter_moves.blend`: smash at 1.25×, blend 0.1, hit
+   moved; export refused, read, exported at 60 fps with the timing kept
+   and every part's pose within 0.7° of the Lab's file. Markers land on
+   Blender's whole frames (up to half a frame off). Bridge: `lab_timing`.
+   Godot's reload of a resource in place keeps a property its file leaves
+   out, so the lab resets `Blend` and `TimingStamp` before reading a move
+   fresh. **The user must reinstall the add-on zip** to get Read Timing.
+
+## What is next
+
+- Nothing of this handoff is left. Not done: the walk cycle has no
+  timeline (it runs live; scrub needs a recorded walk), and a style loop
+  for the walk (0046 step 6) is still to be made.
+- Trails and ghosts follow moves only, not the walking legs.
 
 Check each in the editor through the bridge and on screen; a bench is not
 needed for editor-only work, but the walker change must leave the game

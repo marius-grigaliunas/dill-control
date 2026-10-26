@@ -4,7 +4,8 @@ Each frame, each part's transform in the mech's own space (the rig's), turned
 from Blender's axes (Z up) to Godot's (Y up): Godot (x, y, z) is Blender
 (x, z, -y). A part is in the move if it moves at all; the rest keep walking.
 Timeline markers on the action (or the scene, inside the frame range) are its
-events: 'hit', 'sfx:<name>', 'shake'.
+events: 'hit', 'sfx:<name>', 'shake'. A blend and a timing stamp the Godot
+asset lab saved come back through Read Timing (timing.py) and go out again.
 """
 import os
 
@@ -71,7 +72,7 @@ def _f(x):
     return f'{x:.6g}'
 
 
-def write_move(path, mech, move_name, fps, frames, tracks, rest, marks):
+def write_move(path, mech, move_name, fps, frames, tracks, rest, marks, blend=-1.0, stamp=''):
     """The .tres: the parts it claims, and per frame each one's position and
     rotation (x, y, z, w) in the model's space."""
     claimed = [n for n in sorted(tracks) if any(not _same(m, rest[n]) for m in tracks[n])]
@@ -100,6 +101,8 @@ def write_move(path, mech, move_name, fps, frames, tracks, rest, marks):
         f'Rotations = PackedFloat32Array({", ".join(rotations)})\n'
         f'EventNames = PackedStringArray({event_names})\n'
         f'EventTimes = PackedFloat32Array({event_times})\n'
+        f'Blend = {_f(blend)}\n'
+        f'TimingStamp = "{stamp}"\n'
     )
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w', encoding='utf-8', newline='\n') as f:
@@ -107,9 +110,19 @@ def write_move(path, mech, move_name, fps, frames, tracks, rest, marks):
     return claimed
 
 
-def export_action(rig, action, frame_start=None, frame_end=None):
+class TimingNotRead(Exception):
+    """The asset lab saved this move's timing after the action last read it."""
+
+
+def export_action(rig, action, frame_start=None, frame_end=None, force=False):
     """Bakes `action` on `rig` to resources/vehicles/moves/<mech>_<action>.tres
-    in the project the mech came from. Returns (path, parts claimed)."""
+    in the project the mech came from. Returns (path, parts claimed). Raises
+    TimingNotRead rather than write over timing the lab saved and the action
+    has not read, unless `force`."""
+    from . import timing
+    stamp = timing.unread_stamp(rig, action)
+    if stamp and not force:
+        raise TimingNotRead(stamp)
     scene = bpy.context.scene
     if frame_start is None or frame_end is None:
         lo, hi = action.frame_range
@@ -119,5 +132,6 @@ def export_action(rig, action, frame_start=None, frame_end=None):
     mech = rig['dill_mech']
     move = action.name.lower().replace(' ', '_')
     path = os.path.join(rig['dill_project'], 'resources', 'vehicles', 'moves', f'{mech}_{move}.tres')
-    claimed = write_move(path, mech, move, fps, frames, tracks, rest, events(action, scene, frame_start, frame_end, fps))
+    claimed = write_move(path, mech, move, fps, frames, tracks, rest, events(action, scene, frame_start, frame_end, fps),
+                         action.get('dill_blend', -1.0), action.get('dill_timing_stamp', ''))
     return path, claimed

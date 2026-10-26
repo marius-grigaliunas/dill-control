@@ -8,7 +8,7 @@ sidebar (N), tab 'Dill'.
 import bpy
 from bpy.props import BoolProperty, StringProperty
 
-from . import export, live, rig, vox
+from . import export, live, rig, timing, vox
 
 
 class DILL_OT_import_mech(bpy.types.Operator):
@@ -42,14 +42,42 @@ class DILL_OT_export_move(bpy.types.Operator):
     bl_idname = 'dill.export_move'
     bl_label = 'Export Move'
 
+    force: BoolProperty(name="Over the Lab's timing", default=False,
+                        description="Export even though Godot's Lab saved timing this action has not read")
+
     def execute(self, context):
         r = _active_rig(context)
         action = r.animation_data.action if r and r.animation_data else None
         if r is None or action is None:
             self.report({'ERROR'}, 'Select a mech rig with an action')
             return {'CANCELLED'}
-        path, claimed = export.export_action(r, action)
+        try:
+            path, claimed = export.export_action(r, action, force=self.force)
+        except export.TimingNotRead as stamp:
+            self.report({'ERROR'}, f"Godot's Lab changed this move's timing ({stamp}): Read Timing first")
+            return {'CANCELLED'}
         self.report({'INFO'}, f'{path}: {", ".join(claimed) or "nothing moves"}')
+        return {'FINISHED'}
+
+
+class DILL_OT_read_timing(bpy.types.Operator):
+    """Read the speed, blend and markers Godot's Lab saved for this action's move: keys rescaled, markers moved"""
+    bl_idname = 'dill.read_timing'
+    bl_label = 'Read Timing'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        r = _active_rig(context)
+        action = r.animation_data.action if r and r.animation_data else None
+        if r is None or action is None:
+            self.report({'ERROR'}, 'Select a mech rig with an action')
+            return {'CANCELLED'}
+        try:
+            said = timing.read_timing(r, action)
+        except ValueError as why:
+            self.report({'ERROR'}, str(why))
+            return {'CANCELLED'}
+        self.report({'INFO'}, f'{action.name}: {said}')
         return {'FINISHED'}
 
 
@@ -65,6 +93,7 @@ class DILL_PT_panel(bpy.types.Panel):
         r = _active_rig(context)
         if r is not None:
             col.label(text=f"{r['dill_mech']}: {len(export.part_objects(r))} parts")
+        col.operator(DILL_OT_read_timing.bl_idname)
         col.operator(DILL_OT_export_move.bl_idname)
         col.prop(context.scene, 'dill_live', text='Live to Godot')
 
@@ -74,7 +103,7 @@ def _live_changed(self, context):
         live.start()
 
 
-CLASSES = (DILL_OT_import_mech, DILL_OT_export_move, DILL_PT_panel)
+CLASSES = (DILL_OT_import_mech, DILL_OT_read_timing, DILL_OT_export_move, DILL_PT_panel)
 
 
 def register():

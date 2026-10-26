@@ -39,7 +39,21 @@ public sealed class LabTransport
         Playing = true;
     }
 
-    public static List<Segment> Single(MechMove move) => new() { new Segment(move, 0.0f, 0.08f) };
+    /// <summary>The same moves again, after their timing was edited:
+    /// where the playhead is, and whether it plays, are kept.</summary>
+    public void Rebuild(List<Segment> segments)
+    {
+        float time = Time;
+        bool playing = Playing;
+        Load(Clip, segments);
+        Time = Mathf.Min(time, Length);
+        Playing = playing;
+    }
+
+    /// <summary>A move's own blend, else the one it would be played with.</summary>
+    private static float BlendOf(MechMove move, float fallback) => move.Blend >= 0.0f ? move.Blend : fallback;
+
+    public static List<Segment> Single(MechMove move) => new() { new Segment(move, 0.0f, BlendOf(move, 0.08f)) };
 
     /// <summary>The combo as it flows with the button held: each stroke
     /// once the last one's blow has landed and <see cref="MechSlashStats.ChainAfterHit"/>
@@ -54,7 +68,7 @@ public sealed class LabTransport
             {
                 continue;
             }
-            segments.Add(new Segment(move, start, segments.Count == 0 ? 0.08f : stats.ChainBlend));
+            segments.Add(new Segment(move, start, BlendOf(move, segments.Count == 0 ? 0.08f : stats.ChainBlend)));
             float hit = move.EventTime("hit");
             start += (hit >= 0.0f ? hit : move.Length * 0.6f) + stats.ChainAfterHit;
         }

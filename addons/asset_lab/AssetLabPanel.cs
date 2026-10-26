@@ -16,6 +16,14 @@ namespace DillControl.Editor;
 [Tool]
 public partial class AssetLabPanel : HSplitContainer
 {
+    // Made by _Ready in this load of the code. A code reload restores what
+    // Godot can keep of the old instance, never this, so the old one, which
+    // runs a frame before the plugin builds anew, does nothing.
+    private sealed class Built { }
+    private Built _built;
+
+    private bool Live => _built != null;
+
     public LabPreview Preview { get; private set; }
     public string Current { get; private set; } = "";
     public AssetInfo Info { get; private set; }
@@ -148,7 +156,27 @@ public partial class AssetLabPanel : HSplitContainer
         _playBar.AddChild(_clock);
         middle.AddChild(_playBar);
         _timeline = new LabTimeline { Preview = Preview, Visible = false };
+        _timeline.MarkerMoved += SetMarker;
         middle.AddChild(_timeline);
+
+        // The timing of the move under the playhead, edited here and saved
+        // to its .tres; poses stay in Blender, which reads the timing back.
+        _timingBar = new HBoxContainer { Visible = false };
+        _timingName = new Label();
+        _timingBar.AddChild(_timingName);
+        _timingBar.AddChild(new Label { Text = "Speed ×" });
+        _speed = new SpinBox { MinValue = 0.25, MaxValue = 4, Step = 0.05, Value = 1, TooltipText = "Plays it faster or slower: its frames and markers keep their places" };
+        _speed.ValueChanged += value => { if (TimingMove != null) SetSpeed(TimingMove, (float)value); };
+        _timingBar.AddChild(_speed);
+        _timingBar.AddChild(new Label { Text = "Blend" });
+        _blend = new SpinBox { MinValue = -0.01, MaxValue = 1, Step = 0.01, Value = -0.01, Suffix = "s", TooltipText = "Seconds it eases in and out over; below 0 the player's (the combo's chain blend)" };
+        _blend.ValueChanged += value => { if (TimingMove != null) SetBlend(TimingMove, value < 0 ? -1.0f : (float)value); };
+        _timingBar.AddChild(_blend);
+        _timingBar.AddChild(Button("Save timing", () => SaveTiming()));
+        _timingBar.AddChild(Button("Revert", RevertTiming));
+        _timingStatus = new Label { TooltipText = "Drag a marker on the timeline to move it" };
+        _timingBar.AddChild(_timingStatus);
+        middle.AddChild(_timingBar);
         middleAndRight.AddChild(middle);
 
         // What it is on top, scrolling in its own box; the parameters below
@@ -184,6 +212,7 @@ public partial class AssetLabPanel : HSplitContainer
         _confirm.Confirmed += Save;
         AddChild(_confirm);
 
+        _built = new Built();
         FillTree();
         string last = EditorInterface.Singleton.GetEditorSettings().GetProjectMetadata(MetaSection, "asset", "").AsString();
         if (last != "" && ResourceLoader.Exists(last))
@@ -209,14 +238,131 @@ public partial class AssetLabPanel : HSplitContainer
     public void ShowGhosts(bool on) => _ghosts.ButtonPressed = on;
     private LabTimeline _timeline;
 
+    private HBoxContainer _timingBar;
+    private Label _timingName;
+    private SpinBox _speed;
+    private SpinBox _blend;
+    private Label _timingStatus;
+    private MechMove _shownTiming;
+
+    // Moves whose timing was edited and not saved: each with its frame rate
+    // and markers before the speed was changed, so speed is always against those.
+    private readonly Dictionary<MechMove, (float Fps, float[] Times)> _timingBase = new();
+
+    /// <summary>The move whose timing the row edits: the one under the playhead.</summary>
+    public MechMove TimingMove
+    {
+        get
+        {
+            LabTransport transport = Preview.Transport;
+            if (transport.Segments.Count == 0)
+            {
+                return null;
+            }
+            return transport.At(transport.Time, out _)?.Move ?? transport.Segments[^1].Move;
+        }
+    }
+
+    private (float Fps, float[] Times) BaseOf(MechMove move)
+    {
+        if (!_timingBase.TryGetValue(move, out var timing))
+        {
+            timing = (move.Fps, (float[])move.EventTimes.Clone());
+            _timingBase[move] = timing;
+        }
+        return timing;
+    }
+
+    public float SpeedOf(MechMove move) => _timingBase.TryGetValue(move, out var timing) ? move.Fps / timing.Fps : 1.0f;
+
+    /// <summary>Plays it <paramref name="speed"/> times as fast: its frame
+    /// rate up, its markers' times down, each against what was saved.</summary>
+    public void SetSpeed(MechMove move, float speed)
+    {
+        var timing = BaseOf(move);
+        move.Fps = timing.Fps * speed;
+        move.EventTimes = timing.Times.Select(t => t / speed).ToArray();
+        TimingChanged();
+    }
+
+    public void SetBlend(MechMove move, float blend)
+    {
+        BaseOf(move);
+        move.Blend = blend;
+        TimingChanged();
+    }
+
+    /// <summary>Puts marker <paramref name="index"/> at <paramref name="time"/>
+    /// seconds into the move.</summary>
+    public void SetMarker(MechMove move, int index, float time)
+    {
+        var timing = BaseOf(move);
+        float speed = move.Fps / timing.Fps;
+        float[] times = (float[])move.EventTimes.Clone();
+        times[index] = time;
+        move.EventTimes = times;
+        timing.Times[index] = time * speed;
+        TimingChanged();
+    }
+
+    /// <summary>The clip laid out again from the edited moves.</summary>
+    private void TimingChanged()
+    {
+        LabTransport transport = Preview.Transport;
+        if (transport.Clip == ComboClip && Resources.OfType<MechSlashStats>().FirstOrDefault() is MechSlashStats stats)
+        {
+            transport.Rebuild(LabTransport.Combo(stats));
+        }
+        else if (transport.Segments.Count > 0)
+        {
+            transport.Rebuild(LabTransport.Single(transport.Segments[0].Move));
+        }
+        Preview.RebuildTrails();
+        _timingStatus.Text = "  unsaved: " + string.Join(", ", _timingBase.Keys.Select(LabTimeline.ShortName));
+    }
+
+    /// <summary>Writes every edited move's .tres, stamped so the Blender
+    /// add-on knows to read the timing back. Returns the files written.</summary>
+    public List<string> SaveTiming()
+    {
+        var saved = new List<string>();
+        string stamp = System.DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture);
+        foreach (MechMove move in _timingBase.Keys)
+        {
+            move.TimingStamp = stamp;
+            Error error = ResourceSaver.Save(move, move.ResourcePath);
+            if (error != Error.Ok)
+            {
+                _timingStatus.Text = $"  could not save {move.ResourcePath}: {error}";
+                return saved;
+            }
+            saved.Add(move.ResourcePath);
+        }
+        _timingBase.Clear();
+        _shownTiming = null;
+        _timingStatus.Text = saved.Count == 0 ? "  nothing changed" : $"  saved {saved.Count}; in Blender, Read Timing before exporting again";
+        return saved;
+    }
+
+    /// <summary>Every edited move back as saved.</summary>
+    public void RevertTiming()
+    {
+        foreach (MechMove move in _timingBase.Keys)
+        {
+            Fresh(move.ResourcePath);
+        }
+        _timingBase.Clear();
+        _shownTiming = null;
+        TimingChanged();
+        _timingStatus.Text = "  as saved";
+    }
+
     public const string WalkOnly = "Walk only";
     public const string ComboClip = "Combo";
 
     public override void _Process(double delta)
     {
-        // After a code reload the old panel runs a frame with its fields
-        // empty, before the plugin builds it again.
-        if (_walkBar == null || Preview == null || !_walkBar.Visible || Preview.Walker == null || !IsInstanceValid(Preview.Walker))
+        if (!Live || !_walkBar.Visible || Preview.Walker == null || !IsInstanceValid(Preview.Walker))
         {
             return;
         }
@@ -235,6 +381,18 @@ public partial class AssetLabPanel : HSplitContainer
             _clock.Text = clock;
         }
         _timeline.QueueRedraw();
+        _timingBar.Visible = transport.Segments.Count > 0;
+        MechMove move = TimingMove;
+        if (move != _shownTiming)
+        {
+            _shownTiming = move;
+            if (move != null)
+            {
+                _timingName.Text = $"Timing of {LabTimeline.ShortName(move)}:";
+                _speed.SetValueNoSignal(SpeedOf(move));
+                _blend.SetValueNoSignal(move.Blend < 0.0f ? -0.01 : move.Blend);
+            }
+        }
     }
 
     /// <summary>The walker's own moves, by file: those posed on its .vox.</summary>
@@ -274,9 +432,10 @@ public partial class AssetLabPanel : HSplitContainer
             }
             foreach (MechMove move in stats.Combo)
             {
-                if (move != null)
+                // Fresh from disk, unless its timing is being edited here.
+                if (move != null && !_timingBase.ContainsKey(move))
                 {
-                    ResourceLoader.Load(move.ResourcePath, "", ResourceLoader.CacheMode.Replace);
+                    Fresh(move.ResourcePath);
                 }
             }
             segments = LabTransport.Combo(stats);
@@ -285,7 +444,8 @@ public partial class AssetLabPanel : HSplitContainer
         {
             string mech = MechName(walker);
             string path = MovesOf(walker).FirstOrDefault(p => p.GetFile().GetBaseName() == $"{mech}_{clip}" || p.GetFile().GetBaseName() == clip);
-            if (path == null || ResourceLoader.Load(path, "", ResourceLoader.CacheMode.Replace) is not MechMove move)
+            bool edited = _timingBase.Keys.Any(m => m.ResourcePath == path);
+            if (path == null || (edited ? ResourceLoader.Load(path) : Fresh(path)) is not MechMove move)
             {
                 return false;
             }
@@ -304,6 +464,21 @@ public partial class AssetLabPanel : HSplitContainer
         }
         _timeline.Visible = segments.Count > 0;
         return true;
+    }
+
+    /// <summary>
+    /// A move as its file has it now (a re-export from Blender shows). Read
+    /// into the loaded one, which keeps a property the file leaves out, so
+    /// the lab's own fields go back to their defaults first.
+    /// </summary>
+    private static MechMove Fresh(string path)
+    {
+        if (ResourceLoader.HasCached(path) && ResourceLoader.Load(path) is MechMove cached)
+        {
+            cached.Blend = -1.0f;
+            cached.TimingStamp = "";
+        }
+        return ResourceLoader.Load(path, "", ResourceLoader.CacheMode.Replace) as MechMove;
     }
 
     /// <summary>The clips the walker shown has, for the list.</summary>
@@ -423,6 +598,8 @@ public partial class AssetLabPanel : HSplitContainer
         _walkBar.Visible = Preview.Walker != null;
         _playBar.Visible = Preview.Walker != null;
         _timeline.Visible = false;
+        _timingBar.Visible = false;
+        _shownTiming = null;
         Preview.Transport.Load("", new());
         Preview.TimeScale = (float)_timeScale.Value;
         Info = AssetInfo.Of(path, Preview.Asset, Preview.Bounds);

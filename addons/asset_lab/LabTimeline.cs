@@ -7,6 +7,7 @@ namespace DillControl.Editor;
 /// The asset lab's timeline under the view: each move of the clip as a bar
 /// from where it starts, its markers on it ('hit' red, 'shake' orange, a
 /// sound blue), and the playhead. Click or drag to scrub; it pauses there.
+/// A marker dragged moves to another frame of its move (<see cref="MarkerMoved"/>).
 /// </summary>
 [Tool]
 public partial class LabTimeline : Control
@@ -14,6 +15,41 @@ public partial class LabTimeline : Control
     public LabPreview Preview;
 
     private const float Margin = 8.0f;
+    private const float RowHeight = 14.0f;
+
+    /// <summary>A marker was dragged: the move, which of its events, and
+    /// its new time into the move, on one of its frames.</summary>
+    public event System.Action<Vehicles.MechMove, int, float> MarkerMoved;
+
+    private int _dragSegment = -1;
+    private int _dragEvent = -1;
+
+    private int Rows => Mathf.Min(Transport.Segments.Count, 2);
+
+    private float RowTop(int segment) => 4.0f + (segment % Rows) * (RowHeight + 2.0f);
+
+    /// <summary>The marker under a point of the timeline, if any.</summary>
+    private bool MarkerAt(Vector2 point, out int segment, out int index)
+    {
+        for (segment = 0; segment < Transport.Segments.Count; segment++)
+        {
+            LabTransport.Segment s = Transport.Segments[segment];
+            float top = RowTop(segment);
+            if (point.Y < top - 3.0f || point.Y > top + RowHeight + 3.0f)
+            {
+                continue;
+            }
+            for (index = 0; index < s.Move.EventNames.Length && index < s.Move.EventTimes.Length; index++)
+            {
+                if (Mathf.Abs(point.X - X(s.Start + s.Move.EventTimes[index])) <= 5.0f)
+                {
+                    return true;
+                }
+            }
+        }
+        segment = index = -1;
+        return false;
+    }
 
     public override void _Ready()
     {
@@ -43,12 +79,11 @@ public partial class LabTimeline : Control
             return;
         }
         Font font = ThemeDB.FallbackFont;
-        int rows = Mathf.Min(Transport.Segments.Count, 2);
-        float rowHeight = 14.0f;
+        float rowHeight = RowHeight;
         for (int i = 0; i < Transport.Segments.Count; i++)
         {
             LabTransport.Segment segment = Transport.Segments[i];
-            float y = 4.0f + (i % rows) * (rowHeight + 2.0f);
+            float y = RowTop(i);
             float x0 = X(segment.Start), x1 = X(segment.Start + segment.Move.Length);
             var colour = i % 2 == 0 ? new Color(0.25f, 0.4f, 0.55f) : new Color(0.3f, 0.5f, 0.35f);
             DrawRect(new Rect2(x0, y, x1 - x0, rowHeight), colour);
@@ -59,7 +94,8 @@ public partial class LabTimeline : Control
                 string name = segment.Move.EventNames[e];
                 Color mark = name == "hit" ? new Color(1.0f, 0.25f, 0.2f) : name == "shake" ? new Color(1.0f, 0.6f, 0.1f) : new Color(0.4f, 0.7f, 1.0f);
                 float x = X(segment.Start + segment.Move.EventTimes[e]);
-                DrawLine(new Vector2(x, y - 2), new Vector2(x, y + rowHeight + 2), mark, 2.0f);
+                bool held = i == _dragSegment && e == _dragEvent;
+                DrawLine(new Vector2(x, y - 2), new Vector2(x, y + rowHeight + 2), held ? Colors.White : mark, held ? 3.0f : 2.0f);
             }
         }
         // Frame ticks along the bottom, one a frame when there is room.
@@ -88,14 +124,36 @@ public partial class LabTimeline : Control
         {
             return;
         }
-        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } press)
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left } button)
         {
-            Preview.Seek(TimeAt(press.Position.X));
+            if (!button.Pressed)
+            {
+                _dragSegment = _dragEvent = -1;
+            }
+            else if (MarkerAt(button.Position, out _dragSegment, out _dragEvent))
+            {
+                Transport.Playing = false;
+            }
+            else
+            {
+                Preview.Seek(TimeAt(button.Position.X));
+            }
             AcceptEvent();
         }
         else if (@event is InputEventMouseMotion motion && (motion.ButtonMask & MouseButtonMask.Left) != 0)
         {
-            Preview.Seek(TimeAt(motion.Position.X));
+            if (_dragSegment >= 0 && _dragSegment < Transport.Segments.Count)
+            {
+                LabTransport.Segment segment = Transport.Segments[_dragSegment];
+                float into = Mathf.Clamp(TimeAt(motion.Position.X) - segment.Start, 0.0f, segment.Move.Length);
+                into = Mathf.Round(into * segment.Move.Fps) / segment.Move.Fps;
+                MarkerMoved?.Invoke(segment.Move, _dragEvent, into);
+                Preview.Seek(segment.Start + into);
+            }
+            else
+            {
+                Preview.Seek(TimeAt(motion.Position.X));
+            }
             AcceptEvent();
         }
     }
