@@ -138,6 +138,12 @@ public partial class AssetLabPanel : HSplitContainer
         _timeScale = new HSlider { MinValue = 0.1, MaxValue = 1, Step = 0.05, Value = 1, CustomMinimumSize = new Vector2(100, 0), TooltipText = "How fast time runs: 1 is the game's" };
         _timeScale.ValueChanged += value => Preview.TimeScale = (float)value;
         _playBar.AddChild(_timeScale);
+        _trails = new CheckBox { Text = "Trails", ButtonPressed = true, TooltipText = "The fists' paths through the clip, a red cross where each blow lands" };
+        _trails.Toggled += on => Preview.Trails = on;
+        _playBar.AddChild(_trails);
+        _ghosts = new CheckBox { Text = "Ghosts", TooltipText = "See-through poses before (blue) and after (orange) the playhead" };
+        _ghosts.Toggled += on => Preview.Ghosts = on;
+        _playBar.AddChild(_ghosts);
         _clock = new Label();
         _playBar.AddChild(_clock);
         middle.AddChild(_playBar);
@@ -193,7 +199,14 @@ public partial class AssetLabPanel : HSplitContainer
     private Button _play;
     private CheckBox _loop;
     private HSlider _timeScale;
+    private CheckBox _trails;
+    private CheckBox _ghosts;
     private Label _clock;
+
+    /// <summary>The trails and ghosts ticks, set as the bridge sets them.</summary>
+    public void ShowTrails(bool on) => _trails.ButtonPressed = on;
+
+    public void ShowGhosts(bool on) => _ghosts.ButtonPressed = on;
     private LabTimeline _timeline;
 
     public const string WalkOnly = "Walk only";
@@ -281,6 +294,7 @@ public partial class AssetLabPanel : HSplitContainer
         walker.LabSeekMove(null, 0.0f, 0.0f);
         Preview.Transport.Load(clip, segments);
         Preview.Transport.Loop = _loop.ButtonPressed;
+        Preview.RebuildTrails();
         for (int i = 0; i < _clips.ItemCount; i++)
         {
             if (_clips.GetItemText(i) == clip)

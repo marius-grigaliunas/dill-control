@@ -70,9 +70,9 @@ public static class AssetLabCommands
         Bridge.Register("lab_play",
             "The Lab tab's timeline for the mech shown, as its play bar does (no physics, no Test). 'clip': 'walk' (none), 'combo' (the slash " +
             "combo chained as in play) or a move's short name (smash, slam_r...), read fresh from disk. 'play' true/false; 'time' seconds holds it " +
-            "there, paused; 'step' frames on (or back, negative), paused; 'speed' 0.1-1 how fast time runs; 'loop'. 'seconds' waits before answering. " +
+            "there, paused; 'step' frames on (or back, negative), paused; 'speed' 0.1-1 how fast time runs; 'loop'; 'trails' the fists' paths (default on); 'ghosts' poses either side of the playhead. 'seconds' waits before answering. " +
             "Returns the clip's moves with their starts, blends and markers, and where the playhead is.",
-            """{"type":"object","properties":{"clip":{"type":"string"},"play":{"type":"boolean"},"time":{"type":"number"},"step":{"type":"integer"},"speed":{"type":"number"},"loop":{"type":"boolean"},"seconds":{"type":"number"}}}""",
+            """{"type":"object","properties":{"clip":{"type":"string"},"play":{"type":"boolean"},"time":{"type":"number"},"step":{"type":"integer"},"speed":{"type":"number"},"loop":{"type":"boolean"},"trails":{"type":"boolean"},"ghosts":{"type":"boolean"},"seconds":{"type":"number"}}}""",
             PlayClip);
         Bridge.Register("lab_test",
             "Play the asset lab level with an asset (default: the one shown in the Lab tab), as the tab's Test does: it stands in front of the player, " +
@@ -293,6 +293,14 @@ public static class AssetLabCommands
         if (args.ContainsKey("loop"))
         {
             transport.Loop = Bridge.Flag(args, "loop", true);
+        }
+        if (args.ContainsKey("trails"))
+        {
+            lab.ShowTrails(Bridge.Flag(args, "trails", true));
+        }
+        if (args.ContainsKey("ghosts"))
+        {
+            lab.ShowGhosts(Bridge.Flag(args, "ghosts", false));
         }
         if (args.ContainsKey("speed"))
         {

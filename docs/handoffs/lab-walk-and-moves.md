@@ -111,6 +111,13 @@ In the **Lab tab** (`addons/asset_lab`), with no Test and no physics:
    editor before layout; a panel's `_Process` runs once with its fields
    empty during a code reload (guarded).
 4. Onion skin or fist trails.
+   *Built 26 October, both.* Trails (on by default): each fist's path
+   through the whole clip, sampled every other frame by posing the walker
+   there, faint at the start; a red cross where each `hit` lands. Kept in
+   the walker's own space; drawn again on a new clip or a limb toggled.
+   Ghosts: the parts that move, posed 4, 8 and 12 frames before (blue)
+   and after (orange) the playhead, each its own mesh see-through, every
+   frame. `lab_play` `trails`, `ghosts`.
 5. Timing edits saved to the `.tres`, and the add-on reading them back into
    Blender (markers, key rescale for speed).
 

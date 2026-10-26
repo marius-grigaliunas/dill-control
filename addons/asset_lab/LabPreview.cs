@@ -72,6 +72,19 @@ public partial class LabPreview : SubViewportContainer
     // A step's worth of time to run while paused, from the step buttons.
     private float _stepRun;
 
+    // The fists' paths through the clip, in the walker's own space so a
+    // turn carries them; and see-through poses either side of the playhead.
+    private bool _trails = true;
+    private bool _ghosts;
+    private MeshInstance3D _trailMesh;
+    private readonly List<MeshInstance3D> _ghostPool = new();
+    private StandardMaterial3D _ghostBefore;
+    private StandardMaterial3D _ghostAfter;
+
+    /// <summary>Poses either side of the playhead, and how far apart, in frames.</summary>
+    private const int GhostCount = 3;
+    private const int GhostEvery = 4;
+
     private readonly HashSet<Key> _held = new();
     private Vector2 _pressedAt;
     private bool _dragged;
@@ -151,6 +164,9 @@ public partial class LabPreview : SubViewportContainer
         };
         _viewport.AddChild(_overlay);
 
+        _ghostBefore = GhostMaterial(new Color(0.35f, 0.65f, 1.0f, 0.22f));
+        _ghostAfter = GhostMaterial(new Color(1.0f, 0.6f, 0.25f, 0.22f));
+
         SetLook(null);
         PlaceCamera();
     }
@@ -164,6 +180,11 @@ public partial class LabPreview : SubViewportContainer
         }
         Asset = null;
         Walker = null;
+        _trailMesh = null;
+        foreach (MeshInstance3D ghost in _ghostPool)
+        {
+            ghost.Visible = false;
+        }
         if (scene != null)
         {
             Node made = scene.Instantiate();
@@ -235,6 +256,7 @@ public partial class LabPreview : SubViewportContainer
             Walker.LabSeekMove(at?.Move, into - run, at?.Blend ?? 0.0f);
         }
         Walker.LabStep(run);
+        DrawGhosts();
         Vector3 belt = Walker.BeltTravel;
         _ground.Position = new Vector3(Mathf.PosMod(belt.X, Tile * 2.0f), 0.0f, Mathf.PosMod(belt.Z, Tile * 2.0f));
         if (_damageMap && _damageParts.Count > 0)
@@ -405,6 +427,184 @@ public partial class LabPreview : SubViewportContainer
         }
     }
 
+    /// <summary>The fists' paths through the clip, with a cross where each
+    /// blow lands. Drawn again on a new clip or a limb taken off.</summary>
+    public bool Trails
+    {
+        get => _trails;
+        set
+        {
+            _trails = value;
+            RebuildTrails();
+        }
+    }
+
+    /// <summary>See-through poses before (blue) and after (orange) the playhead.</summary>
+    public bool Ghosts
+    {
+        get => _ghosts;
+        set
+        {
+            _ghosts = value;
+            if (!value)
+            {
+                foreach (MeshInstance3D ghost in _ghostPool)
+                {
+                    ghost.Visible = false;
+                }
+            }
+        }
+    }
+
+    /// <summary>Poses the walker at <paramref name="time"/> into the clip,
+    /// as the playhead there would.</summary>
+    private void PoseAt(float time)
+    {
+        LabTransport.Segment? at = Transport.At(time, out float into);
+        Walker.LabSeekMove(at?.Move, into, at?.Blend ?? 0.0f);
+        Walker.LabStep(0.0f);
+    }
+
+    /// <summary>Samples the whole clip for the fists' paths, then puts the
+    /// walker back where the playhead is.</summary>
+    public void RebuildTrails()
+    {
+        if (Walker == null || !IsInstanceValid(Walker))
+        {
+            return;
+        }
+        if (_trailMesh == null || !IsInstanceValid(_trailMesh))
+        {
+            _trailMesh = new MeshInstance3D
+            {
+                Name = "LabTrails",
+                Mesh = new ImmediateMesh(),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                MaterialOverride = _overlay.MaterialOverride,
+            };
+            Walker.AddChild(_trailMesh);
+        }
+        var mesh = (ImmediateMesh)_trailMesh.Mesh;
+        mesh.ClearSurfaces();
+        if (!_trails || Transport.Segments.Count == 0 || Walker.Arms.Count == 0)
+        {
+            return;
+        }
+        int arms = Walker.Arms.Count;
+        int samples = Mathf.Max(2, Mathf.CeilToInt(Transport.Length * Transport.Fps / 2.0f));
+        var paths = new List<Vector3>[arms];
+        for (int a = 0; a < arms; a++)
+        {
+            paths[a] = new List<Vector3>();
+        }
+        Transform3D toWalker = Walker.GlobalTransform.AffineInverse();
+        for (int s = 0; s <= samples; s++)
+        {
+            PoseAt(Transport.Length * s / samples);
+            for (int a = 0; a < arms; a++)
+            {
+                if (Walker.PartAlive(Walker.Arms[a]))
+                {
+                    paths[a].Add(toWalker * Walker.StrokeTip(a));
+                }
+            }
+        }
+        // Where each blow lands: the swinging fists at the move's 'hit'.
+        var hits = new List<Vector3>();
+        foreach (LabTransport.Segment segment in Transport.Segments)
+        {
+            float hit = segment.Move.EventTime("hit");
+            if (hit < 0.0f)
+            {
+                continue;
+            }
+            PoseAt(segment.Start + hit);
+            foreach (int a in Walker.MoveArms())
+            {
+                hits.Add(toWalker * Walker.StrokeTip(a));
+            }
+        }
+        PoseAt(Transport.Time);
+
+        Color[] hues = { new(1.0f, 0.55f, 0.15f), new(0.25f, 0.85f, 1.0f) };
+        mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
+        for (int a = 0; a < arms; a++)
+        {
+            List<Vector3> path = paths[a];
+            for (int i = 1; i < path.Count; i++)
+            {
+                // Faint at the start of the clip, full at its end.
+                Color colour = hues[a % hues.Length] * new Color(1, 1, 1, Mathf.Lerp(0.35f, 1.0f, (float)i / path.Count));
+                Line(mesh, path[i - 1], path[i], colour);
+            }
+        }
+        foreach (Vector3 hit in hits)
+        {
+            Cross(mesh, hit, 0.35f, new Color(1.0f, 0.2f, 0.2f));
+        }
+        mesh.SurfaceEnd();
+    }
+
+    /// <summary>The moving parts posed either side of the playhead, each
+    /// drawn see-through with its own mesh.</summary>
+    private void DrawGhosts()
+    {
+        int used = 0;
+        if (_ghosts && Transport.Segments.Count > 0)
+        {
+            var now = new Dictionary<Node3D, Transform3D>();
+            foreach ((Node3D node, DamageBake _) in _damageParts)
+            {
+                now[node] = node.GlobalTransform;
+            }
+            float every = GhostEvery / Transport.Fps;
+            for (int k = -GhostCount; k <= GhostCount; k++)
+            {
+                float time = Transport.Time + k * every;
+                if (k == 0 || time < 0.0f || time > Transport.Length)
+                {
+                    continue;
+                }
+                PoseAt(time);
+                foreach ((Node3D node, DamageBake _) in _damageParts)
+                {
+                    // Only what moves: what stays put would sit on itself.
+                    if (node is not MeshInstance3D part || !part.IsVisibleInTree()
+                        || part.GlobalTransform.Origin.DistanceTo(now[node].Origin) + (part.GlobalBasis.Z - now[node].Basis.Z).Length() < 0.03f)
+                    {
+                        continue;
+                    }
+                    if (used == _ghostPool.Count)
+                    {
+                        var made = new MeshInstance3D { CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+                        _viewport.AddChild(made);
+                        _ghostPool.Add(made);
+                    }
+                    MeshInstance3D ghost = _ghostPool[used++];
+                    ghost.Mesh = part.Mesh;
+                    ghost.GlobalTransform = part.GlobalTransform;
+                    ghost.MaterialOverride = k < 0 ? _ghostBefore : _ghostAfter;
+                    ghost.Transparency = 0.25f + 0.6f * (Mathf.Abs(k) - 1) / GhostCount;
+                    ghost.Visible = true;
+                }
+            }
+            PoseAt(Transport.Time);
+        }
+        for (int i = used; i < _ghostPool.Count; i++)
+        {
+            _ghostPool[i].Visible = false;
+        }
+    }
+
+    private static StandardMaterial3D GhostMaterial(Color colour) => new()
+    {
+        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+        Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+        AlbedoColor = colour,
+        CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+        DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
+    };
+
     /// <summary>Holds the clip at <paramref name="time"/> seconds, paused.</summary>
     public void Seek(float time)
     {
@@ -431,6 +631,7 @@ public partial class LabPreview : SubViewportContainer
             return LastPick = part == null ? "" : $"{part.Name}: not a walker";
         }
         bool? on = Walker.LabToggleLimb(part);
+        RebuildTrails();
         LastPick = on switch
         {
             null => $"{part.Name} is not a limb",
