@@ -836,13 +836,39 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		Step((float)delta);
 	}
 
-	/// <summary>One frame in the asset lab, <paramref name="dt"/> seconds long.</summary>
+	/// <summary>One frame in the asset lab, <paramref name="dt"/> seconds long;
+	/// 0 poses it again where it is, after <see cref="LabSeekMove"/>.</summary>
 	public void LabStep(float dt)
 	{
-		if (LabMode && Tuning != null && Model != null && dt > 0.0f)
+		if (LabMode && Tuning != null && Model != null && dt >= 0.0f)
 		{
 			Step(dt);
 		}
+	}
+
+	/// <summary>
+	/// For the asset lab's timeline: <paramref name="time"/> seconds into
+	/// <paramref name="move"/>, blended in over <paramref name="blend"/>, as if
+	/// it had been playing since; null for none. The next <see cref="LabStep"/>
+	/// poses it there. A move it lacks the limbs for is withheld, as in play.
+	/// </summary>
+	public void LabSeekMove(MechMove move, float time, float blend)
+	{
+		if (!LabMode)
+		{
+			return;
+		}
+		if (move == null)
+		{
+			StopMove();
+			return;
+		}
+		if (PlayingMove != move && !PlayMove(move, blend))
+		{
+			return;
+		}
+		_moveBlend = Mathf.Max(blend, 0.0f);
+		_moveTime = Mathf.Max(time, 0.0f);
 	}
 
 	private void Step(float dt)

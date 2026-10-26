@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using DillControl.Planet;
+using DillControl.Vehicles;
 using Godot;
 
 namespace DillControl.Editor;
@@ -94,15 +95,54 @@ public partial class AssetLabPanel : HSplitContainer
         middle.AddChild(bar);
         // A walker walks in the view, on a treadmill, without Test.
         _walkBar = new HBoxContainer { Visible = false };
-        _walkBar.AddChild(new Label { Text = "Walk: click the view, then WASD, Q/E turn, Shift sprint; click a limb to take it off or put it back.  Speed" });
-        var speed = new HSlider { MinValue = 0.05, MaxValue = 1, Step = 0.05, Value = 1, CustomMinimumSize = new Vector2(120, 0), TooltipText = "The share of its top speed WASD walks it at" };
+        _walkBar.AddChild(new Label
+        {
+            Text = "Walk speed",
+            TooltipText = "Click the view, then WASD walks it, Q/E turn, Shift sprints.\nClick a leg or an arm to take it off, again to put it back.",
+            MouseFilter = MouseFilterEnum.Stop,
+        });
+        var speed = new HSlider { MinValue = 0.05, MaxValue = 1, Step = 0.05, Value = 1, CustomMinimumSize = new Vector2(120, 0), TooltipText = "The share of its top speed WASD and the treadmill walk it at" };
         speed.ValueChanged += value => Preview.WalkSpeed = (float)value;
         _walkBar.AddChild(speed);
+        var treadmill = new CheckBox { Text = "Treadmill", TooltipText = "Walks forward at that speed with no key held" };
+        treadmill.Toggled += on => Preview.Treadmill = on;
+        _walkBar.AddChild(treadmill);
         _stance = new Label();
         _walkBar.AddChild(_stance);
         middle.AddChild(_walkBar);
         Preview = new LabPreview();
         middle.AddChild(Preview);
+
+        // Its moves, played, paused, scrubbed and slowed.
+        _playBar = new HBoxContainer { Visible = false };
+        _clips = new OptionButton { TooltipText = "What plays: the walk alone, the combo as it flows in play, or one move (read fresh from disk)" };
+        _clips.ItemSelected += index => LoadClip(_clips.GetItemText((int)index));
+        _playBar.AddChild(_clips);
+        _playBar.AddChild(Button("|◀", () => Preview.StepFrames(-1)));
+        _play = Button("Pause", () =>
+        {
+            LabTransport transport = Preview.Transport;
+            if (!transport.Playing && transport.Segments.Count > 0 && transport.Time >= transport.Length)
+            {
+                transport.Time = 0.0f;
+            }
+            transport.Playing = !transport.Playing;
+        });
+        _play.CustomMinimumSize = new Vector2(60, 0);
+        _playBar.AddChild(_play);
+        _playBar.AddChild(Button("▶|", () => Preview.StepFrames(1)));
+        _loop = new CheckBox { Text = "Loop", ButtonPressed = true };
+        _loop.Toggled += on => Preview.Transport.Loop = on;
+        _playBar.AddChild(_loop);
+        _playBar.AddChild(new Label { Text = "Time" });
+        _timeScale = new HSlider { MinValue = 0.1, MaxValue = 1, Step = 0.05, Value = 1, CustomMinimumSize = new Vector2(100, 0), TooltipText = "How fast time runs: 1 is the game's" };
+        _timeScale.ValueChanged += value => Preview.TimeScale = (float)value;
+        _playBar.AddChild(_timeScale);
+        _clock = new Label();
+        _playBar.AddChild(_clock);
+        middle.AddChild(_playBar);
+        _timeline = new LabTimeline { Preview = Preview, Visible = false };
+        middle.AddChild(_timeline);
         middleAndRight.AddChild(middle);
 
         // What it is on top, scrolling in its own box; the parameters below
@@ -148,17 +188,125 @@ public partial class AssetLabPanel : HSplitContainer
 
     private HBoxContainer _walkBar;
     private Label _stance;
+    private HBoxContainer _playBar;
+    private OptionButton _clips;
+    private Button _play;
+    private CheckBox _loop;
+    private HSlider _timeScale;
+    private Label _clock;
+    private LabTimeline _timeline;
+
+    public const string WalkOnly = "Walk only";
+    public const string ComboClip = "Combo";
 
     public override void _Process(double delta)
     {
-        if (_walkBar.Visible && Preview.Walker != null && IsInstanceValid(Preview.Walker))
+        // After a code reload the old panel runs a frame with its fields
+        // empty, before the plugin builds it again.
+        if (_walkBar == null || Preview == null || !_walkBar.Visible || Preview.Walker == null || !IsInstanceValid(Preview.Walker))
         {
-            string text = $"  {Preview.Walker.CurrentStance}" + (Preview.LastPick != "" ? $"  ({Preview.LastPick})" : "");
-            if (_stance.Text != text)
+            return;
+        }
+        string text = $"  {Preview.Walker.CurrentStance}" + (Preview.LastPick != "" ? $"  ({Preview.LastPick})" : "");
+        if (_stance.Text != text)
+        {
+            _stance.Text = text;
+        }
+        LabTransport transport = Preview.Transport;
+        _play.Text = transport.Playing ? "Pause" : "Play";
+        string clock = transport.Segments.Count == 0
+            ? ""
+            : $"  {transport.Time:0.00} / {transport.Length:0.00} s  frame {Mathf.RoundToInt(transport.Time * transport.Fps)}";
+        if (_clock.Text != clock)
+        {
+            _clock.Text = clock;
+        }
+        _timeline.QueueRedraw();
+    }
+
+    /// <summary>The walker's own moves, by file: those posed on its .vox.</summary>
+    public List<string> MovesOf(MechWalker walker)
+    {
+        string mech = MechName(walker);
+        const string folder = "res://resources/vehicles/moves";
+        return DirAccess.GetFilesAt(folder)
+            .Where(f => f.EndsWith(".tres") && f.StartsWith(mech + "_"))
+            .Select(f => $"{folder}/{f}")
+            .ToList();
+    }
+
+    private static string MechName(MechWalker walker) => walker?.Model?.SceneFilePath.GetFile().GetBaseName() ?? "";
+
+    /// <summary>Plays a clip on the walker: <see cref="WalkOnly"/>,
+    /// <see cref="ComboClip"/>, or a move by its short name. Moves are read
+    /// fresh from disk, so a re-export from Blender shows. False if there is
+    /// no such clip.</summary>
+    public bool LoadClip(string clip)
+    {
+        MechWalker walker = Preview.Walker;
+        if (walker == null)
+        {
+            return false;
+        }
+        List<LabTransport.Segment> segments;
+        if (clip == WalkOnly)
+        {
+            segments = new();
+        }
+        else if (clip == ComboClip)
+        {
+            if (Resources.OfType<MechSlashStats>().FirstOrDefault() is not MechSlashStats stats)
             {
-                _stance.Text = text;
+                return false;
+            }
+            foreach (MechMove move in stats.Combo)
+            {
+                if (move != null)
+                {
+                    ResourceLoader.Load(move.ResourcePath, "", ResourceLoader.CacheMode.Replace);
+                }
+            }
+            segments = LabTransport.Combo(stats);
+        }
+        else
+        {
+            string mech = MechName(walker);
+            string path = MovesOf(walker).FirstOrDefault(p => p.GetFile().GetBaseName() == $"{mech}_{clip}" || p.GetFile().GetBaseName() == clip);
+            if (path == null || ResourceLoader.Load(path, "", ResourceLoader.CacheMode.Replace) is not MechMove move)
+            {
+                return false;
+            }
+            segments = LabTransport.Single(move);
+        }
+        walker.LabSeekMove(null, 0.0f, 0.0f);
+        Preview.Transport.Load(clip, segments);
+        Preview.Transport.Loop = _loop.ButtonPressed;
+        for (int i = 0; i < _clips.ItemCount; i++)
+        {
+            if (_clips.GetItemText(i) == clip)
+            {
+                _clips.Select(i);
             }
         }
+        _timeline.Visible = segments.Count > 0;
+        return true;
+    }
+
+    /// <summary>The clips the walker shown has, for the list.</summary>
+    private void FillClips()
+    {
+        _clips.Clear();
+        _clips.AddItem(WalkOnly);
+        if (Resources.OfType<MechSlashStats>().FirstOrDefault() is MechSlashStats { Combo.Count: > 0 })
+        {
+            _clips.AddItem(ComboClip);
+        }
+        string mech = MechName(Preview.Walker);
+        foreach (string path in MovesOf(Preview.Walker))
+        {
+            _clips.AddItem(path.GetFile().GetBaseName().Substring(mech.Length + 1));
+        }
+        LoadClip(WalkOnly);
     }
 
     private Section _infoSection;
@@ -259,6 +407,10 @@ public partial class AssetLabPanel : HSplitContainer
         EditorInterface.Singleton.GetEditorSettings().SetProjectMetadata(MetaSection, "asset", path);
         Preview.Show(scene);
         _walkBar.Visible = Preview.Walker != null;
+        _playBar.Visible = Preview.Walker != null;
+        _timeline.Visible = false;
+        Preview.Transport.Load("", new());
+        Preview.TimeScale = (float)_timeScale.Value;
         Info = AssetInfo.Of(path, Preview.Asset, Preview.Bounds);
         _info.Text = Info.Text();
         Resources = AssetCatalog.ResourcesOf(Preview.Asset);
@@ -269,6 +421,10 @@ public partial class AssetLabPanel : HSplitContainer
         }
         _inspector.Edit(Resources.Count > 0 ? Resources[0] : null);
         _status.Text = "";
+        if (Preview.Walker != null)
+        {
+            FillClips();
+        }
     }
 
     private Resource Edited => _inspector.GetEditedObject() as Resource;

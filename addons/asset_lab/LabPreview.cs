@@ -60,8 +60,17 @@ public partial class LabPreview : SubViewportContainer
     /// <summary>The share of its top speed the keys walk it at.</summary>
     public float WalkSpeed = 1.0f;
 
-    /// <summary>How fast its time runs: 1 is the game's, 0 holds it.</summary>
+    /// <summary>How fast its time runs: 1 is the game's.</summary>
     public float TimeScale = 1.0f;
+
+    /// <summary>Walks it forward at <see cref="WalkSpeed"/> with no key held.</summary>
+    public bool Treadmill;
+
+    /// <summary>The timeline: the clip of moves it plays, and pause.</summary>
+    public readonly LabTransport Transport = new();
+
+    // A step's worth of time to run while paused, from the step buttons.
+    private float _stepRun;
 
     private readonly HashSet<Key> _held = new();
     private Vector2 _pressedAt;
@@ -203,7 +212,7 @@ public partial class LabPreview : SubViewportContainer
         }
         float Held(Key key) => _held.Contains(key) ? 1.0f : 0.0f;
         var keys = new Vector2(Held(Key.D) - Held(Key.A), Held(Key.W) - Held(Key.S));
-        Vector2 steer = (keys * WalkSpeed + Drive).LimitLength(1.0f);
+        Vector2 steer = (keys * WalkSpeed + Drive + (Treadmill ? new Vector2(0.0f, WalkSpeed) : Vector2.Zero)).LimitLength(1.0f);
         float turn = Mathf.Clamp(Held(Key.E) - Held(Key.Q) + DriveTurn, -1.0f, 1.0f);
 
         // Its front is +Z, so its right is -X.
@@ -212,7 +221,20 @@ public partial class LabPreview : SubViewportContainer
         Walker.FaceDirection = Mathf.Abs(turn) > 0.01f ? basis.Z.Rotated(Vector3.Up, -Mathf.Sign(turn) * 1.5f) : Vector3.Zero;
         Walker.Sprint = DriveSprint || _held.Contains(Key.Shift);
 
-        Walker.LabStep(Mathf.Min((float)delta, 1.0f / 20.0f) * TimeScale);
+        float run = Transport.Playing ? Mathf.Min((float)delta, 1.0f / 20.0f) * TimeScale : _stepRun;
+        _stepRun = 0.0f;
+        if (Transport.Segments.Count > 0)
+        {
+            if (Transport.Playing)
+            {
+                Transport.Advance(run);
+            }
+            // Put where the clock says, a frame back, so the step plays the
+            // last bit and passes its markers.
+            LabTransport.Segment? at = Transport.At(Transport.Time, out float into);
+            Walker.LabSeekMove(at?.Move, into - run, at?.Blend ?? 0.0f);
+        }
+        Walker.LabStep(run);
         Vector3 belt = Walker.BeltTravel;
         _ground.Position = new Vector3(Mathf.PosMod(belt.X, Tile * 2.0f), 0.0f, Mathf.PosMod(belt.Z, Tile * 2.0f));
         if (_damageMap && _damageParts.Count > 0)
@@ -381,6 +403,23 @@ public partial class LabPreview : SubViewportContainer
                 AcceptEvent();
             }
         }
+    }
+
+    /// <summary>Holds the clip at <paramref name="time"/> seconds, paused.</summary>
+    public void Seek(float time)
+    {
+        Transport.Playing = false;
+        Transport.Time = Mathf.Clamp(time, 0.0f, Transport.Length);
+    }
+
+    /// <summary>Paused, moves on (or back) <paramref name="frames"/> of the
+    /// clip's frames. The walk only goes forward.</summary>
+    public void StepFrames(int frames)
+    {
+        Transport.Playing = false;
+        float seconds = frames / Transport.Fps;
+        Transport.Time = Mathf.Clamp(Transport.Time + seconds, 0.0f, Transport.Length);
+        _stepRun = Mathf.Max(seconds, 0.0f);
     }
 
     /// <summary>Takes off or puts back the walker's limb that

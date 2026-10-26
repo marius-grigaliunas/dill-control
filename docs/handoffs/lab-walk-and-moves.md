@@ -95,6 +95,21 @@ In the **Lab tab** (`addons/asset_lab`), with no Test and no physics:
    a crutch arm, crawl on both arms, sit, and back to walking.
 3. The transport: move list, combo, play/pause/loop, speed, the timeline
    with markers, scrubbing.
+   *Built 26 October.* `LabTransport` holds a clip: segments of (move,
+   start, blend); the combo is chained as `MechSlasher` chains it (next at
+   the hit plus `ChainAfterHit`, blending over `ChainBlend`). Every frame
+   the tab puts the walker at the clock's time with
+   `MechWalker.LabSeekMove` and steps it (0 s when paused), so any frame
+   is posed exactly as play would pose it; onion skin can sample the same
+   way. The play bar: the clip list (Walk only, Combo, each move of the
+   mech, read fresh from disk), step back/forward a frame, play/pause,
+   loop, time 0.1-1x, the clock; under it `LabTimeline`, the moves as bars
+   (blend lighter), markers (hit red, shake orange, sounds blue), frame
+   ticks, click or drag to scrub. A Treadmill tick walks it hands-free at
+   the walk speed. Bridge: `lab_play` (clip, play, time, step, speed,
+   loop, seconds). Learned: a `_Draw` loop that waits for a width hung the
+   editor before layout; a panel's `_Process` runs once with its fields
+   empty during a code reload (guarded).
 4. Onion skin or fist trails.
 5. Timing edits saved to the `.tres`, and the add-on reading them back into
    Blender (markers, key rescale for speed).

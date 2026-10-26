@@ -67,6 +67,13 @@ public static class AssetLabCommands
             "in the tab does; the stance follows. 'click' names parts to click where they are drawn in the view, through the same picking as the mouse. 'seconds' waits that long before answering. Returns its stance, speed and gait.",
             """{"type":"object","properties":{"forward":{"type":"number"},"right":{"type":"number"},"turn":{"type":"number"},"sprint":{"type":"boolean"},"toggle":{"type":"array","items":{"type":"string"}},"click":{"type":"array","items":{"type":"string"}},"seconds":{"type":"number"}}}""",
             Walk);
+        Bridge.Register("lab_play",
+            "The Lab tab's timeline for the mech shown, as its play bar does (no physics, no Test). 'clip': 'walk' (none), 'combo' (the slash " +
+            "combo chained as in play) or a move's short name (smash, slam_r...), read fresh from disk. 'play' true/false; 'time' seconds holds it " +
+            "there, paused; 'step' frames on (or back, negative), paused; 'speed' 0.1-1 how fast time runs; 'loop'. 'seconds' waits before answering. " +
+            "Returns the clip's moves with their starts, blends and markers, and where the playhead is.",
+            """{"type":"object","properties":{"clip":{"type":"string"},"play":{"type":"boolean"},"time":{"type":"number"},"step":{"type":"integer"},"speed":{"type":"number"},"loop":{"type":"boolean"},"seconds":{"type":"number"}}}""",
+            PlayClip);
         Bridge.Register("lab_test",
             "Play the asset lab level with an asset (default: the one shown in the Lab tab), as the tab's Test does: it stands in front of the player, " +
             "who is put in its seat if it is a vehicle (WASD drives it) or steers it if it is a walker nobody rides ('board': false to stay on foot). 'with' lists more assets stood in a row beside it (a storage bot to mend it). " +
@@ -264,6 +271,84 @@ public static class AssetLabCommands
             await Bridge.NextFrame();
         }
         return new JsonObject { ["toggled"] = toggled, ["status"] = preview.Walker.BenchStatus(), ["belt"] = Bridge.Json(preview.Walker.BeltTravel) };
+    }
+
+    private static async Task<JsonNode> PlayClip(JsonObject args)
+    {
+        AssetLabPanel lab = Lab();
+        LabPreview preview = lab.Preview;
+        if (preview.Walker == null)
+        {
+            throw new Bridge.Refused($"{lab.Current} is not a walker; lab_open a mech");
+        }
+        if (Bridge.Text(args, "clip", null) is string clip)
+        {
+            string name = clip == "walk" ? AssetLabPanel.WalkOnly : clip == "combo" ? AssetLabPanel.ComboClip : clip;
+            if (!lab.LoadClip(name))
+            {
+                throw new Bridge.Refused($"no clip '{clip}': walk, combo, or one of " + string.Join(", ", lab.MovesOf(preview.Walker).Select(p => p.GetFile().GetBaseName())));
+            }
+        }
+        LabTransport transport = preview.Transport;
+        if (args.ContainsKey("loop"))
+        {
+            transport.Loop = Bridge.Flag(args, "loop", true);
+        }
+        if (args.ContainsKey("speed"))
+        {
+            preview.TimeScale = Mathf.Clamp((float)Bridge.Number(args, "speed", 1), 0.1f, 1.0f);
+        }
+        if (args.ContainsKey("time"))
+        {
+            preview.Seek((float)Bridge.Number(args, "time", 0));
+        }
+        if (args.ContainsKey("step"))
+        {
+            preview.StepFrames((int)Bridge.Number(args, "step", 1));
+        }
+        if (args.ContainsKey("play"))
+        {
+            transport.Playing = Bridge.Flag(args, "play", true);
+        }
+        ulong until = Time.GetTicksMsec() + (ulong)(Bridge.Number(args, "seconds", 0) * 1000.0);
+        do
+        {
+            // At least a frame, so what was set is posed before a lab_view.
+            await Bridge.NextFrame();
+        }
+        while (Time.GetTicksMsec() < until);
+
+        var segments = new JsonArray();
+        foreach (LabTransport.Segment segment in transport.Segments)
+        {
+            var events = new JsonObject();
+            for (int e = 0; e < segment.Move.EventNames.Length && e < segment.Move.EventTimes.Length; e++)
+            {
+                events[segment.Move.EventNames[e]] = Math.Round(segment.Start + segment.Move.EventTimes[e], 3);
+            }
+            segments.Add(new JsonObject
+            {
+                ["move"] = LabTimeline.ShortName(segment.Move),
+                ["start"] = Math.Round(segment.Start, 3),
+                ["length"] = Math.Round(segment.Move.Length, 3),
+                ["blend"] = Math.Round(segment.Blend, 3),
+                ["events"] = events,
+            });
+        }
+        LabTransport.Segment? now = transport.At(transport.Time, out float into);
+        return new JsonObject
+        {
+            ["clip"] = transport.Clip,
+            ["time"] = Math.Round(transport.Time, 3),
+            ["length"] = Math.Round(transport.Length, 3),
+            ["frame"] = Mathf.RoundToInt(transport.Time * transport.Fps),
+            ["playing"] = transport.Playing,
+            ["loop"] = transport.Loop,
+            ["speed"] = preview.TimeScale,
+            ["now"] = now == null ? null : FormattableString.Invariant($"{LabTimeline.ShortName(now.Value.Move)} at {into:0.000} s"),
+            ["walker_move"] = preview.Walker.PlayingMove == null ? null : LabTimeline.ShortName(preview.Walker.PlayingMove),
+            ["segments"] = segments,
+        };
     }
 
     private static JsonNode Assets(JsonObject args)

@@ -1,0 +1,103 @@
+#if TOOLS
+using Godot;
+
+namespace DillControl.Editor;
+
+/// <summary>
+/// The asset lab's timeline under the view: each move of the clip as a bar
+/// from where it starts, its markers on it ('hit' red, 'shake' orange, a
+/// sound blue), and the playhead. Click or drag to scrub; it pauses there.
+/// </summary>
+[Tool]
+public partial class LabTimeline : Control
+{
+    public LabPreview Preview;
+
+    private const float Margin = 8.0f;
+
+    public override void _Ready()
+    {
+        CustomMinimumSize = new Vector2(0, 46);
+        SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        MouseFilter = MouseFilterEnum.Stop;
+    }
+
+    private LabTransport Transport => Preview?.Transport;
+
+    private float X(float time) => Margin + (Size.X - Margin * 2.0f) * (Transport.Length > 0.0f ? time / Transport.Length : 0.0f);
+
+    private float TimeAt(float x) => Transport.Length * Mathf.Clamp((x - Margin) / Mathf.Max(Size.X - Margin * 2.0f, 1.0f), 0.0f, 1.0f);
+
+    public override void _Draw()
+    {
+        DrawRect(new Rect2(Vector2.Zero, Size), new Color(0.1f, 0.1f, 0.12f));
+        // Not laid out yet: no width to draw on (and the tick spacing below
+        // would never reach 4 px).
+        if (Size.X < Margin * 4.0f)
+        {
+            return;
+        }
+        if (Transport == null || Transport.Segments.Count == 0)
+        {
+            DrawString(ThemeDB.FallbackFont, new Vector2(Margin, 28), "No clip: pick a move or the combo to play it here.", HorizontalAlignment.Left, -1, 13, new Color(0.6f, 0.6f, 0.6f));
+            return;
+        }
+        Font font = ThemeDB.FallbackFont;
+        int rows = Mathf.Min(Transport.Segments.Count, 2);
+        float rowHeight = 14.0f;
+        for (int i = 0; i < Transport.Segments.Count; i++)
+        {
+            LabTransport.Segment segment = Transport.Segments[i];
+            float y = 4.0f + (i % rows) * (rowHeight + 2.0f);
+            float x0 = X(segment.Start), x1 = X(segment.Start + segment.Move.Length);
+            var colour = i % 2 == 0 ? new Color(0.25f, 0.4f, 0.55f) : new Color(0.3f, 0.5f, 0.35f);
+            DrawRect(new Rect2(x0, y, x1 - x0, rowHeight), colour);
+            DrawRect(new Rect2(x0, y, X(segment.Start + segment.Blend) - x0, rowHeight), colour.Lightened(0.25f));
+            DrawString(font, new Vector2(x0 + 3, y + 11), ShortName(segment.Move), HorizontalAlignment.Left, x1 - x0 - 4, 11, Colors.White);
+            for (int e = 0; e < segment.Move.EventNames.Length && e < segment.Move.EventTimes.Length; e++)
+            {
+                string name = segment.Move.EventNames[e];
+                Color mark = name == "hit" ? new Color(1.0f, 0.25f, 0.2f) : name == "shake" ? new Color(1.0f, 0.6f, 0.1f) : new Color(0.4f, 0.7f, 1.0f);
+                float x = X(segment.Start + segment.Move.EventTimes[e]);
+                DrawLine(new Vector2(x, y - 2), new Vector2(x, y + rowHeight + 2), mark, 2.0f);
+            }
+        }
+        // Frame ticks along the bottom, one a frame when there is room.
+        float bottom = Size.Y - 10.0f;
+        float frame = 1.0f / Transport.Fps;
+        float perFrame = X(frame) - X(0.0f);
+        float every = frame * Mathf.Max(1.0f, Mathf.Ceil(4.0f / Mathf.Max(perFrame, 1e-3f)));
+        for (float t = 0.0f; t <= Transport.Length + 1e-4f; t += every)
+        {
+            DrawLine(new Vector2(X(t), bottom), new Vector2(X(t), bottom + 4), new Color(0.5f, 0.5f, 0.5f));
+        }
+        float head = X(Transport.Time);
+        DrawLine(new Vector2(head, 0), new Vector2(head, Size.Y), Colors.White, 2.0f);
+    }
+
+    /// <summary>A move's name without its mech's.</summary>
+    public static string ShortName(Vehicles.MechMove move)
+    {
+        string name = move.ResourcePath.GetFile().GetBaseName();
+        return move.Mech != "" && name.StartsWith(move.Mech + "_") ? name.Substring(move.Mech.Length + 1) : name;
+    }
+
+    public override void _GuiInput(InputEvent @event)
+    {
+        if (Transport == null || Transport.Segments.Count == 0)
+        {
+            return;
+        }
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } press)
+        {
+            Preview.Seek(TimeAt(press.Position.X));
+            AcceptEvent();
+        }
+        else if (@event is InputEventMouseMotion motion && (motion.ButtonMask & MouseButtonMask.Left) != 0)
+        {
+            Preview.Seek(TimeAt(motion.Position.X));
+            AcceptEvent();
+        }
+    }
+}
+#endif
