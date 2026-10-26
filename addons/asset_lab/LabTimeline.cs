@@ -73,12 +73,27 @@ public partial class LabTimeline : Control
         {
             return;
         }
-        if (Transport == null || Transport.Segments.Count == 0)
+        if (Transport == null || !Transport.HasClip)
         {
-            DrawString(ThemeDB.FallbackFont, new Vector2(Margin, 28), "No clip: pick a move or the combo to play it here.", HorizontalAlignment.Left, -1, 13, new Color(0.6f, 0.6f, 0.6f));
+            DrawString(ThemeDB.FallbackFont, new Vector2(Margin, 28), "No clip: pick a move, the combo or a cycle to play it here.", HorizontalAlignment.Left, -1, 13, new Color(0.6f, 0.6f, 0.6f));
             return;
         }
         Font font = ThemeDB.FallbackFont;
+        if (Transport.Recording is LabRecording recording)
+        {
+            // One bar for the cycle, a tick where each step comes down
+            // (left feet green, right yellow, crutch arms blue).
+            DrawRect(new Rect2(X(0.0f), 4.0f, X(Transport.Length) - X(0.0f), RowHeight), new Color(0.3f, 0.35f, 0.45f));
+            DrawString(font, new Vector2(X(0.0f) + 3, 15), $"{Transport.Clip}, {recording.Steps.Count - 1} steps", HorizontalAlignment.Left, -1, 11, Colors.White);
+            foreach ((Node3D node, float time) in recording.Steps)
+            {
+                string name = node.Name;
+                Color tick = name.StartsWith("Arm") ? new Color(0.4f, 0.7f, 1.0f) : name.EndsWith("L") ? new Color(0.5f, 1.0f, 0.4f) : new Color(1.0f, 0.9f, 0.3f);
+                float x = X(time);
+                DrawLine(new Vector2(x, 2.0f), new Vector2(x, 6.0f + RowHeight * 2.0f), tick, 2.0f);
+                DrawString(font, new Vector2(x + 2, 8.0f + RowHeight * 2.0f), name, HorizontalAlignment.Left, -1, 10, tick);
+            }
+        }
         float rowHeight = RowHeight;
         for (int i = 0; i < Transport.Segments.Count; i++)
         {
@@ -120,7 +135,7 @@ public partial class LabTimeline : Control
 
     public override void _GuiInput(InputEvent @event)
     {
-        if (Transport == null || Transport.Segments.Count == 0)
+        if (Transport == null || !Transport.HasClip)
         {
             return;
         }

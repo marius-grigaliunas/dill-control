@@ -110,7 +110,11 @@ public partial class AssetLabPanel : HSplitContainer
             MouseFilter = MouseFilterEnum.Stop,
         });
         var speed = new HSlider { MinValue = 0.05, MaxValue = 1, Step = 0.05, Value = 1, CustomMinimumSize = new Vector2(120, 0), TooltipText = "The share of its top speed WASD and the treadmill walk it at" };
-        speed.ValueChanged += value => Preview.WalkSpeed = (float)value;
+        speed.ValueChanged += value =>
+        {
+            Preview.WalkSpeed = (float)value;
+            Rerecord();
+        };
         _walkBar.AddChild(speed);
         var treadmill = new CheckBox { Text = "Treadmill", TooltipText = "Walks forward at that speed with no key held" };
         treadmill.Toggled += on => Preview.Treadmill = on;
@@ -119,6 +123,7 @@ public partial class AssetLabPanel : HSplitContainer
         _walkBar.AddChild(_stance);
         middle.AddChild(_walkBar);
         Preview = new LabPreview();
+        Preview.LimbsChanged += Rerecord;
         middle.AddChild(Preview);
 
         // Its moves, played, paused, scrubbed and slowed.
@@ -130,7 +135,7 @@ public partial class AssetLabPanel : HSplitContainer
         _play = Button("Pause", () =>
         {
             LabTransport transport = Preview.Transport;
-            if (!transport.Playing && transport.Segments.Count > 0 && transport.Time >= transport.Length)
+            if (!transport.Playing && transport.HasClip && transport.Time >= transport.Length)
             {
                 transport.Time = 0.0f;
             }
@@ -359,6 +364,8 @@ public partial class AssetLabPanel : HSplitContainer
 
     public const string WalkOnly = "Walk only";
     public const string ComboClip = "Combo";
+    public const string WalkCycle = "Walk cycle";
+    public const string SprintCycle = "Sprint cycle";
 
     public override void _Process(double delta)
     {
@@ -373,7 +380,7 @@ public partial class AssetLabPanel : HSplitContainer
         }
         LabTransport transport = Preview.Transport;
         _play.Text = transport.Playing ? "Pause" : "Play";
-        string clock = transport.Segments.Count == 0
+        string clock = !transport.HasClip
             ? ""
             : $"  {transport.Time:0.00} / {transport.Length:0.00} s  frame {Mathf.RoundToInt(transport.Time * transport.Fps)}";
         if (_clock.Text != clock)
@@ -419,6 +426,17 @@ public partial class AssetLabPanel : HSplitContainer
         {
             return false;
         }
+        if (clip == WalkCycle || clip == SprintCycle)
+        {
+            // Recorded now, with what is left of it, at the walk speed set.
+            LabRecording recording = LabRecording.Record(walker, new Vector2(0.0f, Preview.WalkSpeed), clip == SprintCycle);
+            Preview.Transport.Load(clip, recording);
+            Preview.Transport.Loop = _loop.ButtonPressed;
+            Preview.RebuildTrails();
+            SelectClip(clip);
+            _timeline.Visible = true;
+            return true;
+        }
         List<LabTransport.Segment> segments;
         if (clip == WalkOnly)
         {
@@ -455,6 +473,13 @@ public partial class AssetLabPanel : HSplitContainer
         Preview.Transport.Load(clip, segments);
         Preview.Transport.Loop = _loop.ButtonPressed;
         Preview.RebuildTrails();
+        SelectClip(clip);
+        _timeline.Visible = segments.Count > 0;
+        return true;
+    }
+
+    private void SelectClip(string clip)
+    {
         for (int i = 0; i < _clips.ItemCount; i++)
         {
             if (_clips.GetItemText(i) == clip)
@@ -462,8 +487,17 @@ public partial class AssetLabPanel : HSplitContainer
                 _clips.Select(i);
             }
         }
-        _timeline.Visible = segments.Count > 0;
-        return true;
+    }
+
+    /// <summary>A recorded cycle made again, after what it was recorded
+    /// with (limbs, speed) changed.</summary>
+    private void Rerecord()
+    {
+        string clip = Preview.Transport.Clip;
+        if (Preview.Transport.Recording != null && (clip == WalkCycle || clip == SprintCycle))
+        {
+            LoadClip(clip);
+        }
     }
 
     /// <summary>
@@ -486,6 +520,11 @@ public partial class AssetLabPanel : HSplitContainer
     {
         _clips.Clear();
         _clips.AddItem(WalkOnly);
+        _clips.AddItem(WalkCycle);
+        if (Preview.Walker.Tuning.SprintSpeed > Preview.Walker.Tuning.MaxSpeed)
+        {
+            _clips.AddItem(SprintCycle);
+        }
         if (Resources.OfType<MechSlashStats>().FirstOrDefault() is MechSlashStats { Combo.Count: > 0 })
         {
             _clips.AddItem(ComboClip);
@@ -600,7 +639,7 @@ public partial class AssetLabPanel : HSplitContainer
         _timeline.Visible = false;
         _timingBar.Visible = false;
         _shownTiming = null;
-        Preview.Transport.Load("", new());
+        Preview.Transport.Load("", new List<LabTransport.Segment>());
         Preview.TimeScale = (float)_timeScale.Value;
         Info = AssetInfo.Of(path, Preview.Asset, Preview.Bounds);
         _info.Text = Info.Text();

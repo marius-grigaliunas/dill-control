@@ -139,10 +139,23 @@ In the **Lab tab** (`addons/asset_lab`), with no Test and no physics:
 
 ## What is next
 
-- Nothing of this handoff is left. Not done: the walk cycle has no
-  timeline (it runs live; scrub needs a recorded walk), and a style loop
-  for the walk (0046 step 6) is still to be made.
-- Trails and ghosts follow moves only, not the walking legs.
+- Nothing of this handoff is left. *Built 26 October, after it:* the walk
+  cycle on the timeline. **Walk cycle** and **Sprint cycle** in the clip
+  list record one cycle (`LabRecording`: a 2.5 s warm-up, then from a
+  footfall to the same foot's next with every other stepper down between,
+  every part's pose each frame at 60 fps) at the walk speed set, with the
+  limbs it has; a limb toggled or the speed moved records it again. It
+  plays, scrubs, ghosts and traces as a move does; trails follow the feet
+  too, crosses where steps come down; the timeline ticks each footfall.
+  `MechWalker.StepLanded` reports them. `lab_play` `walk_cycle`,
+  `sprint_cycle`, and its answer lists the steps. Seen: the fighter R, L,
+  R in 0.43 s at 9 m/s; one leg off, a 1.4 s hop on the left arm.
+- **Found by it:** the tank's trot does not alternate. In one 0.73 s cycle
+  FL+BR step at 0 and 0.18 s, then FR+BL at 0.37 and 0.55 s: the pair
+  furthest behind goes next (`UpdateGait`), and after landing it can
+  still be the one furthest behind. Not changed: the gait is the user's
+  to judge.
+- Still to make: a style loop for the walk (0046 step 6).
 
 Check each in the editor through the bridge and on screen; a bench is not
 needed for editor-only work, but the walker change must leave the game

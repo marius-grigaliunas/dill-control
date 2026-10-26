@@ -904,6 +904,9 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	/// <summary>A marker on the move playing was passed: 'hit', 'sfx:name', 'shake'.</summary>
 	public event Action<string> MoveEvent;
 
+	/// <summary>A step came down: the foot, or the arm planted as a crutch.</summary>
+	public event Action<Node3D> StepLanded;
+
 	/// <summary>The move playing, or null.</summary>
 	public MechMove PlayingMove { get; private set; }
 
@@ -1218,6 +1221,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 				leg.Stepping = false;
 				leg.Planted = leg.StepTo;
 				Stomp(leg.Planted);
+				StepLanded?.Invoke(leg is MechLeg foot ? foot.Foot : Arms[((MechCrutch)leg).Arm]);
 			}
 		}
 

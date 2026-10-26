@@ -9,8 +9,9 @@ namespace DillControl.Editor;
 /// What the asset lab's timeline plays on a walker: a clip of moves, each
 /// starting at a time and blending in, with play, pause, loop and a time of
 /// its own that a scrub sets. A single move is a clip of one; the combo is
-/// chained as <see cref="MechSlasher"/> chains it in play. No clip: only the
-/// walk runs, and pause holds that too.
+/// chained as <see cref="MechSlasher"/> chains it in play. A recorded gait
+/// cycle (<see cref="LabRecording"/>) is a clip with no moves. No clip: only
+/// the walk runs, and pause holds that too.
 /// </summary>
 public sealed class LabTransport
 {
@@ -18,18 +19,25 @@ public sealed class LabTransport
 
     public string Clip { get; private set; } = "";
     public List<Segment> Segments { get; private set; } = new();
+
+    /// <summary>A recorded gait cycle, when that is the clip.</summary>
+    public LabRecording Recording { get; private set; }
+
+    /// <summary>Whether there is anything on the timeline.</summary>
+    public bool HasClip => Segments.Count > 0 || Recording != null;
     public float Length { get; private set; }
     public float Time;
     public bool Playing = true;
     public bool Loop = true;
 
     /// <summary>Frames a second the step buttons move by: the clip's own.</summary>
-    public float Fps => Segments.Count > 0 ? Segments[0].Move.Fps : 30.0f;
+    public float Fps => Recording != null ? LabRecording.Fps : Segments.Count > 0 ? Segments[0].Move.Fps : 30.0f;
 
     public void Load(string clip, List<Segment> segments)
     {
         Clip = clip;
         Segments = segments;
+        Recording = null;
         Length = 0.0f;
         foreach (Segment segment in segments)
         {
@@ -37,6 +45,13 @@ public sealed class LabTransport
         }
         Time = 0.0f;
         Playing = true;
+    }
+
+    public void Load(string clip, LabRecording recording)
+    {
+        Load(clip, new List<Segment>());
+        Recording = recording;
+        Length = recording.Length;
     }
 
     /// <summary>The same moves again, after their timing was edited:
@@ -79,7 +94,7 @@ public sealed class LabTransport
     /// stopping at the end.</summary>
     public void Advance(float dt)
     {
-        if (Segments.Count == 0)
+        if (!HasClip)
         {
             return;
         }

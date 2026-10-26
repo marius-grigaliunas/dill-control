@@ -97,6 +97,9 @@ public partial class LabPreview : SubViewportContainer
     private Vector2 _pressedAt;
     private bool _dragged;
 
+    /// <summary>A limb came off or went back on: a recorded cycle is stale.</summary>
+    public event System.Action LimbsChanged;
+
     /// <summary>What the last click on a walker's part did, for the tab to show.</summary>
     public string LastPick { get; private set; } = "";
 
@@ -240,6 +243,25 @@ public partial class LabPreview : SubViewportContainer
         {
             return;
         }
+        float run = Transport.Playing ? Mathf.Min((float)delta, 1.0f / 20.0f) * TimeScale : _stepRun;
+        _stepRun = 0.0f;
+        if (Transport.Recording is LabRecording recording)
+        {
+            // A recorded cycle is played back, not walked: the keys wait.
+            if (Transport.Playing)
+            {
+                Transport.Advance(run);
+            }
+            recording.Apply(Transport.Time);
+            DrawGhosts();
+            Belt(recording.BeltAt(Transport.Time));
+            if (_damageMap && _damageParts.Count > 0)
+            {
+                DrawOverlay();
+            }
+            return;
+        }
+
         float Held(Key key) => _held.Contains(key) ? 1.0f : 0.0f;
         var keys = new Vector2(Held(Key.D) - Held(Key.A), Held(Key.W) - Held(Key.S));
         Vector2 steer = (keys * WalkSpeed + Drive + (Treadmill ? new Vector2(0.0f, WalkSpeed) : Vector2.Zero)).LimitLength(1.0f);
@@ -251,8 +273,6 @@ public partial class LabPreview : SubViewportContainer
         Walker.FaceDirection = Mathf.Abs(turn) > 0.01f ? basis.Z.Rotated(Vector3.Up, -Mathf.Sign(turn) * 1.5f) : Vector3.Zero;
         Walker.Sprint = DriveSprint || _held.Contains(Key.Shift);
 
-        float run = Transport.Playing ? Mathf.Min((float)delta, 1.0f / 20.0f) * TimeScale : _stepRun;
-        _stepRun = 0.0f;
         if (Transport.Segments.Count > 0)
         {
             if (Transport.Playing)
@@ -266,13 +286,16 @@ public partial class LabPreview : SubViewportContainer
         }
         Walker.LabStep(run);
         DrawGhosts();
-        Vector3 belt = Walker.BeltTravel;
-        _ground.Position = new Vector3(Mathf.PosMod(belt.X, Tile * 2.0f), 0.0f, Mathf.PosMod(belt.Z, Tile * 2.0f));
+        Belt(Walker.BeltTravel);
         if (_damageMap && _damageParts.Count > 0)
         {
             DrawOverlay();
         }
     }
+
+    /// <summary>The floor moved on by the treadmill's belt, by whole tiles.</summary>
+    private void Belt(Vector3 travel) =>
+        _ground.Position = new Vector3(Mathf.PosMod(travel.X, Tile * 2.0f), 0.0f, Mathf.PosMod(travel.Z, Tile * 2.0f));
 
     /// <summary>Everything drawn under a node that is visible, in world space.</summary>
     public static Aabb DrawnBounds(Node3D node)
@@ -469,6 +492,11 @@ public partial class LabPreview : SubViewportContainer
     /// as the playhead there would.</summary>
     private void PoseAt(float time)
     {
+        if (Transport.Recording != null)
+        {
+            Transport.Recording.Apply(time);
+            return;
+        }
         LabTransport.Segment? at = Transport.At(time, out float into);
         Walker.LabSeekMove(at?.Move, into, at?.Blend ?? 0.0f);
         Walker.LabStep(0.0f);
@@ -495,11 +523,35 @@ public partial class LabPreview : SubViewportContainer
         }
         var mesh = (ImmediateMesh)_trailMesh.Mesh;
         mesh.ClearSurfaces();
-        if (!_trails || Transport.Segments.Count == 0 || Walker.Arms.Count == 0)
+        if (!_trails || !Transport.HasClip)
         {
             return;
         }
-        int arms = Walker.Arms.Count;
+        // The fists; and in a recorded cycle the feet too, whose stride is
+        // what it shows.
+        var tips = new List<System.Func<Vector3>>();
+        var hues = new List<Color>();
+        for (int a = 0; a < Walker.Arms.Count; a++)
+        {
+            int arm = a;
+            if (Walker.PartAlive(Walker.Arms[a]))
+            {
+                tips.Add(() => Walker.StrokeTip(arm));
+                hues.Add(a % 2 == 0 ? new Color(1.0f, 0.55f, 0.15f) : new Color(0.25f, 0.85f, 1.0f));
+            }
+        }
+        if (Transport.Recording != null)
+        {
+            foreach (Node3D foot in Walker.Feet)
+            {
+                if (Walker.PartAlive(foot))
+                {
+                    tips.Add(() => foot.GlobalPosition);
+                    hues.Add(foot.Name.ToString().EndsWith("L") ? new Color(0.5f, 1.0f, 0.4f) : new Color(1.0f, 0.9f, 0.3f));
+                }
+            }
+        }
+        int arms = tips.Count;
         int samples = Mathf.Max(2, Mathf.CeilToInt(Transport.Length * Transport.Fps / 2.0f));
         var paths = new List<Vector3>[arms];
         for (int a = 0; a < arms; a++)
@@ -512,14 +564,17 @@ public partial class LabPreview : SubViewportContainer
             PoseAt(Transport.Length * s / samples);
             for (int a = 0; a < arms; a++)
             {
-                if (Walker.PartAlive(Walker.Arms[a]))
-                {
-                    paths[a].Add(toWalker * Walker.StrokeTip(a));
-                }
+                paths[a].Add(toWalker * tips[a]());
             }
         }
-        // Where each blow lands: the swinging fists at the move's 'hit'.
+        // Where each blow lands: the swinging fists at the move's 'hit'; in
+        // a recorded cycle, where each step comes down.
         var hits = new List<Vector3>();
+        foreach ((Node3D node, float time) in Transport.Recording?.Steps ?? new())
+        {
+            PoseAt(time);
+            hits.Add(toWalker * node.GlobalPosition);
+        }
         foreach (LabTransport.Segment segment in Transport.Segments)
         {
             float hit = segment.Move.EventTime("hit");
@@ -535,7 +590,6 @@ public partial class LabPreview : SubViewportContainer
         }
         PoseAt(Transport.Time);
 
-        Color[] hues = { new(1.0f, 0.55f, 0.15f), new(0.25f, 0.85f, 1.0f) };
         mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
         for (int a = 0; a < arms; a++)
         {
@@ -543,7 +597,7 @@ public partial class LabPreview : SubViewportContainer
             for (int i = 1; i < path.Count; i++)
             {
                 // Faint at the start of the clip, full at its end.
-                Color colour = hues[a % hues.Length] * new Color(1, 1, 1, Mathf.Lerp(0.35f, 1.0f, (float)i / path.Count));
+                Color colour = hues[a] * new Color(1, 1, 1, Mathf.Lerp(0.35f, 1.0f, (float)i / path.Count));
                 Line(mesh, path[i - 1], path[i], colour);
             }
         }
@@ -559,7 +613,7 @@ public partial class LabPreview : SubViewportContainer
     private void DrawGhosts()
     {
         int used = 0;
-        if (_ghosts && Transport.Segments.Count > 0)
+        if (_ghosts && Transport.HasClip)
         {
             var now = new Dictionary<Node3D, Transform3D>();
             foreach ((Node3D node, DamageBake _) in _damageParts)
@@ -640,6 +694,10 @@ public partial class LabPreview : SubViewportContainer
             return LastPick = part == null ? "" : $"{part.Name}: not a walker";
         }
         bool? on = Walker.LabToggleLimb(part);
+        if (on != null)
+        {
+            LimbsChanged?.Invoke();
+        }
         RebuildTrails();
         LastPick = on switch
         {

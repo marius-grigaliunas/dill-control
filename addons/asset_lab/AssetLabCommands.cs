@@ -70,7 +70,8 @@ public static class AssetLabCommands
             Walk);
         Bridge.Register("lab_play",
             "The Lab tab's timeline for the mech shown, as its play bar does (no physics, no Test). 'clip': 'walk' (none), 'combo' (the slash " +
-            "combo chained as in play) or a move's short name (smash, slam_r...), read fresh from disk. 'play' true/false; 'time' seconds holds it " +
+            "combo chained as in play), 'walk_cycle' or 'sprint_cycle' (one gait cycle recorded at the walk speed set, with the limbs it has, its " +
+            "footfalls marked; lab_walk toggles limbs) or a move's short name (smash, slam_r...), read fresh from disk. 'play' true/false; 'time' seconds holds it " +
             "there, paused; 'step' frames on (or back, negative), paused; 'speed' 0.1-1 how fast time runs; 'loop'; 'trails' the fists' paths (default on); 'ghosts' poses either side of the playhead. 'seconds' waits before answering. " +
             "Returns the clip's moves with their starts, blends and markers, and where the playhead is.",
             """{"type":"object","properties":{"clip":{"type":"string"},"play":{"type":"boolean"},"time":{"type":"number"},"step":{"type":"integer"},"speed":{"type":"number"},"loop":{"type":"boolean"},"trails":{"type":"boolean"},"ghosts":{"type":"boolean"},"seconds":{"type":"number"}}}""",
@@ -290,7 +291,14 @@ public static class AssetLabCommands
         }
         if (Bridge.Text(args, "clip", null) is string clip)
         {
-            string name = clip == "walk" ? AssetLabPanel.WalkOnly : clip == "combo" ? AssetLabPanel.ComboClip : clip;
+            string name = clip switch
+            {
+                "walk" => AssetLabPanel.WalkOnly,
+                "combo" => AssetLabPanel.ComboClip,
+                "walk_cycle" => AssetLabPanel.WalkCycle,
+                "sprint_cycle" => AssetLabPanel.SprintCycle,
+                _ => clip,
+            };
             if (!lab.LoadClip(name))
             {
                 throw new Bridge.Refused($"no clip '{clip}': walk, combo, or one of " + string.Join(", ", lab.MovesOf(preview.Walker).Select(p => p.GetFile().GetBaseName())));
@@ -360,6 +368,7 @@ public static class AssetLabCommands
             ["playing"] = transport.Playing,
             ["loop"] = transport.Loop,
             ["speed"] = preview.TimeScale,
+            ["steps"] = transport.Recording == null ? null : new JsonArray(transport.Recording.Steps.Select(s => (JsonNode)FormattableString.Invariant($"{s.Node.Name} {s.Time:0.000}")).ToArray()),
             ["now"] = now == null ? null : FormattableString.Invariant($"{LabTimeline.ShortName(now.Value.Move)} at {into:0.000} s"),
             ["walker_move"] = preview.Walker.PlayingMove == null ? null : LabTimeline.ShortName(preview.Walker.PlayingMove),
             ["segments"] = segments,
