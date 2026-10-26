@@ -35,11 +35,12 @@ public static partial class RunCommands
                 return new JsonObject { ["was_playing"] = was };
             });
         Bridge.Register("output",
-            "What was printed: 'game' (default) is the playing (or last played) game's log; 'editor' is the editor's own messages since the bridge started. " +
+            "What was printed: 'game' (default) is the playing (or last played) game's log; 'editor' is the editor's own messages since the bridge started; " +
+            "'panel' is the editor's Output panel as it shows, which keeps what was printed while the code reloaded (the bridge restarts then). " +
             "The last 'lines' (default 80); 'errors' true keeps only errors and warnings; 'grep' keeps lines containing it.",
             """
             {"type":"object","properties":{
-              "source":{"type":"string","enum":["game","editor"]},"lines":{"type":"integer"},
+              "source":{"type":"string","enum":["game","editor","panel"]},"lines":{"type":"integer"},
               "errors":{"type":"boolean"},"grep":{"type":"string"}
             }}
             """,
@@ -79,6 +80,14 @@ public static partial class RunCommands
         {
             lines = Catcher.Lines();
             from = "the editor, since the bridge started";
+        }
+        else if (source == "panel")
+        {
+            RichTextLabel log = EditorInterface.Singleton.GetBaseControl().FindChildren("*", "EditorLog", true, false)
+                .SelectMany(n => n.FindChildren("*", nameof(RichTextLabel), true, false)).OfType<RichTextLabel>().FirstOrDefault()
+                ?? throw new Bridge.Refused("the editor's Output panel was not found");
+            lines = log.GetParsedText().Split('\n').Select(l => l.TrimEnd('\r'));
+            from = "the editor's Output panel";
         }
         else
         {

@@ -157,7 +157,7 @@ commands through `python tools/editor-bridge/godot_mcp.py call <command>
 | Making and changing | `new_level` (the eight branches, the player wired), `place` (a scene stood on what is under it), `add` (any built-in node, with our `script`), `set` (with `stand`; a new resource inline as `{"class":"BoxShape3D","size":[4,1,4]}`), `delete`, `batch` (one undo), `undo`, `redo` |
 | Ground, plants, water | `terrain_create`, `sculpt`, `terrain`, `terrain_reload`, `scatter`, `forest`, `vines`, `flood`, `water_paint` |
 | Vines | `vine_kinds`, `vine_kind`, `vine_roll`, `vine_bake`, `vine_judge` |
-| Scenes and testing | `open`, `save`, `plugin`, `run`, `stop`, `output` (the game's log, or the editor's) |
+| Scenes and testing | `open`, `save`, `plugin`, `run`, `stop`, `output` (the game's log, the editor's, or its Output panel, which keeps what a code reload printed) |
 | Pointing | `select`, `frame` |
 | Any asset, in the Lab tab | `lab_assets`, `lab_open`, `lab_view`, `lab_resource`; in play `lab_test`, then `lab_do` (tools, time, drive, shot) |
 
