@@ -118,7 +118,7 @@ site chooser (`PlanetTerrain.MoreSiteChoosers`), lays it at the flattest of
 a few places on levelled pads. **A nest is one clump**: vines 55-70 m apart
 inside 400 m, more pods a vine before more room (`docs/decisions/0038`), on
 a planet pinned at 1,260 m (`0037`). No compound or city goes with a nest. `lvl_nest_lab` is a contract level with a nest, no ship and no
-compound: `pop=N`, `nest=SEED`, `horde=0`, `pickles=0` after `--`.
+compound (`lvl_nest_intro` is the onboarding one: a saved nest, `NestLandmark`s and an `IntroGuide`'s prompts, `docs/decisions/0049`): `pop=N`, `nest=SEED`, `horde=0`, `pickles=0` after `--`.
 A vine stands on its own foot; a crater under it unroots it (`PlantFlex.Unroot`).
 
 **Every pickle starts on a pod** (`docs/decisions/0034`). `PodField` holds a

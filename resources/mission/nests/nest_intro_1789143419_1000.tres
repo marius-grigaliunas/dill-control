@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="NestPreset" format=3]
+
+[ext_resource type="Resource" path="res://resources/mission/nest_kit_intro.tres" id="1_kit"]
+[ext_resource type="Script" path="res://scripts/mission/NestPreset.cs" id="2_script"]
+
+[resource]
+script = ExtResource("2_script")
+Kit = ExtResource("1_kit")
+Seed = 1789143419
+Population = 1000
+Note = "The introductory nest: one heart vine, one fruiting, twenty leafy ones of 16-120 m, so there is always a vine to hook at a height to suit. 22 vines, 206 m out, 1,037 pods."
+Saved = "2026-10-29"

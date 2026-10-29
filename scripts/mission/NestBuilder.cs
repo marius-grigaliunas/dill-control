@@ -50,6 +50,11 @@ public partial class NestBuilder : Node, ILevelBuilder
 
     [Export] public NestKit Kit { get; set; }
 
+    /// <summary>A nest kept from the Vines tool: its kit, seed and population
+    /// stand in for the contract's, for a level that is always the same nest.
+    /// The Vines tool's own play and the command line still win.</summary>
+    [Export] public NestPreset Preset { get; set; }
+
     [ExportGroup("Planting")]
     /// <summary>Milliseconds a frame spent making vines' nodes. Behind the
     /// loading screen: long frames only slow the bar.</summary>
@@ -104,6 +109,13 @@ public partial class NestBuilder : Node, ILevelBuilder
     {
         // Played from the Vines tool's Nest tab: its kit, seed, population
         // and horde, over the contract's.
+        if (Preset?.Kit != null)
+        {
+            Kit = Preset.Kit;
+            if (Placer != null)
+                Placer.Kit = Preset.Kit;
+            WithHorde = Preset.Horde;
+        }
         _request = NestPlay.Take();
         if (_request != null)
         {
@@ -213,6 +225,11 @@ public partial class NestBuilder : Node, ILevelBuilder
         _stats = Kit.BakeOrDefault();
         int population = Contract.Contract.Tier?.AgentCount ?? Kit.DefaultPopulation;
         Seed = Contract.Contract.Seed;
+        if (Preset != null)
+        {
+            population = Preset.Population;
+            Seed = (ulong)Preset.Seed;
+        }
         if (_request != null)
         {
             population = _request.Population;

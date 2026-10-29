@@ -28,6 +28,11 @@ public partial class NestPlacer : Node, IPlanetSiteChooser
     /// <summary>The plan, from <see cref="NestBuilder"/>: waits for it if it is still growing.</summary>
     public Func<NestLayout> Layout { get; set; }
 
+    /// <summary>Authored places round the nest (<see cref="NestLandmark"/>):
+    /// the planet stands them on the ground like the spawn, so they must also
+    /// be among its sites.</summary>
+    [Export] public Godot.Collections.Array<NestLandmark> Landmarks { get; set; } = new();
+
     public Vector3 Heart { get; private set; } = Vector3.Up;
 
     /// <summary>Each vine's place, world space, once the sites stand; in
@@ -71,6 +76,20 @@ public partial class NestPlacer : Node, IPlanetSiteChooser
             heights.FlattenPad(_directions[i], Kit.PadRadiusM, Kit.PadBlendM);
         }
 
+        float firstAvenue = _layout.Avenues.Length > 0 ? _layout.Avenues[0] : 0.0f;
+        foreach (NestLandmark landmark in Landmarks)
+        {
+            if (landmark == null)
+            {
+                continue;
+            }
+            float bearing = firstAvenue + Mathf.DegToRad(landmark.BearingDegrees);
+            Vector3 at = Along(Heart, north.Rotated(Heart, bearing), (_layout.RadiusM + landmark.PastEdgeM) / heights.Radius);
+            Vector3 toHeart = (Heart - at).Slide(at);
+            landmark.GlobalTransform = new Transform3D(
+                PlanetHeightfield.UprightBasis(at, landmark.FaceHeart ? toHeart : -toHeart), at * heights.Radius);
+        }
+
         if (Spawn != null)
         {
             float bearing = _layout.Avenues.Length > 0 ? _layout.Avenues[0] : 0.0f;
@@ -84,6 +103,14 @@ public partial class NestPlacer : Node, IPlanetSiteChooser
         if (_layout == null || _directions == null)
         {
             return;
+        }
+        foreach (NestLandmark landmark in Landmarks)
+        {
+            if (landmark != null && Spawn != null)
+            {
+                GD.Print(System.FormattableString.Invariant(
+                    $"[nest] landmark {landmark.Name}: {landmark.GlobalPosition.DistanceTo(Spawn.GlobalPosition):F0} m from the spawn, {landmark.Direction.AngleTo(Heart) * _heights.Radius:F0} m from the heart"));
+            }
         }
         Places = new Transform3D[_directions.Length];
         for (int i = 0; i < _directions.Length; i++)
