@@ -1,0 +1,255 @@
+[gd_scene load_steps=22 format=3]
+
+[ext_resource type="Script" path="res://scripts/mission/DropPod.cs" id="1_pod"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/fx_explosion.tscn" id="2_boom"]
+
+[sub_resource type="StandardMaterial3D" id="Hull"]
+albedo_color = Color(0.93, 0.52, 0.16, 1)
+diffuse_mode = 3
+specular_mode = 1
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="Trim"]
+albedo_color = Color(0.12, 0.13, 0.1, 1)
+diffuse_mode = 3
+
+[sub_resource type="StandardMaterial3D" id="Cabin"]
+albedo_color = Color(0.2, 0.22, 0.19, 1)
+diffuse_mode = 3
+
+[sub_resource type="StandardMaterial3D" id="Strip"]
+shading_mode = 0
+albedo_color = Color(0.55, 0.85, 0.45, 1)
+
+[sub_resource type="BoxMesh" id="ConsoleMesh"]
+material = SubResource("Cabin")
+size = Vector3(1.15, 0.9, 0.12)
+
+[sub_resource type="BoxMesh" id="HeaderMesh"]
+material = SubResource("Cabin")
+size = Vector3(1.15, 0.7, 0.12)
+
+[sub_resource type="BoxMesh" id="PostMesh"]
+material = SubResource("Cabin")
+size = Vector3(0.14, 1.5, 0.14)
+
+[sub_resource type="CylinderMesh" id="FloorMesh"]
+material = SubResource("Cabin")
+top_radius = 1.5
+bottom_radius = 1.5
+height = 0.1
+
+[sub_resource type="BoxMesh" id="StripMesh"]
+material = SubResource("Strip")
+size = Vector3(1.0, 0.03, 0.02)
+
+[sub_resource type="StandardMaterial3D" id="Burn"]
+shading_mode = 0
+albedo_color = Color(1, 0.62, 0.18, 1)
+
+[sub_resource type="CylinderMesh" id="BodyMesh"]
+material = SubResource("Hull")
+top_radius = 1.3
+bottom_radius = 1.7
+height = 4.2
+
+[sub_resource type="CylinderMesh" id="NoseMesh"]
+material = SubResource("Hull")
+top_radius = 0.15
+bottom_radius = 1.3
+height = 1.6
+
+[sub_resource type="CylinderMesh" id="BandMesh"]
+material = SubResource("Trim")
+top_radius = 1.68
+bottom_radius = 1.75
+height = 0.45
+
+[sub_resource type="CylinderMesh" id="FlameMesh"]
+material = SubResource("Burn")
+top_radius = 1.4
+bottom_radius = 0.05
+height = 7.0
+
+[sub_resource type="CylinderShape3D" id="SolidShape"]
+height = 5.8
+radius = 1.7
+
+[sub_resource type="CylinderShape3D" id="HatchShape"]
+height = 5.0
+radius = 3.2
+
+[node name="PrpLandingPod" type="Node3D" node_paths=PackedStringArray("Camera", "ExitPoint", "Hatch", "Collider", "Flame")]
+script = ExtResource("1_pod")
+FirstPerson = true
+Camera = NodePath("Camera")
+ExitPoint = NodePath("ExitPoint")
+Hatch = NodePath("Hatch")
+Collider = NodePath("Solid/Shape")
+Flame = NodePath("Flame")
+ExplosionScene = ExtResource("2_boom")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)
+mesh = SubResource("BodyMesh")
+
+[node name="Nose" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0)
+mesh = SubResource("NoseMesh")
+
+[node name="Band" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+mesh = SubResource("BandMesh")
+
+[node name="Flame" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3.5, 0)
+visible = false
+cast_shadow = 0
+mesh = SubResource("FlameMesh")
+
+[node name="Solid" type="StaticBody3D" parent="."]
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Solid"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+shape = SubResource("SolidShape")
+disabled = true
+
+[node name="Hatch" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="Shape" type="CollisionShape3D" parent="Hatch"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+shape = SubResource("HatchShape")
+
+[node name="ExitPoint" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, -3.6)
+
+[node name="Cabin" type="Node3D" parent="."]
+
+[node name="Floor" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(1.0000, 0, -0.0000, 0, 1, 0, 0.0000, 0, 1.0000, 0.0000, 0.5500, 0.0000)
+mesh = SubResource("FloorMesh")
+
+[node name="Ceiling" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(1.0000, 0, -0.0000, 0, 1, 0, 0.0000, 0, 1.0000, 0.0000, 3.6000, 0.0000)
+mesh = SubResource("FloorMesh")
+
+[node name="Console1" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(1.0000, 0, -0.0000, 0, 1, 0, 0.0000, 0, 1.0000, 0.0000, 1.0000, 1.4200)
+mesh = SubResource("ConsoleMesh")
+
+[node name="Header1" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(1.0000, 0, -0.0000, 0, 1, 0, 0.0000, 0, 1.0000, 0.0000, 3.2000, 1.4200)
+mesh = SubResource("HeaderMesh")
+
+[node name="Strip1" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(1.0000, 0, -0.0000, 0, 1, 0, 0.0000, 0, 1.0000, 0.0000, 1.4700, 1.3400)
+mesh = SubResource("StripMesh")
+
+[node name="Console2" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(0.7071, 0, -0.7071, 0, 1, 0, 0.7071, 0, 0.7071, 1.0041, 1.0000, 1.0041)
+mesh = SubResource("ConsoleMesh")
+
+[node name="Header2" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(0.7071, 0, -0.7071, 0, 1, 0, 0.7071, 0, 0.7071, 1.0041, 3.2000, 1.0041)
+mesh = SubResource("HeaderMesh")
+
+[node name="Strip2" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(0.7071, 0, -0.7071, 0, 1, 0, 0.7071, 0, 0.7071, 0.9475, 1.4700, 0.9475)
+mesh = SubResource("StripMesh")
+
+[node name="Console3" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(0.0000, 0, -1.0000, 0, 1, 0, 1.0000, 0, 0.0000, 1.4200, 1.0000, 0.0000)
+mesh = SubResource("ConsoleMesh")
+
+[node name="Header3" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(0.0000, 0, -1.0000, 0, 1, 0, 1.0000, 0, 0.0000, 1.4200, 3.2000, 0.0000)
+mesh = SubResource("HeaderMesh")
+
+[node name="Strip3" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(0.0000, 0, -1.0000, 0, 1, 0, 1.0000, 0, 0.0000, 1.3400, 1.4700, 0.0000)
+mesh = SubResource("StripMesh")
+
+[node name="Console4" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-0.7071, 0, -0.7071, 0, 1, 0, 0.7071, 0, -0.7071, 1.0041, 1.0000, -1.0041)
+mesh = SubResource("ConsoleMesh")
+
+[node name="Header4" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-0.7071, 0, -0.7071, 0, 1, 0, 0.7071, 0, -0.7071, 1.0041, 3.2000, -1.0041)
+mesh = SubResource("HeaderMesh")
+
+[node name="Strip4" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-0.7071, 0, -0.7071, 0, 1, 0, 0.7071, 0, -0.7071, 0.9475, 1.4700, -0.9475)
+mesh = SubResource("StripMesh")
+
+[node name="Console5" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-1.0000, 0, -0.0000, 0, 1, 0, 0.0000, 0, -1.0000, 0.0000, 1.0000, -1.4200)
+mesh = SubResource("ConsoleMesh")
+
+[node name="Header5" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-1.0000, 0, -0.0000, 0, 1, 0, 0.0000, 0, -1.0000, 0.0000, 3.2000, -1.4200)
+mesh = SubResource("HeaderMesh")
+
+[node name="Strip5" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-1.0000, 0, -0.0000, 0, 1, 0, 0.0000, 0, -1.0000, 0.0000, 1.4700, -1.3400)
+mesh = SubResource("StripMesh")
+
+[node name="Console6" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-0.7071, 0, 0.7071, 0, 1, 0, -0.7071, 0, -0.7071, -1.0041, 1.0000, -1.0041)
+mesh = SubResource("ConsoleMesh")
+
+[node name="Header6" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-0.7071, 0, 0.7071, 0, 1, 0, -0.7071, 0, -0.7071, -1.0041, 3.2000, -1.0041)
+mesh = SubResource("HeaderMesh")
+
+[node name="Strip6" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-0.7071, 0, 0.7071, 0, 1, 0, -0.7071, 0, -0.7071, -0.9475, 1.4700, -0.9475)
+mesh = SubResource("StripMesh")
+
+[node name="Console7" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-0.0000, 0, 1.0000, 0, 1, 0, -1.0000, 0, -0.0000, -1.4200, 1.0000, -0.0000)
+mesh = SubResource("ConsoleMesh")
+
+[node name="Header7" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-0.0000, 0, 1.0000, 0, 1, 0, -1.0000, 0, -0.0000, -1.4200, 3.2000, -0.0000)
+mesh = SubResource("HeaderMesh")
+
+[node name="Strip7" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-0.0000, 0, 1.0000, 0, 1, 0, -1.0000, 0, -0.0000, -1.3400, 1.4700, -0.0000)
+mesh = SubResource("StripMesh")
+
+[node name="Console8" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(0.7071, 0, 0.7071, 0, 1, 0, -0.7071, 0, 0.7071, -1.0041, 1.0000, 1.0041)
+mesh = SubResource("ConsoleMesh")
+
+[node name="Header8" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(0.7071, 0, 0.7071, 0, 1, 0, -0.7071, 0, 0.7071, -1.0041, 3.2000, 1.0041)
+mesh = SubResource("HeaderMesh")
+
+[node name="Strip8" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(0.7071, 0, 0.7071, 0, 1, 0, -0.7071, 0, 0.7071, -0.9475, 1.4700, 0.9475)
+mesh = SubResource("StripMesh")
+
+[node name="Post1" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(0.7071, 0, -0.7071, 0, 1, 0, 0.7071, 0, 0.7071, 1.0253, 2.3500, 1.0253)
+mesh = SubResource("PostMesh")
+
+[node name="Post2" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-0.7071, 0, -0.7071, 0, 1, 0, 0.7071, 0, -0.7071, 1.0253, 2.3500, -1.0253)
+mesh = SubResource("PostMesh")
+
+[node name="Post3" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(-0.7071, 0, 0.7071, 0, 1, 0, -0.7071, 0, -0.7071, -1.0253, 2.3500, -1.0253)
+mesh = SubResource("PostMesh")
+
+[node name="Post4" type="MeshInstance3D" parent="Cabin"]
+transform = Transform3D(0.7071, 0, 0.7071, 0, 1, 0, -0.7071, 0, 0.7071, -1.0253, 2.3500, 1.0253)
+mesh = SubResource("PostMesh")
+
+[node name="Camera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
+fov = 80.0
+far = 3000.0

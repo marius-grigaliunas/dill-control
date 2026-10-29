@@ -27,13 +27,15 @@ public partial class IntroGuide : Node
     [Export] public PodField Pods { get; set; }
     /// <summary>The jar's destruction; empty when the level has none.</summary>
     [Export] public VoxelBody Jar { get; set; }
+    /// <summary>The pod drop that opens the level; empty when the player starts on foot.</summary>
+    [Export] public PodLanding Landing { get; set; }
 
     private PlayerController _player;
     private Vector3 _start;
     private int _index = -1;
     private float _shown;
     private float _wait;
-    private bool _hooked, _released, _fired, _jarHit, _podDestroyed, _woke;
+    private bool _hooked, _released, _fired, _jarHit, _podDestroyed, _woke, _landed;
     private CanvasLayer _layer;
     private PanelContainer _plate;
     private Label _title, _text;
@@ -47,6 +49,10 @@ public partial class IntroGuide : Node
             return;
         }
         Level.PlayerSpawned += OnPlayerSpawned;
+        if (Landing != null)
+        {
+            Landing.Arrived += OnArrived;
+        }
         if (Pods != null)
         {
             Pods.PodDestroyed += OnPodDestroyed;
@@ -75,8 +81,13 @@ public partial class IntroGuide : Node
         {
             Jar.Damaged -= OnJarDamaged;
         }
+        if (Landing != null && IsInstanceValid(Landing))
+        {
+            Landing.Arrived -= OnArrived;
+        }
     }
 
+    private void OnArrived() => _landed = true;
     private void OnPodDestroyed(int pod) => _podDestroyed = true;
     private void OnAggravated(Vector3 at) => _woke = true;
     private void OnJarDamaged(DamageInfo info) => _jarHit = true;
@@ -94,6 +105,7 @@ public partial class IntroGuide : Node
             _player.Grapple.Attached += () => _hooked = true;
             _player.Grapple.Released += snapped => _released = true;
         }
+        _landed = Landing == null;
         // A clone starts the lesson again only if the first never finished.
         if (_index < 0)
         {
@@ -177,6 +189,11 @@ public partial class IntroGuide : Node
 
     private void Show(GuideStep step)
     {
+        // Distances count from where the player stands as the step appears.
+        if (_player != null && IsInstanceValid(_player))
+        {
+            _start = _player.GlobalPosition;
+        }
         _title.Text = step.Title.ToUpperInvariant();
         _title.Visible = step.Title.Length > 0;
         _text.Text = Fill(step.Text);
@@ -200,6 +217,7 @@ public partial class IntroGuide : Node
             case GuideStep.Done.Fired: return _fired;
             case GuideStep.Done.JarHit: return _jarHit || Jar == null;
             case GuideStep.Done.PodDestroyed: return _podDestroyed;
+            case GuideStep.Done.Landed: return _landed;
             case GuideStep.Done.ColonyWoke: return _woke || Pods?.Colony != PodField.ColonyState.Asleep;
         }
         return true;

@@ -12,8 +12,12 @@ namespace DillControl.Mission;
 /// home: once landed and <see cref="Open"/>, a player stepping into its hatch
 /// is <see cref="Boarded"/>, and <see cref="LiftOff"/> takes it back up.
 ///
-/// It knows nothing of the mission: <see cref="ExtractionMission"/> makes
-/// it, says where, and listens.
+/// With <see cref="FirstPerson"/> the rider looks out of the pod's own
+/// <see cref="Camera"/>, seated inside it, and can turn their head while it
+/// falls; after the landing they wait <see cref="ExitDelay"/> and step out.
+///
+/// It knows nothing of the mission: <see cref="ExtractionMission"/> or
+/// <see cref="PodLanding"/> makes it, says where, and listens.
 /// </summary>
 [GlobalClass]
 public partial class DropPod : Node3D
@@ -41,8 +45,28 @@ public partial class DropPod : Node3D
     [Export]
     public PackedScene ExplosionScene { get; set; }
 
+    [ExportGroup("First person")]
+    /// <summary>The rider sits inside and looks out of <see cref="Camera"/>, turning it with the mouse.</summary>
+    [Export]
+    public bool FirstPerson { get; set; }
+
+    /// <summary>Seconds between touching down and the rider stepping out.</summary>
+    [Export(PropertyHint.Range, "0,10,0.1,suffix:s")]
+    public float ExitDelay { get; set; } = 1.8f;
+
+    /// <summary>How far the head is shaken at full speed, in metres.</summary>
+    [Export(PropertyHint.Range, "0,0.2,0.005,suffix:m")]
+    public float ShakeMetres { get; set; } = 0.025f;
+
+    [Export(PropertyHint.Range, "0.0005,0.01,0.0001")]
+    public float LookSensitivity { get; set; } = 0.0022f;
+
     [Signal]
     public delegate void LandedEventHandler();
+
+    /// <summary>The rider has left the pod and has the controls.</summary>
+    [Signal]
+    public delegate void SteppedOutEventHandler();
 
     [Signal]
     public delegate void BoardedEventHandler(PlayerController player);
@@ -53,6 +77,10 @@ public partial class DropPod : Node3D
     private enum State { Idle, Falling, Landed, Open, Climbing }
 
     private State _state;
+    private float _yaw;
+    private float _pitch;
+    private float _landedFor;
+    private Vector3 _seat;
     private Vector3 _from;
     private Vector3 _to;
     private float _seconds;
@@ -64,6 +92,7 @@ public partial class DropPod : Node3D
 
     public override void _Ready()
     {
+        _seat = Camera?.Position ?? Vector3.Zero;
         SetCollider(false);
         if (Hatch != null)
         {
@@ -90,6 +119,13 @@ public partial class DropPod : Node3D
         SetCollider(false);
 
         _rider = rider;
+        _landedFor = 0.0f;
+        _yaw = 0.0f;
+        _pitch = 0.0f;
+        if (FirstPerson && Camera != null)
+        {
+            Camera.Rotation = Vector3.Zero;
+        }
         if (_rider != null)
         {
             _rider.SetStowed(true);
@@ -129,8 +165,29 @@ public partial class DropPod : Node3D
         SetCollider(false);
     }
 
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (!FirstPerson || Camera == null || _rider == null || !Camera.Current
+            || @event is not InputEventMouseMotion motion || Input.MouseMode != Input.MouseModeEnum.Captured)
+        {
+            return;
+        }
+        _yaw = Mathf.Wrap(_yaw - (motion.Relative.X * LookSensitivity), -Mathf.Pi, Mathf.Pi);
+        _pitch = Mathf.Clamp(_pitch - (motion.Relative.Y * LookSensitivity), Mathf.DegToRad(-80.0f), Mathf.DegToRad(80.0f));
+        Camera.Rotation = new Vector3(_pitch, _yaw, 0.0f);
+    }
+
     public override void _PhysicsProcess(double delta)
     {
+        if (_state == State.Landed && _rider != null)
+        {
+            _landedFor += (float)delta;
+            if (_landedFor >= ExitDelay)
+            {
+                StepOut();
+            }
+            return;
+        }
         if (_state is not (State.Falling or State.Climbing))
         {
             return;
@@ -141,6 +198,11 @@ public partial class DropPod : Node3D
         // Falling, it speeds up all the way down; climbing, it starts slow.
         float eased = t * t;
         GlobalPosition = _from.Lerp(_to, eased);
+        if (FirstPerson && Camera != null)
+        {
+            // The fall rattles the cabin, more the faster it goes.
+            Camera.Position = _seat + (new Vector3((GD.Randf() - 0.5f), (GD.Randf() - 0.5f), 0.0f) * (ShakeMetres * eased));
+        }
         if (_rider != null && IsInstanceValid(_rider))
         {
             _rider.GlobalPosition = GlobalPosition;
@@ -170,14 +232,35 @@ public partial class DropPod : Node3D
         SetCollider(true);
         Impact();
 
+        if (FirstPerson && _rider != null && IsInstanceValid(_rider) && ExitDelay > 0.0f)
+        {
+            if (Camera != null)
+            {
+                Camera.Position = _seat;
+            }
+            EmitSignal(SignalName.Landed);
+            return;
+        }
+        StepOut();
+        EmitSignal(SignalName.Landed);
+    }
+
+    /// <summary>The rider leaves the pod by its exit, facing the way they were looking.</summary>
+    private void StepOut()
+    {
         if (_rider != null && IsInstanceValid(_rider))
         {
             Transform3D exit = ExitPoint?.GlobalTransform ?? GlobalTransform;
-            _rider.GlobalTransform = new Transform3D(Basis.Identity.Rotated(Vector3.Up, exit.Basis.GetEuler().Y), exit.Origin);
+            float heading = exit.Basis.GetEuler().Y;
+            if (FirstPerson && Camera != null)
+            {
+                heading = Camera.GlobalTransform.Basis.GetEuler().Y;
+            }
+            _rider.GlobalTransform = new Transform3D(Basis.Identity.Rotated(Vector3.Up, heading), exit.Origin);
             _rider.SetStowed(false);
+            EmitSignal(SignalName.SteppedOut);
         }
         _rider = null;
-        EmitSignal(SignalName.Landed);
     }
 
     /// <summary>The landing is a bomb: whatever was standing there is not any more.</summary>

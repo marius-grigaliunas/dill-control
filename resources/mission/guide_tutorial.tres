@@ -1,0 +1,89 @@
+[gd_resource type="Resource" script_class="GuideScript" format=3 uid="uid://der2lj1gxlja8"]
+
+[ext_resource type="Script" uid="uid://c7330utt58r42" path="res://scripts/mission/GuideScript.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://bjhv1mgey1mca" path="res://scripts/mission/GuideStep.cs" id="2_step"]
+
+[sub_resource type="Resource" id="Step0"]
+script = ExtResource("2_step")
+Title = "THE DROP"
+Text = "You are dropping in. Move the mouse to look out of the window."
+Until = 9
+Seconds = 0.0
+ReadSeconds = 1.0
+DelaySeconds = 2.0
+
+[sub_resource type="Resource" id="Step1"]
+script = ExtResource("2_step")
+Title = "MOVE"
+Text = "W A S D to move, {jump} to jump, hold SHIFT to sprint. Walk toward the vines."
+Until = 4
+Seconds = 0.0
+Metres = 18.0
+ReadSeconds = 4.0
+DelaySeconds = 1.0
+
+[sub_resource type="Resource" id="Step2"]
+script = ExtResource("2_step")
+Title = "GRAPPLING HOOK"
+Text = "Aim at a vine and tap {grapple}. The line pulls you in."
+Until = 1
+Seconds = 0.0
+
+[sub_resource type="Resource" id="Step3"]
+script = ExtResource("2_step")
+Title = "LET GO"
+Text = "Press {jump} to let go. You keep your speed, so let go while you are still rising."
+Until = 2
+Seconds = 0.0
+
+[sub_resource type="Resource" id="Step4"]
+script = ExtResource("2_step")
+Title = "SWING"
+Text = "Hold {grapple} on a vine further off and keep it held to swing. Let go at the bottom of the arc and you are thrown forward."
+Until = 2
+Seconds = 0.0
+ReadSeconds = 5.0
+
+[sub_resource type="Resource" id="Step5"]
+script = ExtResource("2_step")
+Title = "STAY UP"
+Text = "The ground belongs to the cucumbers. Chain hooks from vine to vine and get 25 m up."
+Until = 3
+Seconds = 0.0
+Metres = 25.0
+ReadSeconds = 4.0
+
+[sub_resource type="Resource" id="Step6"]
+script = ExtResource("2_step")
+Title = "WEAPON"
+Text = "Shoot with {fire}. Zip, let go, and fire at the top of the jump."
+Until = 5
+Seconds = 0.0
+
+[sub_resource type="Resource" id="Step7"]
+script = ExtResource("2_step")
+Title = "THE NEST"
+Text = "Every pod on these vines holds a cucumber. Shoot a pod and the whole colony wakes."
+Until = 8
+Seconds = 0.0
+ReadSeconds = 5.0
+
+[sub_resource type="Resource" id="Step8"]
+script = ExtResource("2_step")
+Title = "THEY ARE COMING"
+Text = "They drop from the vines and hunt on the ground. Keep to the line and keep moving."
+Seconds = 7.0
+ReadSeconds = 7.0
+
+[sub_resource type="Resource" id="Step9"]
+script = ExtResource("2_step")
+Title = "THE CONTRACT"
+Text = "Destroy every pod and thin out what drops. Your goals are top right."
+Until = 7
+Seconds = 0.0
+ReadSeconds = 6.0
+
+[resource]
+resource_name = "GuideTutorial"
+script = ExtResource("1_script")
+Steps = Array[ExtResource("2_step")]([SubResource("Step0"), SubResource("Step1"), SubResource("Step2"), SubResource("Step3"), SubResource("Step4"), SubResource("Step5"), SubResource("Step6"), SubResource("Step7"), SubResource("Step8"), SubResource("Step9")])

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ExtractionRules" format=3]
+
+[ext_resource type="Script" path="res://scripts/mission/ExtractionRules.cs" id="1_script"]
+
+[resource]
+resource_name = "DropRulesTutorial"
+script = ExtResource("1_script")
+DropHeight = 520.0
+DropSeconds = 11.0
+LandingRadius = 8.0
+LandingDamage = 120.0

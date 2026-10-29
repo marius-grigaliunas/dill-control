@@ -19,9 +19,9 @@ public partial class GuideStep : Resource
         Hooked,
         /// <summary>The hook let go.</summary>
         Released,
-        /// <summary>The player is <see cref="Metres"/> over where they started.</summary>
+        /// <summary>The player is <see cref="Metres"/> over where this step began.</summary>
         Height,
-        /// <summary>The player has moved <see cref="Metres"/> from where they started.</summary>
+        /// <summary>The player has moved <see cref="Metres"/> from where this step began.</summary>
         Travelled,
         /// <summary>The player fired.</summary>
         Fired,
@@ -31,6 +31,8 @@ public partial class GuideStep : Resource
         PodDestroyed,
         /// <summary>The colony has been harmed and is waking.</summary>
         ColonyWoke,
+        /// <summary>The player has stepped out of the landing pod (<see cref="PodLanding"/>).</summary>
+        Landed,
     }
 
     /// <summary>A short heading, drawn small over the text.</summary>
