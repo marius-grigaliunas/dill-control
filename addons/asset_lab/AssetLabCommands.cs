@@ -79,8 +79,9 @@ public static class AssetLabCommands
         Bridge.Register("lab_timing",
             "Edit the timing of a move in the Lab tab's clip, as its timing row and the timeline's markers do: 'move' its short name (default the " +
             "one under the playhead), 'speed' times as fast as saved, 'blend' seconds (below 0: the player's), 'events' {\"hit\": seconds into the move}, " +
-            "snapped to its frames. 'save' writes every edited move's .tres, stamped for the Blender add-on's Read Timing; 'revert' puts them back as saved.",
-            """{"type":"object","properties":{"move":{"type":"string"},"speed":{"type":"number"},"blend":{"type":"number"},"events":{"type":"object"},"save":{"type":"boolean"},"revert":{"type":"boolean"}}}""",
+            "snapped to its frames. 'body' how the whole body goes with it: {\"auto\": true} works it out from the fists, or any of lunge, drop (m), " +
+            "lean, twist (degrees), step (m), windup (0-1) set it by hand from what it has now. 'save' writes every edited move's .tres, stamped for the Blender add-on's Read Timing; 'revert' puts them back as saved.",
+            """{"type":"object","properties":{"move":{"type":"string"},"speed":{"type":"number"},"blend":{"type":"number"},"events":{"type":"object"},"body":{"type":"object"},"save":{"type":"boolean"},"revert":{"type":"boolean"}}}""",
             Timing);
         Bridge.Register("lab_test",
             "Play the asset lab level with an asset (default: the one shown in the Lab tab), as the tab's Test does: it stands in front of the player, " +
@@ -418,6 +419,15 @@ public static class AssetLabCommands
                 lab.SetMarker(move, index, Mathf.Round(into * move.Fps) / move.Fps);
             }
         }
+        if (args["body"] is JsonObject body)
+        {
+            bool auto = body["auto"] is JsonNode a && (bool)a;
+            MechMove.BodyNumbers n = lab.BodyOf(move);
+            float Get(string key, float now) => body[key] is JsonNode v ? (float)v : now;
+            n = new MechMove.BodyNumbers(Get("lunge", n.Lunge), Get("drop", n.Drop), Get("lean", n.LeanDegrees),
+                Get("twist", n.TwistDegrees), Get("step", n.Step), Get("windup", n.Windup));
+            lab.SetBody(move, auto ? null : n, auto);
+        }
         var result = new JsonObject();
         if (Bridge.Flag(args, "save", false))
         {
@@ -429,6 +439,17 @@ public static class AssetLabCommands
             marks[move.EventNames[e]] = Math.Round(move.EventTimes[e], 4);
         }
         result["move"] = LabTimeline.ShortName(move);
+        MechMove.BodyNumbers shown = lab.BodyOf(move);
+        result["body"] = new JsonObject
+        {
+            ["auto"] = move.BodyAuto,
+            ["lunge"] = Math.Round(shown.Lunge, 3),
+            ["drop"] = Math.Round(shown.Drop, 3),
+            ["lean"] = Math.Round(shown.LeanDegrees, 2),
+            ["twist"] = Math.Round(shown.TwistDegrees, 2),
+            ["step"] = Math.Round(shown.Step, 3),
+            ["windup"] = Math.Round(shown.Windup, 3),
+        };
         result["fps"] = Math.Round(move.Fps, 3);
         result["speed"] = Math.Round(lab.SpeedOf(move), 3);
         result["length"] = Math.Round(move.Length, 4);

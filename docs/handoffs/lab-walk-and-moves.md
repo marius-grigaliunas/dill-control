@@ -188,3 +188,16 @@ untouched (`mechcheck.gd`, and `bench.gd ... mechs` once).
 - One reload logged 176 `managed_callable ... nullptr` errors and
   "reloading succeeded after failures"; later reloads logged none. Watch
   for it when adding handlers to the tab.
+- **The whole body goes with a move, worked out** (*29 October*; the user
+  chose calculated over posing the body in Blender). `MechWalker.AutoBody`
+  reads how a move's fists go at its hit: down drops the weight, ahead
+  lunges, leans and steps in, up drives the body up and leans back, one arm
+  turns the hips; the wind-up goes the other way first, it holds and
+  recovers. The foot opposite the striking arm steps in, landing on the
+  hit, and the idle tidy brings it back. Gains per mech in `MechTuning`
+  (Strikes); per move `MechMove.BodyAuto` and its `Body*` numbers, edited in
+  the Lab Timeline's Body row (or `lab_timing` `body`) and saved with Save
+  timing; Blender's Export keeps a move's `Body` lines. The body is a pure
+  function of the move's time, so a scrubbed frame is the frame played.
+  Seen: smash drops 0.52 m, slam_r lunges 0.8 m, twists 22°, steps 1.2 m.
+  The user must reinstall the add-on zip for Export to keep Body lines.

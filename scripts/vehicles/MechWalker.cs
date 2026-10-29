@@ -976,6 +976,8 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		_moveParts = parts;
 		_moveTime = 0.0f;
 		_moveBlend = Mathf.Max(move.Blend >= 0.0f ? move.Blend : blend, 0.0f);
+		_bodyFrom = _body;
+		PlanBody(move);
 		return true;
 	}
 
@@ -985,6 +987,13 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		{
 			return;
 		}
+		MechMove stopped = PlayingMove;
+		if (_plan.StepLeg is MechLeg stepped && stepped.Alive && StepShare(stopped) >= 1.0f)
+		{
+			// It stays where it stepped; the idle tidy brings it back.
+			stepped.Planted = StepSpot(stepped);
+		}
+		_plan.StepLeg = null;
 		PlayingMove = null;
 		if (_moveUsesLegs)
 		{
@@ -1037,6 +1046,228 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			StopMove();
 		}
 	}
+
+	// ---------------- The body in a move ----------------
+
+	// What the whole body does in the move playing (MechMove.BodyAuto):
+	// lunge and drop in metres, lean and twist in radians, the twist signed
+	// for the striking side; when it hits; which foot steps in.
+	private struct BodyPlan
+	{
+		public float Lunge, Drop, Lean, Twist, Step, Windup, Hit;
+		public MechLeg StepLeg;
+	}
+
+	private BodyPlan _plan;
+
+	// The body's offset for the move now (x lunge, y drop, z lean, w twist),
+	// and where it was when the move began, which it blends from.
+	private Vector4 _body;
+	private Vector4 _bodyFrom;
+
+	/// <summary>
+	/// The body numbers <paramref name="move"/> gets from its fists: how they
+	/// move at its hit (its 'hit' marker, else where they are fastest), in
+	/// this mech's <see cref="MechTuning"/> gains. A blow going down drops the
+	/// weight, one going ahead lunges, leans and steps in, one going up drives
+	/// the body up and leans back; one arm alone turns the hips. A move with no arms gets none.
+	/// </summary>
+	public MechMove.BodyNumbers AutoBody(MechMove move)
+	{
+		List<(int Part, int Arm)> arms = ClaimedArms(move);
+		if (arms.Count == 0 || move.Frames < 3)
+		{
+			return default;
+		}
+		float hit = HitTime(move, arms);
+		float dt = 1.0f / move.Fps;
+		Vector3 velocity = Vector3.Zero;
+		foreach ((int part, int arm) in arms)
+		{
+			velocity += (Fist(move, part, arm, hit + dt) - Fist(move, part, arm, hit - dt)) / (2.0f * dt);
+		}
+		velocity = _modelRest.Basis * velocity;
+		Vector3 dir = velocity.LengthSquared() > 1e-4f ? velocity.Normalized() : Vector3.Back;
+		float down = Mathf.Max(0.0f, -dir.Y), ahead = Mathf.Max(0.0f, dir.Z), up = Mathf.Max(0.0f, dir.Y);
+		return new MechMove.BodyNumbers(
+			Tuning.StrikeLunge * Mathf.Clamp(ahead + 0.4f * down, 0.0f, 1.0f),
+			Tuning.StrikeDrop * (down - 0.5f * up),
+			Tuning.StrikeLeanDegrees * Mathf.Clamp(0.6f * ahead + down - 0.5f * up, -1.0f, 1.0f),
+			arms.Count == 1 ? Tuning.StrikeTwistDegrees : 0.0f,
+			Tuning.StrikeStep * Mathf.Clamp(ahead + 0.3f * down, 0.0f, 1.0f),
+			Tuning.StrikeWindup);
+	}
+
+	/// <summary>The arms <paramref name="move"/> swings that it still has:
+	/// each by its index in the move and in <see cref="Arms"/>.</summary>
+	private List<(int Part, int Arm)> ClaimedArms(MechMove move)
+	{
+		var arms = new List<(int, int)>();
+		for (int p = 0; p < move.Parts.Length; p++)
+		{
+			Node3D node = Model.GetNodeOrNull<Node3D>(move.Parts[p]);
+			int a = node == null ? -1 : ArmIndex(node);
+			if (a >= 0 && PartAlive(node))
+			{
+				arms.Add((p, a));
+			}
+		}
+		return arms;
+	}
+
+	/// <summary>Where an arm's fist is, in the model's space, at
+	/// <paramref name="time"/> into the move.</summary>
+	private Vector3 Fist(MechMove move, int part, int arm, float time) =>
+		move.Sample(part, Mathf.Clamp(time, 0.0f, move.Length)) * (_arms[arm].Pointing * _arms[arm].Reach);
+
+	private float HitTime(MechMove move, List<(int Part, int Arm)> arms)
+	{
+		float hit = move.EventTime("hit");
+		if (hit >= 0.0f)
+		{
+			return hit;
+		}
+		float best = -1.0f;
+		float dt = 1.0f / move.Fps;
+		for (int f = 1; f < move.Frames; f++)
+		{
+			float speed = 0.0f;
+			foreach ((int part, int arm) in arms)
+			{
+				speed += Fist(move, part, arm, f * dt).DistanceTo(Fist(move, part, arm, (f - 1) * dt));
+			}
+			if (speed > best)
+			{
+				best = speed;
+				hit = f * dt;
+			}
+		}
+		return Mathf.Max(hit, 0.0f);
+	}
+
+	/// <summary>Works out what the body does in <paramref name="move"/>: its
+	/// own numbers, or its fists' when it leaves them to the walker. The
+	/// foot opposite the striking arm steps in, of the front ones; with both
+	/// arms, whichever is further back.</summary>
+	private void PlanBody(MechMove move)
+	{
+		MechMove.BodyNumbers body = move.BodyAuto ? AutoBody(move) : move.Body;
+		List<(int Part, int Arm)> arms = ClaimedArms(move);
+		float side = 0.0f;
+		if (arms.Count == 1)
+		{
+			side = (_modelRest * _armRest[arms[0].Arm].Origin).X >= 0.0f ? 1.0f : -1.0f;
+		}
+		_plan = new BodyPlan
+		{
+			Lunge = body.Lunge,
+			Drop = body.Drop,
+			Lean = Mathf.DegToRad(body.LeanDegrees),
+			// The striking side forward: a turn about Up brings -X forward
+			// when positive.
+			Twist = -side * Mathf.DegToRad(body.TwistDegrees),
+			Step = body.Step,
+			Windup = body.Windup,
+			Hit = arms.Count > 0 ? HitTime(move, arms) : move.Length * 0.5f,
+		};
+		if (body.Step <= 0.01f || CurrentStance != Stance.Walk || _moveUsesLegs)
+		{
+			return;
+		}
+		float front = float.MinValue;
+		foreach (MechLeg leg in _legs)
+		{
+			front = Mathf.Max(front, leg.RestFoot.Z);
+		}
+		Vector3 forward = GlobalBasis.Z.Slide(Up).Normalized();
+		float behind = float.MaxValue;
+		foreach (MechLeg leg in _legs)
+		{
+			if (!leg.Alive || leg.RestFoot.Z < front - 0.3f)
+			{
+				continue;
+			}
+			bool opposite = side != 0.0f && Mathf.Sign(leg.RestFoot.X) == -side;
+			float back = (leg.Planted - GlobalTransform * leg.RestFoot).Dot(forward) - (opposite ? 100.0f : 0.0f);
+			if (back < behind)
+			{
+				behind = back;
+				_plan.StepLeg = leg;
+			}
+		}
+	}
+
+	/// <summary>
+	/// The body's offset <paramref name="time"/> into the move, worked out
+	/// from the plan alone, so a frame scrubbed to is the frame played: the
+	/// wind-up goes back, up and turned away, handing over to the blow by
+	/// the hit; it holds a moment and comes back by the end.
+	/// </summary>
+	private Vector4 BodyAt(float time, float length)
+	{
+		float hit = Mathf.Clamp(_plan.Hit, 0.05f, Mathf.Max(length, 0.05f));
+		float load = hit * 0.55f;
+		float hold = Mathf.Min(0.08f, Mathf.Max(length - hit, 0.0f) * 0.3f);
+		float windup, strike;
+		if (time < load)
+		{
+			windup = Smooth(time / load);
+			strike = 0.0f;
+		}
+		else if (time < hit)
+		{
+			strike = Smooth((time - load) / (hit - load));
+			windup = 1.0f - strike;
+		}
+		else
+		{
+			windup = 0.0f;
+			float recover = Mathf.Max(length - hit - hold, 1e-3f);
+			strike = time < hit + hold ? 1.0f : 1.0f - Smooth((time - hit - hold) / recover);
+		}
+		float k = strike - _plan.Windup * windup;
+		return new Vector4(_plan.Lunge * k, _plan.Drop * (strike - 0.5f * _plan.Windup * windup), _plan.Lean * k, _plan.Twist * k);
+	}
+
+	private static float Smooth(float t)
+	{
+		t = Mathf.Clamp(t, 0.0f, 1.0f);
+		return t * t * (3.0f - 2.0f * t);
+	}
+
+	/// <summary>The body's offset this frame: the move's, blended in from
+	/// where the last left it; with none playing, easing back to nothing.</summary>
+	private void UpdateMoveBody(float dt)
+	{
+		if (PlayingMove == null)
+		{
+			_body = _body.Lerp(Vector4.Zero, 1.0f - Mathf.Exp(-dt / 0.12f));
+			return;
+		}
+		if (LabMode)
+		{
+			// Numbers edited in the lab show at once.
+			PlanBody(PlayingMove);
+		}
+		Vector4 target = BodyAt(_moveTime, PlayingMove.Length);
+		float blend = _moveBlend > 0.0f ? Mathf.Clamp(_moveTime / _moveBlend, 0.0f, 1.0f) : 1.0f;
+		_body = _bodyFrom.Lerp(target, Smooth(blend));
+	}
+
+	/// <summary>How far through its step in the stepping foot is, 0-1: it
+	/// goes in over the last of the run-up and lands on the hit.</summary>
+	private float StepShare(MechMove move)
+	{
+		if (move == null || _plan.StepLeg == null)
+		{
+			return 0.0f;
+		}
+		float span = Mathf.Min(0.3f, _plan.Hit * 0.7f);
+		return span <= 0.0f ? 1.0f : Mathf.Clamp((_moveTime - (_plan.Hit - span)) / span, 0.0f, 1.0f);
+	}
+
+	private Vector3 StepSpot(MechLeg leg) =>
+		Ground(leg.Planted + GlobalBasis.Z.Slide(Up).Normalized() * _plan.Step);
 
 	// ---------------- Body motion ----------------
 
@@ -1494,10 +1725,13 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		{
 			target = -Mathf.Lerp(Tuning.WalkCrouch, Tuning.SprintCrouch, sprint01);
 		}
-		float shift = 0.0f, roll = 0.0f, twist = 0.0f;
+		UpdateMoveBody(dt);
+		target -= _body.Y;
+		float shift = 0.0f, roll = 0.0f, twist = _body.W;
 		if (Tuning.CycleGait)
 		{
-			target += WeightOverFeet(out shift, out roll, out twist);
+			target += WeightOverFeet(out shift, out roll, out float walkTwist);
+			twist += walkTwist;
 		}
 		else
 		{
@@ -1537,8 +1771,8 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		ShrinkHull();
 
 		var pivot = new Vector3(0.0f, _pivotHeight, 0.0f);
-		Basis tilt = new Basis(Vector3.Right, _tilt.X) * new Basis(Vector3.Back, _tilt.Y + roll) * new Basis(Vector3.Up, twist);
-		Transform3D sway = new Transform3D(Basis.Identity, pivot + Vector3.Up * (_sink - _drop) + Vector3.Right * shift)
+		Basis tilt = new Basis(Vector3.Right, _tilt.X + _body.Z) * new Basis(Vector3.Back, _tilt.Y + roll) * new Basis(Vector3.Up, twist);
+		Transform3D sway = new Transform3D(Basis.Identity, pivot + Vector3.Up * (_sink - _drop) + Vector3.Right * shift + Vector3.Back * _body.X)
 						   * new Transform3D(tilt, Vector3.Zero)
 						   * new Transform3D(Basis.Identity, -pivot);
 		Model.Transform = sway * _modelRest;
@@ -1640,7 +1874,14 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			}
 			Vector3 sole = leg.Planted;
 			float toe = 0.0f;
-			if (leg.Stepping)
+			if (leg == _plan.StepLeg && PlayingMove != null)
+			{
+				// Stepping in behind a blow.
+				float s = StepShare(PlayingMove);
+				sole = leg.Planted.Lerp(StepSpot(leg), Smooth(s)) + Up * (Mathf.Sin(Mathf.Pi * s) * stepHeight * 0.5f);
+				toe = -Mathf.Sin(Mathf.Tau * s) * Mathf.DegToRad(Tuning.FootRollDegrees);
+			}
+			else if (leg.Stepping)
 			{
 				float t = Mathf.Clamp(leg.StepT, 0.0f, 1.0f);
 				float eased = t * t * (3.0f - 2.0f * t);

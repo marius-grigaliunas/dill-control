@@ -5,7 +5,9 @@ from Blender's axes (Z up) to Godot's (Y up): Godot (x, y, z) is Blender
 (x, z, -y). A part is in the move if it moves at all; the rest keep walking.
 Timeline markers on the action (or the scene, inside the frame range) are its
 events: 'hit', 'sfx:<name>', 'shake'. A blend and a timing stamp the Godot
-asset lab saved come back through Read Timing (timing.py) and go out again.
+asset lab saved come back through Read Timing (timing.py) and go out again,
+and how the whole body goes with the move (its Body lines, set in the lab)
+is carried over from the file being written over.
 """
 import os
 
@@ -72,6 +74,15 @@ def _f(x):
     return f'{x:.6g}'
 
 
+def kept_lines(path):
+    """The lines of the move already at `path` that the lab owns and Blender
+    does not: how the whole body goes with it (BodyAuto, BodyLunge...)."""
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding='utf-8') as f:
+        return [line.rstrip('\n') for line in f if line.startswith('Body')]
+
+
 def write_move(path, mech, move_name, fps, frames, tracks, rest, marks, blend=-1.0, stamp=''):
     """The .tres: the parts it claims, and per frame each one's position and
     rotation (x, y, z, w) in the model's space."""
@@ -104,6 +115,7 @@ def write_move(path, mech, move_name, fps, frames, tracks, rest, marks, blend=-1
         f'Blend = {_f(blend)}\n'
         f'TimingStamp = "{stamp}"\n'
     )
+    text += ''.join(line + '\n' for line in kept_lines(path))
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w', encoding='utf-8', newline='\n') as f:
         f.write(text)

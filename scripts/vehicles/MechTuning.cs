@@ -218,6 +218,32 @@ public partial class MechTuning : Resource
     [Export(PropertyHint.Range, "0.2,0.8,0.01")]
     public float StepPeakAt { get; set; } = 0.4f;
 
+    [ExportGroup("Strikes")]
+    /// <summary>How far the body lunges into a blow that goes straight
+    /// ahead, for a move left to work its body out (<see cref="MechMove.BodyAuto"/>).</summary>
+    [Export(PropertyHint.Range, "0,3,0.01,suffix:m")]
+    public float StrikeLunge { get; set; } = 0.8f;
+
+    /// <summary>How far it drops its weight into a blow that goes straight down.</summary>
+    [Export(PropertyHint.Range, "0,2,0.01,suffix:m")]
+    public float StrikeDrop { get; set; } = 0.7f;
+
+    /// <summary>How far it leans into a blow.</summary>
+    [Export(PropertyHint.Range, "0,45,0.5,suffix:°")]
+    public float StrikeLeanDegrees { get; set; } = 14.0f;
+
+    /// <summary>How far a one-armed blow turns the hips.</summary>
+    [Export(PropertyHint.Range, "0,90,0.5,suffix:°")]
+    public float StrikeTwistDegrees { get; set; } = 22.0f;
+
+    /// <summary>How far a foot steps in behind a blow going ahead.</summary>
+    [Export(PropertyHint.Range, "0,4,0.01,suffix:m")]
+    public float StrikeStep { get; set; } = 1.2f;
+
+    /// <summary>Share of the blow the wind-up goes the other way first.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float StrikeWindup { get; set; } = 0.35f;
+
     [ExportGroup("Arms")]
     /// <summary>How far an arm swings, in degrees per metre its opposite foot
     /// is ahead of or behind where it rests.</summary>

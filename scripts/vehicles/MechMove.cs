@@ -53,6 +53,60 @@ public partial class MechMove : Resource
     [Export]
     public string TimingStamp { get; set; } = "";
 
+    /// <summary>
+    /// How the whole body goes with it: worked out from how its fists move
+    /// at the hit (<see cref="MechWalker.AutoBody"/>), or, off, the numbers
+    /// below, set in the asset lab. Kept by the add-on's Export.
+    /// </summary>
+    [ExportGroup("Body")]
+    [Export]
+    public bool BodyAuto { get; set; } = true;
+
+    /// <summary>How far the body goes toward the blow at the hit.</summary>
+    [Export(PropertyHint.Range, "0,3,0.01,suffix:m")]
+    public float BodyLunge { get; set; }
+
+    /// <summary>How far it drops its weight at the hit; below 0 it drives
+    /// up (an uppercut), crouching in the wind-up.</summary>
+    [Export(PropertyHint.Range, "-1,2,0.01,suffix:m")]
+    public float BodyDrop { get; set; }
+
+    /// <summary>How far it leans into the blow at the hit; below 0 it leans back.</summary>
+    [Export(PropertyHint.Range, "-45,45,0.5,suffix:°")]
+    public float BodyLeanDegrees { get; set; }
+
+    /// <summary>How far its hips turn the striking side forward at the hit.
+    /// Only a one-armed blow turns.</summary>
+    [Export(PropertyHint.Range, "0,90,0.5,suffix:°")]
+    public float BodyTwistDegrees { get; set; }
+
+    /// <summary>How far the foot opposite the striking arm steps in,
+    /// landing on the hit.</summary>
+    [Export(PropertyHint.Range, "0,4,0.01,suffix:m")]
+    public float BodyStep { get; set; }
+
+    /// <summary>Share of all that the wind-up goes the other way first:
+    /// back, up and turned away.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")]
+    public float BodyWindup { get; set; }
+
+    /// <summary>The body numbers, as a set.</summary>
+    public readonly record struct BodyNumbers(float Lunge, float Drop, float LeanDegrees, float TwistDegrees, float Step, float Windup);
+
+    public BodyNumbers Body
+    {
+        get => new(BodyLunge, BodyDrop, BodyLeanDegrees, BodyTwistDegrees, BodyStep, BodyWindup);
+        set
+        {
+            BodyLunge = value.Lunge;
+            BodyDrop = value.Drop;
+            BodyLeanDegrees = value.LeanDegrees;
+            BodyTwistDegrees = value.TwistDegrees;
+            BodyStep = value.Step;
+            BodyWindup = value.Windup;
+        }
+    }
+
     public float Length => Frames > 1 ? (Frames - 1) / Fps : 0.0f;
 
     /// <summary>When its event of that name comes, or -1.</summary>

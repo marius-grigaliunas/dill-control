@@ -201,6 +201,33 @@ public partial class AssetLabPanel : HSplitContainer
         _timingStatus = new Label { TooltipText = "Drag a marker on the timeline to move it", ClipText = true, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _timingBar.AddChild(_timingStatus);
         timelineBox.AddChild(_timingBar);
+
+        // How the whole body goes with the move under the playhead: worked
+        // out from its fists, or set here and saved with its timing.
+        _bodyBar = new HBoxContainer { Visible = false };
+        _bodyBar.AddChild(new Label { Text = "Body:" });
+        _bodyAuto = new CheckBox { Text = "Auto", TooltipText = "Worked out from how its fists move at the hit, in the mech's Strikes tuning. Edit a number to set it by hand." };
+        _bodyAuto.Toggled += on => { if (TimingMove != null) SetBody(TimingMove, on ? null : BodyOf(TimingMove), on); };
+        _bodyBar.AddChild(_bodyAuto);
+        (string Name, double Min, double Max, double Step, string Suffix, string Tip)[] fields =
+        {
+            ("Lunge", 0, 3, 0.05, "m", "How far the body goes toward the blow at the hit"),
+            ("Drop", -1, 2, 0.05, "m", "How far it drops its weight at the hit; below 0 it drives up"),
+            ("Lean", -45, 45, 1, "°", "How far it leans into the blow; below 0 back"),
+            ("Twist", 0, 90, 1, "°", "How far a one-armed blow turns the hips, striking side forward"),
+            ("Step", 0, 4, 0.05, "m", "How far the foot opposite the striking arm steps in, landing on the hit"),
+            ("Windup", 0, 1, 0.05, "", "Share of all that the wind-up goes the other way first"),
+        };
+        for (int i = 0; i < fields.Length; i++)
+        {
+            int field = i;
+            _bodyBar.AddChild(new Label { Text = fields[i].Name });
+            var spin = new SpinBox { MinValue = fields[i].Min, MaxValue = fields[i].Max, Step = fields[i].Step, Suffix = fields[i].Suffix, TooltipText = fields[i].Tip };
+            spin.ValueChanged += value => SetBodyField(field, (float)value);
+            _bodySpins[i] = spin;
+            _bodyBar.AddChild(spin);
+        }
+        timelineBox.AddChild(_bodyBar);
         TimelineBox = timelineBox;
         middleAndRight.AddChild(middle);
 
@@ -269,6 +296,60 @@ public partial class AssetLabPanel : HSplitContainer
     private SpinBox _blend;
     private Label _timingStatus;
     private MechMove _shownTiming;
+    private HBoxContainer _bodyBar;
+    private CheckBox _bodyAuto;
+    private readonly SpinBox[] _bodySpins = new SpinBox[6];
+
+    /// <summary>The body numbers <paramref name="move"/> plays with: its
+    /// own, or those the walker works out from its fists.</summary>
+    public MechMove.BodyNumbers BodyOf(MechMove move) =>
+        move.BodyAuto && Preview.Walker != null ? Preview.Walker.AutoBody(move) : move.Body;
+
+    /// <summary>Sets how the body goes with <paramref name="move"/>:
+    /// <paramref name="auto"/> from its fists, else these numbers (null keeps
+    /// what it has). Saved with Save timing.</summary>
+    public void SetBody(MechMove move, MechMove.BodyNumbers? numbers, bool auto)
+    {
+        BaseOf(move);
+        if (numbers is MechMove.BodyNumbers set)
+        {
+            move.Body = set;
+        }
+        move.BodyAuto = auto;
+        TimingChanged();
+        ShowBody(move);
+    }
+
+    private void SetBodyField(int field, float value)
+    {
+        MechMove move = TimingMove;
+        if (move == null)
+        {
+            return;
+        }
+        MechMove.BodyNumbers n = BodyOf(move);
+        n = field switch
+        {
+            0 => n with { Lunge = value },
+            1 => n with { Drop = value },
+            2 => n with { LeanDegrees = value },
+            3 => n with { TwistDegrees = value },
+            4 => n with { Step = value },
+            _ => n with { Windup = value },
+        };
+        SetBody(move, n, false);
+    }
+
+    private void ShowBody(MechMove move)
+    {
+        MechMove.BodyNumbers n = BodyOf(move);
+        float[] values = { n.Lunge, n.Drop, n.LeanDegrees, n.TwistDegrees, n.Step, n.Windup };
+        for (int i = 0; i < values.Length; i++)
+        {
+            _bodySpins[i].SetValueNoSignal(values[i]);
+        }
+        _bodyAuto.SetPressedNoSignal(move.BodyAuto);
+    }
 
     // Moves whose timing was edited and not saved: each with its frame rate
     // and markers before the speed was changed, so speed is always against those.
@@ -409,6 +490,7 @@ public partial class AssetLabPanel : HSplitContainer
         }
         _timeline.QueueRedraw();
         _timingBar.Visible = transport.Segments.Count > 0;
+        _bodyBar.Visible = _timingBar.Visible;
         MechMove move = TimingMove;
         if (move != _shownTiming)
         {
@@ -418,6 +500,7 @@ public partial class AssetLabPanel : HSplitContainer
                 _timingName.Text = $"Timing of {LabTimeline.ShortName(move)}:";
                 _speed.SetValueNoSignal(SpeedOf(move));
                 _blend.SetValueNoSignal(move.Blend < 0.0f ? -0.01 : move.Blend);
+                ShowBody(move);
             }
         }
     }
@@ -531,6 +614,8 @@ public partial class AssetLabPanel : HSplitContainer
         {
             cached.Blend = -1.0f;
             cached.TimingStamp = "";
+            cached.BodyAuto = true;
+            cached.Body = default;
         }
         return ResourceLoader.Load(path, "", ResourceLoader.CacheMode.Replace) as MechMove;
     }
@@ -658,6 +743,7 @@ public partial class AssetLabPanel : HSplitContainer
         _playBar.Visible = Preview.Walker != null;
         _timeline.Visible = false;
         _timingBar.Visible = false;
+        _bodyBar.Visible = false;
         _shownTiming = null;
         Preview.Transport.Load("", new List<LabTransport.Segment>());
         Preview.TimeScale = (float)_timeScale.Value;
