@@ -1,0 +1,21 @@
+name: Design question
+description: An open question with more than one defensible answer.
+title: "question: "
+labels: ["question", "design", "status:inbox"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: The question
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Answers on the table
+      description: The candidates so far and what each one costs. Leave empty if none yet.
+  - type: markdown
+    attributes:
+      value: |
+        Close this with the answer in the final comment. If the answer is a decision
+        with more than one defensible alternative, it also gets a record in `docs/decisions/`.
