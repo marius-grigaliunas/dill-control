@@ -943,9 +943,10 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 	/// Plays a move posed in Blender (docs/decisions/0046) over whatever it is
 	/// doing: the parts the move claims follow it, eased in and out over
 	/// <paramref name="blend"/> seconds, or the move's own <see cref="MechMove.Blend"/>
-	/// when it has one; every other part keeps walking. A claimed part shot
-	/// away is skipped; a move that has lost most of its parts is not played.
-	/// False when it was not.
+	/// when it has one; every other part keeps walking. A move is posed for the
+	/// whole machine it claims parts of: it is not played unless every part it
+	/// claims is on the mech, and it stops the moment one is shot away (the
+	/// walker then poses that mech as it stands). False when it was not played.
 	/// </summary>
 	public bool PlayMove(MechMove move, float blend = 0.1f)
 	{
@@ -954,24 +955,20 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			return false;
 		}
 		var parts = new Node3D[move.Parts.Length];
-		int alive = 0;
-		_moveUsesLegs = false;
+		bool usesLegs = false;
 		for (int i = 0; i < parts.Length; i++)
 		{
 			parts[i] = Model.GetNodeOrNull<Node3D>(move.Parts[i]);
-			if (parts[i] != null && PartAlive(parts[i]))
+			if (parts[i] == null || !PartAlive(parts[i]))
 			{
-				alive++;
+				return false;
 			}
 			foreach (MechLeg leg in _legs)
 			{
-				_moveUsesLegs |= parts[i] == leg.Thigh || parts[i] == leg.Shin || parts[i] == leg.Foot;
+				usesLegs |= parts[i] == leg.Thigh || parts[i] == leg.Shin || parts[i] == leg.Foot;
 			}
 		}
-		if (alive * 2 < parts.Length)
-		{
-			return false;
-		}
+		_moveUsesLegs = usesLegs;
 		PlayingMove = move;
 		_moveParts = parts;
 		_moveTime = 0.0f;
@@ -1015,6 +1012,16 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		{
 			return;
 		}
+		foreach (Node3D claimed in _moveParts)
+		{
+			if (claimed == null || !PartAlive(claimed))
+			{
+				// A part the move poses is gone: the rest of it would be
+				// a mech that is not this one.
+				StopMove();
+				return;
+			}
+		}
 		float before = _moveTime;
 		_moveTime += dt;
 		for (int e = 0; e < PlayingMove.EventNames.Length && e < PlayingMove.EventTimes.Length; e++)
@@ -1034,10 +1041,6 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		for (int i = 0; i < _moveParts.Length; i++)
 		{
 			Node3D part = _moveParts[i];
-			if (part == null || !PartAlive(part))
-			{
-				continue;
-			}
 			Transform3D posed = PlayingMove.Sample(i, Mathf.Min(_moveTime, length));
 			part.Transform = weight >= 0.999f ? posed : part.Transform.InterpolateWith(posed, weight);
 		}

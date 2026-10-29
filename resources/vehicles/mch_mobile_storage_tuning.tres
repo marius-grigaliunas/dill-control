@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="MechTuning" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="MechTuning" format=3 uid="uid://bu13o7sww41pm"]
 
-[ext_resource type="Script" path="res://scripts/vehicles/MechTuning.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://dc67nxnrmvgfb" path="res://scripts/vehicles/MechTuning.cs" id="1_script"]
 
 [resource]
 resource_name = "MchMobileStorageTuning"
@@ -9,7 +9,7 @@ MaxSpeed = 7.5
 Acceleration = 14.0
 Deceleration = 18.0
 TurnRateDegrees = 420.0
-JumpSpeed = 0.0
+JumpSpeed = 10.0
 JetFuelSeconds = 0.0
 StepThreshold = 0.2
 IdleTidyThreshold = 0.05
@@ -17,6 +17,9 @@ StepSeconds = 0.16
 StepSecondsFast = 0.1
 StepHeight = 0.12
 StepLeadSeconds = 0.1
+KneeBias = Vector3(0, 0, 1)
+StompDamage = 12.0
+StompRadius = 0.35
 WalkCrouch = 0.06
 StepBob = 0.02
 LeanPerAcceleration = 1.2
@@ -27,7 +30,4 @@ FollowSide = -1.8
 FollowArriveRadius = 0.8
 FollowSlowRadius = 2.5
 PersonalSpace = 2.2
-KneeBias = Vector3(0, 0, 1)
 MountRange = 0.0
-StompDamage = 12.0
-StompRadius = 0.35

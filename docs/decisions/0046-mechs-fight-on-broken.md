@@ -118,6 +118,19 @@ mirror sends the pose to the bridge's `lab_pose`, which poses the mech in
 the Lab tab. Not built: mirroring a move for the other side, and reloading
 a changed move in a game already playing (the lab's `move` reads it fresh).
 
+*Whole-machine moves (supersedes "skips parts that are gone"):* a move is
+posed for the parts it claims together, and a hook or a leap with one arm
+gone is a different, wrong move. `PlayMove` plays a move only if every part it
+claims is on the mech, and `ApplyMove` stops it the frame one is lost; the
+walker poses the mech as it stands from then on, and the combo falls through
+to the next stroke it still has the limbs for. A move therefore claims only
+what it must: the wide hooks (`swing_l`, `swing_r`) key the striking arm and
+leave the hips, step and legs to the walker's Body lines, so they work on any
+legs; `leap_slam` keys all ten parts, because the whole machine leaves the
+ground, and is withheld the moment any is lost. Made by
+`tools/blender/make_melee.py`, checked by `check_melee.py`. The leap is
+visual: the hull stays on the ground.
+
 *Step 6, the combo:* one attack button flows through
 `MechSlashStats.Combo` (the fighter's: slam right, slam left, uppercut,
 backhand, both-fisted smash), each stroke blending into the next once its
