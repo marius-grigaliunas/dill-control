@@ -70,8 +70,10 @@ model (0043): plan in the tab, play in a lab level, survive a reload.
 - **The view gets the screen** (*29 October*, the user's ask): the
   asset list is a dock in the left tab group (**Assets**), and a walker's
   play bar, timeline and timing row are a tab of the bottom panel (**Lab
-  Timeline**, beside Output and Animation). Both are `EditorDock`s that
-  come to the front when the Lab tab opens and close when it is left.
+  Timeline**, beside Output and Animation), and Info and Parameters a
+  dock in the right tab group with the Inspector (**Lab**). All three are
+  `EditorDock`s that come to the front when the Lab tab opens and close
+  when it is left.
   **Reset** (and `lab_walk` `reset`) builds the asset again as it was:
   every limb back on. Labels whose text changes never widen their bar:
   the clock did, and pushed the editor about as it played.

@@ -24,6 +24,8 @@ public sealed class MechLeg : MechStepper
     private readonly Vector3 _thighDir;
     private readonly Vector3 _shinDir;
     private readonly Vector3 _pole;
+    private readonly float _bendSide;
+    private readonly Vector3 _restAxis;
     private readonly float _upper;
     private readonly float _lower;
 
@@ -51,11 +53,21 @@ public sealed class MechLeg : MechStepper
         // The way the knee bends: its rest offset from the hip-ankle line. A
         // leg modelled straight bends outward.
         Vector3 axis = (ankle - hip).Normalized();
+        _restAxis = axis;
         Vector3 offset = (knee - hip) - axis * (knee - hip).Dot(axis) + kneeBias;
         offset -= axis * offset.Dot(axis);
         _pole = offset.LengthSquared() > 1e-6f
             ? offset.Normalized()
             : new Vector3(hip.X >= 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f);
+        // Which way round the model's sideways axis the knee bends. A pole
+        // fixed in the body stops guiding the knee once the leg reaches along
+        // it (a long stride, a high step): the knee swung across under the
+        // body. Bending in the plane the leg swings in never does.
+        _bendSide = Vector3.Right.Cross(axis).Dot(_pole) >= 0.0f ? 1.0f : -1.0f;
+        if (Mathf.Abs(Vector3.Right.Cross(axis).Dot(_pole)) < 1e-3f)
+        {
+            _bendSide = 0.0f;
+        }
 
         Vector3 ankleInWalker = modelRest * ankle;
         AnkleHeight = ankleInWalker.Y;
@@ -82,8 +94,7 @@ public sealed class MechLeg : MechStepper
         Vector3 dir = reach > 1e-5f ? toTarget / reach : -up;
         reach = Mathf.Clamp(reach, Mathf.Abs(_upper - _lower) + 1e-3f, _upper + _lower - 1e-3f);
 
-        Vector3 pole = model.Basis * _pole;
-        pole = (pole - dir * pole.Dot(dir)).Normalized();
+        Vector3 pole = Bend(model.Basis, dir, _pole);
 
         float cosHip = Mathf.Clamp((_upper * _upper + reach * reach - _lower * _lower) / (2.0f * _upper * reach), -1.0f, 1.0f);
         float sinHip = Mathf.Sqrt(1.0f - cosHip * cosHip);
@@ -91,7 +102,7 @@ public sealed class MechLeg : MechStepper
         Vector3 ankle = hip + dir * reach;
 
         Basis restWorld = model.Basis;
-        Vector3 restPole = restWorld * _pole;
+        Vector3 restPole = Bend(restWorld, restWorld * _restAxis, _pole);
 
         Thigh.GlobalTransform = new Transform3D(
             Turn(restWorld * _thighDir, restPole, knee - hip, pole) * restWorld * _thighRest.Basis,
@@ -106,6 +117,21 @@ public sealed class MechLeg : MechStepper
             foot = new Basis(level.X, -toeLift) * foot;
         }
         Foot.GlobalTransform = new Transform3D(foot, ankle);
+    }
+
+    /// <summary>The way the knee points for a leg reaching along
+    /// <paramref name="dir"/>: square to it in the plane the leg swings in
+    /// (square to the model's sideways axis), on the side it was modelled
+    /// bending. A leg modelled bending only sideways keeps its own pole.</summary>
+    private Vector3 Bend(Basis model, Vector3 dir, Vector3 pole)
+    {
+        Vector3 bend = _bendSide * model.X.Normalized().Cross(dir);
+        if (_bendSide == 0.0f || bend.LengthSquared() < 1e-4f)
+        {
+            Vector3 fixedPole = model * pole;
+            return (fixedPole - dir * fixedPole.Dot(dir)).Normalized();
+        }
+        return bend.Normalized();
     }
 
     /// <summary>The rotation taking a bone from its rest direction to a new

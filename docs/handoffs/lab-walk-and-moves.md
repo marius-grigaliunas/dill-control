@@ -169,6 +169,11 @@ In the **Lab tab** (`addons/asset_lab`), with no Test and no physics:
   step by lag. Seen: the fighter L, R, L in 0.60 s at 9 m/s (was 0.43 s),
   0.47 s at a sprint. The tank and the storage bot are still on the lag
   rule: switch them on and size their strides in the lab.
+- **Knees bend in the leg's own swing plane** (*29 October*): a pole fixed
+  in the body stopped guiding the knee once the leg reached along it (the
+  user's long stride and 1.23 m step), and the shin swung across under
+  the body. `ArmSpreadDegrees` swings the arms out at walk speed so the
+  lifting thighs clear them (the fighter: 10°).
 
 Check each in the editor through the bridge and on screen; a bench is not
 needed for editor-only work, but the walker change must leave the game

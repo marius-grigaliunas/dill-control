@@ -227,6 +227,11 @@ public partial class MechTuning : Resource
     [Export(PropertyHint.Range, "0,90,1,suffix:°")]
     public float MaxArmSwingDegrees { get; set; } = 30.0f;
 
+    /// <summary>How far the arms swing out from the body at full walk
+    /// speed, so the thighs lifting past them do not go through them.</summary>
+    [Export(PropertyHint.Range, "0,45,0.5,suffix:°")]
+    public float ArmSpreadDegrees { get; set; }
+
     /// <summary>How long the shoulder takes to catch up with the foot it
     /// swings against. 0 locks the arm to the foot. A short follow lets the
     /// swing ease through a plant instead of stopping dead.</summary>

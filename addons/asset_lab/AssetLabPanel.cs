@@ -9,12 +9,12 @@ namespace DillControl.Editor;
 
 /// <summary>
 /// The asset lab's main screen (docs/decisions/0047): the chosen asset in a
-/// 3D view of its own, and on the right what it is, what it costs and the
-/// resources it is tuned by, in an inspector. Save writes the shared
-/// resource, after naming who else uses it. Every asset is listed in
-/// <see cref="AssetList"/> and a walker's moves play in <see cref="TimelineBox"/>,
-/// which the plugin puts in docks of their own (the left tab group and the
-/// bottom panel) so the view gets the screen.
+/// 3D view of its own. Every asset is listed in <see cref="AssetList"/>, a
+/// walker's moves play in <see cref="TimelineBox"/>, and what it is, what it
+/// costs and the resources it is tuned by are in <see cref="TuneBox"/>, an
+/// inspector whose Save writes the shared resource after naming who else
+/// uses it. The plugin puts those three in docks of their own (the left and
+/// right tab groups and the bottom panel), so the view gets the screen.
 /// </summary>
 [Tool]
 public partial class AssetLabPanel : HSplitContainer
@@ -35,6 +35,9 @@ public partial class AssetLabPanel : HSplitContainer
     /// <summary>The play bar, the timeline and the timing row, for the
     /// bottom panel: not a child of the panel.</summary>
     public Control TimelineBox { get; private set; }
+
+    /// <summary>Info and Parameters, for a dock: not a child of the panel.</summary>
+    public Control TuneBox { get; private set; }
 
     /// <summary>Raised on every asset shown: whether it has a timeline (a walker).</summary>
     public event System.Action<bool> TimelineWanted;
@@ -205,7 +208,7 @@ public partial class AssetLabPanel : HSplitContainer
         // get the rest, and the split between them drags.
         // Two sections that fold: what it is, and its parameters. Both open,
         // the split between them drags; one folded, the other has the room.
-        var right = new VSplitContainer { CustomMinimumSize = new Vector2(440, 0), SplitOffset = 220 };
+        var right = new VSplitContainer { CustomMinimumSize = new Vector2(280, 0), SplitOffset = 220 };
         var infoScroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 80), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, SizeFlagsVertical = SizeFlags.ExpandFill };
         _info = new RichTextLabel { BbcodeEnabled = true, FitContent = true, SelectionEnabled = true, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         infoScroll.AddChild(_info);
@@ -228,7 +231,7 @@ public partial class AssetLabPanel : HSplitContainer
         right.AddChild(_infoSection);
         right.AddChild(_tuneSection);
         ArrangeSections(right);
-        middleAndRight.AddChild(right);
+        TuneBox = right;
 
         _confirm = new ConfirmationDialog { Title = "Save a shared resource", OkButtonText = "Save" };
         _confirm.Confirmed += Save;

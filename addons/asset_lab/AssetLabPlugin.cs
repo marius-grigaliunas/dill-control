@@ -9,8 +9,9 @@ namespace DillControl.Editor;
 /// The asset lab (docs/decisions/0047): a main screen of its own beside 2D,
 /// 3D and Vines (<see cref="AssetLabPanel"/>) to look at, tune and test any
 /// asset, and its commands on the editor bridge (<see cref="AssetLabCommands"/>).
-/// Its asset list is a dock in the left tab group and a walker's timeline a
-/// tab of the bottom panel, both open only while the Lab tab is.
+/// Its asset list is a dock in the left tab group, its Info and Parameters
+/// one in the right (with the Inspector), and a walker's timeline a tab of
+/// the bottom panel, all open only while the Lab tab is.
 ///
 /// Rebuilt after every reload of the project's code, as the Vines tool is
 /// (0043): the editor does not carry a tool's C# signal handlers over a
@@ -23,6 +24,7 @@ public partial class AssetLabPlugin : EditorPlugin
     private AssetLabPanel _panel;
     private EditorDock _assets;
     private EditorDock _timeline;
+    private EditorDock _tune;
     private bool _hasTimeline;
     private bool _visible;
 
@@ -74,6 +76,17 @@ public partial class AssetLabPlugin : EditorPlugin
         };
         _assets.AddChild(_panel.AssetList);
         AddDock(_assets);
+        _tune = new EditorDock
+        {
+            Name = "AssetLabTune",
+            Title = "Lab",
+            LayoutKey = "AssetLabTune",
+            IconName = "Tools",
+            DefaultSlot = EditorDock.DockSlot.RightUl,
+            Transient = true,
+        };
+        _tune.AddChild(_panel.TuneBox);
+        AddDock(_tune);
         _timeline = new EditorDock
         {
             Name = "AssetLabTimeline",
@@ -113,6 +126,7 @@ public partial class AssetLabPlugin : EditorPlugin
         _panel = null;
         _assets = null;
         _timeline = null;
+        _tune = null;
     }
 
     public override bool _HasMainScreen() => true;
@@ -131,17 +145,20 @@ public partial class AssetLabPlugin : EditorPlugin
     /// the bottom panel; both gone on any other screen.</summary>
     private void ShowDocks()
     {
-        if (_assets == null || !IsInstanceValid(_assets) || _timeline == null || !IsInstanceValid(_timeline))
+        if (_assets == null || !IsInstanceValid(_assets) || _timeline == null || !IsInstanceValid(_timeline)
+            || _tune == null || !IsInstanceValid(_tune))
         {
             return;
         }
         if (_visible)
         {
             _assets.MakeVisible();
+            _tune.MakeVisible();
         }
         else
         {
             _assets.Close();
+            _tune.Close();
         }
         if (_visible && _hasTimeline)
         {

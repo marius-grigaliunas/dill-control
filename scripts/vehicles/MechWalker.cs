@@ -1838,6 +1838,8 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		float follow = Tuning.ArmSwingFollow > 1e-4f
 			? 1.0f - Mathf.Exp(-dt / Tuning.ArmSwingFollow)
 			: 1.0f;
+		GaitSpeeds(Velocity.Slide(Up).Length(), out float speed01, out _);
+		float spread = Mathf.DegToRad(Tuning.ArmSpreadDegrees) * speed01;
 		for (int i = 0; i < _armRest.Count; i++)
 		{
 			Transform3D rest = _armRest[i];
@@ -1851,7 +1853,9 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			ArmPose pose = _arms[i];
 			pose.Swing = Mathf.Lerp(pose.Swing, angle, follow);
 			angle = pose.Swing;
-			Transform3D posed = new Transform3D(new Basis(Vector3.Right, angle) * rest.Basis, rest.Origin);
+			// Out from the body (about its front axis), then the swing.
+			float outward = rest.Origin.X >= 0.0f ? spread : -spread;
+			Transform3D posed = new Transform3D(new Basis(Vector3.Back, outward) * new Basis(Vector3.Right, angle) * rest.Basis, rest.Origin);
 
 			if (pose.Raise > 1e-4f)
 			{
