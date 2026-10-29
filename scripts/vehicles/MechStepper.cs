@@ -28,6 +28,10 @@ public abstract class MechStepper
     public float StepT;
     public Vector3 StepFrom;
     public Vector3 StepTo;
+
+    /// <summary>Where it was in the walker's cycle last frame, 0-1, when
+    /// the cycle drives it.</summary>
+    public float CycleP;
 }
 
 /// <summary>

@@ -17,6 +17,11 @@ namespace DillControl.Vehicles;
 ///   direction, turning on the spot and stopping all come out of one rule.
 /// - Diagonal pairs step together, and a pair waits for the other to land:
 ///   a trot.
+/// - With <see cref="MechTuning.CycleGait"/>, walking on every leg goes to a
+///   cycle clock instead: stride and beat from speed, each foot down for its
+///   share of the cycle, and the body's rise, weight shift, hip roll and twist
+///   worked out from its feet. Turns on the spot, stops and broken stances
+///   still step by lag.
 /// - Each leg is posed by two-bone IK from hip to sole (<see cref="MechLeg"/>).
 /// - The body rides a spring: it sinks at speed for reach, dips with each
 ///   step, leans against acceleration, loads before a jump and squashes on
@@ -1189,6 +1194,11 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			return;
 		}
 
+		if (UpdateCycle(dt, self, horizontal))
+		{
+			return;
+		}
+
 		GaitSpeeds(horizontal.Length(), out float speed01, out float sprint01);
 		float stepSeconds = Mathf.Lerp(Tuning.StepSeconds, Tuning.StepSecondsFast, speed01);
 		if (sprint01 > 0.0f)
@@ -1218,10 +1228,7 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			leg.StepT += dt / stepSeconds;
 			if (leg.StepT >= 1.0f)
 			{
-				leg.Stepping = false;
-				leg.Planted = leg.StepTo;
-				Stomp(leg.Planted);
-				StepLanded?.Invoke(leg is MechLeg foot ? foot.Foot : Arms[((MechCrutch)leg).Arm]);
+				Plant(leg);
 			}
 		}
 
@@ -1269,6 +1276,133 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 			leg.StepT = 0.0f;
 			leg.StepFrom = leg.Planted;
 			leg.StepTo = Ground(Predict(self, leg.RestFoot, horizontal, lead));
+		}
+	}
+
+	/// <summary>A step comes down where it was going.</summary>
+	private void Plant(MechStepper leg)
+	{
+		leg.Stepping = false;
+		leg.StepT = 1.0f;
+		leg.Planted = leg.StepTo;
+		if (Tuning.CycleGait && leg is MechLeg)
+		{
+			_sinkVelocity -= Tuning.StepImpact;
+		}
+		Stomp(leg.Planted);
+		StepLanded?.Invoke(leg is MechLeg foot ? foot.Foot : Arms[((MechCrutch)leg).Arm]);
+	}
+
+	// The cycle clock (MechTuning.CycleGait): 0-1 through one cycle, each
+	// group of legs its share of the cycle further on.
+	private float _phase;
+	private bool _cycling;
+	private float _stride;
+
+	/// <summary>
+	/// Walking on every leg, fast enough: each foot is down for the first
+	/// <see cref="MechTuning.DutyFactor"/> of its place in the cycle and
+	/// steps for the rest, landing where its rest spot will be halfway
+	/// through its next time down, so it is down as far ahead of the hip as
+	/// behind. Stride and beat come from speed alone, never from how far a
+	/// foot happens to lag. False when the lagging rule steps instead.
+	/// </summary>
+	private bool UpdateCycle(float dt, Transform3D self, Vector3 horizontal)
+	{
+		float speed = horizontal.Length();
+		float least = _cycling ? Tuning.CycleMinSpeed * 0.7f : Tuning.CycleMinSpeed;
+		if (!Tuning.CycleGait || CurrentStance != Stance.Walk || _groups < 2 || speed < least)
+		{
+			_cycling = false;
+			return false;
+		}
+
+		GaitSpeeds(speed, out _, out float sprint01);
+		float stride = Tuning.StrideLength;
+		float duty = Tuning.DutyFactor;
+		if (sprint01 > 0.0f && Tuning.SprintStrideLength > 0.0f)
+		{
+			stride = Mathf.Lerp(Tuning.StrideLength, Tuning.SprintStrideLength, sprint01);
+		}
+		if (sprint01 > 0.0f && Tuning.SprintDutyFactor > 0.0f)
+		{
+			duty = Mathf.Lerp(Tuning.DutyFactor, Tuning.SprintDutyFactor, sprint01);
+		}
+		// Slow, the beat holds and the strides shorten.
+		float seconds = Mathf.Min(stride / speed, Tuning.CycleSecondsSlow);
+		_stride = speed * seconds;
+		float swing = (1.0f - duty) * seconds;
+
+		if (!_cycling)
+		{
+			StartCycle(self, duty);
+			_cycling = true;
+		}
+		_phase = Mathf.PosMod(_phase + dt / seconds, 1.0f);
+
+		foreach (MechStepper leg in _steppers)
+		{
+			if (!leg.Alive)
+			{
+				continue;
+			}
+			float p = Mathf.PosMod(_phase + (float)leg.Group / _groups, 1.0f);
+			if (leg.Stepping)
+			{
+				// Never goes back: a duty changing with speed only hurries it.
+				bool wrapped = p < leg.CycleP - 0.5f;
+				float s = wrapped ? 1.0f : Mathf.Max(leg.StepT, (p - duty) / (1.0f - duty));
+				leg.StepT = Mathf.Min(s, 1.0f);
+				float left = (1.0f - leg.StepT) * swing;
+				leg.StepTo = Ground(Predict(self, leg.RestFoot, horizontal, left + duty * seconds * 0.5f));
+				if (s >= 1.0f)
+				{
+					Plant(leg);
+				}
+			}
+			else if (leg.CycleP < duty && p >= duty)
+			{
+				leg.Stepping = true;
+				leg.StepT = (p - duty) / (1.0f - duty);
+				leg.StepFrom = leg.Planted;
+				leg.StepTo = Ground(Predict(self, leg.RestFoot, horizontal, (1.0f - leg.StepT) * swing + duty * seconds * 0.5f));
+			}
+			leg.CycleP = p;
+		}
+		return true;
+	}
+
+	/// <summary>Sets the clock going from wherever the feet are: a step
+	/// already in the air carries on at its place, else the group furthest
+	/// behind steps first.</summary>
+	private void StartCycle(Transform3D self, float duty)
+	{
+		int group = -1;
+		float at = 0.0f;
+		float worst = -1.0f;
+		foreach (MechStepper leg in _steppers)
+		{
+			if (!leg.Alive)
+			{
+				continue;
+			}
+			if (leg.Stepping)
+			{
+				group = leg.Group;
+				at = leg.StepT;
+				break;
+			}
+			float error = (leg.Planted - self * leg.RestFoot).Slide(Up).Length();
+			if (error > worst)
+			{
+				worst = error;
+				group = leg.Group;
+			}
+		}
+		_phase = Mathf.PosMod(duty + at * (1.0f - duty) - 1e-4f - (float)Mathf.Max(group, 0) / _groups, 1.0f);
+		foreach (MechStepper leg in _steppers)
+		{
+			leg.CycleP = Mathf.PosMod(_phase + (float)leg.Group / _groups, 1.0f);
 		}
 	}
 
@@ -1360,11 +1494,19 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		{
 			target = -Mathf.Lerp(Tuning.WalkCrouch, Tuning.SprintCrouch, sprint01);
 		}
-		foreach (MechLeg leg in _legs)
+		float shift = 0.0f, roll = 0.0f, twist = 0.0f;
+		if (Tuning.CycleGait)
 		{
-			if (leg.Stepping)
+			target += WeightOverFeet(out shift, out roll, out twist);
+		}
+		else
+		{
+			foreach (MechLeg leg in _legs)
 			{
-				target -= Tuning.StepBob * Mathf.Sin(Mathf.Pi * leg.StepT);
+				if (leg.Stepping)
+				{
+					target -= Tuning.StepBob * Mathf.Sin(Mathf.Pi * leg.StepT);
+				}
 			}
 		}
 		if (_windup >= 0.0f && Tuning.JumpWindupSeconds > 0.0f)
@@ -1395,11 +1537,57 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 		ShrinkHull();
 
 		var pivot = new Vector3(0.0f, _pivotHeight, 0.0f);
-		Basis tilt = new Basis(Vector3.Right, _tilt.X) * new Basis(Vector3.Back, _tilt.Y);
-		Transform3D sway = new Transform3D(Basis.Identity, pivot + Vector3.Up * (_sink - _drop))
+		Basis tilt = new Basis(Vector3.Right, _tilt.X) * new Basis(Vector3.Back, _tilt.Y + roll) * new Basis(Vector3.Up, twist);
+		Transform3D sway = new Transform3D(Basis.Identity, pivot + Vector3.Up * (_sink - _drop) + Vector3.Right * shift)
 						   * new Transform3D(tilt, Vector3.Zero)
 						   * new Transform3D(Basis.Identity, -pivot);
 		Model.Transform = sway * _modelRest;
+	}
+
+	/// <summary>
+	/// The body's motion over its feet (<see cref="MechTuning.CycleGait"/>),
+	/// worked out from where they are rather than played: it rises as it
+	/// passes over a foot that is down, shifts and rolls its weight off the
+	/// side whose foot is up, and turns its hips so the side whose foot is
+	/// ahead comes forward. Diagonal pairs cancel the shift, roll and twist,
+	/// as a trot does. Returns the rise, metres.
+	/// </summary>
+	private float WeightOverFeet(out float shift, out float roll, out float twist)
+	{
+		shift = 0.0f;
+		roll = 0.0f;
+		twist = 0.0f;
+		float rise = 0.0f;
+		float lead = 0.0f;
+		int count = 0;
+		Transform3D self = GlobalTransform;
+		Vector3 forward = self.Basis.Z.Normalized();
+		float half = Mathf.Max(_stride * 0.5f, 0.3f);
+		foreach (MechLeg leg in _legs)
+		{
+			if (!leg.Alive)
+			{
+				continue;
+			}
+			count++;
+			float side = leg.RestFoot.X >= 0.0f ? 1.0f : -1.0f;
+			if (leg.Stepping)
+			{
+				float up = Mathf.Sin(Mathf.Pi * Mathf.Clamp(leg.StepT, 0.0f, 1.0f));
+				rise += up;
+				shift -= side * up;
+				roll += side * up;
+			}
+			lead += side * Mathf.Clamp((leg.Sole - self * leg.RestFoot).Dot(forward) / half, -1.0f, 1.0f);
+		}
+		if (count == 0)
+		{
+			return 0.0f;
+		}
+		shift *= Tuning.WeightShift;
+		roll *= Mathf.DegToRad(Tuning.HipRollDegrees);
+		twist = -lead / count * Mathf.DegToRad(Tuning.HipTwistDegrees);
+		return rise * Tuning.StepRise;
 	}
 
 	/// <summary>The hull comes down with the body, its bottom where it was,
@@ -1457,11 +1645,20 @@ public partial class MechWalker : CharacterBody3D, IDamageable, IBlastSurface, I
 				float t = Mathf.Clamp(leg.StepT, 0.0f, 1.0f);
 				float eased = t * t * (3.0f - 2.0f * t);
 				float arc = Mathf.Sin(Mathf.Pi * t);
+				toe = arc * 0.35f;
+				if (Tuning.CycleGait)
+				{
+					// Highest early, off the ground at once, then a long reach
+					// to land; heel up as it leaves, toe up as it comes down.
+					float peak = Tuning.StepPeakAt;
+					float bent = t < peak ? 0.5f * t / peak : 0.5f + 0.5f * (t - peak) / (1.0f - peak);
+					arc = Mathf.Sin(Mathf.Pi * bent);
+					toe = -Mathf.Sin(Mathf.Tau * t) * Mathf.DegToRad(Tuning.FootRollDegrees);
+				}
 				// A short correction lifts a little. A full stride lifts the lot.
 				float distance = leg.StepFrom.DistanceTo(leg.StepTo);
 				float lift = stepHeight * Mathf.Clamp(distance / Mathf.Max(liftReference, 0.01f), minLift, 1.0f);
 				sole = leg.StepFrom.Lerp(leg.StepTo, eased) + Up * (arc * lift);
-				toe = arc * 0.35f;
 			}
 			leg.Pose(model, level, Up, sole, toe);
 		}

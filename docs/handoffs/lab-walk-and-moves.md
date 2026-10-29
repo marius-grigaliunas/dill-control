@@ -155,7 +155,20 @@ In the **Lab tab** (`addons/asset_lab`), with no Test and no physics:
   furthest behind goes next (`UpdateGait`), and after landing it can
   still be the one furthest behind. Not changed: the gait is the user's
   to judge.
-- Still to make: a style loop for the walk (0046 step 6).
+- **The walk goes to a cycle clock** (*29 October*). The user: the walk is
+  procedural IK, never a Blender loop; tweaking the lag rule never made it
+  look good. `MechTuning.CycleGait` (on for the fighter): walking on every
+  leg, each foot is down for `DutyFactor` of a cycle whose length comes
+  from speed (`StrideLength`, `SprintStrideLength`, `CycleSecondsSlow`)
+  and lands half its time down ahead of the hip; the body rises over the
+  foot that is down (`StepRise`), shifts and rolls its weight
+  (`WeightShift`, `HipRollDegrees`), turns its hips with the legs
+  (`HipTwistDegrees`), takes each footfall on its spring (`StepImpact`);
+  the foot lifts early and rolls heel to toe (`StepPeakAt`,
+  `FootRollDegrees`). Turns on the spot, stops and broken stances still
+  step by lag. Seen: the fighter L, R, L in 0.60 s at 9 m/s (was 0.43 s),
+  0.47 s at a sprint. The tank and the storage bot are still on the lag
+  rule: switch them on and size their strides in the lab.
 
 Check each in the editor through the bridge and on screen; a bench is not
 needed for editor-only work, but the walker change must leave the game

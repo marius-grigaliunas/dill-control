@@ -148,6 +148,76 @@ public partial class MechTuning : Resource
     [Export]
     public Vector3 KneeBias { get; set; } = Vector3.Zero;
 
+    [ExportGroup("Cycle")]
+    /// <summary>Walks to a cycle clock: every foot has its place in one
+    /// cycle, so the feet keep a beat and alternate, and the body rises,
+    /// shifts its weight, rolls and twists with them. Off steps each foot
+    /// when it lags too far (the gait above), as broken stances always do.</summary>
+    [Export]
+    public bool CycleGait { get; set; }
+
+    /// <summary>How far the body goes in one whole cycle (every foot one
+    /// step) at walk speed.</summary>
+    [Export(PropertyHint.Range, "0.5,12,0.05,suffix:m")]
+    public float StrideLength { get; set; } = 4.0f;
+
+    /// <summary>The same at full sprint. 0 uses <see cref="StrideLength"/>.</summary>
+    [Export(PropertyHint.Range, "0,16,0.05,suffix:m")]
+    public float SprintStrideLength { get; set; }
+
+    /// <summary>The slowest a cycle may take: slower than this, strides get
+    /// shorter instead, so a creep takes small steps.</summary>
+    [Export(PropertyHint.Range, "0.3,3,0.01,suffix:s")]
+    public float CycleSecondsSlow { get; set; } = 1.1f;
+
+    /// <summary>Share of the cycle each foot is down. Above 0.5 both feet
+    /// are down for a moment between steps: a walk.</summary>
+    [Export(PropertyHint.Range, "0.3,0.9,0.01")]
+    public float DutyFactor { get; set; } = 0.6f;
+
+    /// <summary>The same at full sprint. Below 0.5 both feet are up for a
+    /// moment: a run. 0 uses <see cref="DutyFactor"/>.</summary>
+    [Export(PropertyHint.Range, "0,0.9,0.01")]
+    public float SprintDutyFactor { get; set; }
+
+    /// <summary>Slower than this it steps only when it lags (turns, a stop
+    /// squared up).</summary>
+    [Export(PropertyHint.Range, "0.1,5,0.05,suffix:m/s")]
+    public float CycleMinSpeed { get; set; } = 0.8f;
+
+    /// <summary>How far the body rises as it passes over a foot that is
+    /// down, at the middle of the other's step.</summary>
+    [Export(PropertyHint.Range, "-0.5,0.5,0.005,suffix:m")]
+    public float StepRise { get; set; } = 0.08f;
+
+    /// <summary>How hard each footfall sends the body down on its spring:
+    /// the weight landing.</summary>
+    [Export(PropertyHint.Range, "0,3,0.01,suffix:m/s")]
+    public float StepImpact { get; set; } = 0.4f;
+
+    /// <summary>How far the body shifts sideways over the foot that is down.</summary>
+    [Export(PropertyHint.Range, "0,1,0.005,suffix:m")]
+    public float WeightShift { get; set; } = 0.12f;
+
+    /// <summary>How far the body rolls over the foot that is down.</summary>
+    [Export(PropertyHint.Range, "0,20,0.1,suffix:°")]
+    public float HipRollDegrees { get; set; } = 3.0f;
+
+    /// <summary>How far the hips turn with the legs: the side whose foot is
+    /// ahead comes forward.</summary>
+    [Export(PropertyHint.Range, "0,30,0.1,suffix:°")]
+    public float HipTwistDegrees { get; set; } = 5.0f;
+
+    /// <summary>How far a foot rolls in its step: heel up as it leaves, toe
+    /// up as it comes down heel first.</summary>
+    [Export(PropertyHint.Range, "0,45,0.5,suffix:°")]
+    public float FootRollDegrees { get; set; } = 14.0f;
+
+    /// <summary>Where in its step a foot is highest: low lifts early off the
+    /// ground and reaches out to land.</summary>
+    [Export(PropertyHint.Range, "0.2,0.8,0.01")]
+    public float StepPeakAt { get; set; } = 0.4f;
+
     [ExportGroup("Arms")]
     /// <summary>How far an arm swings, in degrees per metre its opposite foot
     /// is ahead of or behind where it rests.</summary>
