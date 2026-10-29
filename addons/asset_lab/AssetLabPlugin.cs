@@ -9,6 +9,8 @@ namespace DillControl.Editor;
 /// The asset lab (docs/decisions/0047): a main screen of its own beside 2D,
 /// 3D and Vines (<see cref="AssetLabPanel"/>) to look at, tune and test any
 /// asset, and its commands on the editor bridge (<see cref="AssetLabCommands"/>).
+/// Its asset list is a dock in the left tab group and a walker's timeline a
+/// tab of the bottom panel, both open only while the Lab tab is.
 ///
 /// Rebuilt after every reload of the project's code, as the Vines tool is
 /// (0043): the editor does not carry a tool's C# signal handlers over a
@@ -19,6 +21,9 @@ namespace DillControl.Editor;
 public partial class AssetLabPlugin : EditorPlugin
 {
     private AssetLabPanel _panel;
+    private EditorDock _assets;
+    private EditorDock _timeline;
+    private bool _hasTimeline;
     private bool _visible;
 
     // False again after every reload of the project's code.
@@ -57,6 +62,35 @@ public partial class AssetLabPlugin : EditorPlugin
             || !EditorInterface.Singleton.GetEditorMainScreen().GetChildren().OfType<Control>().Any(c => c.Visible && c is not AssetLabPanel);
         _panel = new AssetLabPanel { Name = "AssetLab", Visible = _visible };
         EditorInterface.Singleton.GetEditorMainScreen().AddChild(_panel);
+
+        _assets = new EditorDock
+        {
+            Name = "AssetLabAssets",
+            Title = "Assets",
+            LayoutKey = "AssetLabAssets",
+            IconName = "PackedScene",
+            DefaultSlot = EditorDock.DockSlot.LeftUr,
+            Transient = true,
+        };
+        _assets.AddChild(_panel.AssetList);
+        AddDock(_assets);
+        _timeline = new EditorDock
+        {
+            Name = "AssetLabTimeline",
+            Title = "Lab Timeline",
+            LayoutKey = "AssetLabTimeline",
+            IconName = "Animation",
+            DefaultSlot = EditorDock.DockSlot.Bottom,
+            AvailableLayouts = EditorDock.DockLayout.Horizontal | EditorDock.DockLayout.Floating,
+            Transient = true,
+        };
+        _timeline.AddChild(_panel.TimelineBox);
+        AddDock(_timeline);
+        _panel.TimelineWanted += on =>
+        {
+            _hasTimeline = on;
+            ShowDocks();
+        };
         AssetLabCommands.Panel = () => _panel != null && IsInstanceValid(_panel) ? _panel : null;
         AssetLabCommands.Register();
         _builtByThisCode = true;
@@ -69,7 +103,16 @@ public partial class AssetLabPlugin : EditorPlugin
             panel.GetParent().RemoveChild(panel);
             panel.Free();
         }
+        // By name: after a reload this plugin's fields may not name the docks
+        // the old code made.
+        foreach (EditorDock dock in GetTree().Root.FindChildren("AssetLab*", "EditorDock", true, false).OfType<EditorDock>().ToList())
+        {
+            RemoveDock(dock);
+            dock.Free();
+        }
         _panel = null;
+        _assets = null;
+        _timeline = null;
     }
 
     public override bool _HasMainScreen() => true;
@@ -80,6 +123,34 @@ public partial class AssetLabPlugin : EditorPlugin
         EditorInterface.Singleton.GetEditorSettings().SetProjectMetadata("asset_lab", "visible", visible);
         if (_panel != null && IsInstanceValid(_panel))
             _panel.Visible = visible;
+        ShowDocks();
+    }
+
+    /// <summary>The docks follow the Lab tab: the asset list to the front
+    /// of the left tab group, and the timeline, for a walker, to the front of
+    /// the bottom panel; both gone on any other screen.</summary>
+    private void ShowDocks()
+    {
+        if (_assets == null || !IsInstanceValid(_assets) || _timeline == null || !IsInstanceValid(_timeline))
+        {
+            return;
+        }
+        if (_visible)
+        {
+            _assets.MakeVisible();
+        }
+        else
+        {
+            _assets.Close();
+        }
+        if (_visible && _hasTimeline)
+        {
+            _timeline.MakeVisible();
+        }
+        else
+        {
+            _timeline.Close();
+        }
     }
 
     public override string _GetPluginName() => "Lab";

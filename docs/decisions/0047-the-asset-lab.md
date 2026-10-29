@@ -67,6 +67,14 @@ model (0043): plan in the tab, play in a lab level, survive a reload.
   game's cameras are left alone. The game listens only in
   `lvl_asset_lab`, never in a contract. **Never rebuild the code while a
   test plays**: the editor's reload froze the game once.
+- **The view gets the screen** (*29 October*, the user's ask): the
+  asset list is a dock in the left tab group (**Assets**), and a walker's
+  play bar, timeline and timing row are a tab of the bottom panel (**Lab
+  Timeline**, beside Output and Animation). Both are `EditorDock`s that
+  come to the front when the Lab tab opens and close when it is left.
+  **Reset** (and `lab_walk` `reset`) builds the asset again as it was:
+  every limb back on. Labels whose text changes never widen their bar:
+  the clock did, and pushed the editor about as it played.
 - **It survives a rebuild**, as the Vines tool does: panels are rebuilt on
   the first frame after the project's code reloads; Godot's JSON, not
   System.Text.Json, in editor code that keeps state.

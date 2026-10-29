@@ -65,8 +65,8 @@ public static class AssetLabCommands
             "Walk the mech shown in the Lab tab on its treadmill, as WASD does there (no physics, no Test): 'forward' and 'right' -1 to 1 " +
             "in its own frame (their length is the share of top speed), 'turn' -1 to 1 (+ to its right), 'sprint'. It keeps walking so until " +
             "told otherwise ({} stops it). 'toggle' names parts (ThighL, ArmR...) whose limbs come off, or go back on if off, as a click on them " +
-            "in the tab does; the stance follows. 'click' names parts to click where they are drawn in the view, through the same picking as the mouse. 'seconds' waits that long before answering. Returns its stance, speed and gait.",
-            """{"type":"object","properties":{"forward":{"type":"number"},"right":{"type":"number"},"turn":{"type":"number"},"sprint":{"type":"boolean"},"toggle":{"type":"array","items":{"type":"string"}},"click":{"type":"array","items":{"type":"string"}},"seconds":{"type":"number"}}}""",
+            "in the tab does; the stance follows. 'reset' first builds it again as it was (every limb on, standing), as the tab's Reset does. 'click' names parts to click where they are drawn in the view, through the same picking as the mouse. 'seconds' waits that long before answering. Returns its stance, speed and gait.",
+            """{"type":"object","properties":{"forward":{"type":"number"},"right":{"type":"number"},"turn":{"type":"number"},"sprint":{"type":"boolean"},"toggle":{"type":"array","items":{"type":"string"}},"reset":{"type":"boolean"},"click":{"type":"array","items":{"type":"string"}},"seconds":{"type":"number"}}}""",
             Walk);
         Bridge.Register("lab_play",
             "The Lab tab's timeline for the mech shown, as its play bar does (no physics, no Test). 'clip': 'walk' (none), 'combo' (the slash " +
@@ -250,6 +250,10 @@ public static class AssetLabCommands
     private static async Task<JsonNode> Walk(JsonObject args)
     {
         LabPreview preview = Lab().Preview;
+        if (Bridge.Flag(args, "reset", false))
+        {
+            Lab().ResetAsset();
+        }
         if (preview.Walker == null)
         {
             throw new Bridge.Refused($"{Lab().Current} is not a walker; lab_open a mech");

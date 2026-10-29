@@ -8,10 +8,13 @@ using Godot;
 namespace DillControl.Editor;
 
 /// <summary>
-/// The asset lab's main screen (docs/decisions/0047): every asset on the
-/// left, the chosen one in a 3D view of its own in the middle, and on the
-/// right what it is, what it costs and the resources it is tuned by, in an
-/// inspector. Save writes the shared resource, after naming who else uses it.
+/// The asset lab's main screen (docs/decisions/0047): the chosen asset in a
+/// 3D view of its own, and on the right what it is, what it costs and the
+/// resources it is tuned by, in an inspector. Save writes the shared
+/// resource, after naming who else uses it. Every asset is listed in
+/// <see cref="AssetList"/> and a walker's moves play in <see cref="TimelineBox"/>,
+/// which the plugin puts in docks of their own (the left tab group and the
+/// bottom panel) so the view gets the screen.
 /// </summary>
 [Tool]
 public partial class AssetLabPanel : HSplitContainer
@@ -25,6 +28,16 @@ public partial class AssetLabPanel : HSplitContainer
     private bool Live => _built != null;
 
     public LabPreview Preview { get; private set; }
+
+    /// <summary>The asset list, for a dock: not a child of the panel.</summary>
+    public Control AssetList { get; private set; }
+
+    /// <summary>The play bar, the timeline and the timing row, for the
+    /// bottom panel: not a child of the panel.</summary>
+    public Control TimelineBox { get; private set; }
+
+    /// <summary>Raised on every asset shown: whether it has a timeline (a walker).</summary>
+    public event System.Action<bool> TimelineWanted;
     public string Current { get; private set; } = "";
     public AssetInfo Info { get; private set; }
     public List<Resource> Resources { get; private set; } = new();
@@ -59,7 +72,7 @@ public partial class AssetLabPanel : HSplitContainer
             }
         };
         left.AddChild(_tree);
-        AddChild(left);
+        AssetList = left;
 
         var middleAndRight = new HSplitContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         AddChild(middleAndRight);
@@ -119,7 +132,9 @@ public partial class AssetLabPanel : HSplitContainer
         var treadmill = new CheckBox { Text = "Treadmill", TooltipText = "Walks forward at that speed with no key held" };
         treadmill.Toggled += on => Preview.Treadmill = on;
         _walkBar.AddChild(treadmill);
-        _stance = new Label();
+        _walkBar.AddChild(Button("Reset", ResetAsset, "Puts it back as it was built: every limb on, standing still"));
+        // Text that changes never widens the bar: that pushed the editor about.
+        _stance = new Label { ClipText = true, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _walkBar.AddChild(_stance);
         middle.AddChild(_walkBar);
         Preview = new LabPreview();
@@ -157,12 +172,13 @@ public partial class AssetLabPanel : HSplitContainer
         _ghosts = new CheckBox { Text = "Ghosts", TooltipText = "See-through poses before (blue) and after (orange) the playhead" };
         _ghosts.Toggled += on => Preview.Ghosts = on;
         _playBar.AddChild(_ghosts);
-        _clock = new Label();
+        _clock = new Label { ClipText = true, CustomMinimumSize = new Vector2(230, 0), SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _playBar.AddChild(_clock);
-        middle.AddChild(_playBar);
+        var timelineBox = new VBoxContainer { CustomMinimumSize = new Vector2(0, 110) };
+        timelineBox.AddChild(_playBar);
         _timeline = new LabTimeline { Preview = Preview, Visible = false };
         _timeline.MarkerMoved += SetMarker;
-        middle.AddChild(_timeline);
+        timelineBox.AddChild(_timeline);
 
         // The timing of the move under the playhead, edited here and saved
         // to its .tres; poses stay in Blender, which reads the timing back.
@@ -179,9 +195,10 @@ public partial class AssetLabPanel : HSplitContainer
         _timingBar.AddChild(_blend);
         _timingBar.AddChild(Button("Save timing", () => SaveTiming()));
         _timingBar.AddChild(Button("Revert", RevertTiming));
-        _timingStatus = new Label { TooltipText = "Drag a marker on the timeline to move it" };
+        _timingStatus = new Label { TooltipText = "Drag a marker on the timeline to move it", ClipText = true, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _timingBar.AddChild(_timingStatus);
-        middle.AddChild(_timingBar);
+        timelineBox.AddChild(_timingBar);
+        TimelineBox = timelineBox;
         middleAndRight.AddChild(middle);
 
         // What it is on top, scrolling in its own box; the parameters below
@@ -585,9 +602,9 @@ public partial class AssetLabPanel : HSplitContainer
         private void Label(string title) => _header.Text = (_body.Visible ? "▾ " : "▸ ") + title;
     }
 
-    private static Button Button(string text, System.Action pressed)
+    private static Button Button(string text, System.Action pressed, string tooltip = "")
     {
-        var button = new Button { Text = text };
+        var button = new Button { Text = text, TooltipText = tooltip };
         button.Pressed += pressed;
         return button;
     }
@@ -654,6 +671,17 @@ public partial class AssetLabPanel : HSplitContainer
         if (Preview.Walker != null)
         {
             FillClips();
+        }
+        TimelineWanted?.Invoke(Preview.Walker != null);
+    }
+
+    /// <summary>The asset shown, built again from its scene: limbs taken
+    /// off come back, and a walker stands still where it started.</summary>
+    public void ResetAsset()
+    {
+        if (Current != "")
+        {
+            Open(Current);
         }
     }
 
