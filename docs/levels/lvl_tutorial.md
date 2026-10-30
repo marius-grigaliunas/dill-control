@@ -23,13 +23,14 @@ the ground then.
 | `Spawns/LandingSite` | where the pod comes down; its -Z is the view out of the hatch |
 | `Spawns/Landing` | `PodLanding`: every body's drop (`drop_rules_tutorial.tres`) |
 | `Spawns/Clones` | `CloneBank`: three bodies, then the contract is void (`clone_rules_default.tres`) |
+| `Spawns/Extraction` | `PodExtraction`: after the clear, a pod lands at a random flat place; board it to finish |
 | `Spawns/Mission` | `ColonyMission`: destroy every pod, at most a fifth alive |
 | `Spawns/Guide` | `IntroGuide`: the prompts, `guide_tutorial.tres` |
 | `Spawns/Horde` | the colony's cucumbers; none until it wakes |
 
 Flow: look out of the pod while it falls, step out, walk to the hooks, grapple,
 let go, swing, climb, fire, shoot a pod (the colony wakes), hold the line, clear the
-pods. Lose a body and the next is printed and dropped the same way.
+pods, then run to the pod that lands somewhere new and ride it up. Lose a body and the next is printed and dropped the same way.
 
 Photographs of it from the rider's eyes: `scripts/debug/tutorialshots.gd` (the
-drop), `cloneshots.gd` (clones), `wakeshots.gd` (the colony waking).
+drop), `cloneshots.gd` (clones), `wakeshots.gd` (the colony waking), `extractshots.gd` (the way home).

@@ -56,6 +56,21 @@ public partial class ExtractionRules : Resource
     [Export(PropertyHint.Range, "0,2000,10,suffix:m")]
     public float ExtractionMinDistance { get; set; } = 300.0f;
 
+    /// <summary>
+    /// A pod that picks its own site (<see cref="PodExtraction"/>) lands between
+    /// <see cref="ExtractionMinDistance"/> and this far from the player.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,3000,10,suffix:m")]
+    public float ExtractionMaxDistance { get; set; } = 600.0f;
+
+    /// <summary>A picked site is at least this far from the arrival pod's, so it is a new place.</summary>
+    [Export(PropertyHint.Range, "0,500,5,suffix:m")]
+    public float ExtractionClearOfLanding { get; set; } = 120.0f;
+
+    /// <summary>A picked site is at least this far from any vine or tree it must not land on.</summary>
+    [Export(PropertyHint.Range, "0,100,1,suffix:m")]
+    public float ExtractionClearOfProps { get; set; } = 25.0f;
+
     /// <summary>Which far-enough site the pod goes to: a roll on the "extraction" stream.</summary>
     [Export]
     public long Seed { get; set; } = 1;

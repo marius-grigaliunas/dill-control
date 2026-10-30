@@ -162,46 +162,8 @@ public partial class MissionHud : Control
     }
 
     /// <summary>A diamond over a world point with its name and distance; pinned to the screen's edge when off it.</summary>
-    private void DrawMarker(Vector3 world, string label, Color colour)
-    {
-        Camera3D camera = GetViewport().GetCamera3D();
-        if (camera == null)
-        {
-            return;
-        }
-
-        Vector2 size = Size;
-        bool behind = camera.IsPositionBehind(world);
-        Vector2 at = camera.UnprojectPosition(world);
-        if (behind)
-        {
-            at = size - at;
-        }
-        const float Margin = 48.0f;
-        bool off = behind || at.X < Margin || at.Y < Margin || at.X > size.X - Margin || at.Y > size.Y - Margin;
-        if (off)
-        {
-            Vector2 centre = size * 0.5f;
-            Vector2 direction = at - centre;
-            if (behind && direction.Y < 0.0f)
-            {
-                direction.Y = -direction.Y;
-            }
-            float scale = Mathf.Min(
-                ((size.X * 0.5f) - Margin) / Mathf.Max(Mathf.Abs(direction.X), 0.001f),
-                ((size.Y * 0.5f) - Margin) / Mathf.Max(Mathf.Abs(direction.Y), 0.001f));
-            at = centre + (direction * scale);
-        }
-
-        const float R = 11.0f;
-        PickleStyle.Quad(this, at + new Vector2(0, -R - 3), at + new Vector2(R + 3, 0), at + new Vector2(0, R + 3), at + new Vector2(-R - 3, 0),
-            PickleStyle.Ink);
-        PickleStyle.Quad(this, at + new Vector2(0, -R), at + new Vector2(R, 0), at + new Vector2(0, R), at + new Vector2(-R, 0), colour);
-
-        float metres = camera.GlobalPosition.DistanceTo(world);
-        PickleStyle.TextCentred(this, at + new Vector2(0.0f, -30.0f),
-            System.FormattableString.Invariant($"{label}  {metres:F0} M"), 18, colour);
-    }
+    private void DrawMarker(Vector3 world, string label, Color colour) =>
+        PickleStyle.Marker(this, Size, GetViewport().GetCamera3D(), world, label, colour);
 
     private static string Clock(float seconds)
     {

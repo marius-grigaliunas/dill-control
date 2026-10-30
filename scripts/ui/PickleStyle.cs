@@ -120,6 +120,51 @@ public static class PickleStyle
         Skewed(rect, skew, fill);
     }
 
+    /// <summary>
+    /// A diamond over a world point with its name and distance, pinned to the
+    /// screen's edge when it is off it or behind the camera.
+    /// </summary>
+    public static void Marker(CanvasItem canvas, Vector2 size, Camera3D camera, Vector3 world, string label, Color colour)
+    {
+        if (camera == null)
+        {
+            return;
+        }
+
+        bool behind = camera.IsPositionBehind(world);
+        Vector2 at = camera.UnprojectPosition(world);
+        if (behind)
+        {
+            at = size - at;
+        }
+        const float Margin = 48.0f;
+        bool off = behind || at.X < Margin || at.Y < Margin || at.X > size.X - Margin || at.Y > size.Y - Margin;
+        if (off)
+        {
+            Vector2 centre = size * 0.5f;
+            Vector2 direction = at - centre;
+            if (behind && direction.Y < 0.0f)
+            {
+                direction.Y = -direction.Y;
+            }
+            float scale = Mathf.Min(
+                ((size.X * 0.5f) - Margin) / Mathf.Max(Mathf.Abs(direction.X), 0.001f),
+                ((size.Y * 0.5f) - Margin) / Mathf.Max(Mathf.Abs(direction.Y), 0.001f));
+            at = centre + (direction * scale);
+        }
+
+        const float R = 11.0f;
+        Quad(canvas, at + new Vector2(0, -R - 3), at + new Vector2(R + 3, 0), at + new Vector2(0, R + 3), at + new Vector2(-R - 3, 0), Ink);
+        Quad(canvas, at + new Vector2(0, -R), at + new Vector2(R, 0), at + new Vector2(0, R), at + new Vector2(-R, 0), colour);
+
+        float metres = camera.GlobalPosition.DistanceTo(world);
+        string words = System.FormattableString.Invariant($"{label}  {metres:F0} M");
+        // Kept whole on screen when the diamond is pinned to an edge.
+        float half = (Measure(words, 18) * 0.5f) + 8.0f;
+        float labelX = Mathf.Clamp(at.X, half, Mathf.Max(half, size.X - half));
+        TextCentred(canvas, new Vector2(labelX, at.Y - 30.0f), words, 18, colour);
+    }
+
     // ---------------- Cheap shapes ----------------
     //
     // In Godot 4's canvas renderer, DrawColoredPolygon, DrawPolyline, DrawCircle,

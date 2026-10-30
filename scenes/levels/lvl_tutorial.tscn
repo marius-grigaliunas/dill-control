@@ -16,12 +16,13 @@
 [ext_resource type="PackedScene" path="res://scenes/props/nests/prp_nest_intro_1789143419_1000.tscn" id="14_b31i4"]
 [ext_resource type="PackedScene" uid="uid://j3nja030bqkb" path="res://scenes/props/trees/prp_tree_tall_a.tscn" id="16_bc4fj"]
 [ext_resource type="PackedScene" uid="uid://bgwpipnjgm5pj" path="res://scenes/props/trees/prp_tree_tall_c.tscn" id="18_ydxyo"]
-[ext_resource type="Environment" path="res://resources/planet/env_planet_default.tres" id="23_6640p"]
+[ext_resource type="Environment" uid="uid://ce51qnqwlbolq" path="res://resources/planet/env_planet_default.tres" id="23_6640p"]
 [ext_resource type="Script" uid="uid://bmv7i4mwi7qp4" path="res://scripts/planet/SolarSystem.cs" id="24_ajkyw"]
 [ext_resource type="Resource" path="res://resources/planet/system_stats_default.tres" id="25_erf40"]
 [ext_resource type="Script" uid="uid://050hm5pwtaj0" path="res://scripts/planet/PlanetSite.cs" id="26_oquro"]
 [ext_resource type="Script" uid="uid://du2lhfb886tx2" path="res://scripts/mission/CloneBank.cs" id="36_yjvjy"]
 [ext_resource type="Resource" path="res://resources/mission/clone_rules_default.tres" id="37_im287"]
+[ext_resource type="Script" uid="uid://c7pvbeud2lc0u" path="res://scripts/mission/PodExtraction.cs" id="40_rtaia"]
 [ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_shrub_9001172.tscn" id="98_nr4jj"]
 [ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_shrub_5248791.tscn" id="99_wkrvj"]
 [ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_shrub_2326491.tscn" id="100_e5xnf"]
@@ -187,5 +188,15 @@ Lines = ExtResource("114_5b6oc")
 Level = NodePath("../..")
 Pods = NodePath("../../Props/PodField")
 Landing = NodePath("../Landing")
+
+[node name="Extraction" type="Node" parent="Spawns" unique_id=2062306009 node_paths=PackedStringArray("Level", "Mission", "Planet", "LandingSite", "AvoidRoots")]
+script = ExtResource("40_rtaia")
+Rules = ExtResource("111_88aih")
+PodScene = ExtResource("112_ir61l")
+Level = NodePath("../..")
+Mission = NodePath("../Mission")
+Planet = NodePath("../../Geometry/Planet")
+LandingSite = NodePath("../LandingSite")
+AvoidRoots = [NodePath("../../Props/NestSite/Nest"), NodePath("../../Props/HookSite/Hooks")]
 
 [node name="Navigation" type="Node3D" parent="." unique_id=154848912]

@@ -37,9 +37,17 @@ level a player sees, so it is on the planet, and built by hand.
   again (there is no ship to wake on yet). Nothing the body carries is lost.
   `CloneHud` shows a pip per body and the lab flashes (0054): unexplained white cuts
   and green bars as each body begins its fall, deliberately wordless.
+- **The way home is built** (0054). Once `ColonyMission` is cleared, `PodExtraction`
+  waits `ExtractionDelay`, then sends a `prp_landing_pod` to a site rolled on the
+  "extraction" stream: 250-450 m from the player, on ground under about 7 degrees,
+  at least 120 m from the arrival pod and 25 m from the nest and hooks (`AvoidRoots`).
+  With `Seed` at zero the site is different every run. The pod lands empty and open
+  with a marker over it; stepping into its hatch boards it, and it climbs away, the
+  ground falling from its window, to a "CONTRACT COMPLETE" card (`R` restarts).
+  Numbers: `drop_rules_tutorial.tres`.
 - **The prompts** are `guide_tutorial.tres` (`IntroGuide`), the old flow without the
   jar; the first step lasts until the rider steps out.
-- **Not built:** extraction by pod, the queen, the minigun gift (0051), the
+- **Not built:** the queen, the minigun gift (0051), the
   descent's art, sound. `lvl_nest_intro`, `NestLandmark` and its preset stay on disk.
 
 ## Measured
@@ -47,7 +55,7 @@ level a player sees, so it is on the planet, and built by hand.
 Idle bench on the target machine: 11.5 ms mean, 15.2 ms worst, 0 of 525 frames over
 16.7 ms, GPU 10.1 ms, 207 draws. The opening, the clones (three bodies, then void)
 and a woken colony (778 dropped in 22 s) were run in the real game and photographed
-from the rider's eyes (`tutorialshots.gd`, `cloneshots.gd`, `wakeshots.gd`). The
+from the rider's eyes (`tutorialshots.gd`, `cloneshots.gd`, `wakeshots.gd`, `extractshots.gd`: the pod was sent to a different place each run, boarded and lifted off). The
 grapple, the shooting and the prompts' later steps have not been played with real input.
 
 ## Costs and open ends
