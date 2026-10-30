@@ -15,7 +15,7 @@ DelaySeconds = 2.0
 [sub_resource type="Resource" id="Step1"]
 script = ExtResource("2_step")
 Title = "MOVE"
-Text = "W A S D to move, {jump} to jump, hold SHIFT to sprint. Walk toward the vines."
+Text = "W A S D to move, {jump} to jump, hold SHIFT to sprint. Walk toward the trees."
 Until = 4
 Seconds = 0.0
 Metres = 18.0
@@ -25,7 +25,7 @@ DelaySeconds = 1.0
 [sub_resource type="Resource" id="Step2"]
 script = ExtResource("2_step")
 Title = "GRAPPLING HOOK"
-Text = "Aim at a vine and tap {grapple}. The line pulls you in."
+Text = "Aim at a tree or vine and tap {grapple}. The line pulls you in."
 Until = 1
 Seconds = 0.0
 
@@ -47,7 +47,7 @@ ReadSeconds = 5.0
 [sub_resource type="Resource" id="Step5"]
 script = ExtResource("2_step")
 Title = "STAY UP"
-Text = "The ground belongs to the cucumbers. Chain hooks from vine to vine and get 25 m up."
+Text = "The ground belongs to the cucumbers. Chain hooks from tree to tree and vine to vine and get 25 m up."
 Until = 3
 Seconds = 0.0
 Metres = 25.0

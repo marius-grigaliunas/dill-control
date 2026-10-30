@@ -13,7 +13,7 @@
 [ext_resource type="PackedScene" path="res://scenes/weapons/fx_rocket.tscn" id="11_shell"]
 [ext_resource type="Script" uid="uid://dwpndhtpocq4h" path="res://scripts/vehicles/MechCare.cs" id="14_uqa2n"]
 [ext_resource type="Resource" path="res://resources/vehicles/mech_repair_default.tres" id="15_he4xu"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_drop_pod.tscn" id="16_xmau0"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_landing_pod.tscn" id="16_xmau0"]
 [ext_resource type="Script" uid="uid://csjy6ff4bwc1m" path="res://scripts/voxel/VoxelBody.cs" id="30_voxels"]
 [ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_mech.tres" id="31_armour"]
 

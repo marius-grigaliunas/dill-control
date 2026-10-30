@@ -15,7 +15,7 @@
 [ext_resource type="Resource" uid="uid://cryqvio26ywpr" path="res://resources/vehicles/mch_field_fighter_slash.tres" id="13_slashstats"]
 [ext_resource type="Script" uid="uid://dwpndhtpocq4h" path="res://scripts/vehicles/MechCare.cs" id="16_stjwc"]
 [ext_resource type="Resource" path="res://resources/vehicles/mech_repair_default.tres" id="17_f7f0b"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_drop_pod.tscn" id="18_7osid"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_landing_pod.tscn" id="18_7osid"]
 [ext_resource type="Script" uid="uid://csjy6ff4bwc1m" path="res://scripts/voxel/VoxelBody.cs" id="30_voxels"]
 [ext_resource type="Resource" path="res://resources/voxel/voxel_destruction_mech.tres" id="31_armour"]
 

@@ -7,7 +7,7 @@
 [ext_resource type="Script" uid="uid://bdkj5aa1mys24" path="res://scripts/vehicles/MechSupply.cs" id="5_supply"]
 [ext_resource type="Script" uid="uid://dwpndhtpocq4h" path="res://scripts/vehicles/MechCare.cs" id="7_6sdon"]
 [ext_resource type="Resource" path="res://resources/vehicles/mech_repair_default.tres" id="8_cb1cn"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_drop_pod.tscn" id="9_noobd"]
+[ext_resource type="PackedScene" path="res://scenes/props/prp_landing_pod.tscn" id="9_noobd"]
 [ext_resource type="Script" uid="uid://bewx2w3kbba8j" path="res://scripts/vehicles/MechMender.cs" id="10_1l584"]
 [ext_resource type="Script" uid="uid://csjy6ff4bwc1m" path="res://scripts/voxel/VoxelBody.cs" id="30_voxels"]
 

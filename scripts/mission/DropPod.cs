@@ -1,5 +1,6 @@
 using Godot;
 using DillControl.Core;
+using DillControl.Planet;
 using DillControl.Player;
 using DillControl.Weapons;
 
@@ -81,6 +82,7 @@ public partial class DropPod : Node3D
     private float _pitch;
     private float _landedFor;
     private Vector3 _seat;
+    private Vector3 _up = Vector3.Up;
     private Vector3 _from;
     private Vector3 _to;
     private float _seconds;
@@ -110,7 +112,9 @@ public partial class DropPod : Node3D
     {
         _rules = rules;
         _to = landing.Origin;
-        _from = _to + (Vector3.Up * rules.DropHeight);
+        // Up is the landing's own up: on a planet it is not the world's.
+        _up = landing.Basis.Y.Normalized();
+        _from = _to + (_up * rules.DropHeight);
         _seconds = rules.DropSeconds;
         _time = 0.0f;
         _state = State.Falling;
@@ -157,7 +161,7 @@ public partial class DropPod : Node3D
             Camera.Current = true;
         }
         _from = GlobalPosition;
-        _to = _from + (Vector3.Up * (_rules?.DropHeight ?? 400.0f));
+        _to = _from + (_up * (_rules?.DropHeight ?? 400.0f));
         _seconds = (_rules?.DropSeconds ?? 5.0f) * 1.2f;
         _time = 0.0f;
         _state = State.Climbing;
@@ -251,12 +255,9 @@ public partial class DropPod : Node3D
         if (_rider != null && IsInstanceValid(_rider))
         {
             Transform3D exit = ExitPoint?.GlobalTransform ?? GlobalTransform;
-            float heading = exit.Basis.GetEuler().Y;
-            if (FirstPerson && Camera != null)
-            {
-                heading = Camera.GlobalTransform.Basis.GetEuler().Y;
-            }
-            _rider.GlobalTransform = new Transform3D(Basis.Identity.Rotated(Vector3.Up, heading), exit.Origin);
+            // Facing the way the rider was looking (the exit's way, if not), level to the ground.
+            Vector3 facing = FirstPerson && Camera != null ? -Camera.GlobalBasis.Z : -exit.Basis.Z;
+            _rider.GlobalTransform = new Transform3D(PlanetHeightfield.UprightBasis(_up, facing), exit.Origin);
             _rider.SetStowed(false);
             EmitSignal(SignalName.SteppedOut);
         }
@@ -273,14 +274,14 @@ public partial class DropPod : Node3D
 
         Blast.Settings blast = new()
         {
-            Centre = GlobalPosition + (Vector3.Up * 0.5f),
+            Centre = GlobalPosition + (_up * 0.5f),
             InnerRadius = _rules.LandingRadius * 0.5f,
             Radius = _rules.LandingRadius,
             Damage = _rules.LandingDamage,
             MinMultiplier = 0.3f,
             Impulse = 12.0f,
             ImpulseUpBias = 0.6f,
-            Up = Vector3.Up,
+            Up = _up,
             Source = this,
             SelfImpulseScale = 0.0f,
             NoCrater = true,
@@ -291,7 +292,7 @@ public partial class DropPod : Node3D
 
         if (ExplosionScene?.Instantiate() is Node3D explosion)
         {
-            (explosion as ExplosionEffect)?.Configure(blast.Centre, _rules.LandingRadius, Vector3.Up, Vector3.Up, false);
+            (explosion as ExplosionEffect)?.Configure(blast.Centre, _rules.LandingRadius, _up, _up, false);
             GetTree().CurrentScene.AddChild(explosion);
             explosion.GlobalPosition = blast.Centre;
         }

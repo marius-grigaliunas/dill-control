@@ -11,7 +11,7 @@ namespace DillControl.Mission;
 /// marker in the level, stood on the ground and turned to face what the player
 /// is to see first; move it in the editor and the drop follows.
 ///
-/// PLACEHOLDER pod (<c>prp_drop_pod</c> and its cabin): the model, the window's
+/// PLACEHOLDER pod (<c>prp_landing_pod</c> and its cabin): the model, the window's
 /// view and the cloning flashes of 0054 are art that does not exist yet.
 /// </summary>
 [GlobalClass]

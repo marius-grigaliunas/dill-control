@@ -2,106 +2,31 @@
 
 [ext_resource type="Script" uid="uid://br5rfr1owyw11" path="res://scripts/levels/LevelRoot.cs" id="1_ny00j"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_2fqxa"]
-[ext_resource type="Script" uid="uid://0a0lnlqfsicw" path="res://scripts/levels/SculptedTerrain.cs" id="3_wri8e"]
-[ext_resource type="Resource" path="res://resources/levels/terrain_default.tres" id="4_jjcgf"]
-[ext_resource type="Material" path="res://art/materials/mat_arena_terrain.tres" id="5_teqwn"]
-[ext_resource type="Shape3D" uid="uid://cy4ltkj6rnqmg" path="res://scenes/levels/lvl_tutorial_terrain/heights.res" id="6_4d0py"]
-[ext_resource type="ArrayMesh" uid="uid://c13tievndcoaq" path="res://scenes/levels/lvl_tutorial_terrain/chunk_0_0.res" id="7_qtqt5"]
-[ext_resource type="ArrayMesh" uid="uid://cur5echls7gwj" path="res://scenes/levels/lvl_tutorial_terrain/chunk_1_0.res" id="8_kdrhw"]
-[ext_resource type="ArrayMesh" uid="uid://ccbohyhvrhll1" path="res://scenes/levels/lvl_tutorial_terrain/chunk_2_0.res" id="9_okv7q"]
-[ext_resource type="ArrayMesh" uid="uid://dy8ufenpiuhae" path="res://scenes/levels/lvl_tutorial_terrain/chunk_3_0.res" id="10_we85q"]
-[ext_resource type="ArrayMesh" uid="uid://cljetxsr8odap" path="res://scenes/levels/lvl_tutorial_terrain/chunk_4_0.res" id="11_l8ovf"]
-[ext_resource type="ArrayMesh" uid="uid://b861qs2h3j5wm" path="res://scenes/levels/lvl_tutorial_terrain/chunk_5_0.res" id="12_5mdlc"]
-[ext_resource type="ArrayMesh" uid="uid://c5f7gk7ajbqkr" path="res://scenes/levels/lvl_tutorial_terrain/chunk_6_0.res" id="13_rcyy7"]
-[ext_resource type="ArrayMesh" uid="uid://6h7ukf5xr4i" path="res://scenes/levels/lvl_tutorial_terrain/chunk_7_0.res" id="14_xi8qr"]
-[ext_resource type="ArrayMesh" uid="uid://b8qqtq0nj78av" path="res://scenes/levels/lvl_tutorial_terrain/chunk_0_1.res" id="15_83abf"]
-[ext_resource type="ArrayMesh" uid="uid://cepgn06ksnt00" path="res://scenes/levels/lvl_tutorial_terrain/chunk_1_1.res" id="16_ktjo3"]
-[ext_resource type="ArrayMesh" uid="uid://bebcy5uxqp678" path="res://scenes/levels/lvl_tutorial_terrain/chunk_2_1.res" id="17_peim8"]
-[ext_resource type="ArrayMesh" uid="uid://b5xtrd4kbw05q" path="res://scenes/levels/lvl_tutorial_terrain/chunk_3_1.res" id="18_60ddw"]
-[ext_resource type="ArrayMesh" uid="uid://bryoi4wp0tr3f" path="res://scenes/levels/lvl_tutorial_terrain/chunk_4_1.res" id="19_dhpvb"]
-[ext_resource type="ArrayMesh" uid="uid://w8haxd3o3o31" path="res://scenes/levels/lvl_tutorial_terrain/chunk_5_1.res" id="20_4sgxk"]
-[ext_resource type="ArrayMesh" uid="uid://cqvsl65q7m5ae" path="res://scenes/levels/lvl_tutorial_terrain/chunk_6_1.res" id="21_2kywr"]
-[ext_resource type="ArrayMesh" uid="uid://bgf68i41dxti5" path="res://scenes/levels/lvl_tutorial_terrain/chunk_7_1.res" id="22_1nqi3"]
-[ext_resource type="ArrayMesh" uid="uid://w87pgyt1e3d4" path="res://scenes/levels/lvl_tutorial_terrain/chunk_0_2.res" id="23_vjkf8"]
-[ext_resource type="ArrayMesh" uid="uid://da1ysrwk81oqs" path="res://scenes/levels/lvl_tutorial_terrain/chunk_1_2.res" id="24_egfcl"]
-[ext_resource type="ArrayMesh" uid="uid://v2i88r1kxnu0" path="res://scenes/levels/lvl_tutorial_terrain/chunk_2_2.res" id="25_0ack7"]
-[ext_resource type="ArrayMesh" uid="uid://x73qffyw0mb7" path="res://scenes/levels/lvl_tutorial_terrain/chunk_3_2.res" id="26_siwgr"]
-[ext_resource type="ArrayMesh" uid="uid://boh3mvfq5sti5" path="res://scenes/levels/lvl_tutorial_terrain/chunk_4_2.res" id="27_s8svg"]
-[ext_resource type="ArrayMesh" uid="uid://crir37ahdg1bb" path="res://scenes/levels/lvl_tutorial_terrain/chunk_5_2.res" id="28_8gux0"]
-[ext_resource type="ArrayMesh" uid="uid://beuqce3n24sxf" path="res://scenes/levels/lvl_tutorial_terrain/chunk_6_2.res" id="29_w3knf"]
-[ext_resource type="ArrayMesh" uid="uid://gm5ro46ffh2k" path="res://scenes/levels/lvl_tutorial_terrain/chunk_7_2.res" id="30_ffagm"]
-[ext_resource type="ArrayMesh" uid="uid://clvfv0qd20cv" path="res://scenes/levels/lvl_tutorial_terrain/chunk_0_3.res" id="31_qxpgr"]
-[ext_resource type="ArrayMesh" uid="uid://dt8wn40k6v731" path="res://scenes/levels/lvl_tutorial_terrain/chunk_1_3.res" id="32_buveg"]
-[ext_resource type="ArrayMesh" uid="uid://bk7klnln36sgp" path="res://scenes/levels/lvl_tutorial_terrain/chunk_2_3.res" id="33_kkey2"]
-[ext_resource type="ArrayMesh" uid="uid://ch3op8snr1ix" path="res://scenes/levels/lvl_tutorial_terrain/chunk_3_3.res" id="34_ytryc"]
-[ext_resource type="ArrayMesh" uid="uid://cl4lrfu88j5x4" path="res://scenes/levels/lvl_tutorial_terrain/chunk_4_3.res" id="35_xl05f"]
-[ext_resource type="ArrayMesh" uid="uid://bcq6sioybs4gb" path="res://scenes/levels/lvl_tutorial_terrain/chunk_5_3.res" id="36_xgqml"]
-[ext_resource type="ArrayMesh" uid="uid://ca8vmlpwmofgu" path="res://scenes/levels/lvl_tutorial_terrain/chunk_6_3.res" id="37_yrqbq"]
-[ext_resource type="ArrayMesh" uid="uid://b7ay36pipicjy" path="res://scenes/levels/lvl_tutorial_terrain/chunk_7_3.res" id="38_pjcpt"]
-[ext_resource type="ArrayMesh" uid="uid://c8sics8motkd1" path="res://scenes/levels/lvl_tutorial_terrain/chunk_0_4.res" id="39_yni6y"]
-[ext_resource type="ArrayMesh" uid="uid://bp6cuxv66ic1a" path="res://scenes/levels/lvl_tutorial_terrain/chunk_1_4.res" id="40_hw2p2"]
-[ext_resource type="ArrayMesh" uid="uid://b4feinlsdgone" path="res://scenes/levels/lvl_tutorial_terrain/chunk_2_4.res" id="41_ggre0"]
-[ext_resource type="ArrayMesh" uid="uid://by6e7dwqkdd4w" path="res://scenes/levels/lvl_tutorial_terrain/chunk_3_4.res" id="42_0sv7v"]
-[ext_resource type="ArrayMesh" uid="uid://dn7qbxbqkwoof" path="res://scenes/levels/lvl_tutorial_terrain/chunk_4_4.res" id="43_12yv7"]
-[ext_resource type="ArrayMesh" uid="uid://bky3voompm52v" path="res://scenes/levels/lvl_tutorial_terrain/chunk_5_4.res" id="44_13pdy"]
-[ext_resource type="ArrayMesh" uid="uid://ds2ux4tiji0ue" path="res://scenes/levels/lvl_tutorial_terrain/chunk_6_4.res" id="45_gwuv7"]
-[ext_resource type="ArrayMesh" uid="uid://bdm6rr1sppeos" path="res://scenes/levels/lvl_tutorial_terrain/chunk_7_4.res" id="46_fhhjn"]
-[ext_resource type="ArrayMesh" uid="uid://bo3yhy87uy44b" path="res://scenes/levels/lvl_tutorial_terrain/chunk_0_5.res" id="47_hh0hv"]
-[ext_resource type="ArrayMesh" uid="uid://bget57hy2vd1l" path="res://scenes/levels/lvl_tutorial_terrain/chunk_1_5.res" id="48_uf2yu"]
-[ext_resource type="ArrayMesh" uid="uid://y8uijcxana64" path="res://scenes/levels/lvl_tutorial_terrain/chunk_2_5.res" id="49_5ut5u"]
-[ext_resource type="ArrayMesh" uid="uid://b5lff0v3unx67" path="res://scenes/levels/lvl_tutorial_terrain/chunk_3_5.res" id="50_ynl4y"]
-[ext_resource type="ArrayMesh" uid="uid://ba4lgoy5mrkqh" path="res://scenes/levels/lvl_tutorial_terrain/chunk_4_5.res" id="51_ptg6f"]
-[ext_resource type="ArrayMesh" uid="uid://dw064qgd1t3ce" path="res://scenes/levels/lvl_tutorial_terrain/chunk_5_5.res" id="52_7gm0w"]
-[ext_resource type="ArrayMesh" uid="uid://dkkqyhbgmmmhc" path="res://scenes/levels/lvl_tutorial_terrain/chunk_6_5.res" id="53_e42od"]
-[ext_resource type="ArrayMesh" uid="uid://wuvqccmdnsrp" path="res://scenes/levels/lvl_tutorial_terrain/chunk_7_5.res" id="54_56red"]
-[ext_resource type="ArrayMesh" uid="uid://d0gotmd1wiqc0" path="res://scenes/levels/lvl_tutorial_terrain/chunk_0_6.res" id="55_xnfgp"]
-[ext_resource type="ArrayMesh" uid="uid://d3nk1cexk0xlm" path="res://scenes/levels/lvl_tutorial_terrain/chunk_1_6.res" id="56_hhack"]
-[ext_resource type="ArrayMesh" uid="uid://f2qtc71lv617" path="res://scenes/levels/lvl_tutorial_terrain/chunk_2_6.res" id="57_jtxd8"]
-[ext_resource type="ArrayMesh" uid="uid://xujiufa3e6qn" path="res://scenes/levels/lvl_tutorial_terrain/chunk_3_6.res" id="58_6tv5n"]
-[ext_resource type="ArrayMesh" uid="uid://ccc3jifsxpcf6" path="res://scenes/levels/lvl_tutorial_terrain/chunk_4_6.res" id="59_2orh8"]
-[ext_resource type="ArrayMesh" uid="uid://2q6de3p2efmm" path="res://scenes/levels/lvl_tutorial_terrain/chunk_5_6.res" id="60_ycfua"]
-[ext_resource type="ArrayMesh" uid="uid://cde2dhx5fo6vg" path="res://scenes/levels/lvl_tutorial_terrain/chunk_6_6.res" id="61_wkg7g"]
-[ext_resource type="ArrayMesh" uid="uid://c1yfthni1vl7r" path="res://scenes/levels/lvl_tutorial_terrain/chunk_7_6.res" id="62_4l7ba"]
-[ext_resource type="ArrayMesh" uid="uid://muw4605ayty" path="res://scenes/levels/lvl_tutorial_terrain/chunk_0_7.res" id="63_hqt34"]
-[ext_resource type="ArrayMesh" uid="uid://dtwwgfdoh0c1b" path="res://scenes/levels/lvl_tutorial_terrain/chunk_1_7.res" id="64_xycqm"]
-[ext_resource type="ArrayMesh" uid="uid://cx7b84som8ctd" path="res://scenes/levels/lvl_tutorial_terrain/chunk_2_7.res" id="65_cfw6i"]
-[ext_resource type="ArrayMesh" uid="uid://bhm1hrroyesc0" path="res://scenes/levels/lvl_tutorial_terrain/chunk_3_7.res" id="66_kutk6"]
-[ext_resource type="ArrayMesh" uid="uid://cupxfnolso7wo" path="res://scenes/levels/lvl_tutorial_terrain/chunk_4_7.res" id="67_1vc7q"]
-[ext_resource type="ArrayMesh" uid="uid://bo4egurscjqqa" path="res://scenes/levels/lvl_tutorial_terrain/chunk_5_7.res" id="68_egkvx"]
-[ext_resource type="ArrayMesh" uid="uid://ruslrg1dd6wo" path="res://scenes/levels/lvl_tutorial_terrain/chunk_6_7.res" id="69_3deav"]
-[ext_resource type="ArrayMesh" uid="uid://cuv78cy1lvls8" path="res://scenes/levels/lvl_tutorial_terrain/chunk_7_7.res" id="70_cv1vr"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_9542903.tscn" id="71_jknif"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_9294160.tscn" id="72_r0h11"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_3322289.tscn" id="73_c6ouf"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_9038812.tscn" id="74_h5f24"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_174960.tscn" id="75_2ye3x"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_3966368.tscn" id="76_lp3fm"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_238250.tscn" id="77_yb3if"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_808525.tscn" id="78_klrwh"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_8936814.tscn" id="79_jub17"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_7753348.tscn" id="80_52ycw"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_449332.tscn" id="81_4lssk"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_2234232.tscn" id="82_eyfkf"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_5250556.tscn" id="83_3wvva"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_422046.tscn" id="84_au7xr"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_2898849.tscn" id="85_l2wvy"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_6709937.tscn" id="86_wkj4h"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_4085371.tscn" id="87_tnjrs"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_7960988.tscn" id="88_8omvr"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_7564675.tscn" id="89_c4hpm"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_3310838.tscn" id="90_sbqj0"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_8318780.tscn" id="91_c0eo8"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_2435347.tscn" id="92_hst4o"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_1369964.tscn" id="93_w85qn"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_7822592.tscn" id="94_oxldb"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_leafy_1486888.tscn" id="95_16xdk"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_heart_8349791.tscn" id="96_rlgp2"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_fruiting_4532344.tscn" id="97_4wv41"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_9001172.tscn" id="98_nr4jj"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_5248791.tscn" id="99_wkrvj"]
-[ext_resource type="PackedScene" path="res://scenes/props/prp_vine_shrub_2326491.tscn" id="100_e5xnf"]
+[ext_resource type="PackedScene" path="res://scenes/ui/loading_overlay.tscn" id="3_kyomv"]
+[ext_resource type="Script" uid="uid://s5xs4exuy4ax" path="res://scripts/planet/PlanetTerrain.cs" id="4_rtaia"]
+[ext_resource type="Resource" path="res://resources/planet/planet_archetype_rock.tres" id="5_ot1aj"]
+[ext_resource type="Resource" path="res://resources/planet/biomes/biome_brine_flats.tres" id="6_oogfs"]
+[ext_resource type="Resource" path="res://resources/planet/biomes/biome_rust_dunes.tres" id="7_t7v04"]
+[ext_resource type="Resource" path="res://resources/planet/biomes/biome_vinegar_frost.tres" id="8_0lw5o"]
+[ext_resource type="Resource" path="res://resources/planet/planet_streaming_default.tres" id="9_1cyx4"]
+[ext_resource type="Material" path="res://art/materials/mat_planet_terrain.tres" id="10_c2auv"]
+[ext_resource type="Script" uid="uid://6vg16i3tbcmw" path="res://scripts/mission/SystemBuilder.cs" id="11_wsk5i"]
+[ext_resource type="Resource" path="res://resources/mission/contract_pools_default.tres" id="12_swtll"]
+[ext_resource type="Script" uid="uid://5ghlhcaq1j0s" path="res://scripts/mission/PlacedNestSite.cs" id="13_3ntus"]
+[ext_resource type="PackedScene" path="res://scenes/props/nests/prp_nest_intro_1789143419_1000.tscn" id="14_b31i4"]
+[ext_resource type="PackedScene" uid="uid://j3nja030bqkb" path="res://scenes/props/trees/prp_tree_tall_a.tscn" id="16_bc4fj"]
+[ext_resource type="PackedScene" uid="uid://bgwpipnjgm5pj" path="res://scenes/props/trees/prp_tree_tall_c.tscn" id="18_ydxyo"]
+[ext_resource type="Environment" path="res://resources/planet/env_planet_default.tres" id="23_6640p"]
+[ext_resource type="Script" uid="uid://bmv7i4mwi7qp4" path="res://scripts/planet/SolarSystem.cs" id="24_ajkyw"]
+[ext_resource type="Resource" path="res://resources/planet/system_stats_default.tres" id="25_erf40"]
+[ext_resource type="Script" uid="uid://050hm5pwtaj0" path="res://scripts/planet/PlanetSite.cs" id="26_oquro"]
+[ext_resource type="Script" uid="uid://du2lhfb886tx2" path="res://scripts/mission/CloneBank.cs" id="36_yjvjy"]
+[ext_resource type="Resource" path="res://resources/mission/clone_rules_default.tres" id="37_im287"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_shrub_9001172.tscn" id="98_nr4jj"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_shrub_5248791.tscn" id="99_wkrvj"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_shrub_2326491.tscn" id="100_e5xnf"]
 [ext_resource type="Script" uid="uid://0t6pktnegtxv" path="res://scripts/mission/PodField.cs" id="101_1imfw"]
-[ext_resource type="Resource" path="res://resources/mission/pod_default.tres" id="102_md7t1"]
+[ext_resource type="Resource" uid="uid://wa1eqvk22dc" path="res://resources/mission/pod_default.tres" id="102_md7t1"]
 [ext_resource type="Script" uid="uid://bqbn1xwbwb346" path="res://scripts/horde/HordeDirector.cs" id="103_c0d3j"]
 [ext_resource type="Resource" uid="uid://utfjfvbk2vky" path="res://resources/horde/horde_stats_default.tres" id="104_nrn6y"]
 [ext_resource type="Resource" uid="uid://1rctlaen0pbe" path="res://resources/enemies/nme_composition_default.tres" id="105_b8l0e"]
@@ -113,398 +38,150 @@
 [ext_resource type="Resource" path="res://resources/mission/drop_rules_tutorial.tres" id="111_88aih"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_landing_pod.tscn" id="112_ir61l"]
 [ext_resource type="Script" uid="uid://dvg7v4utc3ypo" path="res://scripts/mission/IntroGuide.cs" id="113_0hjt8"]
-[ext_resource type="Resource" path="res://resources/mission/guide_tutorial.tres" id="114_5b6oc"]
+[ext_resource type="Resource" uid="uid://der2lj1gxlja8" path="res://resources/mission/guide_tutorial.tres" id="114_5b6oc"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_p41kc"]
-sky_top_color = Color(0.3, 0.52, 0.84, 1)
-sky_horizon_color = Color(0.74, 0.82, 0.9, 1)
-ground_bottom_color = Color(0.32, 0.3, 0.26, 1)
-ground_horizon_color = Color(0.74, 0.82, 0.9, 1)
-
-[sub_resource type="Sky" id="Sky_vlntk"]
-sky_material = SubResource("ProceduralSkyMaterial_p41kc")
-
-[sub_resource type="Environment" id="Environment_nj4sq"]
-background_mode = 2
-sky = SubResource("Sky_vlntk")
-ambient_light_source = 3
-tonemap_mode = 4
-tonemap_white = 2.0
-fog_enabled = true
-fog_mode = 1
-fog_light_color = Color(0.74, 0.82, 0.9, 1)
-fog_density = 1.0
-fog_sky_affect = 0.0
-fog_depth_curve = 1.6
-fog_depth_begin = 120.0
-fog_depth_end = 400.0
-
-[node name="Level" type="Node3D" unique_id=400688657 node_paths=PackedStringArray("PlayerSpawn")]
+[node name="Level" type="Node3D" unique_id=400688657 node_paths=PackedStringArray("PlayerSpawn", "Builder")]
 script = ExtResource("1_ny00j")
 PlayerScene = ExtResource("2_2fqxa")
-PlayerSpawn = NodePath("Spawns/PlayerSpawn")
+PlayerSpawn = NodePath("Spawns/LandingSite")
+Builder = NodePath("Geometry/SystemBuilder")
+LoadingOverlayScene = ExtResource("3_kyomv")
 
 [node name="Geometry" type="Node3D" parent="." unique_id=1349222470]
 
-[node name="Terrain" type="StaticBody3D" parent="Geometry" unique_id=1595195612 node_paths=PackedStringArray("Shape")]
-collision_mask = 0
-script = ExtResource("3_wri8e")
-Stats = ExtResource("4_jjcgf")
-Shape = NodePath("Heights")
-Material = ExtResource("5_teqwn")
-
-[node name="Heights" type="CollisionShape3D" parent="Geometry/Terrain" unique_id=1497714001]
-transform = Transform3D(4, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0)
-shape = ExtResource("6_4d0py")
-
-[node name="Chunk_0_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1288870620]
-mesh = ExtResource("7_qtqt5")
-
-[node name="Chunk_1_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=44872474]
-mesh = ExtResource("8_kdrhw")
-
-[node name="Chunk_2_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2122727175]
-mesh = ExtResource("9_okv7q")
-
-[node name="Chunk_3_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1704005154]
-mesh = ExtResource("10_we85q")
-
-[node name="Chunk_4_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1303792775]
-mesh = ExtResource("11_l8ovf")
-
-[node name="Chunk_5_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=927946923]
-mesh = ExtResource("12_5mdlc")
-
-[node name="Chunk_6_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1544538761]
-mesh = ExtResource("13_rcyy7")
-
-[node name="Chunk_7_0" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2053021753]
-mesh = ExtResource("14_xi8qr")
-
-[node name="Chunk_0_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1002859162]
-mesh = ExtResource("15_83abf")
-
-[node name="Chunk_1_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1896204485]
-mesh = ExtResource("16_ktjo3")
-
-[node name="Chunk_2_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=872470672]
-mesh = ExtResource("17_peim8")
-
-[node name="Chunk_3_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1610643096]
-mesh = ExtResource("18_60ddw")
-
-[node name="Chunk_4_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1788163541]
-mesh = ExtResource("19_dhpvb")
-
-[node name="Chunk_5_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=665172830]
-mesh = ExtResource("20_4sgxk")
-
-[node name="Chunk_6_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1389814682]
-mesh = ExtResource("21_2kywr")
-
-[node name="Chunk_7_1" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1597983992]
-mesh = ExtResource("22_1nqi3")
-
-[node name="Chunk_0_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1751597612]
-mesh = ExtResource("23_vjkf8")
-
-[node name="Chunk_1_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2061619426]
-mesh = ExtResource("24_egfcl")
-
-[node name="Chunk_2_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=301008965]
-mesh = ExtResource("25_0ack7")
-
-[node name="Chunk_3_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=579263015]
-mesh = ExtResource("26_siwgr")
-
-[node name="Chunk_4_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1048234638]
-mesh = ExtResource("27_s8svg")
-
-[node name="Chunk_5_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=429313318]
-mesh = ExtResource("28_8gux0")
-
-[node name="Chunk_6_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2121196572]
-mesh = ExtResource("29_w3knf")
-
-[node name="Chunk_7_2" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1864106572]
-mesh = ExtResource("30_ffagm")
-
-[node name="Chunk_0_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2061441013]
-mesh = ExtResource("31_qxpgr")
-
-[node name="Chunk_1_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=725388211]
-mesh = ExtResource("32_buveg")
-
-[node name="Chunk_2_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=404070273]
-mesh = ExtResource("33_kkey2")
-
-[node name="Chunk_3_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=309915559]
-mesh = ExtResource("34_ytryc")
-
-[node name="Chunk_4_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1084533780]
-mesh = ExtResource("35_xl05f")
-
-[node name="Chunk_5_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=789699139]
-mesh = ExtResource("36_xgqml")
-
-[node name="Chunk_6_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1591589371]
-mesh = ExtResource("37_yrqbq")
-
-[node name="Chunk_7_3" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2016649792]
-mesh = ExtResource("38_pjcpt")
-
-[node name="Chunk_0_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1589935418]
-mesh = ExtResource("39_yni6y")
-
-[node name="Chunk_1_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1036371894]
-mesh = ExtResource("40_hw2p2")
-
-[node name="Chunk_2_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2013764481]
-mesh = ExtResource("41_ggre0")
-
-[node name="Chunk_3_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1473557145]
-mesh = ExtResource("42_0sv7v")
-
-[node name="Chunk_4_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1506367157]
-mesh = ExtResource("43_12yv7")
-
-[node name="Chunk_5_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1552275283]
-mesh = ExtResource("44_13pdy")
-
-[node name="Chunk_6_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=719696075]
-mesh = ExtResource("45_gwuv7")
-
-[node name="Chunk_7_4" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=126026369]
-mesh = ExtResource("46_fhhjn")
-
-[node name="Chunk_0_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1520623131]
-mesh = ExtResource("47_hh0hv")
-
-[node name="Chunk_1_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=881726572]
-mesh = ExtResource("48_uf2yu")
-
-[node name="Chunk_2_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1899113264]
-mesh = ExtResource("49_5ut5u")
-
-[node name="Chunk_3_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=273345301]
-mesh = ExtResource("50_ynl4y")
-
-[node name="Chunk_4_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=578050417]
-mesh = ExtResource("51_ptg6f")
-
-[node name="Chunk_5_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=936801298]
-mesh = ExtResource("52_7gm0w")
-
-[node name="Chunk_6_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1001611844]
-mesh = ExtResource("53_e42od")
-
-[node name="Chunk_7_5" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1905155599]
-mesh = ExtResource("54_56red")
-
-[node name="Chunk_0_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1426747532]
-mesh = ExtResource("55_xnfgp")
-
-[node name="Chunk_1_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2016704710]
-mesh = ExtResource("56_hhack")
-
-[node name="Chunk_2_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2036887061]
-mesh = ExtResource("57_jtxd8")
-
-[node name="Chunk_3_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1490353950]
-mesh = ExtResource("58_6tv5n")
-
-[node name="Chunk_4_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=522504695]
-mesh = ExtResource("59_2orh8")
-
-[node name="Chunk_5_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=656000403]
-mesh = ExtResource("60_ycfua")
-
-[node name="Chunk_6_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=494327876]
-mesh = ExtResource("61_wkg7g")
-
-[node name="Chunk_7_6" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=419688761]
-mesh = ExtResource("62_4l7ba")
-
-[node name="Chunk_0_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2067343422]
-mesh = ExtResource("63_hqt34")
-
-[node name="Chunk_1_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1344865203]
-mesh = ExtResource("64_xycqm")
-
-[node name="Chunk_2_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=2141709626]
-mesh = ExtResource("65_cfw6i")
-
-[node name="Chunk_3_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=869771682]
-mesh = ExtResource("66_kutk6")
-
-[node name="Chunk_4_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1317221263]
-mesh = ExtResource("67_1vc7q")
-
-[node name="Chunk_5_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=847635848]
-mesh = ExtResource("68_egkvx")
-
-[node name="Chunk_6_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1500711392]
-mesh = ExtResource("69_3deav")
-
-[node name="Chunk_7_7" type="MeshInstance3D" parent="Geometry/Terrain" unique_id=1353816079]
-mesh = ExtResource("70_cv1vr")
+[node name="Planet" type="Node3D" parent="Geometry" unique_id=1914965406 node_paths=PackedStringArray("Sites", "MoreSiteChoosers", "Environment", "Sun")]
+script = ExtResource("4_rtaia")
+Archetype = ExtResource("5_ot1aj")
+Biomes = [ExtResource("6_oogfs"), ExtResource("7_t7v04"), ExtResource("8_0lw5o")]
+Stats = ExtResource("9_1cyx4")
+TerrainMaterial = ExtResource("10_c2auv")
+Sites = [NodePath("../../Spawns/LandingSite")]
+MoreSiteChoosers = [NodePath("../../Props/NestSite"), NodePath("../../Props/HookSite")]
+BuildOnReady = false
+Environment = NodePath("../../Lighting/WorldEnvironment")
+Sun = NodePath("../../Lighting/Sun")
+
+[node name="SystemBuilder" type="Node" parent="Geometry" unique_id=1246743023 node_paths=PackedStringArray("Planet", "Horde")]
+script = ExtResource("11_wsk5i")
+Planet = NodePath("../Planet")
+Horde = NodePath("../../Spawns/Horde")
+FallbackPools = ExtResource("12_swtll")
+PinToFallbackSeed = true
+TitleOverride = "FIRST CONTRACT"
+DetailsOverride = "A quiet rock with one nest of about a thousand cucumbers.
+The company drops you in a pod."
 
 [node name="Water" type="Node3D" parent="." unique_id=540807060]
 
 [node name="Foliage" type="Node3D" parent="." unique_id=560755592]
 
-[node name="VineLeafy9542903" parent="Foliage" unique_id=1616965235 instance=ExtResource("71_jknif")]
-transform = Transform3D(-0.65088236, 0, 0.7591786, 0, 1, 0, -0.7591786, 0, -0.65088236, 73.29714, 0, -150.43047)
-
-[node name="VineLeafy9294160" parent="Foliage" unique_id=1038460217 instance=ExtResource("72_r0h11")]
-transform = Transform3D(0.2433717, 0, -0.9699331, 0, 1, 0, 0.9699331, 0, 0.2433717, 158.90372, 0, -62.09509)
-
-[node name="VineLeafy3322289" parent="Foliage" unique_id=127346051 instance=ExtResource("73_c6ouf")]
-transform = Transform3D(-0.035993416, 0, -0.99935204, 0, 1, 0, 0.99935204, 0, -0.035993416, -83.372986, 0, -88.33991)
-
-[node name="VineLeafy9038812" parent="Foliage" unique_id=774936800 instance=ExtResource("74_h5f24")]
-transform = Transform3D(0.80326253, 0, -0.59562516, 0, 1, 0, 0.59562516, 0, 0.80326253, 3.4407895, 0, -107.15835)
-
-[node name="VineLeafy174960" parent="Foliage" unique_id=1562767162 instance=ExtResource("75_2ye3x")]
-transform = Transform3D(0.6906838, 0, 0.7231569, 0, 1, 0, -0.7231569, 0, 0.6906838, 126.74648, 0, 9.662334)
-
-[node name="VineLeafy3966368" parent="Foliage" unique_id=1660052429 instance=ExtResource("76_lp3fm")]
-transform = Transform3D(0.057865303, 0, 0.9983244, 0, 1, 0, -0.9983244, 0, 0.057865303, -79.028, 0, 138.38203)
-
-[node name="VineLeafy238250" parent="Foliage" unique_id=901291932 instance=ExtResource("77_yb3if")]
-transform = Transform3D(0.4954278, 0, -0.8686491, 0, 1, 0, 0.8686491, 0, 0.4954278, -134.22057, 0, 20.094938)
-
-[node name="VineLeafy808525" parent="Foliage" unique_id=1220109435 instance=ExtResource("78_klrwh")]
-transform = Transform3D(-0.81464577, 0, -0.57995886, 0, 1, 0, 0.57995886, 0, -0.81464577, 41.662567, 0, 93.45021)
-
-[node name="VineLeafy8936814" parent="Foliage" unique_id=2044088228 instance=ExtResource("79_jub17")]
-transform = Transform3D(-0.6322773, 0, 0.7747421, 0, 1, 0, -0.7747421, 0, -0.6322773, 8.447841, 0, -164.92168)
-
-[node name="VineLeafy7753348" parent="Foliage" unique_id=1165447765 instance=ExtResource("80_52ycw")]
-transform = Transform3D(-0.82516485, 0, -0.56489193, 0, 1, 0, 0.56489193, 0, -0.82516485, -50.197002, 0, 52.16299)
-
-[node name="VineLeafy449332" parent="Foliage" unique_id=67787619 instance=ExtResource("81_4lssk")]
-transform = Transform3D(-0.58203584, 0, 0.81316316, 0, 1, 0, -0.81316316, 0, -0.58203584, 97.504166, 0, 122.45799)
-
-[node name="VineLeafy2234232" parent="Foliage" unique_id=255090075 instance=ExtResource("82_eyfkf")]
-transform = Transform3D(-0.003280622, 0, -0.99999464, 0, 1, 0, 0.99999464, 0, -0.003280622, -42.443058, 0, -34.444817)
-
-[node name="VineLeafy5250556" parent="Foliage" unique_id=533246203 instance=ExtResource("83_3wvva")]
-transform = Transform3D(0.36094055, 0, 0.9325888, 0, 1, 0, -0.9325888, 0, 0.36094055, 22.904095, 0, -7.069254)
-
-[node name="VineLeafy422046" parent="Foliage" unique_id=1410352730 instance=ExtResource("84_au7xr")]
-transform = Transform3D(0.73195577, 0, 0.6813522, 0, 1, 0, -0.6813522, 0, 0.73195577, 73.13846, 0, 48.593266)
-
-[node name="VineLeafy2898849" parent="Foliage" unique_id=396505383 instance=ExtResource("85_l2wvy")]
-transform = Transform3D(0.7880648, 0, 0.61559236, 0, 1, 0, -0.61559236, 0, 0.7880648, 57.824654, 0, -99.57317)
-
-[node name="VineLeafy6709937" parent="Foliage" unique_id=1512870091 instance=ExtResource("86_wkj4h")]
-transform = Transform3D(-0.14831127, 0, -0.9889407, 0, 1, 0, 0.9889407, 0, -0.14831127, 0.87652016, 0, 127.41374)
-
-[node name="VineLeafy4085371" parent="Foliage" unique_id=1442875919 instance=ExtResource("87_tnjrs")]
-transform = Transform3D(0.65994155, 0, 0.7513169, 0, 1, 0, -0.7513169, 0, 0.65994155, -95.6095, 0, 82.89857)
-
-[node name="VineLeafy7960988" parent="Foliage" unique_id=1421692547 instance=ExtResource("88_8omvr")]
-transform = Transform3D(0.628031, 0, -0.7781883, 0, 1, 0, 0.7781883, 0, 0.628031, 126.51768, 0, -115.69969)
-
-[node name="VineLeafy7564675" parent="Foliage" unique_id=227813770 instance=ExtResource("89_c4hpm")]
-transform = Transform3D(-0.30193603, 0, 0.9533282, 0, 1, 0, -0.9533282, 0, -0.30193603, -135.64531, 0, -65.068954)
-
-[node name="VineLeafy3310838" parent="Foliage" unique_id=1501833999 instance=ExtResource("90_sbqj0")]
-transform = Transform3D(0.97359204, 0, -0.22829492, 0, 1, 0, 0.22829492, 0, 0.97359204, 11.616767, 0, 46.991703)
-
-[node name="VineLeafy8318780" parent="Foliage" unique_id=78706747 instance=ExtResource("91_c0eo8")]
-transform = Transform3D(-0.9801182, 0, -0.19841452, 0, 1, 0, 0.19841452, 0, -0.9801182, -43.599483, 0, -131.73453)
-
-[node name="VineLeafy2435347" parent="Foliage" unique_id=577132550 instance=ExtResource("92_hst4o")]
-transform = Transform3D(0.18258949, 0, 0.9831892, 0, 1, 0, -0.9831892, 0, 0.18258949, 141.09149, 0, 82.55235)
-
-[node name="VineLeafy1369964" parent="Foliage" unique_id=1694369655 instance=ExtResource("93_w85qn")]
-transform = Transform3D(-0.48141927, 0, 0.8764904, 0, 1, 0, -0.8764904, 0, -0.48141927, -95.94936, 0, -24.299057)
-
-[node name="VineLeafy7822592" parent="Foliage" unique_id=1937283257 instance=ExtResource("94_oxldb")]
-transform = Transform3D(0.97741735, 0, -0.21131814, 0, 1, 0, 0.21131814, 0, 0.97741735, -120.49312, 0, -129.44553)
-
-[node name="VineLeafy1486888" parent="Foliage" unique_id=2120416163 instance=ExtResource("95_16xdk")]
-transform = Transform3D(-0.8412569, 0, 0.5406356, 0, 1, 0, -0.5406356, 0, -0.8412569, -149.35219, 0.32233098, 70.3503)
-
-[node name="VineHeartCentre" parent="Foliage" unique_id=105409161 instance=ExtResource("96_rlgp2")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -45)
-
-[node name="VineFruitingEast" parent="Foliage" unique_id=1397728206 instance=ExtResource("97_4wv41")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, -45)
-
 [node name="Props" type="Node3D" parent="." unique_id=400586348]
 
-[node name="Hooks" type="Node3D" parent="Props" unique_id=1801957366]
+[node name="NestSite" type="Node3D" parent="Props" unique_id=604668612 node_paths=PackedStringArray("Vines", "Nest")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 262, 1234.4, 0)
+script = ExtResource("13_3ntus")
+Vines = NodePath("Nest")
+Nest = NodePath("../PlacedNest")
 
-[node name="HookShrubWest" parent="Props/Hooks" unique_id=1248999266 instance=ExtResource("98_nr4jj")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0, 205)
+[node name="Nest" parent="Props/NestSite" unique_id=1564083886 instance=ExtResource("14_b31i4")]
 
-[node name="HookShrubMiddle" parent="Props/Hooks" unique_id=1766091567 instance=ExtResource("99_wkrvj")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 185)
+[node name="HookSite" type="Node3D" parent="Props" unique_id=1640884155 node_paths=PackedStringArray("Vines")]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 19.1, 1261.8, 0)
+script = ExtResource("13_3ntus")
+Vines = NodePath("Hooks")
 
-[node name="HookShrubEast" parent="Props/Hooks" unique_id=472169062 instance=ExtResource("100_e5xnf")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, 165)
+[node name="Hooks" type="Node3D" parent="Props/HookSite" unique_id=1039520137]
 
-[node name="PodField" type="Node" parent="Props" unique_id=1014797021 node_paths=PackedStringArray("Horde")]
+[node name="HookShrubA" parent="Props/HookSite/Hooks" unique_id=1522654696 instance=ExtResource("98_nr4jj")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 8.000001, 0, 25)
+
+[node name="HookTreeA" parent="Props/HookSite/Hooks" unique_id=174060837 instance=ExtResource("16_bc4fj")]
+transform = Transform3D(-0.50000006, 0, 0.8660254, 0, 1, 0, -0.8660254, 0, -0.50000006, -9, 0, 8)
+
+[node name="HookShrubB" parent="Props/HookSite/Hooks" unique_id=649714489 instance=ExtResource("99_wkrvj")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 6.9999995, 0, -10)
+
+[node name="HookTreeB" parent="Props/HookSite/Hooks" unique_id=326706812 instance=ExtResource("18_ydxyo")]
+transform = Transform3D(-0.6427876, 0, -0.76604444, 0, 1, 0, 0.76604444, 0, -0.6427876, -8.000001, 0, -27.999998)
+
+[node name="HookShrubC" parent="Props/HookSite/Hooks" unique_id=493223504 instance=ExtResource("100_e5xnf")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -22.000002, 0, -4.8999977)
+
+[node name="PlacedNest" type="Node" parent="Props" unique_id=173647383 node_paths=PackedStringArray("Vines", "Pods", "Horde")]
+script = ExtResource("107_pr0f5")
+Vines = NodePath("../NestSite/Nest")
+Pods = NodePath("../PodField")
+Horde = NodePath("../../Spawns/Horde")
+RegisterOnReady = false
+
+[node name="PodField" type="Node" parent="Props" unique_id=1530632014 node_paths=PackedStringArray("Horde")]
 script = ExtResource("101_1imfw")
 Stats = ExtResource("102_md7t1")
 Horde = NodePath("../../Spawns/Horde")
 
 [node name="Lighting" type="Node3D" parent="." unique_id=1837075517]
 
-[node name="Sun" type="DirectionalLight3D" parent="Lighting" unique_id=113617156]
-transform = Transform3D(0.81915206, -0.4262504, 0.38379753, 0, 0.66913056, 0.74314487, -0.57357645, -0.6087487, 0.54811966, 0, 40, 0)
+[node name="Sun" type="DirectionalLight3D" parent="Lighting" unique_id=1317346372]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1300, 0)
 shadow_enabled = true
 directional_shadow_mode = 1
 directional_shadow_max_distance = 140.0
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="Lighting" unique_id=319278798]
-environment = SubResource("Environment_nj4sq")
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Lighting" unique_id=215205307]
+environment = ExtResource("23_6640p")
+
+[node name="SolarSystem" type="Node3D" parent="Lighting" unique_id=738281183 node_paths=PackedStringArray("Planet", "Environment", "Sun", "Level")]
+script = ExtResource("24_ajkyw")
+Stats = ExtResource("25_erf40")
+Planet = NodePath("../../Geometry/Planet")
+Environment = NodePath("../WorldEnvironment")
+Sun = NodePath("../Sun")
+Level = NodePath("../..")
+StartOnBike = false
 
 [node name="Audio" type="Node3D" parent="." unique_id=2105280687]
 
 [node name="Spawns" type="Node3D" parent="." unique_id=2007751604]
 
-[node name="PlayerSpawn" type="Marker3D" parent="Spawns" unique_id=64899914]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 250)
+[node name="LandingSite" type="Marker3D" parent="Spawns" unique_id=7517564]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -66, 1260, 0)
+script = ExtResource("26_oquro")
+PadRadius = 24.0
+PadBlend = 30.0
+KeepColliderRadius = 150.0
 
-[node name="Horde" type="Node3D" parent="Spawns" unique_id=175980012 node_paths=PackedStringArray("Level", "GroundProvider")]
+[node name="Horde" type="Node3D" parent="Spawns" unique_id=1507371347 node_paths=PackedStringArray("Level", "GroundProvider")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 262, 1234.4, 0)
 script = ExtResource("103_c0d3j")
 Stats = ExtResource("104_nrn6y")
 Composition = ExtResource("105_b8l0e")
 Level = NodePath("../..")
-GroundProvider = NodePath("../../Geometry/Terrain")
+GroundProvider = NodePath("../../Geometry/Planet")
 
-[node name="ManipulatorBinding" type="Node" parent="Spawns/Horde" unique_id=472575743 node_paths=PackedStringArray("Horde", "Level")]
+[node name="ManipulatorBinding" type="Node" parent="Spawns/Horde" unique_id=1187446402 node_paths=PackedStringArray("Horde", "Level")]
 script = ExtResource("106_pk45s")
 Horde = NodePath("..")
 Level = NodePath("../../..")
 
-[node name="LandingSite" type="Marker3D" parent="Spawns" unique_id=411730728]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 250)
-
-[node name="Nest" type="Node" parent="Spawns" unique_id=986168697 node_paths=PackedStringArray("Vines", "Pods", "Horde")]
-script = ExtResource("107_pr0f5")
-Vines = NodePath("../../Foliage")
-Pods = NodePath("../../Props/PodField")
-Horde = NodePath("../Horde")
-
-[node name="Mission" type="Node" parent="Spawns" unique_id=1853699030 node_paths=PackedStringArray("Pods", "Horde")]
+[node name="Mission" type="Node" parent="Spawns" unique_id=344618968 node_paths=PackedStringArray("Pods", "Horde")]
 script = ExtResource("108_01phj")
 Rules = ExtResource("109_1jqlp")
 Pods = NodePath("../../Props/PodField")
 Horde = NodePath("../Horde")
 
-[node name="Landing" type="Node" parent="Spawns" unique_id=1840131431 node_paths=PackedStringArray("Level", "LandingSite")]
+[node name="Landing" type="Node" parent="Spawns" unique_id=234543503 node_paths=PackedStringArray("Level", "LandingSite")]
 script = ExtResource("110_hf772")
 Rules = ExtResource("111_88aih")
 PodScene = ExtResource("112_ir61l")
 Level = NodePath("../..")
 LandingSite = NodePath("../LandingSite")
 
-[node name="Guide" type="Node" parent="Spawns" unique_id=1771504428 node_paths=PackedStringArray("Level", "Pods", "Landing")]
+[node name="Clones" type="Node" parent="Spawns" unique_id=2111744203 node_paths=PackedStringArray("Level")]
+script = ExtResource("36_yjvjy")
+Rules = ExtResource("37_im287")
+Level = NodePath("../..")
+
+[node name="Guide" type="Node" parent="Spawns" unique_id=1528135509 node_paths=PackedStringArray("Level", "Pods", "Landing")]
 script = ExtResource("113_0hjt8")
 Lines = ExtResource("114_5b6oc")
 Level = NodePath("../..")

@@ -119,6 +119,17 @@ public static class Values
                         return ResourceLoader.Load(text) ?? throw new Bridge.Refused($"'{text}' did not load");
                     throw new Bridge.Refused($"'{key}' wants a res:// path, node:<path> or {{\"class\":...}} ({className})");
                 }
+                case Variant.Type.Array:
+                {
+                    // Of resources, nodes or plain values, each as 'set' writes one;
+                    // a typed array of a class takes them in the property's setter.
+                    if (j is not JsonArray items)
+                        throw new FormatException("an array");
+                    var made = new Godot.Collections.Array();
+                    for (int i = 0; i < items.Count; i++)
+                        made.Add(Element(items[i], $"{key}[{i}]"));
+                    return made;
+                }
                 default:
                     throw new Bridge.Refused($"'{key}' is a {type}, which set cannot write yet");
             }
@@ -127,6 +138,29 @@ public static class Values
         {
             throw new Bridge.Refused($"'{key}' wants a {type}: {e.Message}");
         }
+    }
+
+    /// <summary>One item of an array: node:&lt;path&gt;, a res:// path, a number, a bool or a string.</summary>
+    private static Variant Element(JsonNode j, string key)
+    {
+        if (j is JsonObject made)
+            return NewResource(made, key);
+        if (j is JsonValue value)
+        {
+            if (value.TryGetValue(out string text))
+            {
+                if (text.StartsWith("node:"))
+                    return Bridge.NodeAt(text["node:".Length..]);
+                if (text.StartsWith("res://"))
+                    return ResourceLoader.Load(text) ?? throw new Bridge.Refused($"'{text}' did not load");
+                return text;
+            }
+            if (value.TryGetValue(out bool flag))
+                return flag;
+            if (value.TryGetValue(out double number))
+                return number;
+        }
+        throw new Bridge.Refused($"'{key}' wants node:<path>, a res:// path, a number, a bool or a string");
     }
 
     /// <summary>A new resource kept in the scene, e.g. {"class":"BoxShape3D","size":[4,1,4]}:

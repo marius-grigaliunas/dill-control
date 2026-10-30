@@ -25,7 +25,7 @@ public partial class MechCare : Node
     [Export]
     public MechCompanion Companion { get; set; }
 
-    /// <summary>The pod a new part comes down in (the company's, <c>prp_drop_pod</c>).</summary>
+    /// <summary>The pod a new part comes down in (the company's, <c>prp_landing_pod</c>).</summary>
     [Export]
     public PackedScene PodScene { get; set; }
 

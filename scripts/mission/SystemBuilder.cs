@@ -39,6 +39,23 @@ public partial class SystemBuilder : Node, ILevelBuilder
     [Export]
     public long FallbackSeed { get; set; } = 1;
 
+    [ExportGroup("Pinned")]
+    /// <summary>
+    /// Always build <see cref="FallbackSeed"/> from <see cref="FallbackPools"/>,
+    /// whatever the session or a bench says: a handbuilt level on a planet (the
+    /// tutorial) is the same planet every time.
+    /// </summary>
+    [Export]
+    public bool PinToFallbackSeed { get; set; }
+
+    /// <summary>The loading screen's title instead of the contract's designation; empty keeps it.</summary>
+    [Export]
+    public string TitleOverride { get; set; } = "";
+
+    /// <summary>The loading screen's words instead of the contract's summary; empty keeps them.</summary>
+    [Export(PropertyHint.MultilineText)]
+    public string DetailsOverride { get; set; } = "";
+
     [ExportGroup("Settling")]
     /// <summary>Frames in a row under this before the player is let in.</summary>
     [Export(PropertyHint.Range, "10,50,0.5,suffix:ms")]
@@ -162,6 +179,11 @@ public partial class SystemBuilder : Node, ILevelBuilder
 
     private ContractSpec ResolveContract()
     {
+        if (PinToFallbackSeed && FallbackPools != null)
+        {
+            return ContractGenerator.Generate(FallbackPools, (ulong)FallbackSeed);
+        }
+
         ContractPools pools = Session.Instance?.Pools ?? FallbackPools;
 
         Window root = GetTree().Root;
