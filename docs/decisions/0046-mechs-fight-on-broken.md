@@ -1,10 +1,10 @@
 # 0046 Mechs fight on broken, mend themselves, and take their moves from Blender
 
-*25 October 2026. Agreed with the user. Built the same day, steps 1-5, step 6
+*25 October 2026; the walking rules of the former 0010 folded in 29 October. Agreed with the user. Built the same day, steps 1-5, step 6
 begun (each stage's note below). Measured on the target machine: the tank's
 destruction +0.5-1 ms while it breaks; `limbs` 11-14 ms mean, worst frames
 to 21-30 ms as pieces spawn and pods land; `mechs` unchanged. Amends 0005,
-0010 and 0011.*
+0011.*
 
 ## Context
 
@@ -70,7 +70,7 @@ destruction played backward, on the same workers.
 
 *Built (step 4):* `MechCare` on every mech asks over
 `EventBus.MechNeedsRepair` once `CallAtMissingVoxels` are gone, orders a
-lost limb in the company's pod (`prp_drop_pod`, no landing blast) to its
+lost limb in the company's pod (`prp_landing_pod`, no landing blast) to its
 side after `PodDelaySeconds`, walks to it (a companion `Errand`) and has
 it fitted (`MechWalker.Refit`); with its core below `FallBackBelowCore` it
 follows `FallBackDistance` behind the player. The storage bot's
@@ -170,3 +170,26 @@ add-on and mirror; new attacks.
 - Blender and the game must agree on pivots exactly; the add-on reads the
   same `.vox` with the same rules to guarantee it.
 - Each stage is benched on the target machine before the next.
+
+## What stands from the earlier walking record
+
+*Folded in from 0010 (deleted).*
+
+- **Every motion is procedural.** `MechWalker` moves a `CharacterBody3D` on a box.
+  Each foot stays planted until the body leaves it more than `StepThreshold`
+  behind, then steps to where its rest spot will be; diagonal pairs step together.
+  Any direction, turning in place and stopping square come from that one rule, and
+  a new mech needs no animation work.
+- **IK is ours, on plain nodes:** `MechLeg` solves hip-knee-ankle on rigid parts
+  (no skeleton), leg lengths from the model's pivot voxels (0009).
+- **What it does is separate from how it walks:** `MechWalker` takes a move intent,
+  facing, aim and jump; brains (`MechCompanion`, `MechGunner`, `MechSlasher`) set
+  them. An enemy walker would be another brain.
+- **Sprint is a second top speed,** with stride, crouch and lean easing on by speed
+  (`SprintSpeed`, `StepThresholdSlow`, `SprintStepThreshold`). Arms aim then
+  stroke over the gait swing (`AimArm`, `StrokeArm`); the shoulder trails the foot
+  (`ArmSwingFollow`). A slam is `Blast`, like every hit. Numbers are in each mech's
+  `MechTuning` and slash `.tres`.
+- **Riding stows the player** and carries them at the seat, so the horde chases
+  the mech.
+- **Cost:** a step is only as long as the legs reach, so the body sinks at speed.

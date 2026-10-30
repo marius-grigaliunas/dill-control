@@ -70,7 +70,7 @@ public partial class VineBakeStats : Resource
     [Export] public Resource Flex { get; set; }
     [Export] public VinePalette Palette { get; set; }
     [Export(PropertyHint.Dir)] public string VoxelFolder { get; set; } = "res://art/voxels";
-    [Export(PropertyHint.Dir)] public string SceneFolder { get; set; } = "res://scenes/props";
+    [Export(PropertyHint.Dir)] public string SceneFolder { get; set; } = "res://scenes/props/vines";
 
     public VineGenerator.Limits Limits() => new()
     {

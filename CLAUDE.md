@@ -1,79 +1,91 @@
 # Dill Control
 
 A first-person horde shooter in Godot **4.7.2-stable mono (C#)** with Jolt
-physics. A contract exterminator clears a planet of twenty-five thousand pickles
-from a grappling line and a hoverbike. `docs/pitch.md` is the game;
-`docs/plan.md` is the road from here to a vertical slice.
+physics. A contract exterminator clears a planet of twenty-five thousand giant
+cucumbers from a grappling line. `docs/pitch.md` is the game; `docs/plan.md` is
+the road to the vertical slice (onboarding and three contracts,
+`docs/decisions/0051`). In the fiction the enemies are cucumbers (`0050`); code,
+files and bench modes keep "pickle".
 
 The prototype that proved it is the **lab**, `C:\Projects\fps-swampy`. Its
-`CLAUDE.md` holds the measured reasoning behind most rules below, and its code
-is what gets ported. Port from it; never copy its content generators.
+`CLAUDE.md` holds the measured reasoning behind many rules below. Port from it;
+never copy its content generators.
 
 This file is rules only. A decision with more than one defensible answer gets a
-record in `docs/decisions/`, and a line here pointing at it.
+record in `docs/decisions/` (only what is still true; an overwritten record is
+deleted), and a line here pointing at it. An unsettled idea goes in `docs/ideas/`.
 
 ---
 
 ## The requirement
 
 **60 fps at 1920x1080 native on an 11th-gen Core i5 with 16 GB and Iris Xe.**
-A frame that misses it is a bug, on the same footing as a crash. Recorded in
-`project.godot` under `[dill_control]` too. See `docs/decisions/0002`.
+A frame that misses it is a bug, on the same footing as a crash (`0002`; also in
+`project.godot` under `[dill_control]`).
 
-- Render scale ships at 1.0. Lowering it is a diagnostic (fill cost or not?),
-  never a way to meet the target.
-- Measured with `bench.gd` on the target machine, never by eye. Read
-  `gpu mean`, the worst frame and the count over 16.7 ms, not an average.
-- Pair every comparison: baseline, change, baseline, on a machine that has been
-  idle. A hot laptop drifts by milliseconds with nothing changed.
+- Render scale ships at 1.0. Lowering it is a diagnostic, never a way to meet
+  the target.
+- Measured with `bench.gd` on the target machine, never by eye. Read `gpu mean`,
+  the worst frame and the count over 16.7 ms, not an average.
+- Pair every comparison: baseline, change, baseline, on an idle machine.
+- Measure plugged in (on battery every phase reads 16.6 ms). Cool the laptop
+  40-60 s between runs. Hands off during a bench; nothing else running.
 
 ## Verified environment
 
 | Thing | Value |
 |---|---|
-| Engine | `4.7.2.stable.mono.official.ed1daf0bf`, on the Desktop, not on PATH: `C:\Users\Elena\Desktop\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe` |
+| Engine | `4.7.2.stable.mono.official.ed1daf0bf`, not on PATH: `C:\Users\Elena\Desktop\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe` |
 | Framework | `net8.0`, `Godot.NET.Sdk/4.7.2`, assembly `DillControl` |
-| Renderer | Forward+, **Vulkan** (`docs/decisions/0048`): as fast idle and 1.5-3.5 ms faster under the horde than D3D12 on the Iris Xe, which also hung in its first second about one start in three. `lab_test` still restarts a start that hangs. |
-| Physics | `physics/3d/physics_engine="Jolt Physics"`, explicit. **`DEFAULT` is not Jolt in 4.7.2.** Never fall back to Godot Physics; raise it instead. Jolt's body limit is raised to 32,768 (`jolt_physics_3d/limits/max_bodies`); past it bodies silently fail and hinges error. `!bodies` in a bench timeline counts them. |
-| Input device ids | Keyboard events arrive as device `16`, mouse as `32`. A stored event with device `0` never matches. Hand-edited input maps keep `16`/`32`, or `-1` for any. |
-| Art facing | **MagicaVoxel: verified.** A `.vox` model's front (`-Y`) arrives facing Godot's `+Z` (`Vector3.ModelFront`); the tank in `lvl_pipeline_test`. **Blender: `.vox` mechs verified** through our add-on (`tools/blender/dill_mech`: MagicaVoxel's axes are Blender's; export turns Blender (x, y, z) into Godot (x, z, -y); every part matches the import, `check_rig.py`). **Blender `.glb`: not yet verified.** Expected the same from Blender's `-Y`; confirm with a Blender test asset. |
-| Art scale | **MagicaVoxel: verified,** 0.1 m per voxel (import option `voxel/size`). **Blender: not yet verified.** Expected: 1 Blender unit = 1 m with transforms applied. |
-
-Joypad events in the input map use device `-1` (any pad). The layout is
-`docs/decisions/0025`.
+| Renderer | Forward+, **Vulkan** (`0048`) |
+| Physics | `physics/3d/physics_engine="Jolt Physics"`, explicit. **`DEFAULT` is not Jolt in 4.7.2.** Never fall back to Godot Physics. Body limit raised to 32,768 (`jolt_physics_3d/limits/max_bodies`). |
+| Input device ids | Keyboard `16`, mouse `32`, joypad `-1` (any). A stored event with device `0` never matches. Layout: `0025`. |
+| Art facing | MagicaVoxel `.vox` front (`-Y`) arrives facing Godot `+Z`: verified. Blender `.vox` mechs verified through `tools/blender/dill_mech`. Blender `.glb`: not yet verified. |
+| Art scale | MagicaVoxel 0.1 m per voxel: verified. Blender 1 unit = 1 m with transforms applied: not yet verified. |
 
 ## Rules
 
-1. **Authored over generated.** If a designer would want to move it, it is a
-   node in a scene, not a number in a generator. Generators are for what no one
-   places by hand: terrain, the horde, crater shapes. See `docs/decisions/0004`.
+1. **Authored over generated** (`0004`). If a designer would want to move it, it
+   is a node in a scene. Generators are for terrain, the horde, craters and nests.
 2. **Data over code.** A number that can be argued about lives in a
-   `[GlobalClass] Resource` with `[Export]`s and a `.tres`. Changing it never
-   needs a rebuild. One resource per system; no god-resource.
-3. **Signals and exports, never node paths.** No `GetNode("../..")`. Inside a
-   scene, collaborators are `[Export]` references; parent-child traffic is local
-   signals; the `EventBus` autoload is only for traffic whose sender cannot name
-   its listener, and each signal on it is justified in a decision record.
-4. **Imported models are wrapped, never edited.** Every `.glb` is instanced by
-   a small `.tscn` that adds scripts, hitboxes and collision. Re-exporting from
-   Blender replaces the mesh and leaves the wrapper alone.
-5. **One system at a time:** ported, benched, committed. Never leave the
-   project broken across more than one commit.
-6. **No function keys.** Development is on a laptop where they need `Fn`. Every
-   debug key is a letter.
-7. **No third-party addons** without a proposal and a reason. Our own editor
-   plugins live in `addons/` because Godot looks for them nowhere else; there
-   are five, `vox_importer`, `vine_gen`, `editor_bridge`, `terrain_brush` and
+   `[GlobalClass] Resource` with `[Export]`s and a `.tres`; changing it needs no
+   rebuild. One resource per system; no god-resource.
+3. **Signals and exports, never node paths.** No `GetNode("../..")`. Collaborators
+   inside a scene are `[Export]` references; the `EventBus` autoload is only for
+   traffic whose sender cannot name its listener, each signal justified in a
+   record (`0006`).
+4. **Imported models are wrapped, never edited.** Every `.glb` is instanced by a
+   small `.tscn` that adds scripts, hitboxes and collision.
+5. **One system at a time:** ported, benched, committed. Never leave the project
+   broken across more than one commit.
+6. **No function keys.** Every debug key is a letter.
+7. **No third-party addons** without a proposal. Our own editor plugins live in
+   `addons/`: `vox_importer`, `vine_gen`, `editor_bridge`, `terrain_brush`,
    `asset_lab`.
-8. **Claude works with Godot through the editor bridge.** Creating, updating,
-   testing and inspecting scenes, levels and assets go through the toolset
-   (`docs/decisions/0044`; below) whenever the editor is open: look before and
-   after every change (`view`), change through commands (one undo each), test
-   with `run` and `output`. **When the toolset cannot do what the work needs,
-   improve it**: add or extend a command (`addons/editor_bridge`, or
-   `Bridge.Register` in the tool's own plugin), then use it. Never work round
-   it by hand-editing an open scene's `.tscn`. Headless scripts (`bench.gd`,
-   the checks) stay for what needs no editor.
+8. **Claude works with Godot through the editor bridge** (`0044`) whenever the
+   editor is open: look before and after every change (`view`), change through
+   commands (one undo each), test with `run` and `output`. **When the toolset
+   cannot do what the work needs, extend it** (`addons/editor_bridge`, or
+   `Bridge.Register` in the tool's own plugin). Never hand-edit an open scene's
+   `.tscn`. Headless scripts (`bench.gd`, the checks) are for what needs no editor.
+9. **A handbuilt level is one the user can open and see**: every vine, prop,
+   marker and pod drop is a real node in the scene, so it can be moved, swapped
+   or deleted by hand. On a sculpted ground the ground is one too. On a planet
+   the ground is built at load (a level the user asks for on a planet is built,
+   see 10), so everything on it is placed roughly and set on the ground by a
+   `PlanetSite` or `PlacedNestSite`. A scene's own `.tscn` is never the way to
+   hide content from the editor. The onboarding level is `lvl_tutorial`
+   (`0055`): a pinned planet, a baked nest scene on a `PlacedNestSite`, hooks
+   on another, `PodLanding` dropping the player in a pod seen from inside, and
+   `CloneBank` printing a new body when one is lost (`0053`).
+10. **HARD RULE: levels are built the way a human edits them.** Open any level in
+    the editor and everything in it is there to see: ground, props, vines, nests,
+    markers, lights, spawn. The user places, moves, sculpts and decorates in the
+    editor, then plays; a level that opens as an empty viewport and fills in only
+    at runtime is wrong. Never make a level by copying another level's `.tscn`
+    and rewiring it by text, and never call a wiring test a level. Look at the
+    result in the editor (`view`) before saying it is done. If the ground cannot
+    exist in the editor (a planet), say so and ask before building anything on it.
 
 ## The level tree
 
@@ -92,152 +104,119 @@ Level        (Node3D, LevelRoot.cs)
 ```
 
 `LevelRoot` instances the player at `Spawns/PlayerSpawn`; **the player scene is
-never saved into a level.** It also adds `PerfDriver`, so every level records
-with `U` and benches with no wiring.
+never saved into a level.** It also adds `PerfDriver`, so every level records with
+`U` and benches with no wiring.
 
-**The planet sits at the world origin** and everything on it is placed through
-a `PlanetSite`: placed roughly, levelled and stood on the ground at build. Code
-with no body to ask `GetGravity()` asks `WorldUp`, never `Vector3.Up`. See
-`docs/decisions/0017`.
+**The planet sits at the world origin** and everything on it is placed through a
+`PlanetSite` (`0017`). Code with no body to ask `GetGravity()` asks `WorldUp`,
+never `Vector3.Up`.
 
-**Generation draws from authored pools and one seed.** A contract is a seed;
-every roll goes through `SeededRandom` with a named stream, never `GD.Randi`
-or `System.Random`. A planet rolls inside a `PlanetArchetype`'s ranges and
-wears a `PlanetBiome`; a range widens only after `bench.gd planets` holds at
-it. See `docs/decisions/0018`. A compound is a seeded layout of authored
-cluster scenes from a `CompoundKit`: the seed decides where, never what
-(`docs/decisions/0020`).
+**Generation draws from authored pools and one seed** (`0018`). A contract is a
+seed; every roll goes through `SeededRandom` with a named stream, never
+`GD.Randi` or `System.Random`. Nests pin the planet at 1,260 m (`0037`).
 
-**A vine nest is grown at load** (`docs/decisions/0033`: 25 s at 25,000;
-a saved nest is a `NestPreset` seed, never baked vines). A
-`NestKit` (`resources/mission/nest_kit_default.tres`) names the kinds and the
-layout; `NestBuilder`, the level's builder over `SystemBuilder`, plans the
-nest from the contract's seed and population (one pod per pickle) and grows
-and builds its vines on all cores while the planet generates; `NestPlacer`, a
-site chooser (`PlanetTerrain.MoreSiteChoosers`), lays it at the flattest of
-a few places on levelled pads. **A nest is one clump**: vines 55-70 m apart
-inside 400 m, more pods a vine before more room (`docs/decisions/0038`), on
-a planet pinned at 1,260 m (`0037`). No compound or city goes with a nest. `lvl_nest_lab` is a contract level with a nest, no ship and no
-compound (`lvl_nest_intro` is the onboarding one: a saved nest, `NestLandmark`s and an `IntroGuide`'s prompts, `docs/decisions/0049`): `pop=N`, `nest=SEED`, `horde=0`, `pickles=0` after `--`.
-A vine stands on its own foot; a crater under it unroots it (`PlantFlex.Unroot`).
+**`Session` is the third autoload and carries state only** (`0021`): the offers
+and the accepted contract across scene changes. A level built after it loads names
+a `Builder` on its `LevelRoot`; a loading screen covers it.
 
-**Every pickle starts on a pod** (`docs/decisions/0034`). `PodField` holds a
-nest's pods in flat arrays, never a node a pod: each hangs from a voxel of its
-vine and goes with it, and its pickle is drawn instanced and bent on the GPU
-(`pickle_hang`). Hanging pickles are shot through a pool of `PodHitProxy`
-on those nearest the aim, and blasts through the bus (`docs/decisions/0040`).
-The colony never strikes first (`0029`, `0041`): harm to any of it wakes it,
-never nearness, and over
-`WakeSeconds` every pickle drops into the horde (`SpawnOrigin.Pod`), which
-has none of its own. Numbers: `resources/mission/pod_default.tres`.
+## The nest
 
-**Static voxel bodies are on World and Structure, never Prop** (`docs/decisions/0039`). The planet's
-gravity field watches Prop for loose pieces; watching a nest's 64,000 static
-boxes too cost Jolt 16 ms a tick. A query that looks for props looks for
-Structure too (`GameLayers`). Torn leaves are on Litter: they fall and rest
-but never push the player.
+A nest is one clump of vines (`0038`: 55-70 m apart inside 400 m), grown at load
+from the contract's seed and population (`0033`: 25 s at 25,000; a saved nest is a
+`NestPreset`; `nest_bake` turns one into an authored scene to edit by hand, `0056`). `NestKit` names the kinds and layout;
+`NestBuilder` plans and grows it; `NestPlacer` lays it at the flattest site. A
+single vine is baked only for a set piece.
 
-**`Session` is the third autoload and carries state only**: the offers and the
-accepted contract, across scene changes. A level built after it loads names a
-`Builder` on its `LevelRoot`; a loading screen covers it and the player is
-made once the builder says the frames have settled. See
-`docs/decisions/0021`.
+- **Every cucumber starts on a pod** (`0034`, `0040`): `PodField` holds pods in
+  flat arrays, never a node a pod; the cucumber is drawn instanced and bent on the
+  GPU (`pickle_hang`). Nothing is on the ground until the colony wakes.
+- **The colony never strikes first** (`0041`): harm wakes it, nearness never, and
+  over `WakeSeconds` every cucumber drops into the horde. Numbers:
+  `resources/mission/pod_default.tres`.
+- **Plants bend** (`0032`): a `Flex` node (`PlantFlex`) after the model; wind, hits
+  and the grapple push it; cut weak enough, it falls. Leaves are meshes (`0035`).
+  Vines leave no rubble (`0042`).
+- **Only valid vines** (`0036`): `VineGrower` re-rolls a failing seed from the seed
+  and an attempt number. A seed grows the same vine on every machine: `SeededRandom`
+  and `Fdlibm` trigonometry, never .NET's. `vinecheck.gd` holds the generator to
+  `scripts/debug/vine_golden.json`; re-record with `-- record` only after a change
+  meant to move them.
+- **Baking and placing a nest** (`0056`): a saved `NestPreset` stays a seed and
+  grows at load; **Bake** (Nest tab, or `nest_bake`) turns the nest Generate shows
+  into `scenes/props/nests/prp_nest_<preset>.tscn`, its vines baked to
+  `scenes/props/vines/` (vines baked earlier stay in `scenes/props/`). One-way,
+  never written over unless asked: it may hold hand edits. **On a planet** the
+  nest scene stands under a `PlacedNestSite`, placed roughly like a `PlanetSite`.
+  When the planet builds, each vine keeps its flat distance and bearing from the
+  heart and is stood upright on the curved ground with a small pad under it, so
+  vines moved or deleted in the editor stay so. The nest is held out of the tree
+  until the ground exists (a vine's bend reads where it enters), then its
+  `PlacedNest` (`RegisterOnReady` off; the site calls `Register()`) takes the
+  pods. Contracts do not yet draw authored nests from a pool.
+- **Static voxel bodies are on World and Structure, never Prop** (`0039`); torn
+  leaves are on Litter.
+- **The Vines tool** (`addons/vine_gen`, `0043`) plans, previews and plays nests and
+  logs Good/Bad to `tools/vine-logs/`. **The logs are training data: never edit or
+  prune them.** A tool's C# signal handlers do not survive a code reload; the plugin
+  rebuilds its panel on the first frame after (`--editor -- reload-check`).
 
 ## Working in the editor
 
-**Handcrafted levels are built with this toolset** (rule 8): the `godot` MCP
-tools (`mcp__godot__*`), or, when they are not in the tool list, the same
-commands through `python tools/editor-bridge/godot_mcp.py call <command>
-'<json>'` (`commands` lists them all). What there is:
+**Handcrafted levels are built with the `godot` MCP tools (`mcp__godot__*`)**, or,
+when they are not listed, `python tools/editor-bridge/godot_mcp.py call <command>
+'<json>'` (`commands` lists them all).
 
 | For | Commands |
 |---|---|
-| Seeing | `view` (the user's view, or a camera of Claude's own; `fog:false` for an overview), `here`, `tree`, `selection`, `get`, `history`, `debugger` (is the playing game held at a break, its stack, errors) |
-| Project | `project_setting` (read or set one and save project.godot; never edit it by hand while the editor is open) |
-| Making and changing | `new_level` (the eight branches, the player wired), `place` (a scene stood on what is under it), `add` (any built-in node, with our `script`), `set` (with `stand`; a new resource inline as `{"class":"BoxShape3D","size":[4,1,4]}`), `delete`, `batch` (one undo), `undo`, `redo` |
+| Seeing | `view`, `here`, `tree`, `selection`, `get`, `history`, `debugger` |
+| Project | `project_setting` (never edit project.godot by hand while the editor is open) |
+| Making and changing | `new_level`, `place`, `add`, `set`, `delete`, `batch` (one undo), `undo`, `redo` |
 | Ground, plants, water | `terrain_create`, `sculpt`, `terrain`, `terrain_reload`, `scatter`, `forest`, `vines`, `flood`, `water_paint` |
 | Vines | `vine_kinds`, `vine_kind`, `vine_roll`, `vine_bake`, `vine_judge` |
-| Scenes and testing | `open`, `save`, `plugin`, `run`, `stop`, `output` (the game's log, the editor's, or its Output panel, which keeps what a code reload printed) |
+| Scenes and testing | `open`, `save`, `plugin`, `run`, `stop`, `output` |
 | Pointing | `select`, `frame` |
-| Any asset, in the Lab tab | `lab_assets`, `lab_open`, `lab_view`, `lab_resource`; in play `lab_test`, then `lab_do` (tools, time, drive, shot) |
+| Asset lab | `lab_assets`, `lab_open`, `lab_view`, `lab_resource`, `lab_test`, `lab_do` |
 
-Build the code with `dotnet build`; the editor loads it when its window
-next gets the focus (the user's click). Check a level's routes against the
-grapple's 140 m (`grapple_tuning_default.tres`) and look at it from where a
-player stands, not only from above.
+Build the code with `dotnet build`; the editor loads it when its window next gets
+focus. Check a level's routes against the grapple's 140 m
+(`grapple_tuning_default.tres`) and look at it from where a player stands, not only
+from above. Every command that changes a scene is one undo; the bridge never
+answers while it is already answering (a save once re-entered its own request and
+killed the editor). Claude may judge vines (verdicts `"by": "claude"`) and open the
+game window unasked.
 
-**Claude works in the user's running editor through the editor bridge**
-(`docs/decisions/0044`): `addons/editor_bridge` listens on 127.0.0.1 while
-it is on, and `tools/editor-bridge/godot_mcp.py` (the project's `.mcp.json`)
-gives its commands to Claude Code. Everything in a scene is the real thing,
-visible in the editor as itself: no markers that become content at load.
-Every command that changes a scene is one undo. While a scene is open in the
-editor, change it through the bridge, never by editing its `.tscn`. A command makes
-its change at once and records it (`Bridge.BeginAction`/`EndAction`), so
-`batch` is one undo in which a later command sees an earlier one's nodes.
-`history` lists the scene's undo steps; `undo`/`redo` press the editor's own
-menu items. Ctrl+Z goes to the panel with the keyboard focus: click the 3D
-view first. A tool
-adds its own commands with `Bridge.Register`. To try one by hand:
-`python tools/editor-bridge/godot_mcp.py call view '{}' --png perflogs/v.png`.
-The Vines tool's own commands (`vine_kinds`, `vine_kind`, `vine_roll`,
-`vine_bake`, `vine_judge`) call the classes its tabs call, never its buttons.
-`vine_kind_shrub.tres` is a 9-12 m kind fought from the ground (pickles
-0.4-5.4 m up), for set pieces; no nest kit names it.
-**The asset lab** (`addons/asset_lab`, `docs/decisions/0047`) is a main
-screen beside Vines: any wrapper scene or bare model, shown at rest in a
-view of its own with its size, meshes, voxel parts and chunks, a mech's
-damage map drawn over it, and the resources it is tuned by in an
-inspector. Save writes the shared `.tres` after naming who else uses it
-(`voxel_destruction_mech.tres` tunes the jar too). Destruction and walking
-need physics, so they are tested by **Test**, which plays `lvl_asset_lab`
-with the asset: a vehicle seats the player and WASD drives it, a walker
-nobody rides is steered, and the lab's tools (bite, blast, cut, break a
-part), pause, a frame at a time and slow motion act on it while a corner
-shows what it costs. Never rebuild while a test plays.
-**Terrain is sculpted, never generated from markers**: a `SculptedTerrain`
-(`scripts/levels/`) is a body, a `CollisionShape3D` whose `HeightMapShape3D`
-holds the heights (scaled by the spacing; Jolt takes it), and chunk meshes,
-all saved in `<scene>_terrain/` beside the scene; the horde reads the same
-heights. Select it and the 3D view's bar (`addons/terrain_brush`) raises,
-lowers, smooths or flattens; Scatter paints real instances of the ticked
-palette's scenes; Forest paints tall trees, small trees and undergrowth in
-one stroke (`forest_default.tres`); Vines paints new unique vines of a kind,
-each a new seed baked as the Vine tab bakes; Flood fills a hollow; Water
-paints a pond's water on and off. Shift takes away. A stroke or a click is
-one undo; Claude uses `sculpt`, `scatter`, `forest`, `vines`, `flood` and
-`water_paint`. **Water is
-shallow** (`docs/decisions/0045`): a `WaterBody` under Water, wet cells
-and a saved surface in `<scene>_water/`; it slows the player and the horde
-(`water_default.tres`), and everything asks `WaterBody.DepthAt`. The
-editor runs frames inside its own work (a save's progress bar), so the
-bridge never answers while it is already answering: a save once re-entered
-its own request until the stack overflowed and the editor died. Claude may judge vines, its
-verdicts marked `"by": "claude"`, and may open the game window unasked.
+- **Terrain is sculpted, never generated from markers** (`0044`): a
+  `SculptedTerrain` saves its heights and chunks in `<scene>_terrain/`; the brushes
+  are `addons/terrain_brush`. **Water is shallow** (`0045`): a `WaterBody` under
+  Water; everything asks `WaterBody.DepthAt`.
+- **The asset lab** (`addons/asset_lab`, `0047`) shows any wrapper or model at rest
+  with its parts and damage map and tunes its resources; **Test** plays
+  `lvl_asset_lab` with it. Save writes the shared `.tres` after naming who else uses
+  it. Never rebuild while a test plays.
 
 ## Folder map
 
 ```
-addons/         our own editor plugins only (vox_importer, vine_gen, editor_bridge, terrain_brush, asset_lab)
+addons/         our own editor plugins only
 art/
   _source/      .blend and paint sources, packs as downloaded. .gdignore'd, LFS.
   models/       .glb exports
-  voxels/       .vox files, imported directly (they are source and export at once)
+  voxels/       .vox files, imported directly
   textures/     palette.png and the few textures that are not the palette
-  materials/    shared .tres materials models are mapped onto
+  materials/    shared .tres materials
 audio/          recordings
 scenes/         player/ weapons/ enemies/ props/ levels/ vehicles/ ui/
 scripts/        core/ player/ weapons/ enemies/ horde/ voxel/ planet/
                 vehicles/ mission/ levels/ ui/ audio/ debug/
 resources/      mirrors scripts/
 shaders/
-tools/          project-board/, vox-tools/, editor-bridge/, blender/ (and voxel-bench/ from M2). .gdignore'd.
-docs/           pitch.md, plan.md, decisions/, handoffs/, project_board.json
+tools/          project-board/, vox-tools/, editor-bridge/, blender/. .gdignore'd.
+docs/           pitch.md, plan.md, decisions/, ideas/, handoffs/, levels/, models.md
 perflogs/       recordings and bench screenshots. Gitignored.
 ```
 
-`scripts/debug/` is tooling that ships with the project and not the game.
-Folders appear when their first file does.
+`scripts/debug/` is tooling that ships with the project and not the game. Folders
+appear when their first file does.
 
 ## Naming
 
@@ -259,250 +238,72 @@ Folders appear when their first file does.
 
 ## Art
 
-The pipeline, from a model to a placed, destructible, animated thing, is
-`docs/art-to-game.md`; the reasoning is `docs/decisions/0005`. In short:
-Blender, `.glb` export, every model UV-mapped onto `art/textures/palette.png`
-and drawn with `art/materials/mat_palette_toon.tres` (toon diffuse and specular,
-nearest filtering). The outlines are `shaders/toon_ink.gdshader`, a depth-only
-screen pass carried by `ToonPass` on the camera. Smoke and dust are
-`shaders/fx_toon_puff.gdshader`: opaque cartoon balls the ink outlines, never
-soft alpha sprites. Pickles are animated in the vertex shader, not rigged.
+The pipeline from a model to a placed, destructible, animated thing is
+`docs/art-to-game.md`; the reasoning is `0005`. Blender `.glb` models are UV-mapped
+onto `art/textures/palette.png` and drawn with `art/materials/mat_palette_toon.tres`.
+Outlines are `shaders/toon_ink.gdshader`, a depth-only pass carried by `ToonPass`.
+Smoke and dust are opaque inked cartoon balls (`fx_toon_puff`), never soft alpha
+sprites. Cucumbers are animated in the vertex shader, not rigged.
 
-Voxel art is MagicaVoxel `.vox`, saved into `art/voxels/` and imported by our
-own importer: one node per MagicaVoxel object, colour per vertex on
-`art/materials/mat_voxel_toon.tres`, emission from MagicaVoxel's Emit
-materials, palette index 255 marks a part's pivot, objects named `@Name` become
-markers. See `docs/decisions/0009` and `docs/art-to-game.md`.
-Everything not ours is listed in `credits.md` the day it arrives. Mechs are
-animated by code, never clips: `docs/decisions/0010`. From
-`docs/decisions/0046`, built: only the core or the head (a hardened part)
-kills a mech; the importer bakes each part's damage map; the gait comes
-from what is left (`MechWalker.CurrentStance`: walk, limp, hop on a
-crutch arm, crawl, sit); and mechs mend themselves (`MechCare` asks over
-the bus and orders a lost limb by pod, the storage bot's `MechMender`
-regrows voxels, `Session.Bill` keeps the ledger; numbers in
-`mech_repair_default.tres`: 2 credits a voxel, 500 a part); and moves are posed in
-Blender on rigid parts with our add-on (`tools/blender/dill_mech`) and
-baked to `MechMove`s the walker plays (`PlayMove`; the fighter's slam is
-`resources/vehicles/moves/mch_field_fighter_slam_*.tres`). A melee stroke is the
-same, poses in a resource rather than a clip: `docs/decisions/0028`.
+Voxel art is MagicaVoxel `.vox` in `art/voxels/`, imported by our own importer
+(`0009`): one node per object, colour per vertex on `mat_voxel_toon.tres`, emission
+from Emit materials, palette index 255 marks a part's pivot, objects named `@Name`
+become markers. After changing the importer, force a reimport (delete
+`.godot/imported/*.vox-*`). Vine colours are deep greens, never neon.
 
-**Every voxel model is destructible, the same way** (`docs/decisions/0011`): a
-`VoxelBody` in its wrapper (static for buildings, hinged parts for mechs). No
-voxel thing gets damage code of its own; its numbers are in
-`resources/voxel/voxel_destruction_default.tres`, or for armoured things
-(mechs) `voxel_destruction_mech.tres`, or for trees `voxel_destruction_tree.tres`
-(no weight check: only what is cut free falls, `docs/decisions/0024`). A stats
-resource sets how its own model splits; loose pieces and every budget always
-use the default. How much dust a kind of thing raises is its own resource's
-`DustScale` (cloud width, after the size cap), and its loose pieces keep it. Buildings carry their own weight
-(`docs/decisions/0013`); what comes loose falls whole, crushes through storey
-by storey, hangs on a hinge when it went on one side, and snaps where it lands
-(`docs/decisions/0014`). Buildings decide what falls by a chunk graph baked by the importer: a cut chunk splits along the cut, pieces break and crush by chunks, overloaded edges give way in stages, and the gravity gun tears chunks out (`docs/decisions/0027`).
+**Mechs are animated by code, never clips** (`0046`): a gait from a cycle clock and
+IK, moves posed in Blender with `tools/blender/dill_mech` and baked to `MechMove`s,
+melee as pose strokes (`0028`). Only the core or head kills a mech; the gait follows
+what is left; mechs mend themselves (`0046`).
 
-**Plants bend** (`docs/decisions/0032`, proposed). A vine or tree wrapper
-has a `Flex` node (`PlantFlex`) after its model: a spine built from its
-voxels, stepped by `FlexField`, drawn by `voxel_toon` from one shared texture,
-with its collision sections moved along (and carrying what stands on them).
-Wind, hits and the grapple push it; a cut softens it, and cut weak enough it
-gives way and falls over from the pose it was in. Hits on a bent body go
-through `VoxelBody.Bend` back to its voxels. A static `VoxelBody` with
-`WholeUntilChanged` draws its imported model (and coarse 2x/4x copies of its
-voxels further off, `CoarseFromMetres` in its stats) until anything about it
-changes, and only then meshes its sections: a forest of 200 vines draws in
-about 200-450 calls instead of 10,000. Its numbers are
-`resources/foliage/flex_vine.tres` / `flex_tree.tres` and `wind_default.tres`.
+**Every voxel model is destructible, the same way** (`0011`): a `VoxelBody` in its
+wrapper. No voxel thing gets damage code of its own; numbers are in
+`voxel_destruction_default.tres`, `_mech`, `_tree` and `_jar`. Buildings carry
+weight and fall by a chunk graph baked at import (`0027`); trees
+hold by connection (`0024`). **Nothing that scales with a model's voxels runs in
+the frame** (`0015`): re-meshing, structure checks and splits go to `VoxelWorkers`
+and are applied only if the grid's `Version` has not moved. Rubble heaps up rather
+than vanishing (`0016`, `0022`).
 
-**A vine's leaves are meshes, not voxels** (`docs/decisions/0035`; `VineLeaves`, the wrapper's
-`Leaves` node): a few heart-shaped blades a kind (`LeafMesh`), drawn as
-MultiMeshes in `mat_leaf_toon`, which bends by the same
-`shaders/flex_bend.gdshaderinc` as `voxel_toon`. Each leaf is one thin box on
-its section's existing body (`VoxelPart.AddExtraShape`): stood on, hooked,
-shot through `VoxelBody.Intercept`; torn off whole under the loose-piece cap,
-and a leaf whose stalk or arm is cut away falls. A baked vine's leaves are
-`art/voxels/prp_vine_<kind>_<seed>_leaves.tres`; their numbers
-`resources/foliage/leaf_default.tres`. Vines have no tendrils.
-
-**A single vine is baked for a set piece**; a nest grows its own at load
-(`docs/decisions/0033`). The Vines dock and the tool's Vine tab
-(`addons/vine_gen`) roll a vine from a kind
-(`resources/foliage/vine_kind_*.tres`) and a seed, previews it and bakes
-`art/voxels/prp_vine_<kind>_<seed>.vox` and `scenes/props/prp_vine_<kind>_<seed>.tscn`,
-the wrapper above, with the stalk's foot on the scene origin. Its colours are
-its kind's palette (`vine_palette_<kind>.tres`, else `vine_palette.tres`):
-deep greens, never neon or lime. Each vine rolls a shade of it from its seed
-and each leaf a little more, held inside the palette's green band. Its checks
-and voxel size are `vine_bake.tres`. A seed grows the same vine on every machine: its rolls are
-`SeededRandom` streams and its trigonometry is `Fdlibm`'s, never .NET's.
-`vinecheck.gd` holds the generator to its recorded golden vines
-(`scripts/debug/vine_golden.json`); a change meant to move them re-records
-with `vinecheck.gd -- record`. **Only valid vines are baked or placed:**
-`VineGrower` rolls a seed that fails `VineValidator` (shape, pods, taper,
-lean, the spine's load; thresholds in `vine_bake.tres`) again from the seed
-and an attempt number, so a seed is always one valid vine (`docs/decisions/0036`); the generator
-keeps only pods a pickle can hang from. Jolt never decides a roll.
-`VineFactory` builds the same vine in memory, no files, through the
-importer's own `VoxModelBuilder`.
-
-**The Vines tool** is `addons/vine_gen`'s main screen (a tab beside 2D and
-3D; `docs/decisions/0043`). Its Nest tab plans a nest with the game's own `NestLayout` from a kit,
-a seed and a population, stands it on a flat disc (the planet is not drawn:
-its classes are placeholders in the editor), reports its measures, and
-Play loads `lvl_nest_lab` with it through `user://nest_play.json`
-(`NestPlay`, taken and deleted by `NestBuilder`); the lab records how the
-play went (`NestPlaytest`), and Good/Bad go to
-`tools/vine-logs/nest_verdicts.jsonl` (Save keeps a Good one as a
-`NestPreset`). The range lab rolls N seeds of a kind as they roll, before
-any re-roll, judges each, logs Good/Bad to `vine_verdicts.jsonl`, shows
-each setting's spread, and edits and saves the kind's ranges; a click on a
-vine opens it, that very roll, in the Vine tab, which has Good/Bad too. **The logs
-are training data: never edit or prune them.** Check it in the editor:
-`"$GODOT" --path . --editor -- nesttab-check=<png>` or
-`rangelab-check=<prefix>` (their verdicts go to `user://`, not the logs). A tool's C# signal handlers do not survive the
-editor reloading the project's code, so the plugin rebuilds its panel and
-dock on the first frame after a reload; `--editor -- reload-check` proves it
-(rebuild the code under it, then make `user://reload_go`). **It once
-reset every `art/voxels/*.vox.import` to the importer's defaults** (voxel
-size 0.1): the check now copies them aside before the reload, puts back
-any that changed and names them (`FAIL: ... changed under the reload`; then
-`--editor --quit` reimports them). Why a reload did it is not yet known.
-What comes next is `docs/handoffs/vine-tool-4.md`.
-
-**Nothing that scales with a model's voxels runs in the frame**
-(`docs/decisions/0015`): re-meshing, structural checks and splits go to
-`VoxelWorkers` from a copy of the cells and are carried out only if the grid's
-`Version` has not moved. The main thread removes cells, re-boxes what must
-collide now and makes bodies, within the allowances in the stats resource.
-Nothing disappears before what replaces it is drawn, and crushed material
-heaps up as rubble rather than vanishing (`docs/decisions/0016`). Past the
-loose-piece cap a piece becomes dust before it is made, only a piece on the
-ground joins a heap, a piece at rest is re-boxed finely, and a building tells
-the horde when its footprint changes (`docs/decisions/0022`). To see a
-collapse frame by frame: `"$GODOT" --path . --write-movie <dir>/f.png
---fixed-fps 10 --script scripts/debug/bench.gd -- <level> cut quiet`.
-
-**Vines leave no rubble** (`docs/decisions/0042`; `LeavesRubble` off in
-`voxel_destruction_vine.tres`, carried by their pieces as `DustScale` is):
-nothing of a vine is heaped or baked into a heap. A felled vine falls in big
-dark dust (`FallDust*` in `flex_vine.tres`), does not crush through, snaps
-into logs where it lands (`SnapReachM`, `SnapMinVoxels`), and its pieces
-crumble after `CrumbleAfterSeconds`. A voxel part's up is the ground's
-(`WorldUp`). `bench.gd ... flex <vine> 12 rec` records a rocket-felled vine.
-
-What still needs modelling, part by part, is `docs/models.md`. After changing the importer,
-force a reimport (delete `.godot/imported/*.vox-*`): Godot skips unchanged
-sources.
-
-Git LFS tracks every binary asset (`.gitattributes`), `.vox` included. Godot's text formats stay
-in git proper.
+Everything not ours is listed in `credits.md` the day it arrives. What still needs
+modelling is `docs/models.md`. Git LFS tracks every binary asset.
 
 ## Workflow
 
 ```
 dotnet build
 GODOT="/c/Users/Elena/Desktop/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable_mono_win64_console.exe"
-"$GODOT" --path . --script scripts/debug/bench.gd                                       # the contract level on its fallback seed, idle
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/<lvl>.tscn look  # screenshots
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/<lvl>.tscn ink   # ink A/B
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn grapple
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mech
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn bike
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mechs     # all three allies
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mechsab   # what vehicles cost to draw
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn arsenal   # designator, burner, lance, manipulator
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn slam      # sledge: ground, crowd, voxel, wall, miss
-"$GODOT" --path . --write-movie perflogs/slam/f.png --fixed-fps 10 --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn slam quiet
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn wreck     # the compound shot down
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn mechwreck # the allies shot apart
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn limbs     # every limb broken in turn: walk, limp, hop, crawl, sit
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn collapse  # a skyscraper brought down
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut       # a tower cut through: drops whole, crushes down
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cutside   # cut on one side: leans, tears, topples
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet # the same, every frame recorded
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn lasercut # the bike's beam swept through Tower11
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn tree quiet # rockets into a tree's canopy, then its trunk cut
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet 40  # recorded for 40 s: does the debris drain?
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn downtown 30 noprobe  # eight towers cut, rockets into the rubble, 30 s after
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn gpuab     # what each part of the view costs the GPU
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn siege 25000  # crowd vs player and allies
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn horde 25000
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planet 25000  # ground, 300 m, 1 km, orbit, crowd
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planetab      # what the planet costs the GPU
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_planet_test.tscn planets 10 1   # ten seeds from 1: build, ground, heights
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_contract.tscn descent          # from the ship in orbit down to the compound
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_contract.tscn garrison         # the horde at home: spread round its nest, 40 s
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_nest_lab.tscn nest pop=25000  # a nest for 25,000: ground, canopy, above; load by stage and memory (horde=0 without the horde)
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_nest_lab.tscn colony pop=25000  # its pickles hanging, calm; harmed; waking over 30 s; in the fight
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_ship_hub.tscn flow             # ship, computer, contract taken, loaded, in orbit
-"$GODOT" --headless --path . --script scripts/debug/seedcheck.gd -- 20                                      # same seed, same planet; cube seams
-"$GODOT" --headless --path . --script scripts/debug/graphcheck.gd -- 40                                     # chunk graph vs a cell flood: what falls, what floats
-"$GODOT" --headless --path . --script scripts/debug/mechcheck.gd                                           # every mech's parts and damage map: one root (the core), chains, hinges, soles, balance
-"$GODOT" --headless --path . --script scripts/debug/flexcheck.gd                                            # a plant's spine: its period, settling, a pull, a cut
-"$GODOT" --headless --path . --script scripts/debug/flingcheck.gd                                           # shoves in one tick capped; a fling ([fling] lines) reported
-"$GODOT" --headless --path . --script scripts/debug/vinecheck.gd                                            # vine generator vs its golden vines; every baked vine's wrapper and foot
-"$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- record                                  # re-record the golden vines, only after a change meant to move them
-"$GODOT" --headless --path . --script scripts/debug/podcheck.gd -- pop=3000                                 # a nest's pods: in the field, on voxels, bending; a shot, a blast; the wake into the horde; regrowth; a felled vine takes its own; the win and the bonus
-"$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- rejections 200                          # per kind: how often a seed's roll is valid, why not, how each measure spreads
-"$GODOT" --headless --path . --script scripts/debug/vinecheck.gd -- settle                                  # every baked vine stood 5 s with Jolt: no drift, nothing loose or sunk
-"$GODOT" --path . --script scripts/debug/vinelook.gd -- perflogs/vines.png                                   # every baked vine in a row, photographed
-"$GODOT" --path . --script scripts/debug/vinelook.gd -- perflogs/vines_above.png 50                        # the same from 50 deg up; `leaves` instead of 50 lays out every kind's leaf shapes
-"$GODOT" --headless --path . --script scripts/debug/vinebake.gd -- fruiting pool:0                          # bake a vine as the dock does (then --editor --quit to import)
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex          # a vine in the wind, rocketed, swung on, stood on, bitten and felled
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex prp_vine_fruiting_4532344 40  # any vine by name; shots at 40 m keep it standing
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn flex mem:fruiting:4532344 40  # the same, grown in memory in its place
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn forest        # 85 vines 100 m apart (prp_vine_forest) round the middle: spawn, edge, among them, a swing
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn forestab      # what the forest costs the GPU: shadows, ink, bending, the forest
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn collapse sink  # any mode + sink: pieces under the ground or with boxes off their voxels
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn cut quiet 13 boxes nodust  # see what breaks: boxes (collision), wire, nodust
-"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/lvl_horde_flats.tscn hordeab 25000
+"$GODOT" --path . --script scripts/debug/bench.gd                                  # contract level, idle
+"$GODOT" --path . --script scripts/debug/bench.gd -- res://scenes/levels/<lvl>.tscn <mode>
+"$GODOT" --headless --path . --editor --quit                                       # import everything (fresh clone, new asset)
+"$GODOT" --headless --path . --script scripts/debug/<check>.gd                     # checks
 ```
 
+Bench modes (`bench.gd` header lists them all): `look`, `ink`, `gpuab`, `horde 25000`,
+`siege 25000`, `grapple`, `mech`, `mechs`, `bike`, `arsenal`, `slam`, `collapse`,
+`cut`, `downtown 30`, `flex`, `forest`, `planet 25000`, `planets 10 1`, `descent`,
+`nest pop=25000`, `colony pop=25000`, `flow`. Most run on `lvl_horde_flats`;
+`planet` on `lvl_planet_test`; `nest` and `colony` on `lvl_nest_lab`.
+
+Headless checks: `seedcheck`, `graphcheck`, `mechcheck`, `flexcheck`, `flingcheck`,
+`vinecheck` (`-- record`, `-- rejections 200`, `-- settle`), `podcheck -- pop=3000`.
+Photographs: `vinelook.gd`; `tutorialshots.gd`, `cloneshots.gd`, `wakeshots.gd` (the tutorial from the rider's eyes: the pod drop, clones, the colony waking).
+
 - `bench.gd` waits for the draw count to settle, then reports per phase: mean,
-  worst, frames over budget, GPU mean, draws, the window size it actually got,
-  and the CPU split from `PhysicsStepProbe` (physics step, physics scripts,
-  process scripts, render and wait). Bench modes are added with the systems
-  they measure; the lab's `bench.gd` has the full set.
-- A bench run compiles every shader against the real driver, so it is how a
-  shader edit is checked. `--headless` compiles none.
-- A screenshot (`#name`) costs 100-150 ms in its own frame; never read a worst
-  frame from a phase that takes one. Status lines (`@status`) and the recorder
-  add hitches of their own; read worst frames from a quiet run.
-- A bench window is fullscreen and captures the mouse: keys and clicks while it
-  runs reach the player (`@status` shows `fire=`). Hands off, and nothing else
-  running -- a stuck game in the background halves the frame rate.
-- `U` in any level records every frame to `perflogs/` (a REC label in the
-  corner while it runs) and writes `perf_<time>_summary.txt` beside the CSV:
-  the machine and its power state, the worst frames each with its sections,
-  counts and events, what the spikes were spent on, and how the counts grew.
-  The summary is the file to read first or hand on. Beside it,
-  `perf_<time>_probe.txt` is SinkProbe's: pieces sunk, hanging or misfit, and
-  a census of the loose pieces every 5 s. The probe is billed to "physics step
-  [engine]" (about 4 ms a tick with a hundred pieces): the word `noprobe`
-  measures without it. Game code reports through
-  `PerfLog`: `PerfLog.Counter` once at load for a column, `PerfLog.Event`
-  inside `if (PerfLog.Recording)` for the events column.
-  `cut quiet` / `cutside quiet` record the run that way, with no screenshots
-  and nothing printed while recording: a console line costs the frame it is
-  printed in 15-40 ms on the target machine. Read hitches from these, with
-  every section's time in the CSV beside each one.
-- A section registered after a recording starts has no column in it:
-  register `FrameProfiler` sections in a class that exists at load.
-- Measure plugged in. On battery Windows holds the frame to the display's
-  60 Hz and the GPU clocks down: every phase reads 16.6 ms and the GPU about
-  twice its plugged-in time, whatever is on screen. `gpuab` switches the sun's
-  shadows, the horde's draws, downtown and the fog off in turn.
-- The game raises itself above normal priority on Windows
-  (`ProcessPriority`). Cool the laptop 40-60 s between runs: back-to-back
-  runs throttle it and the level alone goes 20-30 % over.
-- After a fresh clone or new asset: `"$GODOT" --headless --path . --editor --quit`
-  imports everything.
-- The board: open `tools/project-board/index.html`, connect the project folder,
-  and `docs/project_board.json` becomes the copy git keeps.
+  worst, frames over budget, GPU mean, draws, window size and the CPU split from
+  `PhysicsStepProbe`. A bench run compiles every shader against the real driver;
+  `--headless` compiles none.
+- A screenshot (`#name`) costs 100-150 ms in its own frame; never read a worst frame
+  from a phase that takes one. Read worst frames from a `quiet` run.
+- `U` in any level records every frame to `perflogs/` and writes
+  `perf_<time>_summary.txt` (read it first) and `perf_<time>_probe.txt`. Game code
+  reports through `PerfLog.Counter` once at load and `PerfLog.Event` inside
+  `if (PerfLog.Recording)`. Register `FrameProfiler` sections in a class that exists
+  at load. A console line costs the frame it is printed in 15-40 ms.
+- The game raises itself above normal priority on Windows (`ProcessPriority`).
 
-Commit at every point where the project builds and runs. Short, factual
-messages.
+Commit at every point where the project builds and runs. Short, factual messages.
 
-**Handoffs live in the repo, always.** A handoff, plan or brief written for
-another session is saved in `docs/handoffs/<topic>.md` and committed. Never
-save one outside the project: not in a session scratchpad, temp folder or
-home directory, where the next session cannot find it.
+**Handoffs live in the repo, always**: a handoff, plan or brief for another session
+is saved in `docs/handoffs/<topic>.md` and committed, never in a scratchpad, temp
+folder or home directory.

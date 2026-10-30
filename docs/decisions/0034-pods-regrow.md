@@ -1,12 +1,11 @@
 # 0034 Pods regrow their pickles: the threat lasts until the vines are destroyed
 
-*21 October 2026. Decided; the numbers are still to be tuned. Builds on 0029,
-and changes its colony from 95 % hanging and 5 % workers to every pickle
-starting on a pod.*
+*21 October 2026. Decided; the numbers are still to be tuned. Every pickle
+starts on a pod; there are no ground workers.*
 
 ## Context
 
-0029 hangs the colony on vines. A pickle killed is gone, so a player can win
+The colony hangs on vines. A pickle killed is gone, so a player can win
 by shooting pickles from a distance, and the vines are scenery. A vine that
 holds hundreds of pickles should be the thing the player has to deal with.
 
@@ -42,7 +41,7 @@ pickles thins the colony; only destroying pods, or whole vines, ends it.**
 
 - **Regrowth starts with the fight.** A pod regrows only once it is empty,
   and a calm colony's pods are all full. Nothing regrows until the colony is
-  aggravated (0029) and its pickles drop to fight, or are killed on their
+  aggravated (0041) and its pickles drop to fight, or are killed on their
   pods. How fast regrowth runs is a tuning number, not a rule.
 
 ## What it costs

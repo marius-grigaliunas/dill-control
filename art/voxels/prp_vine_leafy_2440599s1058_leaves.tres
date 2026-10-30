@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="VineLeafSet" format=3 uid="uid://bd57lpvpjfaqx"]
+
+[ext_resource type="Script" uid="uid://d1jliuibfxd5q" path="res://scripts/foliage/VineLeafSet.cs" id="1_fwqe6"]
+
+[resource]
+script = ExtResource("1_fwqe6")
+Attach = PackedVector3Array(-0.15402722, 33.999035, -4.2012305, 1.0316672, 40.841633, -2.0015912)
+Centre = PackedVector3Array(-0.24366379, 35.073997, -8.505855, -3.05181, 42.53326, 0.51459885)
+Midrib = PackedVector3Array(-0.020755993, 0.07761131, -0.99676764, -0.8318108, 0.21302906, 0.5125519)
+Face = PackedVector3Array(-0.044857185, 0.9959061, 0.07847831, 0.0643561, 0.95420516, -0.2921486)
+Size = PackedFloat32Array(6.149896, 6.922115)
+Shape = PackedInt32Array(0, 1)
+Tint = PackedColorArray(0.846829, 0.82018244, 0.759177, 1, 0.8760663, 0.85424185, 0.86151576, 1)
+ShapeLobes = PackedInt32Array(2, 2, 1)
+ShapeTeeth = PackedInt32Array(10, 14, 15)
+ShapeNotch = PackedFloat32Array(0.12497188, 0.16538, 0.1469007)
+ShapeCup = PackedFloat32Array(0.10829046, 0.1437279, 0.12174277)
+Blade = Color(0.01445961, 0.05371703, 0.0196929, 1)
+Vein = Color(0.017494012, 0.039776202, 0.01498621, 1)
+Stem = Color(0.008764254, 0.02821166, 0.012024878, 1)

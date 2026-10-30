@@ -152,7 +152,7 @@ look and our scale (0.1 m a voxel).
 
 The graybox skyscrapers in `lvl_horde_flats` (`prp_graybox_tower_a/b/c`,
 `tools/vox-tools/make_graybox.py`). Real ones keep the structure the load
-check reads (`docs/decisions/0013`): an open lobby of columns, a slab every
+check reads (`docs/decisions/0027`): an open lobby of columns, a slab every
 storey, a core. Facade style is free.
 
 | Model | What it is | Tool | Status | Review |
@@ -170,3 +170,25 @@ Most effects are shaders and particles. These need geometry.
 | Rocket / shell | In flight, for the launcher, the bike pod and the tank. | graybox | |
 | Strike aircraft | What drops the designator's ordnance, if it is shown. | none | |
 | Brine splash decal shapes | Splat shapes for kills, if a texture rather than a shader. | none | |
+
+## 10. The slice's new assets (29 October 2026)
+
+What `decisions/0051`-`0054` need that nothing above covers. The nest is vines
+now (0038), not the compound of section 1, and the roster has no Thrower (the
+Tank throws), so sections 1 to 3 are history until the models are redone; they
+are kept as written.
+
+| Model | What it is | Contract | Status | Review |
+|---|---|---|---|---|
+| `nme_queen` | The stationary queen pod at a nest's heart: rind that rifle rounds barely mark, weak spots that open after she attacks, feeder-vine attachments, voxel and destructible. Parts: rind plates, weak-spot hatches (emissive), seed-spit mouth, feeder roots. | 1 | none | |
+| Landing pod interior | The pod the player is in at every arrival: seat, window with the descent through it, a door that opens onto the ground, the same view for extraction. | all | none | |
+| Cloning lab flashes | The glimpses at the start and at the first death: a tank, a table, lights. Short, unclear. | 1 | none | |
+| Ship cabin | The hub between contracts: a window onto the next planet, a menu view, ship ambience. | all | none | |
+| Invoice printer | Prints the itemised invoice and stamps it PAID. Moving paper and a stamp. | all | none | |
+| Crate hatch | The hatch the purchase arrives through, and the crate. | all | none | |
+| Armed shuttle | Lands every 4 minutes at the colony: four corner miniguns and a rocket launcher that fire on their own, a ramp, a landing pad and a take-off. Five of them; ore and people loaded. | 3 | none | |
+| Crash pod | The dead contractor's pod high in a vine, with a beacon and the nuke designator inside. | 2 | none | |
+| Colony set | Skyscrapers (several designs; section 8's towers may serve), the human shelter (armoured, indestructible, a landing pad on top), ore storage sites, main and side mine shafts, turrets, roof power relays with a switch, fuel tanks, security mechs. | 3 | graybox (towers) | |
+| Storm planet | A second biome in storm season: fog, lightning, tornado (a rotating voxel or shader funnel that rips up vines), dead calm. | 2 | none | |
+| Nuke blast | The designator's detonation: a staged inked explosion at planet scale. | 2 | none | |
+| Core weapon viewmodels | Assault rifle with underbarrel launcher, bazooka (single tube, volley), pole saw, laser cannon (with gravity-gun mode), .50 sniper. Replace the table in section 4. | all | none | |

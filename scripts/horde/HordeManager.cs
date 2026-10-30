@@ -903,6 +903,7 @@ public partial class HordeManager : Node3D
         _drawBucket = new byte[_capacity];
         _step = new byte[_capacity];
         _stepList = new int[_capacity];
+        _airborne = new int[MaxAirborneTracked];
         _listsValid = false;
         _reorderScratch = new Agent[_capacity];
         _cellStart = new int[_ground.CellCount + 1];
@@ -1886,7 +1887,7 @@ public partial class HordeManager : Node3D
         // most. This scan ran every frame while nobody was near, because an
         // empty pool skipped the frame gate: 1.1 ms of an idle frame.
         int reselectEvery = _proxySparse ? ProxyReselectFrames * 4 : ProxyReselectFrames;
-        if (_proxyFrame++ % reselectEvery != 0)
+        if (_proxyFrame++ % reselectEvery != 0 && !AirborneUnworn())
         {
             RefreshHitProxies();
             return;
@@ -1954,6 +1955,22 @@ public partial class HordeManager : Node3D
             // the scan fills the pool that close, the hash takes over.
             float reach = ProxySearchCells * HashCellSize;
             _proxySparse = found < slots || bestDistance[slots - 1] > reach * reach;
+        }
+
+        // Anything in the air is shootable wherever it is: a thrown cornichon
+        // is seconds in flight, usually past the nearest few dozen of a crowd,
+        // and would otherwise cross the whole of it with nothing to hit.
+        // Sorted ahead of everything by distance, so the farthest ground agent
+        // gives its collider up, never one in the air.
+        int airborne = Mathf.Min(_airborneCount, _airborne.Length);
+        for (int a = 0; a < airborne; a++)
+        {
+            int index = _airborne[a];
+            if (index >= _count || ((ReadOnlySpan<int>)best[..found]).Contains(index))
+            {
+                continue;
+            }
+            KeepNearest(index, -1.0f - a, best, bestDistance, ref found);
         }
 
         // Stable assignment: an agent still among the nearest keeps the
@@ -2036,6 +2053,47 @@ public partial class HordeManager : Node3D
 
         _proxyChosen = slots;
         ActiveProxyCount = active;
+    }
+
+    /// <summary>Most agents in the air that are tracked for a collider at once.</summary>
+    private const int MaxAirborneTracked = 256;
+
+    private int[] _airborne = System.Array.Empty<int>();
+    private int _airborneCount;
+
+    /// <summary>
+    /// Whether something in the air has no collider yet. A throw is in the air
+    /// for a second or so; waiting out the reselection interval -- up to
+    /// twelve frames in a thin crowd -- would leave it unshootable for a
+    /// fifth of its flight.
+    /// </summary>
+    private bool AirborneUnworn()
+    {
+        int airborne = Mathf.Min(_airborneCount, _airborne.Length);
+        for (int a = 0; a < airborne; a++)
+        {
+            int index = _airborne[a];
+            if (index >= _count)
+            {
+                continue;
+            }
+
+            bool worn = false;
+            int id = _agents[index].Id;
+            foreach (HordeHitProxy proxy in _proxies)
+            {
+                if (proxy.AgentIndex == index && proxy.AgentId == id)
+                {
+                    worn = true;
+                    break;
+                }
+            }
+            if (!worn)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private int[] _chosenStamp = System.Array.Empty<int>();
@@ -2152,6 +2210,7 @@ public partial class HordeManager : Node3D
 
         PrepareView(playerPosition, eyeDirection, eyeHeight, horizonCull);
 
+        _airborneCount = 0;
         using (FrameProfiler.Begin(_sectionUpdate))
         {
             StepAgents(delta, playerPosition);
@@ -3030,6 +3089,15 @@ public partial class HordeManager : Node3D
             return;
         }
         delta *= step;
+
+        if (agent.Airborne)
+        {
+            int slot = System.Threading.Interlocked.Increment(ref _airborneCount) - 1;
+            if (slot < _airborne.Length)
+            {
+                _airborne[slot] = index;
+            }
+        }
 
         if (agent.Held > 0.0f)
         {

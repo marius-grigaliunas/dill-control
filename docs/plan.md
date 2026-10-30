@@ -6,6 +6,8 @@ says how this repository gets from nothing to a vertical slice, and why it is a
 new repository at all. Paths like `SpikeDirector` or `scripts/spike/` are in the
 lab.*
 
+*Updated 29 October 2026: the slice, M5, M6 and the arsenal follow the locked design (`decisions/0050`-`0054`), M8 and M9 are new, and what 0033-0049 built is listed under Milestones. M0-M4 below are the history of how it was built.*
+
 ---
 
 ## The point
@@ -44,26 +46,31 @@ the game gets A/B'd against its original.
 
 ## What the vertical slice is
 
-One mission, start to finish, at the quality the final game would ship at for
-the content it contains, holding 60 fps at 1920x1080 native on the target laptop.
+*Replaced on 29 October 2026 by `decisions/0051` (the contracts), `0052` (the
+weapons and the shop), `0053` (death) and `0054` (the opening). The old slice was
+one mission: orbit, bike, compound, Mother Brine.*
+
+**Onboarding (`lvl_tutorial`, built, 0055) and three contracts in order, about
+an hour:** nest clearing, loot grab on a storm planet, colony rescue. Scripted
+beats on procedural terrain, one locked and tuned seed for the demo, ending on an
+empty contract screen with a wishlist line. Any contract can be replayed.
 
 | In the slice | Not in the slice |
 | --- | --- |
-| Start in orbit on the bike, fly down, land | Star map, mission select, more than one planet |
-| One planet, one compound, one Mother Brine | Procedural compounds, more than one biome |
-| The five pickles, real models | New enemy kinds |
-| Grapple: zip, swing, orbit, release float | New traversal verbs |
-| A small arsenal (proposal below) and the bike with gun, laser and pod | The full prototype arsenal, airstrike ordnance types |
-| Shield and health, three clones, a clear threshold | Persistent unlocks between missions |
-| Company packages inside the mission | Meta-progression |
-| An invoice end screen | Economy |
-| Real models, textures, sounds you made or sourced | Final music |
+| The opening: unclear cloning flashes, then control in the landing pod (0054) | The orbit-and-bike arrival, a star map, more than the three contracts |
+| Contract 1, nest clearing: pod drop, the vine nest, clones, the minigun gift at 50%, the stationary queen, extraction by pod | Mother Brine, mole cucumbers, the underground queen |
+| Contract 2, loot grab: gear run on a storm planet (challenge still open), the crash pod and the nuke designator, the bike | Escort missions, caves, walking colonists |
+| Contract 3, colony rescue: a procedural town, shafts, turrets, five shuttles, four targets, a mech drop, the bike at 20,000 kills | A drill rig |
+| Standard, Cornichon, Spitter, Tank (throws and punches) and the queen | The Thrower as its own kind |
+| Five core weapons with two tiers each, in fixed slots; the grapple; the minigun and the nuke designator | Mods, tiers 3-6, the other specials |
+| Shield and health, three clones, failure that pays nothing | Debt and the story (`ideas/story.md`) |
+| The ship cabin: invoice printer, a shop with two purchases, a crate hatch | The full campaign, the contract board |
+| Real models, textures and sounds you made or sourced | Final music |
 
-**Proposed slice arsenal** (to confirm): machete, Brine Ripper (rifle), the
-shotgun, the rocket launcher, the grenade. On the bike: the explosive gun, the
-laser, the rocket pod. Five hand weapons is five viewmodels to model, and every
-cut one is a week of art saved. The rest of the prototype's arsenal waits in the
-lab.
+**The slice arsenal is settled** (0052): assault rifle, bazooka, pole saw, laser
+cannon (with its gravity-gun mode) and sniper. It replaces the proposed machete,
+Brine Ripper, shotgun, rocket launcher and grenade; the rest of the prototype's
+arsenal waits in the lab. Five weapons is five viewmodels to model.
 
 ## The art pipeline
 
@@ -396,9 +403,9 @@ steps, each benched and committed:*
 2. **Seeded planets and biomes**: a contract is a seed; an archetype's ranges,
    three biomes (0018).
 3. **The system and the arrival**: the ship waits in orbit, the player starts
-   on the bike, other bodies in the sky, the air thinning with height (0019).
+   on the bike, other bodies in the sky, the air thinning with height.
 4. **The compound from clusters**: a seeded layout of authored cluster scenes
-   on a levelled pad; the horde from a tier (0020).
+   on a levelled pad; the horde from a tier.
 5. **Contracts and loading**: the session, the generator, the contract level
    building itself behind its loading screen (0021).
 6. **Menu, ship and computer**: the title screen, the player's ship
@@ -409,38 +416,102 @@ sweep tries, a crater reroutes the horde, and menu to ship to contract to
 orbit to the ground plays through. The flow plays through; the budget is to
 be re-measured on a rested machine.
 
-### M5: Mother Brine
+### M5: The queen
 
-Ported and re-skinned: authored armour in `voxel-bench`, hitboxes for the warts
-and core, the orbit grapple.
+*Revised 29 October 2026: Mother Brine is no longer a slice milestone (0051).*
 
-*Done when:* she can be fought from the line, start to finish.
+A stationary queen pod at a nest's heart, with feeder vines, a guard of Tanks and
+Spitters, weak spots that open after she attacks, and three attacks: the screech,
+the seed spit and the tearing down of vines. The minigun gift at 50% of the nest
+destroyed, and the contract-1 win (the queen, every pod, 80% of the cucumbers).
+The Tank grows throwing and punching in place of the Thrower. Mother Brine waits
+as a later roaming boss.
 
-### M6: The bike and the arrival
+*Done when:* the queen can be fought from the line in 2-3 minutes at tier 1,
+roughly 25 bazooka hits, and the contract is won and extracted from.
 
-Flight rig and bike systems ported, the bike modelled. The orbit-to-ground
-descent, including the distant-planet stand-in the pitch's open questions call
-for, so the planet's edge is clean from space.
+### M6: Arrival, extraction and the opening
 
-*Done when:* a mission can start in orbit and end with you standing in the
-compound, with no load and no cut.
+*Revised 29 October 2026: the bike and the arrival from orbit are no longer slice
+milestones (0054).*
 
-*The arrival and the far shell were built in M4's third step. What is left
-here is the bike's model and the ship's, which are art.*
+The landing pod and its handcrafted descent through the window, the same pod for
+extraction, the free choice of drop point on the contract screen, the opening's
+unclear cloning flashes and their replay at the first death. The bike's model is
+no longer needed for the arrival; it is a special item (0052).
+
+*Done when:* a contract starts inside the pod, lands on a chosen point and ends
+in a pod that carries the player up, with no load between.
+
+*What is built: the system, the ship in the sky and the far shell (M4 step 3)
+stay in the code and are not slice work.*
 
 ### M7: The mission
 
-Clear threshold, three clones, company packages, the invoice screen, title and
-pause menus. Hands for the viewmodels, recorded sounds replacing the synthesised
-ones where they matter most.
+Clear threshold, three clones that fail the contract when spent, the invoice
+screen, title and pause menus. Hands for the viewmodels, recorded sounds replacing
+the synthesised ones where they matter most.
 
 *Done when:* someone who has never seen it can play it start to finish, and it
 holds 60.
 
+### M8: Contracts 2 and 3
+
+Added 29 October 2026 (0051).
+
+- **Contract 2:** the gear run, to be reworked first (0051: the bike would let the
+  player simply fly out). A storm planet, weather (fog, lightning, a tornado),
+  the built hive with no ground cucumbers, a fixed landing, gear at the hive's centre, the crash pod and the nuke designator, the bike with a laser that
+  fires 10 s then cools down.
+- **Contract 3:** a procedural town on a levelled pad (authored clusters may serve it), skyscrapers, shafts as spawn holes with sealing, turrets on roof
+  relays, five shuttles with automatic guns, four targets, a mech drop, the bike
+  at 20,000 kills.
+
+*Done when:* each contract plays through on its locked seed and holds 60, with
+its cap (24,000 in the town) in the bench.
+
+### M9: The ship cabin
+
+Added 29 October 2026 (0052, 0053).
+
+The cabin as a walkable hub with a window onto the next planet, the invoice
+printer, a shop that shows both tiers of every weapon and sells two purchases in
+the slice (each logged), and the crate hatch. The menu is the same window with
+its buttons. Failure wakes the player here, unpaid.
+
+*Done when:* menu, cabin, contract, invoice, shop and the next contract play
+through.
+
+### To do, noted: remove the prototype weapons
+
+Decided but not started (29 October 2026). Once the five core weapons exist
+(0052), the rest of the prototype arsenal is deleted: `wpn_bayou_boomstick`,
+`wpn_bayou_machete`, `wpn_brine_burner`, `wpn_brine_ripper`, `wpn_dill_hammer`,
+`wpn_frag_grenade`, `wpn_gherkin_volley`, `wpn_gravity_manipulator`,
+`wpn_grenade_thrower`, `wpn_sledge`, `wpn_strike_designator` and
+`wpn_vinegar_lance`. They are wired into the player's code and the `arsenal` and
+`slam` benches, so the removal is its own code pass. The weapons are not changed
+until then.
+
+### Built since this plan was written
+
+Marked done by what 0033-0049 built:
+
+- **The vine nest** grown at load from a seed, the Vines tool and the editor
+  bridge (0033, 0043, 0044); vines that bend and leaves that are meshes (0032,
+  0035); only valid vines (0036); the planet pinned at 1,260 m (0037); one clump
+  of 55-70 m vines (0038); structure and litter layers (0039); pods in bulk, with
+  the wake and the contract's win (0034, 0040, 0041); no rubble from vines (0042).
+- **Shallow water** (0045); **mechs that fight on broken**, mend and take
+  Blender moves (0046); **the asset lab** (0047); **Vulkan** on Windows (0048).
+- **`lvl_tutorial`**, the onboarding level: handbuilt, a placed nest of 1,115 pods and a first-person pod drop (0055; its generated forerunner is `lvl_nest_intro`, 0049).
+- Of the milestones: M0-M3 and M4 stand; M4's arrival and system are built and
+  parked.
+
 ## Open decisions
 
 1. ~~**The name.**~~ Dill Control.
-2. **The slice arsenal.** The proposal above, or a different five.
+2. ~~**The slice arsenal.**~~ Settled: the five core weapons of 0052.
 3. **The remote.** GitHub with paid LFS, or somewhere with more room for art.
 4. **Hands.** At M7 as planned, or earlier if gun-only viewmodels feel wrong
    in M1.

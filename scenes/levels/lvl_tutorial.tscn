@@ -36,7 +36,7 @@
 [ext_resource type="Script" uid="uid://vatwi2b8g0j5" path="res://scripts/mission/ColonyMission.cs" id="108_01phj"]
 [ext_resource type="Resource" path="res://resources/mission/colony_rules_default.tres" id="109_1jqlp"]
 [ext_resource type="Script" uid="uid://7tt1vuk2jwln" path="res://scripts/mission/PodLanding.cs" id="110_hf772"]
-[ext_resource type="Resource" path="res://resources/mission/drop_rules_tutorial.tres" id="111_88aih"]
+[ext_resource type="Resource" uid="uid://ng07p1ncjamb" path="res://resources/mission/drop_rules_tutorial.tres" id="111_88aih"]
 [ext_resource type="PackedScene" path="res://scenes/props/prp_landing_pod.tscn" id="112_ir61l"]
 [ext_resource type="Script" uid="uid://dvg7v4utc3ypo" path="res://scripts/mission/IntroGuide.cs" id="113_0hjt8"]
 [ext_resource type="Resource" uid="uid://der2lj1gxlja8" path="res://resources/mission/guide_tutorial.tres" id="114_5b6oc"]

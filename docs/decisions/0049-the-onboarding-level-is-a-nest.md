@@ -1,6 +1,6 @@
 # 0049 The onboarding level is a nest
 
-*29 October 2026. Built; asked for by the user. Replaces the onboarding of 0026.*
+*29 October 2026. Built; asked for by the user. Replaces the earlier drop-test level. **Onboarding is now `lvl_tutorial` (0055)**: this level was invisible in the editor, being generated at load. It stays as the demo of a generated, preset nest.*
 
 ## Context
 
@@ -29,12 +29,11 @@ with the starting rifle.
   removed for being jokes; these state controls.)
 - **The jar stays, weaker**: `voxel_destruction_jar.tres`. The mech stats are
   not touched.
-- **Not carried over**: the drop pod, clones and extraction (0026's
-  `ExtractionMission`). The contract is the colony's (`ColonyMission`):
+- **Not carried over**: the drop pod, clones and extraction (`ExtractionMission`). The contract is the colony's (`ColonyMission`):
   destroy every pod, leave at most a fifth alive.
 
 ## Open
 
 - The jar's carve numbers are reasoned, not yet played. Tune them in the Asset
   lab (it is shared with nothing).
-- The drop and the pod home are left out until the trial of 0026 is decided.
+- The drop and the pod home are left out until contract 1 (0051).

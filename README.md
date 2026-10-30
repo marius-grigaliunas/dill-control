@@ -1,8 +1,8 @@
 # Dill Control
 
-A first-person horde shooter. A contract exterminator flies down to a planet
-infested with twenty-five thousand pickles, swings over them on a grappling
-line, wrecks their compound, brings down the giant that rules them, and sends
+A first-person horde shooter. A contract exterminator drops onto a planet
+infested with twenty-five thousand giant cucumbers, swings over them on a grappling
+line, tears through their vine nest, brings down the queen that rules it, and sends
 the mining company the invoice.
 
 **The ground belongs to the horde. The air belongs to you.**

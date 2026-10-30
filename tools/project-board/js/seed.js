@@ -1,13 +1,12 @@
-// The board's starting content: the vertical slice, milestone by milestone, as data.
+// The board's starting content, as data: the vertical slice as the design now stands.
 //
 // Kept apart from store.js because that file is the board's machinery and this is
 // a list of jobs. It is read once, on the first run in a browser with no board in
 // it, and never consulted again; after that the board is whatever you made of it.
 //
-// Every card is traceable to docs/plan.md, which says what each milestone is and
-// when it counts as done. The milestones are labels rather than board milestones
-// because the board has one category, the slice, and labels are what the
-// swimlanes and the filter group by.
+// Open decisions holds every open question and parked idea; Backlog what is
+// decided and not built (docs/decisions/0050-0054, docs/plan.md); Done what the
+// built records (0002-0049) already carry. The live board is docs/project_board.json.
 (function (PB) {
   "use strict";
 
@@ -19,289 +18,1177 @@
     ],
 
     labels: [
-      { key: "m0",    name: "M0 scaffold",       color: "#8b9892" },
-      { key: "m1",    name: "M1 feel",           color: "#3f7fbf" },
-      { key: "m2",    name: "M2 wreck",          color: "#b4522f" },
-      { key: "m3",    name: "M3 pickles",        color: "#5f9a3a" },
-      { key: "m4",    name: "M4 planet",         color: "#2f8f8a" },
-      { key: "m5",    name: "M5 Mother Brine",   color: "#9a5bb0" },
-      { key: "m6",    name: "M6 bike, arrival",  color: "#c08a1e" },
-      { key: "m7",    name: "M7 mission",        color: "#c43d31" },
-      { key: "port",  name: "port from the lab", color: "#6f8f7a" },
-      { key: "bench", name: "needs a bench",     color: "#7a6f8f" },
-    ],
+      {
+            "key": "open",
+            "name": "open question",
+            "color": "#c08a1e"
+      },
+      {
+            "key": "parked",
+            "name": "parked",
+            "color": "#8b9892"
+      },
+      {
+            "key": "story",
+            "name": "story idea",
+            "color": "#9a5bb0"
+      },
+      {
+            "key": "later",
+            "name": "backlog, later",
+            "color": "#7a6f8f"
+      },
+      {
+            "key": "open1",
+            "name": "opening",
+            "color": "#3f7fbf"
+      },
+      {
+            "key": "c1",
+            "name": "contract 1",
+            "color": "#5f9a3a"
+      },
+      {
+            "key": "c2",
+            "name": "contract 2",
+            "color": "#2f8f8a"
+      },
+      {
+            "key": "c3",
+            "name": "contract 3",
+            "color": "#b4522f"
+      },
+      {
+            "key": "weapons",
+            "name": "weapons",
+            "color": "#c43d31"
+      },
+      {
+            "key": "cabin",
+            "name": "ship and shop",
+            "color": "#6f8f7a"
+      },
+      {
+            "key": "built",
+            "name": "built",
+            "color": "#00a86b"
+      }
+],
 
     columns: [
-      { key: "backlog", name: "Backlog",     wip: 0, done: false },
-      { key: "next",    name: "Next",        wip: 6, done: false },
-      { key: "doing",   name: "In progress", wip: 3, done: false },
-      { key: "verify",  name: "Verify",      wip: 0, done: false },
-      { key: "done",    name: "Done",        wip: 0, done: true },
-    ],
+      {
+            "key": "open",
+            "name": "Open decisions",
+            "wip": 0,
+            "done": false
+      },
+      {
+            "key": "backlog",
+            "name": "Backlog",
+            "wip": 0,
+            "done": false
+      },
+      {
+            "key": "verify",
+            "name": "Verify",
+            "wip": 0,
+            "done": false
+      },
+      {
+            "key": "done",
+            "name": "Done",
+            "wip": 0,
+            "done": true
+      }
+],
 
     cards: [
-
-      // ================= M0: scaffold =================
-
       {
-        col: "done", type: "tooling", priority: 0, points: 2,
-        labels: ["m0"],
-        title: "Repository, Godot project and Git LFS",
-        body: "Godot 4.7.2 mono, `net8.0`, Jolt set explicitly, a 1920x1080 window, the "
-          + "optimiser on in Debug. LFS tracks art and audio from the first commit, "
-          + "because art is why this repository exists.",
+            "col": "open",
+            "type": "design",
+            "priority": 1,
+            "points": null,
+            "labels": [
+                  "open",
+                  "c2"
+            ],
+            "title": "Contract 2: what is the challenge?",
+            "body": "The gear run lands on a storm planet and retrieves lost gear from the hive's centre, but once the bike is found the player can fly straight to space, so there is no tension. What must the player do to get the gear out, and what stops the bike being an exit? `decisions/0051`."
       },
       {
-        col: "done", type: "tooling", priority: 0, points: 3,
-        labels: ["m0", "port"],
-        title: "Perf instruments ported",
-        body: "`FrameProfiler`, `PhysicsStepProbe`, `PerfRecorder` (`U`) and `bench.gd`, "
-          + "cut down to what an empty project needs. Bench modes arrive with the systems "
-          + "they measure rather than being ported in bulk.",
+            "col": "open",
+            "type": "design",
+            "priority": 2,
+            "points": null,
+            "labels": [
+                  "open",
+                  "weapons"
+            ],
+            "title": "What unlocks persistent tiers in the full game?",
+            "body": "Tiers persist across the campaign (0052); what earns them is not settled."
       },
       {
-        col: "done", type: "tooling", priority: 1, points: 1,
-        labels: ["m0"],
-        title: "Project board seeded from the plan",
-        body: "This board. Connect it to the project folder so `docs/project_board.json` "
-          + "is the copy git keeps.",
+            "col": "open",
+            "type": "design",
+            "priority": 2,
+            "points": null,
+            "labels": [
+                  "open",
+                  "weapons"
+            ],
+            "title": "Special-weapon charge counts",
+            "body": "How many charges a consumable super weapon (nuke designator, orbital laser, atomic grenade, missiles) is found with."
       },
       {
-        col: "verify", type: "perf", priority: 0, points: 1,
-        labels: ["m0", "bench"],
-        title: "Bench the empty pipeline level on a quiet machine",
-        body: "`bench.gd` on `lvl_pipeline_test.tscn`, with the laptop idle for a while "
-          + "first. This is the floor every later milestone is measured against, so it "
-          + "goes into `docs/decisions/0002-performance-target.md`.",
-        checklist: [
-          "Machine idle, nothing else running",
-          "Bench run, worst frame and gpu mean recorded",
-          "Number written into the performance decision",
-        ],
+            "col": "open",
+            "type": "design",
+            "priority": 2,
+            "points": null,
+            "labels": [
+                  "open"
+            ],
+            "title": "Kill thresholds for later company drops",
+            "body": "The bike drops at 20,000 kills in contract 3; other thresholds and the order of drops are open."
       },
       {
-        col: "doing", type: "art", priority: 0, points: 3,
-        labels: ["m0"],
-        title: "Blender to Godot round trip: one test asset",
-        body: "One small model taken through the whole pipeline in "
-          + "`art/_source/README.md`: palette UVs, `.glb` export, the toon palette "
-          + "material, a wrapper `.tscn`, placed in `lvl_pipeline_test.tscn` and inked.\n\n"
-          + "This is how the facing, scale and material-mapping conventions get "
-          + "**verified** rather than assumed. Write what you find into CLAUDE.md's "
-          + "verified environment table.",
-        checklist: [
-          "Model faces Blender -Y, origin at the feet, transforms applied",
-          "UVs on the palette swatches",
-          "Exported to art/models/ as .glb",
-          "Material mapped to mat_palette_toon.tres in the import dialog",
-          "Wrapped in scenes/props/prp_*.tscn",
-          "Facing and scale confirmed in Godot, written into CLAUDE.md",
-        ],
+            "col": "open",
+            "type": "design",
+            "priority": 2,
+            "points": null,
+            "labels": [
+                  "open"
+            ],
+            "title": "Do company drops draw the horde?",
+            "body": "Whether a package landing attracts cucumbers."
       },
       {
-        col: "next", type: "art", priority: 1, points: 2,
-        labels: ["m0"],
-        title: "Paint the real palette",
-        body: "`art/textures/palette.png` is a generated starter: rows of flat swatches "
-          + "for pickle greens, brine, rock, metal, company livery and effects. Repaint it "
-          + "in whatever you paint in, keeping the 16 px grid so UVs stay put. Its source "
-          + "file goes in `art/_source/`.",
-      },
-
-      // ================= M1: feel =================
-
-      {
-        col: "next", type: "tech", priority: 0, points: 8,
-        labels: ["m1", "port"],
-        title: "Port the player controller and camera rig",
-        body: "`PlayerController`, `CameraRig` and `MovementTuning` from the lab. Keep the "
-          + "rig's shape: yaw on the body, pitch on the pivot, every procedural motion on "
-          + "the offset. Keep `GroundStickSpeed` and `FloorSnapDistance` as consts, and the "
-          + "input map's device ids at 16 and 32.",
-        checklist: [
-          "Walk, sprint, crouch, jump with coyote time and buffering",
-          "Headbob, sway and landing punch on the offset",
-          "Gravity read from GetGravity(), up derived from it",
-          "Player scene, spawned by LevelRoot, with the ink pass on its camera",
-        ],
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "open"
+            ],
+            "title": "Scouting tools",
+            "body": "What the player scouts a nest with before dropping, if anything."
       },
       {
-        col: "next", type: "feature", priority: 0, points: 8,
-        labels: ["m1", "port"],
-        title: "Port the grapple",
-        body: "`GrappleHook` and its half of `PlayerController`: tap to zip, hold to "
-          + "swing, apex float on release. The orbit and heightfield ray stay delegates, "
-          + "unassigned until Mother Brine and the planet exist.\n\n"
-          + "The pitch's first focus. Polish it before anything new.",
+            "col": "open",
+            "type": "polish",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "open"
+            ],
+            "title": "Hit-stop tuning",
+            "body": "The juice around kills and big blasts; design for it from the start."
       },
       {
-        col: "next", type: "feature", priority: 1, points: 3,
-        labels: ["m1", "port"],
-        title: "Port the jetpack hover and gas dash",
-        body: "`J` hover, `Shift` tap dash, fuel refilled on the ground. It shares the line "
-          + "rather than dropping it.",
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "open"
+            ],
+            "title": "The mineral's name",
+            "body": "Each planet holds a valuable mineral; it is still unnamed."
       },
       {
-        col: "backlog", type: "art", priority: 0, points: 5,
-        labels: ["m1"],
-        title: "The gym: a hand-built level of things to swing from",
-        body: "A dozen tall pillars and blocks, modelled in Blender and laid out by hand. "
-          + "Spaced by the grapple's range rather than by eye: a top 60-70 m of rope from "
-          + "the floor, a neighbour about 30 m away for a zip.",
+            "col": "open",
+            "type": "design",
+            "priority": 2,
+            "points": null,
+            "labels": [
+                  "open",
+                  "story"
+            ],
+            "title": "How are upgrades bought while in debt?",
+            "body": "Unsolved once the parked debt story is built: the player always owes the company, yet the shop sells upgrades. `docs/ideas/story.md`."
       },
       {
-        col: "backlog", type: "polish", priority: 0, points: 5,
-        labels: ["m1", "bench"],
-        title: "Grapple feel pass",
-        body: "Zip, swing, release and float until they feel right. Then a `grapple` bench "
-          + "mode that throws, reels, swings and lets go, printing the rope's state.",
-      },
-
-      // ================= M2: something to wreck =================
-
-      {
-        col: "backlog", type: "tech", priority: 0, points: 8,
-        labels: ["m2", "port"],
-        title: "Port voxel bodies",
-        body: "`VoxelBuilding` and `VoxelField`: 16-voxel sections, the millisecond budget, "
-          + "greedy meshing, structural collapse, the armour threshold, dust through a "
-          + "delegate. The generators (`TowerModels`, `CompoundModels`) stay in the lab. A "
-          + "voxel model here is authored and placed, never generated.",
+            "col": "open",
+            "type": "design",
+            "priority": 2,
+            "points": null,
+            "labels": [
+                  "open",
+                  "story"
+            ],
+            "title": "The endings",
+            "body": "Accept the company's renewal and get a mech, or turn on the company by unleashing the horde on it. A direction only. `docs/ideas/story.md`."
       },
       {
-        col: "backlog", type: "tooling", priority: 1, points: 3,
-        labels: ["m2", "port"],
-        title: "Bring tools/voxel-bench across",
-        body: "It writes `VoxelModel` `.tres` files that point at the voxel scripts, so it "
-          + "arrives with them. Rename its storage keys, point its writer at the new paths, "
-          + "and leave out the planet, horde and flight labs until those systems are here.",
+            "col": "open",
+            "type": "design",
+            "priority": 2,
+            "points": null,
+            "labels": [
+                  "open",
+                  "weapons"
+            ],
+            "title": "Bike ammo counts and laser cooldown",
+            "body": "The bike keeps its gun, rocket pod, bomb bay and laser, each on limited ammo. The numbers for its stats resource are not set (the laser fires 10 s then cools in contract 2)."
       },
       {
-        col: "backlog", type: "art", priority: 1, points: 5,
-        labels: ["m2"],
-        title: "Author the first spire, tower and jar in voxel-bench",
-        body: "Placed by hand in a scene, not seeded. A spire is a swing anchor and a thing "
-          + "that comes down when its base is cut.",
+            "col": "open",
+            "type": "design",
+            "priority": 2,
+            "points": null,
+            "labels": [
+                  "open"
+            ],
+            "title": "Does the colony ever go back to sleep?",
+            "body": "Today it does not (0041). Also open: a rifle round on bare ground near the nest wakes nothing, and a new `EventBus` signal would need a record."
       },
       {
-        col: "backlog", type: "tech", priority: 0, points: 5,
-        labels: ["m2", "port"],
-        title: "Port Blast, the damage path and ExplosionEffect",
-        body: "`IDamageable`, `Hitbox`, `DamageInfo`, `HealthComponent`, `Blast` with "
-          + "`DistinctOverlaps`, the `AreaBlast` bus signal. `ExplosionEffect`'s six-clock "
-          + "staging and inked layers come across; its look gets remade.",
+            "col": "open",
+            "type": "design",
+            "priority": 2,
+            "points": null,
+            "labels": [
+                  "parked",
+                  "weapons"
+            ],
+            "title": "Rocket balance",
+            "body": "One bazooka load killing 7,000-8,000 may be a lack of pressure on the player rather than a kill-count problem. Rockets stay plentiful, because they are the fun."
       },
       {
-        col: "backlog", type: "feature", priority: 1, points: 5,
-        labels: ["m2", "port"],
-        title: "First two weapons: Brine Ripper and the rocket launcher",
-        body: "`WeaponBase`, `WeaponLoadout`, `HitscanWeapon`, `Rocket`. Gun-only viewmodels "
-          + "modelled in Blender; the procedural sway and recoil carry them until there are "
-          + "hands.",
-      },
-
-      // ================= M3: the pickles =================
-
-      {
-        col: "backlog", type: "tech", priority: 0, points: 13,
-        labels: ["m3", "port", "bench"],
-        title: "Port the horde into scripts/horde/",
-        body: "`HordeManager` out of the lab's `spike/`, with the kind data from "
-          + "`scripts/enemies/`. Tiers, density cap, view cull, hit proxies that keep their "
-          + "agents, blasts and lines over the bus. `bench.gd ... horde 25000` comes with it.",
+            "col": "open",
+            "type": "design",
+            "priority": 2,
+            "points": null,
+            "labels": [
+                  "parked"
+            ],
+            "title": "Fear-scatter after blasts",
+            "body": "Scared cucumbers scattering after big blasts so the player must herd them back. Wanted, not implemented."
       },
       {
-        col: "backlog", type: "art", priority: 0, points: 8,
-        labels: ["m3"],
-        title: "Model the five pickles",
-        body: "Standard, cornichon, thrower, spitter, tank. Enough edge loops along the "
-          + "length to bend; start near 200 triangles and let the horde bench decide. A "
-          + "silhouette that reads at the horizon matters more than detail up close.",
+            "col": "open",
+            "type": "perf",
+            "priority": 2,
+            "points": null,
+            "labels": [
+                  "parked"
+            ],
+            "title": "Separable body pieces on kills",
+            "body": "Pieces flying off with stylised splatter. A cucumber is one shader-drawn capsule with no separable parts; measure the cost on Iris Xe first."
       },
       {
-        col: "backlog", type: "design", priority: 1, points: 5,
-        labels: ["m3"],
-        title: "Pickle animation in the vertex shader",
-        body: "Waddle, wobble, squash before a lunge, stretch in the air, flop on death, all "
-          + "from a phase and a state in `INSTANCE_CUSTOM`. No rig, no bake.",
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "parked"
+            ],
+            "title": "Early pacing: Cornichons first",
+            "body": "Thrown Cornichons arrive before the bigger types, so early fights feel like mowing down small fry. Revisit."
       },
       {
-        col: "backlog", type: "feature", priority: 1, points: 5,
-        labels: ["m3"],
-        title: "Shield and health",
-        body: "The pitch's regenerating shield over health, on the existing damage path. "
-          + "This is the game, not the sandbox: empty means dead, and dead means a clone.",
-      },
-
-      // ================= M4: the planet =================
-
-      {
-        col: "backlog", type: "tech", priority: 0, points: 13,
-        labels: ["m4", "port", "bench"],
-        title: "Port the cube-sphere planet",
-        body: "`scripts/planet/` is already free of the spike: the heightfield, streaming, "
-          + "craters, the flow field. Point gravity through an `Area3D` on collision "
-          + "layer 0.",
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "parked",
+                  "story"
+            ],
+            "title": "Tanks defending a damaged vine",
+            "body": "Tanks rushing to guard a hit vine in a tight radius. Under 0041 harm wakes everything, so a local guard has nothing to add yet."
       },
       {
-        col: "backlog", type: "design", priority: 1, points: 5,
-        labels: ["m4"],
-        title: "The compound as an authored scene on the planet",
-        body: "Spires, towers, ruins and the jar in one `.tscn`, placed at a marker. Its "
-          + "crater is dug once through the ordinary crater call.",
-      },
-
-      // ================= M5: Mother Brine =================
-
-      {
-        col: "backlog", type: "feature", priority: 1, points: 13,
-        labels: ["m5", "port"],
-        title: "Port Mother Brine",
-        body: "Hop, slam, topple, roll, geyser, shed. Armour authored in voxel-bench, warts "
-          + "and core as hitboxes, the orbit delegate on the grapple.",
-      },
-
-      // ================= M6: the bike and the arrival =================
-
-      {
-        col: "backlog", type: "tech", priority: 1, points: 8,
-        labels: ["m6", "port"],
-        title: "Port the flight rig and the bike's systems",
-        body: "`scripts/vehicles/flightrig/` is portable as it stands. Gun, laser and pod "
-          + "come across in `HoverBikeSystems`; the bike itself is modelled in Blender.",
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "parked",
+                  "story"
+            ],
+            "title": "Debt as the story spine",
+            "body": "The player owes the company; deaths and failures add to it with a cap; the balance prints on every invoice. Parked until the slice is played. `docs/ideas/story.md`."
       },
       {
-        col: "backlog", type: "feature", priority: 1, points: 8,
-        labels: ["m6"],
-        title: "Arrive from orbit with no cut",
-        body: "A distant-planet stand-in with a clean silhouette, handing over to the "
-          + "streamed terrain on the way down, and a planet worth reading from up there.",
-      },
-
-      // ================= M7: the mission =================
-
-      {
-        col: "backlog", type: "design", priority: 1, points: 8,
-        labels: ["m7"],
-        title: "The mission loop: clear threshold, three clones, the invoice",
-        body: "Start in orbit, clear the population to the company's threshold, die and "
-          + "come back as a clone up to three times, and leave with an itemised invoice.",
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "parked",
+                  "story"
+            ],
+            "title": "Show, don't tell: cold invoice wording",
+            "body": "Invoice words grow colder across the campaign, from specimens to units to biomass. No young cucumbers; no corpse-carrying."
       },
       {
-        col: "backlog", type: "art", priority: 2, points: 13,
-        labels: ["m7"],
-        title: "First-person hands",
-        body: "The one rigged, animated thing in the slice. Late on purpose: gun-only "
-          + "viewmodels carry the earlier milestones.",
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "parked",
+                  "story"
+            ],
+            "title": "The recurring rival contractor",
+            "body": "A scripted boss with one visible counter per return (flares, cutting vines), who bails out instead of dying and takes your paycheck. Stay apart from the Nemesis system."
       },
       {
-        col: "backlog", type: "audio", priority: 2, points: 5,
-        labels: ["m7", "port"],
-        title: "Port the sound system and replace the loudest placeholders",
-        body: "`SoundEvent`, `SoundBank`, `AudioDirector`. The synthesiser stays as the "
-          + "placeholder; recordings go into the bank's slots, starting with what is heard "
-          + "most: guns, kills, explosions.",
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "later"
+            ],
+            "title": "Root hearts that wither nest sections",
+            "body": "Killing a root heart withers a whole section of the nest."
       },
-    ],
+      {
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "later"
+            ],
+            "title": "Mid-mission company bonus jobs",
+            "body": "Optional jobs offered during a contract."
+      },
+      {
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "later"
+            ],
+            "title": "Mother Brine as a roaming boss",
+            "body": "Climbing out of the main shaft as a town-contract climax. Cut from the slice."
+      },
+      {
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "later"
+            ],
+            "title": "A buried queen and caves",
+            "body": "A queen too big to leave her cave, setting up a follow-up nest contract. Mole cucumbers and the underground queen are full-game."
+      },
+      {
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "later"
+            ],
+            "title": "Player-called airstrike with a handheld designator",
+            "body": "An orbital cannon or airstrike the player calls."
+      },
+      {
+            "col": "open",
+            "type": "audio",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "later"
+            ],
+            "title": "Cucumber sounds scaled to size",
+            "body": "Bigger cucumbers sound bigger."
+      },
+      {
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "later"
+            ],
+            "title": "Magic weapons",
+            "body": "A staff that works as a spell conduit. Kept out of the slice."
+      },
+      {
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "later"
+            ],
+            "title": "Detailed ballistics and wound channels",
+            "body": "To be checked against the brine-not-blood tone."
+      },
+      {
+            "col": "open",
+            "type": "design",
+            "priority": 3,
+            "points": null,
+            "labels": [
+                  "later",
+                  "story"
+            ],
+            "title": "A small cast of recurring rival characters",
+            "body": "Beyond the first rival."
+      },
+      {
+            "col": "backlog",
+            "type": "tech",
+            "priority": 2,
+            "points": 3,
+            "labels": [
+                  "weapons"
+            ],
+            "title": "Remove the prototype weapons outside the five",
+            "body": "Noted, not started (decided: do not change the weapons yet). `wpn_bayou_boomstick`, `_machete`, `_brine_burner`, `_brine_ripper`, `_dill_hammer`, `_frag_grenade`, `_gherkin_volley`, `_gravity_manipulator`, `_grenade_thrower`, `_sledge`, `_strike_designator`, `_vinegar_lance` are in the player's code and the `arsenal` and `slam` benches. Removal edits the player and those benches. Replaced by 0052's five."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 0,
+            "points": 13,
+            "labels": [
+                  "weapons"
+            ],
+            "title": "Five core weapons, tiers 1 and 2",
+            "body": "Assault rifle (piercing, underbarrel launcher), bazooka (four-rocket volley, bigger rockets), pole saw (reach, spin; no ammo), laser cannon (shorter cooldown, wider beam; gravity-gun mode), sniper (.50, explosive rounds, airstrike). `decisions/0052`."
+      },
+      {
+            "col": "backlog",
+            "type": "art",
+            "priority": 2,
+            "points": 8,
+            "labels": [
+                  "weapons"
+            ],
+            "title": "Viewmodels for the five weapons",
+            "body": "Assault rifle with underbarrel launcher, bazooka, pole saw, laser cannon, .50 sniper."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 5,
+            "labels": [
+                  "weapons"
+            ],
+            "title": "Weapon wheel and aim on every weapon",
+            "body": "Mouse wheel switches weapons; right mouse button aims on every one; five slots with free choice."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 8,
+            "labels": [
+                  "weapons"
+            ],
+            "title": "Specials and the consumables bar",
+            "body": "Reusable specials (minigun, fire rocket launcher) and consumable super weapons (nuke designator, orbital laser, atomic grenade, missiles); a separate bar for grenades, medkits, shield generators, ammo."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 5,
+            "labels": [
+                  "weapons",
+                  "c2"
+            ],
+            "title": "Nuke designator",
+            "body": "Marks a spot; the player flies clear before it lands. One-off prompt that fades if ignored. Needs the nuke blast."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 5,
+            "labels": [
+                  "weapons",
+                  "c1"
+            ],
+            "title": "Minigun special (the gift at 50%)",
+            "body": "Armour-piercing minigun, given by the company at 50% of the nest destroyed in contract 1."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 13,
+            "labels": [
+                  "cabin",
+                  "weapons"
+            ],
+            "title": "Six-tier upgrades and the shop",
+            "body": "Ammo, ammo, mod, mod, secondary ability, its evolution. The slice shows both tiers of every weapon but pays for two purchases in total, and logs every purchase."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 3,
+            "labels": [
+                  "cabin"
+            ],
+            "title": "Log every shop purchase",
+            "body": "To learn which upgrades people want."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 8,
+            "labels": [
+                  "cabin"
+            ],
+            "title": "Ship cabin hub",
+            "body": "Walkable cabin, a window onto the next planet, ambience. Failure wakes the player here, unpaid."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 5,
+            "labels": [
+                  "cabin"
+            ],
+            "title": "Invoice printer",
+            "body": "Prints the itemised invoice (fee minus ammo, clones, damage, rentals) and stamps it PAID."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 3,
+            "labels": [
+                  "cabin"
+            ],
+            "title": "Crate hatch",
+            "body": "The purchase arrives in a crate through a hatch."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 5,
+            "labels": [
+                  "cabin"
+            ],
+            "title": "Main menu as a live window on the ship",
+            "body": "The planet rotating slowly, ambience, a periodic beep. Play, Options, Wishlist on Steam, Join Discord, Send feedback, Credits, Quit."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 2,
+            "labels": [
+                  "cabin"
+            ],
+            "title": "End of the slice: empty contract screen",
+            "body": "Ends on an empty contract screen with a wishlist-on-Steam line; any contract can be replayed after."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 8,
+            "labels": [
+                  "open1"
+            ],
+            "title": "Opening sequence: unclear cloning flashes",
+            "body": "Short, deliberately unclear, shown once and never explained. `decisions/0054`."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 8,
+            "labels": [
+                  "open1",
+                  "c1"
+            ],
+            "title": "Landing pod and the descent through the window",
+            "body": "Control inside the pod, look around, watch stars, sun, atmosphere and clouds; the door opens onto the vines. Every contract arrival. Landing in a town smashes the pod through skyscrapers."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 3,
+            "labels": [
+                  "open1",
+                  "c1"
+            ],
+            "title": "Replay the cloning flashes at the first death",
+            "body": "At the first death in contract 1 the lab flashes replay as the clone respawns."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 5,
+            "labels": [
+                  "c1"
+            ],
+            "title": "Free drop point on the contract screen",
+            "body": "A rough sketch of the planet and nest; scout far out or drop straight onto the nest; no mandatory setup phase."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 5,
+            "labels": [
+                  "c1"
+            ],
+            "title": "Extraction by pod",
+            "body": "Call extraction, a pod drops, the ground falls away through the window."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 0,
+            "points": 13,
+            "labels": [
+                  "c1"
+            ],
+            "title": "The queen",
+            "body": "A stationary pod at the nest's centre: rind that rifle rounds barely mark, weak spots that open after she attacks, feeder vines that heal her until cut, a guard of Tanks and Spitters. Tuned for 2-3 minutes at tier 1, about 25 bazooka hits."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 8,
+            "labels": [
+                  "c1"
+            ],
+            "title": "Queen attacks: screech, seed spit, tearing down vines",
+            "body": "Screech knocks you off the grapple and calls the horde; sticky seed spit slows you; tearing down vines around her in a growing radius pushes you from minigun to sniper range. Each telegraphed."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 3,
+            "labels": [
+                  "c1"
+            ],
+            "title": "Contract 1 win and HUD",
+            "body": "Queen dead, every pod destroyed, at most 20% of cucumbers alive; the HUD marks the last pods."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 3,
+            "labels": [
+                  "c1"
+            ],
+            "title": "Contract 1 light tips",
+            "body": "Grapple first, then movement and the weapon wheel."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 5,
+            "labels": [
+                  "c1"
+            ],
+            "title": "Tank throws and punches",
+            "body": "The Thrower is folded into the Tank."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 5,
+            "labels": [
+                  "c1"
+            ],
+            "title": "Targeting: aggro radius and the director",
+            "body": "One flow field to the contract's anchor plus a player aggro radius that allows baiting; the director varies the radius with a telegraph such as a screech."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 8,
+            "labels": [
+                  "c1"
+            ],
+            "title": "Death: three clones, failure pays nothing",
+            "body": "Three clones a contract, nothing lost on death; losing all three fails the contract and you wake on the ship unpaid, keeping upgrades. `decisions/0053`."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 8,
+            "labels": [
+                  "c2"
+            ],
+            "title": "Storm planet and weather",
+            "body": "A second biome in storm season: fog, lightning, dead calm, a tornado that rips up vines. Weather is mood."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 5,
+            "labels": [
+                  "c2"
+            ],
+            "title": "Contract 2: fixed landing glitch",
+            "body": "The storm scrambles targeting; the player always lands at one fixed spot at the nest's edge and it must read as intended."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 5,
+            "labels": [
+                  "c2"
+            ],
+            "title": "Contract 2: crash pod and beacon",
+            "body": "The dead contractor's pod high in the tallest vine at the hive's centre, holding the nuke designator; optional call-in earns the \"piece of shit\" achievement."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 5,
+            "labels": [
+                  "c2"
+            ],
+            "title": "Contract 2: tornado climax",
+            "body": "The storm peaks, a tornado rips up vines; cucumbers flung at you, telegraphed and shootable mid-air."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 5,
+            "labels": [
+                  "c2",
+                  "c3"
+            ],
+            "title": "Hoverbike as a special item with limited ammo",
+            "body": "Gun, rocket pod, bomb bay and laser on limited ammo. The prize of contract 2; a company drop at 20,000 kills in contract 3."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 0,
+            "points": 13,
+            "labels": [
+                  "c3"
+            ],
+            "title": "Contract 3: procedural town",
+            "body": "One big pad, skyscrapers, a main shaft and side shafts at the edges as spawn holes (no drill rig), 5-6 turrets. About 5,000 cucumbers at landing, ramping toward 24,000 with refill."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 5,
+            "labels": [
+                  "c3"
+            ],
+            "title": "Contract 3: shafts and sealing",
+            "body": "Sealing a side shaft with the bazooka or a gravity-gunned fuel tank slows the refill."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 1,
+            "points": 8,
+            "labels": [
+                  "c3"
+            ],
+            "title": "Contract 3: turrets and roof relays",
+            "body": "Power relays on skyscraper roofs: grapple up, flip the switch, hold through the spin-up. A collapsed tower cuts that turret's power."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 0,
+            "points": 13,
+            "labels": [
+                  "c3"
+            ],
+            "title": "Contract 3: shuttles and four targets",
+            "body": "A shuttle every 4 minutes, five in all: 1-3 ore, 4 takes 80% of the people, 5 the last 20%. Four automatic corner miniguns and a rocket launcher while landed. Three ore sites and the shelter are defended at once."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 3,
+            "labels": [
+                  "c3"
+            ],
+            "title": "Contract 3: mech drop and the ending choice",
+            "body": "A mech drops midway; the end is a choice between boarding shuttle 5 at once and defending the last 20% until they board."
+      },
+      {
+            "col": "backlog",
+            "type": "feature",
+            "priority": 2,
+            "points": 5,
+            "labels": [
+                  "c1",
+                  "c3"
+            ],
+            "title": "Company drops inside a contract",
+            "body": "Physical pickups with loaned support: fighter and tank mechs, and the laser hoverbike at the top tier."
+      },
+      {
+            "col": "backlog",
+            "type": "polish",
+            "priority": 2,
+            "points": 3,
+            "labels": [],
+            "title": "Plain health bar and shield; strip pickle-themed names",
+            "body": "Replace the jar HUD, *PICKLED!* and the brine-named weapons. `decisions/0050`."
+      },
+      {
+            "col": "backlog",
+            "type": "art",
+            "priority": 2,
+            "points": 5,
+            "labels": [],
+            "title": "Cucumber faces: scared and angry",
+            "body": "Near-tier expression via a per-agent input or a few baked variants; benched. Brine, not blood."
+      },
+      {
+            "col": "backlog",
+            "type": "audio",
+            "priority": 3,
+            "points": 5,
+            "labels": [],
+            "title": "Whimpers and wails",
+            "body": "Heard in the quiet before the alarm and at close kills; `AudioDirector` caps and pools them."
+      },
+      {
+            "col": "backlog",
+            "type": "tooling",
+            "priority": 3,
+            "points": 2,
+            "labels": [],
+            "title": "Verify Blender .glb facing and scale",
+            "body": "Take a test asset through the pipeline and replace the two \"not yet verified\" lines in CLAUDE.md."
+      },
+      {
+            "col": "backlog",
+            "type": "art",
+            "priority": 1,
+            "points": 13,
+            "labels": [
+                  "c1"
+            ],
+            "title": "Model the queen",
+            "body": "Rind plates, weak-spot hatches (emissive), seed-spit mouth, feeder roots; voxel and destructible."
+      },
+      {
+            "col": "backlog",
+            "type": "art",
+            "priority": 2,
+            "points": 8,
+            "labels": [
+                  "open1",
+                  "cabin"
+            ],
+            "title": "Model the landing pod interior and ship cabin",
+            "body": "Pod seat, window and door; the cabin with invoice printer and crate hatch; cloning-lab glimpses."
+      },
+      {
+            "col": "backlog",
+            "type": "art",
+            "priority": 2,
+            "points": 13,
+            "labels": [
+                  "c3"
+            ],
+            "title": "Model the armed shuttle and colony set",
+            "body": "Shuttle with corner miniguns; skyscrapers, the armoured shelter, ore storage, shafts, turrets, relays, fuel tanks, security mechs."
+      },
+      {
+            "col": "backlog",
+            "type": "art",
+            "priority": 2,
+            "points": 8,
+            "labels": [
+                  "c2"
+            ],
+            "title": "Model the crash pod, storm planet and nuke blast",
+            "body": "The contractor's crash pod, the storm biome and tornado, and the staged planet-scale blast."
+      },
+      {
+            "col": "backlog",
+            "type": "art",
+            "priority": 3,
+            "points": 13,
+            "labels": [],
+            "title": "First-person hands",
+            "body": "The one rigged thing; late on purpose."
+      },
+      {
+            "col": "verify",
+            "type": "perf",
+            "priority": 0,
+            "points": null,
+            "labels": [],
+            "title": "60 fps at 1080p on Iris Xe",
+            "body": "The standing requirement (0002). Re-measure on a rested machine with `bench.gd` after each system lands."
+      },
+      {
+            "col": "done",
+            "type": "tooling",
+            "priority": 2,
+            "points": 3,
+            "labels": [
+                  "built"
+            ],
+            "title": "Repository, Godot project, Jolt and Git LFS",
+            "body": "Godot 4.7.2 mono, `net8.0`, Jolt set explicitly, LFS from the first commit (0003)."
+      },
+      {
+            "col": "done",
+            "type": "tooling",
+            "priority": 2,
+            "points": 3,
+            "labels": [
+                  "built"
+            ],
+            "title": "Perf instruments",
+            "body": "`FrameProfiler`, `PhysicsStepProbe`, `PerfRecorder` (`U`) and `bench.gd` (0002)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 8,
+            "labels": [
+                  "built"
+            ],
+            "title": "Player and the grapple",
+            "body": "Zip, swing, orbit and release float; jetpack hover and dashes."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 13,
+            "labels": [
+                  "built"
+            ],
+            "title": "The horde at 25,000",
+            "body": "Flat arrays, simulation tiers, density cap and view cull; blasts and beams reach the crowd. Allies are attacked and bitten (0012)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 13,
+            "labels": [
+                  "built"
+            ],
+            "title": "Voxel destruction",
+            "body": "Every voxel model breaks the same way (0011); off the frame (0015); rubble stays (0016, 0022); chunk graph and building collapse (0027); trees hold by connection (0024)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 8,
+            "labels": [
+                  "built"
+            ],
+            "title": "MagicaVoxel importer",
+            "body": "`.vox` imported directly: parts, colour per vertex, emission, markers (0009)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 13,
+            "labels": [
+                  "built"
+            ],
+            "title": "The planet",
+            "body": "Cube-sphere at the origin, streaming, craters, sites (0017); seeded planets and biomes (0018); the session and loading screen (0021); pinned at 1,260 m (0037)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 8,
+            "labels": [
+                  "built"
+            ],
+            "title": "Vulkan renderer",
+            "body": "As fast idle and faster under the horde than D3D12 (0048)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 13,
+            "labels": [
+                  "built"
+            ],
+            "title": "Vine nest grown at load",
+            "body": "Seeded, 25 s at 25,000; saved nests are presets (0033); only valid vines (0036); one clump, 55-70 m apart (0038)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 8,
+            "labels": [
+                  "built"
+            ],
+            "title": "Plants bend; leaves are meshes",
+            "body": "Spine of springs, collision that follows, wind and the grapple push (0032, 0035); vines leave no rubble (0042)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 13,
+            "labels": [
+                  "built"
+            ],
+            "title": "Pods in bulk and regrowth",
+            "body": "One pod per cucumber in flat arrays, drawn instanced and bent on the GPU (0040); regrow until destroyed; the win rule (0034)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 5,
+            "labels": [
+                  "built"
+            ],
+            "title": "The colony wakes on harm",
+            "body": "Never on nearness; every cucumber drops into the horde over 30 s (0041)."
+      },
+      {
+            "col": "done",
+            "type": "tech",
+            "priority": 2,
+            "points": 3,
+            "labels": [
+                  "built"
+            ],
+            "title": "Structure and Litter physics layers",
+            "body": "Static voxel bodies off Prop (0039)."
+      },
+      {
+            "col": "done",
+            "type": "tooling",
+            "priority": 2,
+            "points": 8,
+            "labels": [
+                  "built"
+            ],
+            "title": "The Vines tool",
+            "body": "Nest tab, range lab, Good/Bad training logs (0043)."
+      },
+      {
+            "col": "done",
+            "type": "tooling",
+            "priority": 2,
+            "points": 8,
+            "labels": [
+                  "built"
+            ],
+            "title": "The editor bridge",
+            "body": "Claude works in the running editor, every change one undo; own terrain brushes (0044)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 5,
+            "labels": [
+                  "built"
+            ],
+            "title": "Shallow water",
+            "body": "Wade, splash, the horde slower (0045)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 13,
+            "labels": [
+                  "built"
+            ],
+            "title": "Mechs fight on broken",
+            "body": "Procedural gait, only core or head kills, mend themselves, Blender moves baked to data (0046)."
+      },
+      {
+            "col": "done",
+            "type": "tooling",
+            "priority": 2,
+            "points": 8,
+            "labels": [
+                  "built"
+            ],
+            "title": "The asset lab",
+            "body": "One place to look at, tune and break any asset, in the editor and in play (0047)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 5,
+            "labels": [
+                  "built"
+            ],
+            "title": "Melee strokes and the sledge",
+            "body": "Pose strokes, not clips (0028)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 3,
+            "labels": [
+                  "built"
+            ],
+            "title": "Gamepad",
+            "body": "One layout on the same actions (0025)."
+      },
+      {
+            "col": "done",
+            "type": "tech",
+            "priority": 2,
+            "points": 3,
+            "labels": [
+                  "built"
+            ],
+            "title": "EventBus and AudioDirector",
+            "body": "Autoloads (0006, 0007)."
+      },
+      {
+            "col": "done",
+            "type": "feature",
+            "priority": 2,
+            "points": 5,
+            "labels": [
+                  "built"
+            ],
+            "title": "Onboarding level",
+            "body": "`lvl_nest_intro` on a saved 1,000-cucumber nest, with landmarks and prompts (0049)."
+      }
+],
   };
 })(window.PB = window.PB || {});

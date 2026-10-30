@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cvsb0aaie5cdh"]
 
-[ext_resource type="Script" path="res://scripts/weapons/Rocket.cs" id="1_rckt0"]
+[ext_resource type="Script" uid="uid://bs1w4hcoimpfq" path="res://scripts/weapons/Rocket.cs" id="1_rckt0"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/fx_explosion.tscn" id="2_expl0"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_case"]
@@ -56,14 +56,14 @@ curve = SubResource("Curve_trail")
 lifetime_randomness = 0.3
 emission_shape = 1
 emission_sphere_radius = 0.12
+angle_min = -180.0
+angle_max = 180.0
 spread = 25.0
 initial_velocity_min = 0.5
 initial_velocity_max = 2.5
 gravity = Vector3(0, 0.4, 0)
 damping_min = 1.0
 damping_max = 2.5
-angle_min = -180.0
-angle_max = 180.0
 scale_min = 0.5
 scale_max = 1.1
 scale_curve = SubResource("CurveTexture_trail")
@@ -74,53 +74,54 @@ transparency = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
 albedo_color = Color(0.7, 0.68, 0.66, 1)
+disable_receive_shadows = true
 billboard_mode = 3
 billboard_keep_scale = true
-disable_receive_shadows = true
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
 
 [sub_resource type="QuadMesh" id="QuadMesh_trail"]
 material = SubResource("StandardMaterial3D_trail")
 size = Vector2(0.8, 0.8)
 
-[node name="Rocket" type="Node3D" node_paths=PackedStringArray("Model", "Trail", "MotorLight")]
+[node name="Rocket" type="Node3D" unique_id=1454652086 node_paths=PackedStringArray("Model", "Trail", "MotorLight")]
 script = ExtResource("1_rckt0")
 Model = NodePath("Model")
 Trail = NodePath("Trail")
 MotorLight = NodePath("Model/MotorLight")
 ExplosionScene = ExtResource("2_expl0")
 
-[node name="Model" type="Node3D" parent="."]
+[node name="Model" type="Node3D" parent="." unique_id=1656058960]
 
-[node name="Case" type="MeshInstance3D" parent="Model"]
+[node name="Case" type="MeshInstance3D" parent="Model" unique_id=1978024391]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0)
 material_override = SubResource("StandardMaterial3D_case")
 cast_shadow = 0
 mesh = SubResource("CapsuleMesh_case")
 
-[node name="Nose" type="MeshInstance3D" parent="Model"]
+[node name="Nose" type="MeshInstance3D" parent="Model" unique_id=1293126365]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, -0.3)
 material_override = SubResource("StandardMaterial3D_nose")
 cast_shadow = 0
 mesh = SubResource("SphereMesh_nose")
 
-[node name="Flame" type="MeshInstance3D" parent="Model"]
+[node name="Flame" type="MeshInstance3D" parent="Model" unique_id=576498087]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0.42)
 material_override = SubResource("StandardMaterial3D_flame")
 cast_shadow = 0
 mesh = SubResource("SphereMesh_flame")
 
-[node name="Trail" type="GPUParticles3D" parent="."]
+[node name="MotorLight" type="OmniLight3D" parent="Model" unique_id=1941256717]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.4)
+light_color = Color(1, 0.44705883, 0.18039216, 1)
+light_energy = 4.0
+omni_range = 9.0
+
+[node name="Trail" type="GPUParticles3D" parent="." unique_id=1254250023]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.35)
 cast_shadow = 0
 amount = 40
 lifetime = 1.1
-local_coords = false
-explosiveness = 0.0
 process_material = SubResource("ParticleProcessMaterial_trail")
 draw_pass_1 = SubResource("QuadMesh_trail")
-
-[node name="MotorLight" type="OmniLight3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.4)
-light_color = Color(1, 0.74, 0.42, 1)
-light_energy = 4.0
-omni_range = 9.0

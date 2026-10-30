@@ -52,8 +52,15 @@ public static class VineBaker
     public static Baked Bake(VineKind kind, int seed, VineBakeStats stats, VineParams settings = null, bool changed = false)
     {
         VineGrower.Grown grown = settings != null ? VineGrower.FromSettings(settings, stats) : VineGrower.Grow(kind, seed, stats);
+        return Write(kind, grown, NameOf(kind, seed, changed), stats, changed);
+    }
+
+    /// <summary>Writes a vine already grown, under <paramref name="name"/>: a
+    /// nest's vine is grown at a size (<see cref="NestLayout.Vine.Scale"/>) that
+    /// a kind and seed alone do not regrow.</summary>
+    public static Baked Write(VineKind kind, VineGrower.Grown grown, string name, VineBakeStats stats, bool changed = false)
+    {
         VineGenerator.Result vine = grown.Vine;
-        string name = NameOf(kind, seed, changed);
         var baked = new Baked
         {
             Name = name,
@@ -67,6 +74,7 @@ public static class VineBaker
         if (!grown.Ok)
             return baked;
 
+        DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath(stats.SceneFolder));
         VinePalette palette = PaletteFor(kind, stats, vine);
         WriteBytes(baked.VoxPath, Encode(vine, palette));
         WriteImport(baked.ImportPath, baked.VoxPath, stats.VoxelSize);

@@ -1,6 +1,6 @@
 # 0028 Melee is a stroke, not a clip
 
-*13 October 2026. The same reason as 0010.*
+*13 October 2026. The same reason as the walking rules in 0046.*
 
 ## Context
 

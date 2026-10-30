@@ -33,7 +33,7 @@ performance/rule="A requirement, not an aspiration. Anything that cannot hold 60
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
-window/size/mode=3
+window/size/mode=4
 window/size/resizable=false
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"

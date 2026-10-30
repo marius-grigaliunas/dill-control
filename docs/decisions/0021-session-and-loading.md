@@ -1,6 +1,6 @@
 # 0021 A session autoload carries the contract; the contract level loads itself behind its own screen
 
-*10 October 2026. Builds on 0018-0020.*
+*10 October 2026. Builds on 0017 and 0018.*
 
 ## Context
 

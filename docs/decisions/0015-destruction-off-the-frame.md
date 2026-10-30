@@ -1,10 +1,10 @@
 # 0015 Destruction off the frame
 
-*9 October 2026. Builds on 0011, 0013, 0014.*
+*9 October 2026. Builds on 0011 and 0027.*
 
 ## Context
 
-0014's collapses were measured on a machine in use and written off as "not a
+The earlier collapses were measured on a machine in use and written off as "not a
 number". Asked for 60 fps at 1080p whether the machine is in use or not, a
 frame-by-frame recording (`cut quiet`, below) of one tower cut through showed
 12.7 % of frames over budget, the worst at 117 ms:

@@ -77,6 +77,9 @@ public partial class NestPlaytest : Node
             Kit = request.Kit,
             Seed = Builder.Seed,
             Population = Builder.Population,
+            RadiusM = Builder.RadiusLimitM,
+            SpacingMin = Builder.SpacingUsedM.X,
+            SpacingMax = Builder.SpacingUsedM.Y,
             Horde = Builder.WithHorde,
         };
         if (_player.Grapple != null)

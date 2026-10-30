@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Godot;
 using DillControl.Core;
 using DillControl.Foliage;
+using DillControl.Mission;
 
 namespace DillControl.Editor;
 
@@ -56,6 +57,17 @@ public static class VineCommands
             "Only a valid vine is baked. 'place' can then put the scene in a level.",
             """{"type":"object","required":["kind","seed"],"properties":{"kind":{"type":"string"},"seed":{"type":"integer"}}}""",
             Bake);
+        Bridge.Register("nest_bake",
+            "Bake a saved nest (NestPreset .tres) into an authored scene, docs/decisions/0056: every vine baked as 'vine_bake' does, and " +
+            "scenes/props/nests/prp_nest_<preset>.tscn with them laid out round the origin, to 'place' in a level and edit by hand. One-way; an existing " +
+            "nest scene is never written over unless 'overwrite' (it may hold hand edits).",
+            """
+            {"type":"object","required":["preset"],"properties":{
+              "preset":{"type":"string","description":"res://resources/mission/nests/<file>.tres"},
+              "overwrite":{"type":"boolean"}
+            }}
+            """,
+            NestBake);
         Bridge.Register("vine_judge",
             "Log Claude's Good or Bad for a seed's vine to tools/vine-logs/vine_verdicts.jsonl, marked \"by\": \"claude\". " +
             "Only when it can be judged accurately: the logs are training data and are never edited.",
@@ -289,6 +301,58 @@ public static class VineCommands
         row["scene_written"] = baked.SceneWritten;
         row["imported"] = changed && ResourceLoader.Exists(baked.ScenePath);
         return row;
+    }
+
+    private static async Task<JsonNode> NestBake(JsonObject args)
+    {
+        string path = Bridge.Text(args, "preset") ?? throw new Bridge.Refused("'preset' is missing");
+        if (ResourceLoader.Load(path, cacheMode: ResourceLoader.CacheMode.Replace) is not NestPreset preset || preset.Kit == null)
+            throw new Bridge.Refused($"{path} is not a NestPreset with a kit");
+        VineBakeStats stats = preset.Kit.Bake ?? Stats();
+        VineGrower.Context context = VineGrower.Context.For(stats, preset.Kit.Kinds);
+        NestLayout layout = await Task.Run(() => NestBaker.Plan(preset, context));
+        NestBaker.Result baked;
+        try
+        {
+            baked = NestBaker.Bake(preset, layout, stats, Bridge.Flag(args, "overwrite", false));
+        }
+        catch (InvalidOperationException e)
+        {
+            throw new Bridge.Refused(e.Message);
+        }
+
+        // Every vine's .vox imported and its scene known before the nest scene is opened.
+        EditorFileSystem files = EditorInterface.Singleton.GetResourceFilesystem();
+        var waiting = new HashSet<string>(baked.VoxFiles);
+        void Reimported(string[] paths) => waiting.ExceptWith(paths);
+        files.ResourcesReimported += Reimported;
+        files.Scan();
+        try
+        {
+            int idle = 0;
+            for (int i = 0; i < 3600; i++)
+            {
+                await Bridge.NextFrame();
+                bool known = baked.VineScenes.All(p => ResourceLoader.Exists(p)) && ResourceLoader.Exists(baked.ScenePath);
+                if (files.IsScanning() || !known)
+                    idle = 0;
+                else if (waiting.Count == 0 || ++idle > 180)
+                    break;
+            }
+        }
+        finally
+        {
+            files.ResourcesReimported -= Reimported;
+        }
+        return new JsonObject
+        {
+            ["scene"] = baked.ScenePath,
+            ["vines"] = baked.Vines,
+            ["unique_vines"] = baked.VineScenes.Count,
+            ["pods"] = baked.Pods,
+            ["radius_m"] = baked.RadiusM,
+            ["imported"] = waiting.Count == 0,
+        };
     }
 
     private static JsonNode Judge(JsonObject args)

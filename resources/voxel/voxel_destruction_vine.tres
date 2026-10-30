@@ -12,3 +12,4 @@ CoarseFromMetres = 60.0
 CoarsestFromMetres = 150.0
 CoarseShadows = false
 SectionEdge = 64
+IntegrityDelay = 0.03

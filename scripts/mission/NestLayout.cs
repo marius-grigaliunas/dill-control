@@ -68,13 +68,15 @@ public sealed class NestLayout
         }
     }
 
-    public static NestLayout Plan(NestKit kit, VineGrower.Context context, ulong seed, int population)
+    /// <param name="spacingM">Metres between neighbouring vines, least and most; zero is the kit's <see cref="NestKit.SpacingM"/>.</param>
+    /// <param name="radiusM">No vine further than this from the heart; zero is the kit's <see cref="NestKit.MaxRadiusM"/>.</param>
+    public static NestLayout Plan(NestKit kit, VineGrower.Context context, ulong seed, int population, float radiusM = 0.0f, Vector2 spacingM = default)
     {
         var clock = Stopwatch.StartNew();
         List<VineKind> kinds = kit.Kinds.Where(k => k != null).ToList();
         var grown = new Dictionary<(VineKind, int, float), VineGrower.Grown>();
         var layout = new NestLayout { Population = population };
-        List<Slot> slots = MakeSlots(kit, seed, layout);
+        List<Slot> slots = MakeSlots(kit, seed, layout, radiusM > 0.0f ? radiusM : kit.MaxRadiusM, spacingM.X > 0.0f ? spacingM : kit.SpacingM);
         layout.Slots = slots.Count;
         if (kinds.Count == 0)
         {
@@ -122,7 +124,7 @@ public sealed class NestLayout
         ModelSeconds = clock.Elapsed.TotalSeconds;
     }
 
-    private static List<Slot> MakeSlots(NestKit kit, ulong seed, NestLayout layout)
+    private static List<Slot> MakeSlots(NestKit kit, ulong seed, NestLayout layout, float maxRadius, Vector2 spacingRange)
     {
         SeededRandom avenues = SeededRandom.Stream(seed, "nest:avenues");
         int count = avenues.RangeInt(kit.Avenues.X, kit.Avenues.Y);
@@ -138,9 +140,9 @@ public sealed class NestLayout
         float radius = 0.0f;
         while (true)
         {
-            float spacing = rings.Range(kit.SpacingM.X, kit.SpacingM.Y);
+            float spacing = rings.Range(Math.Min(spacingRange.X, spacingRange.Y), Math.Max(spacingRange.X, spacingRange.Y));
             radius += spacing;
-            if (radius > kit.MaxRadiusM)
+            if (radius > maxRadius)
             {
                 break;
             }
@@ -153,7 +155,7 @@ public sealed class NestLayout
             for (int j = 0; j < n; j++)
             {
                 float bearing = ringPhase + (Mathf.Tau * j / n) + (rings.Range(-1.0f, 1.0f) * kit.Jitter * spacing / radius);
-                float r = Math.Min(radius + (rings.Range(-1.0f, 1.0f) * kit.Jitter * spacing), kit.MaxRadiusM);
+                float r = Math.Min(radius + (rings.Range(-1.0f, 1.0f) * kit.Jitter * spacing), maxRadius);
                 ring[j] = new Slot(r, bearing);
             }
             foreach (int j in order)

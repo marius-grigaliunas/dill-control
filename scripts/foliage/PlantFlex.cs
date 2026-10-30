@@ -392,12 +392,22 @@ public partial class PlantFlex : Node, IVoxelBend
             return;
         }
         Vector3 centre = at * bounds.GetCenter();
-        float bottom = float.MaxValue;
+        float bottom = float.MaxValue, topmost = float.MinValue;
         for (int i = 0; i < 8; i++)
         {
-            bottom = Mathf.Min(bottom, ((at * bounds.GetEndpoint(i)) - Foot).Dot(Up));
+            float h = ((at * bounds.GetEndpoint(i)) - Foot).Dot(Up);
+            bottom = Mathf.Min(bottom, h);
+            topmost = Mathf.Max(topmost, h);
         }
         bottom = Mathf.Max(bottom, 0.0f);
+        // Cut by damage, not by the rod giving way (a blast under it, shots
+        // through the stalk): a tall piece let go upright drops flat onto its
+        // stump and stands there. It goes over the way its weight hangs, from
+        // where it was cut, as one that gave way does.
+        float longest = bounds.GetLongestAxisSize();
+        bool cutFree = !(_givingWay > 0.0f && bottom >= _gaveWayAt - Rod.SegmentLength)
+            && longest >= Stats.SlenderMetres && topmost - bottom >= longest * 0.5f;
+        float cutAt = cutFree ? bottom : _gaveWayAt;
         float middle = (centre - Foot).Dot(Up);
 
         // Turned as the spine was at its foot, about that point, and moved
@@ -410,13 +420,13 @@ public partial class PlantFlex : Node, IVoxelBend
         at = new Transform3D(turn * at.Basis, pivot + OffsetAt(pivot) + (turn * (at.Origin - pivot)));
         velocity += World(moving, 0.0f);
         Vector3 turning = Up.Cross(World(tiltRate, 0.0f));
-        if (_givingWay > 0.0f && bottom >= _gaveWayAt - Rod.SegmentLength)
+        if (cutFree || (_givingWay > 0.0f && bottom >= _gaveWayAt - Rod.SegmentLength))
         {
             // What gave way goes over the way it leant, from the start: a tall
             // piece let go almost upright otherwise stands for seconds.
             // Over the way its weight hangs, as drawn now: the built shape
             // leans and twists, and the bend is on top of that.
-            Vector3 weight = ToDrawn(WeightAbove(_gaveWayAt, out Vector3 cutCentre));
+            Vector3 weight = ToDrawn(WeightAbove(cutAt, out Vector3 cutCentre));
             Vector3 cut = ToDrawn(cutCentre);
             Vector3 lean = (weight - cut).Slide(Up);
             if (lean.LengthSquared() < 0.01f)
@@ -434,7 +444,7 @@ public partial class PlantFlex : Node, IVoxelBend
             // Hinged just off the middle of the cut on that side until it
             // tears free (VoxelChunk): no landing flat on its stump and
             // crushing down it, standing.
-            int bin = Math.Clamp((int)(_gaveWayAt / _binSize), 0, _bins - 1);
+            int bin = Math.Clamp((int)(cutAt / _binSize), 0, _bins - 1);
             float radius = Mathf.Sqrt(_builtBins[bin] / Mathf.Pi) * _binSize;
             hingePivot = cut + (over * (radius * 0.25f));
             hingeAxis = Up.Cross(over);

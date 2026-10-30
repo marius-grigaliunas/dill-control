@@ -1,6 +1,6 @@
 # 0027 Buildings fall by a chunk graph
 
-*13 October 2026. Builds on 0011, 0014, 0015 and 0016.*
+*13 October 2026; the surviving rules of the former 0013 and 0014 (deleted) folded in 29 October. Builds on 0011, 0015 and 0016.*
 
 ## Context
 
@@ -25,7 +25,7 @@ What falls is decided on the chunks. A chunk a cut passes through is flooded
 on its own cells, so the cut stays where it went. An edge holds while it keeps
 `MinContactShare` of the faces it was built with (default 0: one face holds).
 An overloaded edge that has already lost `StressLimit` of its faces weakens
-for `StressSeconds` (default 1.4; 0 is 0014 exactly), creaks, sheds dust and
+for `StressSeconds` (default 1.4; 0 is no weakening), creaks, sheds dust and
 can drop one small chunk, then the load check takes over. A cut with nothing
 left holding does not wait. Pieces break and crush as whole chunks and carry
 their own sub-graph. The standing building keeps its greedy section boxes.
@@ -117,3 +117,39 @@ left of all its contacts with chunks at or below it is under
 strain after every hit and covers the vines: with the old strain the vines
 dropped 2,700-6,900 voxels still connected to the ground and tall tree A
 11,700; now none.
+
+## What stands from the earlier building records
+
+*Folded in from 0013 and 0014; what they said about fracturing a fallen piece
+into storey blocks is dropped.*
+
+- **A standing building checks its load.** Per layer of the standing island: the
+  share of its as-built voxels left, reduced by how far the load above hangs off
+  what remains. A layer fails below `MinSupportFraction`, scaled by how much is
+  above it (`FullLoadLayers`). The lowest failing layer is crushed to dust and
+  everything above falls, tipping about the remains of the support
+  (`ToppleSpin`). Trees turn the check off (0024).
+- **What comes loose falls as one body,** no fracture up front and no random spin.
+  A failed layer takes its storey with it (`FailureDepth`).
+- **It crushes through.** A heavy piece (over `FractureVolume`) landing end-on at
+  over `CrushThroughSpeed` crushes a slab `CrushDepth` deep to dust out of itself
+  and the building under it and carries on with `CrushKeep` of its speed, storey by
+  storey, until shorter than `CrushStopHeight`. A piece lying on its side snaps
+  across its length into `SnapLength` segments.
+- **A one-sided failure hangs on a hinge.** Past `HingeOffCentre` the piece above
+  gets a `HingeJoint3D` to the stump, tears free at `HingeBreakAngle` or after
+  `HingeHoldSeconds`, topples, and snaps where it lands.
+- **Heavy rubble:** concrete density, no bounce, full friction. A landing crushes
+  everything within the block's size through `Blast`, lethal (`CrushDamageMax`).
+  Loose pieces ignore each other, so a collapse leaves a pile, not a cloud.
+- **The cap gives up the least:** past `MaxChunks`, the smallest settled piece goes
+  to dust first, then the smallest asleep, then the smallest. Pieces are made over
+  frames (`ChunksPerFrame`).
+- **Armour is data.** `Armour` comes off every single hit; sustained damage and a
+  beam's melt are not hits. Small hits bank up to `MinCarveDamage`, and with
+  `CarveVolumePerDamage` a bite's volume is proportional to damage. Mechs read
+  `voxel_destruction_mech.tres`; the same code, a second resource.
+- **Skyscrapers** are `.vox` towers (an open column lobby, a slab every 4 m, a core,
+  a glass facade), one 32-voxel section wide (`SectionEdge` 32).
+- **Costs:** crushed slabs go to dust, not rubble; a crushed heavy piece's collision
+  is coarse (up to 4 m boxes) until the next crush; heavy pieces report contacts.

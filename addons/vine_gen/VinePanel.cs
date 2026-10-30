@@ -118,7 +118,7 @@ public partial class VinePanel : VBoxContainer
 
         var bakeRow = new HBoxContainer();
         _bake = new Button { Text = "Bake", SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            TooltipText = "Write art/voxels/prp_vine_<kind>_<seed>.vox and scenes/props/prp_vine_<kind>_<seed>.tscn." };
+            TooltipText = "Write art/voxels/prp_vine_<kind>_<seed>.vox and scenes/props/vines/prp_vine_<kind>_<seed>.tscn." };
         _bake.Pressed += Bake;
         bakeRow.AddChild(_bake);
         var reset = new Button { Text = "Back to the kind", TooltipText = "Forget changed settings: roll them from the kind again." };

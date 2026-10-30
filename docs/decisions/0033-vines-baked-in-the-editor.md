@@ -1,7 +1,7 @@
 # 0033 Decided: a nest is generated at load behind the loading screen; saved nests are seeds, not baked vines
 
-*Rewritten 24 October 2026; decided the same day from measured load times.
-Builds on 0018, 0021, 0029, 0032 and 0034.*
+*Amended by 0056 and 0055: a nest can also be baked to an authored scene and placed by hand; contracts still generate theirs. Rewritten 24 October 2026; decided the same day from measured load times.
+Builds on 0018, 0021, 0032 and 0034.*
 
 > **What this record said before (21 October):** vines are baked by the
 > editor dock to a `.vox` and a wrapper scene, nests are laid out in the

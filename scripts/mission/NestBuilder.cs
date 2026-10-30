@@ -71,6 +71,10 @@ public partial class NestBuilder : Node, ILevelBuilder
 
     public NestLayout Layout { get; private set; }
     public int Population { get; private set; }
+    /// <summary>The limit the plan was made with: the preset's, the tool's or the kit's.</summary>
+    public float RadiusLimitM { get; private set; }
+    /// <summary>Metres between neighbouring vines, least and most, as planned.</summary>
+    public Vector2 SpacingUsedM { get; private set; }
     public ulong Seed { get; private set; }
     public bool WithHorde { get; private set; } = true;
     public int Planted { get; private set; }
@@ -223,17 +227,23 @@ public partial class NestBuilder : Node, ILevelBuilder
     private void Start()
     {
         _stats = Kit.BakeOrDefault();
+        float radius = 0.0f;
+        Vector2 spacing = default;
         int population = Contract.Contract.Tier?.AgentCount ?? Kit.DefaultPopulation;
         Seed = Contract.Contract.Seed;
         if (Preset != null)
         {
             population = Preset.Population;
             Seed = (ulong)Preset.Seed;
+            radius = Preset.RadiusM;
+            spacing = Preset.SpacingM;
         }
         if (_request != null)
         {
             population = _request.Population;
             Seed = _request.Seed;
+            radius = _request.RadiusM;
+            spacing = new Vector2(_request.SpacingMin, _request.SpacingMax);
         }
         foreach (string argument in OS.GetCmdlineUserArgs())
         {
@@ -243,6 +253,8 @@ public partial class NestBuilder : Node, ILevelBuilder
                 Seed = seed;
         }
         Population = Math.Clamp(population, Kit.PopulationClamp.X, Kit.PopulationClamp.Y);
+        RadiusLimitM = radius > 0.0f ? radius : Kit.MaxRadiusM;
+        SpacingUsedM = spacing.X > 0.0f ? spacing : Kit.SpacingM;
 
         // Read on this thread; everything after runs on the others.
         VineGrower.Context context = VineGrower.Context.For(_stats, Kit.Kinds);
@@ -250,7 +262,7 @@ public partial class NestBuilder : Node, ILevelBuilder
         ulong nestSeed = Seed;
         int people = Population;
         VineBakeStats stats = _stats;
-        _plan = Task.Run(() => NestLayout.Plan(kit, context, nestSeed, people));
+        _plan = Task.Run(() => NestLayout.Plan(kit, context, nestSeed, people, radius, spacing));
         _models = _plan.ContinueWith(plan => plan.Result.BuildModels(stats), TaskContinuationOptions.OnlyOnRanToCompletion);
         if (Placer != null)
         {

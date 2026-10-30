@@ -1,0 +1,236 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_heart_7191402s965.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_fruiting_7415178s955.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_fruiting_2658748s933.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_fruiting_5265039s1045.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_fruiting_8647439s998.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_4639776s1114.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_2630857s1014.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_9124637s1038.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_7747831s1083.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_9056060s999.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_6693212s1036.tscn" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_4076384s973.tscn" id="12"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_1609034s1118.tscn" id="13"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_1731544s1075.tscn" id="14"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_2233264s1033.tscn" id="15"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_794727s922.tscn" id="16"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_4666248s1060.tscn" id="17"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_9664441s924.tscn" id="18"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_103846s906.tscn" id="19"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_6286636s1077.tscn" id="20"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_7423273s1089.tscn" id="21"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_2240187s1090.tscn" id="22"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_27609s1061.tscn" id="23"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_4429824s1073.tscn" id="24"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_5624670s1111.tscn" id="25"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_1054449s1108.tscn" id="26"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_500910s1037.tscn" id="27"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_7166318s1040.tscn" id="28"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_6334660s1076.tscn" id="29"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_5780231s1115.tscn" id="30"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_4246431s895.tscn" id="31"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_5821077s950.tscn" id="32"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_856548s976.tscn" id="33"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_9862445s909.tscn" id="34"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_3025850s1060.tscn" id="35"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_9352996s1061.tscn" id="36"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_8157951s1063.tscn" id="37"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_7223957s956.tscn" id="38"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_3084413s1093.tscn" id="39"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_6310033s1090.tscn" id="40"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_8942548s906.tscn" id="41"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_7142463s916.tscn" id="42"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_7630545s1084.tscn" id="43"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_9324412s1033.tscn" id="44"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_4844120s912.tscn" id="45"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_6404986s915.tscn" id="46"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_3153853s1038.tscn" id="47"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_3009716s1064.tscn" id="48"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_2449030s1097.tscn" id="49"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_1302586s920.tscn" id="50"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_8345024s1098.tscn" id="51"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_253423s932.tscn" id="52"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_5581155s1025.tscn" id="53"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_5187033s1073.tscn" id="54"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_497930s950.tscn" id="55"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_5957881s1098.tscn" id="56"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_9369817s1063.tscn" id="57"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_leafy_5155190s1071.tscn" id="58"]
+
+[node name="prp_nest_default_1841910054_5000" type="Node3D"]
+
+[node name="Vine000_heart" parent="." instance=ExtResource("1")]
+transform = Transform3D(-0.9430134, 0, -0.3327547, 0, 1, 0, 0.3327547, 0, -0.9430134, 0, -1, 0)
+
+[node name="Vine001_fruiting" parent="." instance=ExtResource("2")]
+transform = Transform3D(-0.6328564, 0, -0.77426916, 0, 1, 0, 0.77426916, 0, -0.6328564, -38.537113, -1, 56.796337)
+
+[node name="Vine002_fruiting" parent="." instance=ExtResource("3")]
+transform = Transform3D(0.22067946, 0, -0.97534645, 0, 1, 0, 0.97534645, 0, 0.22067946, -32.368896, -1, -69.86062)
+
+[node name="Vine003_fruiting" parent="." instance=ExtResource("4")]
+transform = Transform3D(-0.7261739, 0, -0.68751115, 0, 1, 0, 0.68751115, 0, -0.7261739, 32.05283, -1, 62.091923)
+
+[node name="Vine004_fruiting" parent="." instance=ExtResource("5")]
+transform = Transform3D(0.30251822, 0, -0.95314366, 0, 1, 0, 0.95314366, 0, 0.30251822, 22.108727, -1, -50.52339)
+
+[node name="Vine005_weeping" parent="." instance=ExtResource("6")]
+transform = Transform3D(-0.43164515, 0, 0.9020435, 0, 1, 0, -0.9020435, 0, -0.43164515, 59.290222, -1, 122.35653)
+
+[node name="Vine006_weeping" parent="." instance=ExtResource("7")]
+transform = Transform3D(-0.20204072, 0, -0.97937715, 0, 1, 0, 0.97937715, 0, -0.20204072, 25.67271, -1, -131.29355)
+
+[node name="Vine007_weeping" parent="." instance=ExtResource("8")]
+transform = Transform3D(0.512643, 0, 0.8586019, 0, 1, 0, -0.8586019, 0, 0.512643, -98.692604, -1, 59.408665)
+
+[node name="Vine008_weeping" parent="." instance=ExtResource("9")]
+transform = Transform3D(-0.86867446, 0, 0.49538338, 0, 1, 0, -0.49538338, 0, -0.86867446, 125.6477, -1, 22.107508)
+
+[node name="Vine009_weeping" parent="." instance=ExtResource("10")]
+transform = Transform3D(0.8922509, 0, -0.45154, 0, 1, 0, 0.45154, 0, 0.8922509, -83.407364, -1, -103.02268)
+
+[node name="Vine010_weeping" parent="." instance=ExtResource("11")]
+transform = Transform3D(0.016051907, 0, 0.9998712, 0, 1, 0, -0.9998712, 0, 0.016051907, 5.883632, -1, 113.13803)
+
+[node name="Vine011_weeping" parent="." instance=ExtResource("12")]
+transform = Transform3D(-0.3213487, 0, -0.9469609, 0, 1, 0, 0.9469609, 0, -0.3213487, 90.33058, -1, -95.034744)
+
+[node name="Vine012_weeping" parent="." instance=ExtResource("13")]
+transform = Transform3D(0.83057594, 0, 0.5569054, 0, 1, 0, -0.5569054, 0, 0.83057594, -116.89093, -1, 24.092457)
+
+[node name="Vine013_weeping" parent="." instance=ExtResource("14")]
+transform = Transform3D(0.16749734, 0, -0.98587257, 0, 1, 0, 0.98587257, 0, 0.16749734, -34.145485, -1, -112.345375)
+
+[node name="Vine014_weeping" parent="." instance=ExtResource("15")]
+transform = Transform3D(0.58611363, 0, 0.8102288, 0, 1, 0, -0.8102288, 0, 0.58611363, -54.827126, -1, 121.703285)
+
+[node name="Vine015_weeping" parent="." instance=ExtResource("16")]
+transform = Transform3D(-0.8671636, 0, -0.4980234, 0, 1, 0, 0.4980234, 0, -0.8671636, 114.13325, -1, -30.865393)
+
+[node name="Vine017_leafy" parent="." instance=ExtResource("17")]
+transform = Transform3D(0.86844987, 0, -0.49577716, 0, 1, 0, 0.49577716, 0, 0.86844987, 99.113846, -1, 176.06807)
+
+[node name="Vine019_leafy" parent="." instance=ExtResource("18")]
+transform = Transform3D(-0.0033092499, 0, -0.9999944, 0, 1, 0, 0.9999944, 0, -0.0033092499, -105.14657, -1, 170.63965)
+
+[node name="Vine021_leafy" parent="." instance=ExtResource("19")]
+transform = Transform3D(-0.99959624, 0, -0.02841363, 0, 1, 0, 0.02841363, 0, -0.99959624, -183.04922, -1, -5.1835017)
+
+[node name="Vine022_leafy" parent="." instance=ExtResource("20")]
+transform = Transform3D(-0.06857215, 0, 0.99764615, 0, 1, 0, -0.99764615, 0, -0.06857215, 23.784351, -1, 178.56503)
+
+[node name="Vine024_leafy" parent="." instance=ExtResource("21")]
+transform = Transform3D(-0.2651175, 0, 0.9642161, 0, 1, 0, -0.9642161, 0, -0.2651175, 182.60098, -1, -46.65438)
+
+[node name="Vine025_leafy" parent="." instance=ExtResource("22")]
+transform = Transform3D(-0.91749936, 0, -0.39773735, 0, 1, 0, 0.39773735, 0, -0.91749936, -154.27057, -1, 105.788315)
+
+[node name="Vine026_leafy" parent="." instance=ExtResource("23")]
+transform = Transform3D(-0.7692386, 0, 0.63896173, 0, 1, 0, -0.63896173, 0, -0.7692386, 101.299, -1, -152.73108)
+
+[node name="Vine027_leafy" parent="." instance=ExtResource("24")]
+transform = Transform3D(-0.66317934, 0, 0.7484605, 0, 1, 0, -0.7484605, 0, -0.66317934, 150.01306, -1, 135.21828)
+
+[node name="Vine029_leafy" parent="." instance=ExtResource("25")]
+transform = Transform3D(-0.955475, 0, 0.29507226, 0, 1, 0, -0.29507226, 0, -0.955475, -13.823612, -1, -191.08818)
+
+[node name="Vine030_leafy" parent="." instance=ExtResource("26")]
+transform = Transform3D(0.9958499, 0, 0.091011025, 0, 1, 0, -0.091011025, 0, 0.9958499, 180.18193, -1, 1.3642756)
+
+[node name="Vine031_leafy" parent="." instance=ExtResource("27")]
+transform = Transform3D(0.9246022, 0, 0.38093412, 0, 1, 0, -0.38093412, 0, 0.9246022, -167.03462, -1, 68.43644)
+
+[node name="Vine032_leafy" parent="." instance=ExtResource("28")]
+transform = Transform3D(0.8014064, 0, 0.5981202, 0, 1, 0, -0.5981202, 0, 0.8014064, -129.37262, -1, 214.14723)
+
+[node name="Vine033_leafy" parent="." instance=ExtResource("29")]
+transform = Transform3D(-0.99762124, 0, -0.06893334, 0, 1, 0, 0.06893334, 0, -0.99762124, 66.69498, -1, -237.20982)
+
+[node name="Vine034_leafy" parent="." instance=ExtResource("30")]
+transform = Transform3D(-0.61975163, 0, 0.7847981, 0, 1, 0, -0.7847981, 0, -0.61975163, 179.56444, -1, 177.5199)
+
+[node name="Vine035_leafy" parent="." instance=ExtResource("31")]
+transform = Transform3D(-0.99654114, 0, 0.0831013, 0, 1, 0, -0.0831013, 0, -0.99654114, -207.96857, -1, -135.48615)
+
+[node name="Vine036_leafy" parent="." instance=ExtResource("32")]
+transform = Transform3D(-0.62585187, 0, 0.779942, 0, 1, 0, -0.779942, 0, -0.62585187, 233.73746, -1, -124.05936)
+
+[node name="Vine038_leafy" parent="." instance=ExtResource("33")]
+transform = Transform3D(0.8497136, 0, 0.52724445, 0, 1, 0, -0.52724445, 0, 0.8497136, -13.322385, -1, 246.59946)
+
+[node name="Vine040_leafy" parent="." instance=ExtResource("34")]
+transform = Transform3D(-0.7764237, 0, -0.63021135, 0, 1, 0, 0.63021135, 0, -0.7764237, 250.77777, -1, 88.74625)
+
+[node name="Vine041_leafy" parent="." instance=ExtResource("35")]
+transform = Transform3D(0.7926139, 0, 0.60972387, 0, 1, 0, -0.60972387, 0, 0.7926139, -242.82095, -1, -0.6666157)
+
+[node name="Vine042_leafy" parent="." instance=ExtResource("36")]
+transform = Transform3D(-0.7229309, 0, -0.6909203, 0, 1, 0, 0.6909203, 0, -0.7229309, 134.31618, -1, -202.8845)
+
+[node name="Vine044_leafy" parent="." instance=ExtResource("37")]
+transform = Transform3D(-0.82614267, 0, 0.56346095, 0, 1, 0, -0.56346095, 0, -0.82614267, -185.71736, -1, -184.10292)
+
+[node name="Vine045_leafy" parent="." instance=ExtResource("38")]
+transform = Transform3D(-0.9680168, 0, 0.25088543, 0, 1, 0, -0.25088543, 0, -0.9680168, 243.75067, -1, -40.219437)
+
+[node name="Vine046_leafy" parent="." instance=ExtResource("39")]
+transform = Transform3D(-0.71154505, 0, -0.70264053, 0, 1, 0, 0.70264053, 0, -0.71154505, -229.48746, -1, 126.54385)
+
+[node name="Vine048_leafy" parent="." instance=ExtResource("40")]
+transform = Transform3D(-0.4196564, 0, -0.90768313, 0, 1, 0, 0.90768313, 0, -0.4196564, 4.9446335, -1, -267.5828)
+
+[node name="Vine049_leafy" parent="." instance=ExtResource("41")]
+transform = Transform3D(-0.92813015, 0, 0.37225586, 0, 1, 0, -0.37225586, 0, -0.92813015, 186.58607, -1, -165.1138)
+
+[node name="Vine051_leafy" parent="." instance=ExtResource("42")]
+transform = Transform3D(-0.6795907, 0, 0.73359156, 0, 1, 0, -0.73359156, 0, -0.6795907, -103.53118, -1, -218.72717)
+
+[node name="Vine055_leafy" parent="." instance=ExtResource("43")]
+transform = Transform3D(-0.19904271, 0, 0.9799908, 0, 1, 0, -0.9799908, 0, -0.19904271, -59.65919, -1, -310.30356)
+
+[node name="Vine056_leafy" parent="." instance=ExtResource("44")]
+transform = Transform3D(-0.25599602, 0, 0.9666779, 0, 1, 0, -0.9666779, 0, -0.25599602, -152.88104, -1, 264.40692)
+
+[node name="Vine057_leafy" parent="." instance=ExtResource("45")]
+transform = Transform3D(-0.9762602, 0, -0.21660116, 0, 1, 0, 0.21660116, 0, -0.9762602, 295.2322, -1, -94.22277)
+
+[node name="Vine058_leafy" parent="." instance=ExtResource("46")]
+transform = Transform3D(-0.43655992, 0, -0.8996752, 0, 1, 0, 0.8996752, 0, -0.43655992, -275.87164, -1, -136.24675)
+
+[node name="Vine059_leafy" parent="." instance=ExtResource("47")]
+transform = Transform3D(0.30243683, 0, -0.9531694, 0, 1, 0, 0.9531694, 0, 0.30243683, 100.69178, -1, 285.12704)
+
+[node name="Vine060_leafy" parent="." instance=ExtResource("48")]
+transform = Transform3D(-0.1782198, 0, -0.9839907, 0, 1, 0, 0.9839907, 0, -0.1782198, 117.78984, -1, -285.07855)
+
+[node name="Vine061_leafy" parent="." instance=ExtResource("49")]
+transform = Transform3D(-0.70155776, 0, -0.7126126, 0, 1, 0, 0.7126126, 0, -0.70155776, -279.73032, -1, 128.96393)
+
+[node name="Vine062_leafy" parent="." instance=ExtResource("50")]
+transform = Transform3D(0.9991297, 0, -0.04171112, 0, 1, 0, 0.04171112, 0, 0.9991297, 298.11496, -1, 90.92383)
+
+[node name="Vine064_leafy" parent="." instance=ExtResource("51")]
+transform = Transform3D(0.680281, 0, 0.7329515, 0, 1, 0, -0.7329515, 0, 0.680281, -51.037155, -1, 295.5809)
+
+[node name="Vine068_leafy" parent="." instance=ExtResource("52")]
+transform = Transform3D(0.2367313, 0, 0.97157526, 0, 1, 0, -0.97157526, 0, 0.2367313, -9.029636, -1, -301.86832)
+
+[node name="Vine070_leafy" parent="." instance=ExtResource("53")]
+transform = Transform3D(0.99970835, 0, -0.02415134, 0, 1, 0, 0.02415134, 0, 0.99970835, 299.48984, -1, -35.614677)
+
+[node name="Vine071_leafy" parent="." instance=ExtResource("54")]
+transform = Transform3D(0.9658747, 0, -0.25900963, 0, 1, 0, 0.25900963, 0, 0.9658747, -247.17096, -1, -180.2056)
+
+[node name="Vine072_leafy" parent="." instance=ExtResource("55")]
+transform = Transform3D(0.80996126, 0, -0.5864833, 0, 1, 0, 0.5864833, 0, 0.80996126, 64.92157, -1, 293.1171)
+
+[node name="Vine073_leafy" parent="." instance=ExtResource("56")]
+transform = Transform3D(-0.8400662, 0, 0.5424839, 0, 1, 0, -0.5424839, 0, -0.8400662, 152.94801, -1, -264.96466)
+
+[node name="Vine074_leafy" parent="." instance=ExtResource("57")]
+transform = Transform3D(-0.7102005, 0, -0.7039995, 0, 1, 0, 0.7039995, 0, -0.7102005, -299.20782, -1, 88.403534)
+
+[node name="Vine076_leafy" parent="." instance=ExtResource("58")]
+transform = Transform3D(0.2511149, 0, -0.96795726, 0, 1, 0, 0.96795726, 0, 0.2511149, -104.66413, -1, 291.60364)

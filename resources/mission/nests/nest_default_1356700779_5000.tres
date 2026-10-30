@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="NestPreset" format=3 uid="uid://ditgydr2wxjrp"]
+
+[ext_resource type="Resource" path="res://resources/mission/nest_kit_default.tres" id="1_ftuby"]
+[ext_resource type="Script" uid="uid://ums644ktv451" path="res://scripts/mission/NestPreset.cs" id="2_fkahl"]
+
+[resource]
+script = ExtResource("2_fkahl")
+Kit = ExtResource("1_ftuby")
+Seed = 1356700779
+Population = 5000
+RadiusM = 280.0
+SpacingM = Vector2(30, 70)
+Saved = "2026-10-30T09:29:27Z"
+Generator = "1c43ef7+changes"

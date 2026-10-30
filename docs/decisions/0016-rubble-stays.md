@@ -1,6 +1,6 @@
 # 0016 Rubble stays, and nothing blinks
 
-*9 October 2026. Builds on 0014 and 0015.*
+*9 October 2026. Builds on 0015 and 0027.*
 
 ## Context
 

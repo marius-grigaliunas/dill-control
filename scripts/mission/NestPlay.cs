@@ -28,6 +28,10 @@ public static class NestPlay
         public string Kit { get; set; } = "";
         public ulong Seed { get; set; }
         public int Population { get; set; }
+        /// <summary>Zero is the kit's.</summary>
+        public float RadiusM { get; set; }
+        public float SpacingMin { get; set; }
+        public float SpacingMax { get; set; }
         public bool Horde { get; set; } = true;
         /// <summary>For testing: every weapon kept full (<see cref="NestPlaytest"/>).</summary>
         public bool InfiniteAmmo { get; set; } = true;
@@ -45,6 +49,9 @@ public static class NestPlay
         public string Kit { get; set; } = "";
         public ulong Seed { get; set; }
         public int Population { get; set; }
+        public float RadiusM { get; set; }
+        public float SpacingMin { get; set; }
+        public float SpacingMax { get; set; }
         public bool Horde { get; set; }
         public double PlayedSeconds { get; set; }
         /// <summary>Times the grapple caught something.</summary>

@@ -75,7 +75,11 @@ public partial class ColonyMission : Node
             Starting = Pods.Count;
         }
         HordeManager horde = Horde != null && IsInstanceValid(Horde) ? Horde.Manager : null;
-        Alive = Pods.Full + (horde?.ExtraCount(HordeManager.SpawnOrigin.Pod) ?? 0);
+        // A thrown cornichon is a pickle of the colony too, whether it hangs, is
+        // in the air or is on its feet: the contract is not cleared past one.
+        Alive = Pods.Full
+            + (horde?.ExtraCount(HordeManager.SpawnOrigin.Pod) ?? 0)
+            + (horde?.ExtraCount(HordeManager.SpawnOrigin.Thrown) ?? 0);
         PodsLeft = Pods.Count - Pods.Destroyed;
 
         if (Current == Phase.Asleep && Pods.Colony != PodField.ColonyState.Asleep)

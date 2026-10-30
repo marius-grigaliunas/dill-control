@@ -2,10 +2,10 @@
 
 [ext_resource type="Script" uid="uid://dy1wqtaoocdap" path="res://scripts/mission/CompoundKit.cs" id="1_kit"]
 [ext_resource type="Script" uid="uid://bm7dnhw3nmamj" path="res://scripts/mission/CompoundEntry.cs" id="2_entry"]
-[ext_resource type="PackedScene" path="res://scenes/props/clusters/prp_cluster_jar_court.tscn" id="3_jar"]
-[ext_resource type="PackedScene" path="res://scenes/props/clusters/prp_cluster_spires.tscn" id="4_spires"]
-[ext_resource type="PackedScene" path="res://scenes/props/clusters/prp_cluster_towers.tscn" id="5_towers"]
-[ext_resource type="PackedScene" path="res://scenes/props/clusters/prp_cluster_ruin.tscn" id="6_ruin"]
+[ext_resource type="PackedScene" path="res://scenes/props/structure/prp_cluster_jar_court.tscn" id="3_jar"]
+[ext_resource type="PackedScene" path="res://scenes/props/structure/prp_cluster_spires.tscn" id="4_spires"]
+[ext_resource type="PackedScene" path="res://scenes/props/structure/prp_cluster_towers.tscn" id="5_towers"]
+[ext_resource type="PackedScene" path="res://scenes/props/structure/prp_cluster_ruin.tscn" id="6_ruin"]
 
 [sub_resource type="Resource" id="Jar"]
 script = ExtResource("2_entry")

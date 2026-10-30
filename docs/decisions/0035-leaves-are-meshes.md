@@ -1,6 +1,6 @@
 # 0035 A vine's leaves are meshes on its section bodies, not voxels; tendrils are gone
 
-*24 October 2026. Built. Builds on 0011, 0029 and 0032.*
+*24 October 2026. Built. Builds on 0011 and 0032.*
 
 ## Context
 

@@ -672,7 +672,7 @@ public partial class MenuSystem : CanvasLayer
     private static bool EastButton(InputEvent @event) =>
         @event is InputEventJoypadButton { Pressed: true, ButtonIndex: JoyButton.B };
 
-    private static string ButtonLabel(JoyButton button)
+    public static string ButtonLabel(JoyButton button)
     {
         bool playstation = PlayStationConnected();
         return button switch
@@ -696,7 +696,7 @@ public partial class MenuSystem : CanvasLayer
         };
     }
 
-    private static string AxisLabel(JoyAxis axis, float axisValue)
+    public static string AxisLabel(JoyAxis axis, float axisValue)
     {
         bool playstation = PlayStationConnected();
         bool negative = axisValue < 0.0f;

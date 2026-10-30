@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="VineLeafSet" format=3 uid="uid://py2w3cwdlt42"]
+
+[ext_resource type="Script" uid="uid://d1jliuibfxd5q" path="res://scripts/foliage/VineLeafSet.cs" id="1_oylg2"]
+
+[resource]
+script = ExtResource("1_oylg2")
+Attach = PackedVector3Array(-0.5930451, 49.0278, -1.3995633, 2.08424, 51.870426, -1.3626733, 0.5568619, 52.381325, -2.4475002)
+Centre = PackedVector3Array(-5.506415, 49.53925, 1.5143197, 5.040484, 52.113552, 2.7212117, -4.7718325, 52.8102, -4.3047915)
+Midrib = PackedVector3Array(-0.86010695, 0.0051254095, 0.510088, 0.5838684, -0.092327125, 0.8065813, -0.9441995, -0.013527948, -0.32909632)
+Face = PackedVector3Array(-0.03872795, 0.99640745, -0.0753148, 0.029392598, 0.995265, 0.0926485, -0.04354508, 0.99551284, 0.08401187)
+Size = PackedFloat32Array(9.928243, 8.203177, 9.762884)
+Shape = PackedInt32Array(1, 2, 1)
+Tint = PackedColorArray(1.1322216, 1.1602817, 1.0884882, 1, 0.89851135, 0.87864876, 0.8593747, 1, 0.9631016, 0.9556987, 0.9035142, 1)
+ShapeLobes = PackedInt32Array(2, 2, 1)
+ShapeTeeth = PackedInt32Array(10, 14, 15)
+ShapeNotch = PackedFloat32Array(0.12497188, 0.16538, 0.1469007)
+ShapeCup = PackedFloat32Array(0.10829046, 0.1437279, 0.12174277)
+Blade = Color(0.012381247, 0.046224404, 0.019087087, 1)
+Vein = Color(0.013750981, 0.034379732, 0.012937613, 1)
+Stem = Color(0.0076352837, 0.024525248, 0.0116282655, 1)

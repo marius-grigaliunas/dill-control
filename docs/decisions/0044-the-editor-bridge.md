@@ -1,6 +1,6 @@
 # 0044 The editor bridge: Claude works in the running editor, on the real scene
 
-*24 October 2026. Agreed with the user. Builds on 0004, 0026 and 0043.*
+*24 October 2026. Agreed with the user. Builds on 0004 and 0043.*
 
 ## Context
 

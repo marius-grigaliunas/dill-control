@@ -2,8 +2,6 @@
 
 *8 October 2026*
 
-Amended by 0046 (proposed): mechs fight on with lost limbs, mend themselves, and take their moves from Blender.
-
 ## Context
 
 One person makes the art, in Blender, for a cel-shaded game that draws 25,000 of
@@ -42,8 +40,7 @@ triangle budget the horde bench sets (start near 200; the lab's capsule was 72).
 viewmodels, moved by the procedural sway and recoil the lab already has, carry
 the earlier milestones.
 
-**Destructible structures stay voxel bodies,** authored in `voxel-bench` from
-M2, because being carved and collapsing is what they are for.
+**Destructible structures are voxel bodies** (0009, 0011).
 
 **LFS from the first commit.**
 
@@ -65,11 +62,7 @@ marking hinges (palette index 255) and points (`@Seat`, `@Muzzle`) is done in
 MagicaVoxel on the PC, because tablet editors do not reliably keep named
 objects. That pass is what turns a model into something code can move.
 
-**Nothing is animated by hand.** This extends the pickles' rule above to
-everything voxel: walking, turning, jumping, leaning, aiming and arm swing are
-procedural (`MechWalker`, two-bone IK in `MechLeg`, 0010). A model's whole
-animation brief is where it bends. The first-person hands remain the one
-rigged thing.
+**Voxel things move by code.** Walking, turning, leaning, aiming and arm swing are procedural, and a mech's attacks are moves posed in Blender and baked to data (0046); never keyframed clips on voxel parts. The first-person hands remain the one rigged thing.
 
 **Size is set at import, not in the model.** One voxel's size in metres is an
 import option per file, so a model is built at whatever voxel count reads well
@@ -80,6 +73,6 @@ The checklist is the second half of `art/_source/README.md`.
 
 ## Still to verify
 
-Facing (`-Y` in Blender to `+Z` in Godot) and scale, with a Blender test asset.
+Blender `.glb` facing (`-Y` in Blender to `+Z` in Godot) and scale, with a Blender test asset.
 Verified for voxel art: MagicaVoxel's `-Y` arrives facing `+Z`, at the voxel
 size the import sets.

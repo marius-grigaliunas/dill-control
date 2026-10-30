@@ -27,6 +27,10 @@ public partial class PlacedNest : Node
     /// <summary>The prefix of a pod marker's name inside a vine's model.</summary>
     [Export] public string PodPrefix { get; set; } = "Pod";
 
+    /// <summary>False when a <see cref="PlacedNestSite"/> stands the vines on a
+    /// planet first and calls <see cref="Register"/> itself.</summary>
+    [Export] public bool RegisterOnReady { get; set; } = true;
+
     public int Registered { get; private set; }
 
     public override void _Ready()
@@ -47,10 +51,13 @@ public partial class PlacedNest : Node
             Horde.Stats = stats;
         }
         // After every vine has entered the tree and the pod field is ready.
-        CallDeferred(MethodName.Register);
+        if (RegisterOnReady)
+        {
+            CallDeferred(MethodName.Register);
+        }
     }
 
-    private void Register()
+    public void Register()
     {
         var found = new System.Collections.Generic.List<(Node3D Root, Vector3[] Pods)>();
         int total = 0;

@@ -23,3 +23,5 @@ FallDustStepM = 9.0
 FallLandK = 1.6
 FallDustColour = Color(0.24, 0.24, 0.17, 1)
 FollowNearMetres = 60.0
+ToppleSpin = 0.7
+GiveWaySeconds = 0.3

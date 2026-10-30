@@ -1,19 +1,100 @@
 {
   "version": 1,
   "title": "Dill Control — vertical slice",
-  "nextNumber": 13,
+  "nextNumber": 113,
   "columns": [
+    {
+      "id": "chs7kyuxiq",
+      "name": "Open decisions",
+      "wip": 0,
+      "done": false,
+      "cards": [
+        "kmvhxxzbg1y",
+        "kl8wc72htc",
+        "kkcmx4m73h",
+        "kfa162mwc4",
+        "kwa2vh9z7o",
+        "k65ytmv1dl",
+        "k3oa6g0cpw",
+        "k6v2sjemf2",
+        "kff7za0av0",
+        "kml9imjgve",
+        "klmo8l3onm",
+        "k1vd1q3xyi",
+        "kl9rcr1vo3",
+        "k72dwqyj6z",
+        "khjt201qcp",
+        "k05uey0g4m",
+        "kpd82p6o02",
+        "km62th47jp",
+        "k6mc11blm6",
+        "kf62a4w1k2",
+        "k0i9ga4nx3",
+        "khwtlwqlfd",
+        "kvukayqwo3",
+        "khesmahnmy",
+        "kkdqajmp2j",
+        "k2eemu6t9y",
+        "kyoo9x9ouc",
+        "kta68592k0",
+        "klydozrgv6",
+        "kvlvwzvsyv"
+      ]
+    },
     {
       "id": "cmvhxnwyec",
       "name": "Backlog",
       "wip": 0,
       "done": false,
       "cards": [
-        "kmvhxwwex1v",
+        "k8zjkihlkf",
         "kmvhxxa0e1w",
-        "kmvhxxzbg1y",
         "kmvhxyep21z",
-        "kmvmftuf02"
+        "kh6eedubdh",
+        "ktmpclw08s",
+        "kmebgtn62g",
+        "k655vhwsq6",
+        "kjpsoklvxg",
+        "ktqdjlumun",
+        "kcdoh8dnqc",
+        "ksunprparv",
+        "kfwgdeu8lg",
+        "kgc0b5h3gc",
+        "k6opukibwo",
+        "ks1n6bad80",
+        "knxwfv1ao7",
+        "kglsls194t",
+        "kwz3q32m1f",
+        "kpn1sitphx",
+        "ktnv9tjmcr",
+        "k16thyizou",
+        "k1g0shpxx2",
+        "kr0t7utdc6",
+        "kgecybyw9v",
+        "k8iqngmcmc",
+        "kfbmttm8bb",
+        "k2fwqgzuoa",
+        "kii3ahzcvw",
+        "kggy9njlhj",
+        "k59ppbab5r",
+        "kao9xzqxfc",
+        "ksqar6vf01",
+        "kmensgaigg",
+        "k74keab5cs",
+        "k5zbr22nla",
+        "k2io49x5mo",
+        "kpahwcifjh",
+        "kw1mwr8uik",
+        "kyctx0noal",
+        "kfs7ip2y4a",
+        "k97i3fjzx1",
+        "kumj8wt02i",
+        "krhuc8u7x4",
+        "knc2cn1ft9",
+        "kd51jqhjy9",
+        "klxvfmdvsz",
+        "kjy6sdopu0",
+        "kkdli86jpq"
       ]
     },
     {
@@ -22,9 +103,9 @@
       "wip": 3,
       "done": false,
       "cards": [
-        "kmvhxs3nk1q",
-        "kmvhxtecb1r",
-        "kmvhxv0oj1s"
+        "kmvttb3jk1",
+        "kmvux337z1",
+        "kmvux3nmj2"
       ]
     },
     {
@@ -41,7 +122,35 @@
       "name": "Done",
       "wip": 0,
       "done": true,
-      "cards": []
+      "cards": [
+        "kmvhxs3nk1q",
+        "kmvhxtecb1r",
+        "kmvhxv0oj1s",
+        "kmvhxwwex1v",
+        "kmvmftuf02",
+        "kphsdpdm3e",
+        "kx4s7mbw9e",
+        "kkfpifx2ja",
+        "kd4qf91hjp",
+        "k4wu0xt1p2",
+        "kyacll279v",
+        "kwdmo9pqen",
+        "k9b4szlp6x",
+        "k5lubvjgqg",
+        "k561rkmbxd",
+        "kvb4m7m4rn",
+        "kzyq060ft3",
+        "klahupht8q",
+        "k09w2avhfp",
+        "kxh43w0rbi",
+        "k8e4iv628g",
+        "kn2caa0emx",
+        "kroina331z",
+        "kfe1upum0z",
+        "k9wtn2beyi",
+        "kvco9z8pxk",
+        "kfx25738dg"
+      ]
     },
     {
       "id": "cmvhxr74w1p",
@@ -157,7 +266,8 @@
       "priority": 2,
       "points": null,
       "labels": [
-        "lmvhxp4co1m"
+        "lmvhxp4co1m",
+        "l0vlv3jp87"
       ],
       "milestone": null,
       "assignee": "",
@@ -197,6 +307,1810 @@
       "archived": false,
       "created": "2026-10-24T13:31:45.084Z",
       "updated": "2026-10-24T13:31:45.084Z"
+    },
+    "kl8wc72htc": {
+      "id": "kl8wc72htc",
+      "number": 13,
+      "title": "Contract 2: what is the challenge?",
+      "body": "The gear run lands on a storm planet and retrieves lost gear from the hive's centre, but once the bike is found the player can fly straight to space, so there is no tension. What must the player do to get the gear out, and what stops the bike being an exit? `decisions/0051`.",
+      "type": "design",
+      "priority": 1,
+      "points": null,
+      "labels": [
+        "lz0q4oa21m",
+        "lilhzpk48l"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kkcmx4m73h": {
+      "id": "kkcmx4m73h",
+      "number": 14,
+      "title": "What unlocks persistent tiers in the full game?",
+      "body": "Tiers persist across the campaign (0052); what earns them is not settled.",
+      "type": "design",
+      "priority": 2,
+      "points": null,
+      "labels": [
+        "lz0q4oa21m",
+        "l20pa9umb6"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kfa162mwc4": {
+      "id": "kfa162mwc4",
+      "number": 15,
+      "title": "Special-weapon charge counts",
+      "body": "How many charges a consumable super weapon (nuke designator, orbital laser, atomic grenade, missiles) is found with.",
+      "type": "design",
+      "priority": 2,
+      "points": null,
+      "labels": [
+        "lz0q4oa21m",
+        "l20pa9umb6"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kwa2vh9z7o": {
+      "id": "kwa2vh9z7o",
+      "number": 16,
+      "title": "Kill thresholds for later company drops",
+      "body": "The bike drops at 20,000 kills in contract 3; other thresholds and the order of drops are open.",
+      "type": "design",
+      "priority": 2,
+      "points": null,
+      "labels": [
+        "lz0q4oa21m"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k65ytmv1dl": {
+      "id": "k65ytmv1dl",
+      "number": 17,
+      "title": "Do company drops draw the horde?",
+      "body": "Whether a package landing attracts cucumbers.",
+      "type": "design",
+      "priority": 2,
+      "points": null,
+      "labels": [
+        "lz0q4oa21m"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k3oa6g0cpw": {
+      "id": "k3oa6g0cpw",
+      "number": 18,
+      "title": "Scouting tools",
+      "body": "What the player scouts a nest with before dropping, if anything.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "lz0q4oa21m"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k6v2sjemf2": {
+      "id": "k6v2sjemf2",
+      "number": 19,
+      "title": "Hit-stop tuning",
+      "body": "The juice around kills and big blasts; design for it from the start.",
+      "type": "polish",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "lz0q4oa21m"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kff7za0av0": {
+      "id": "kff7za0av0",
+      "number": 20,
+      "title": "The mineral's name",
+      "body": "Each planet holds a valuable mineral; it is still unnamed.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "lz0q4oa21m"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kml9imjgve": {
+      "id": "kml9imjgve",
+      "number": 21,
+      "title": "How are upgrades bought while in debt?",
+      "body": "Unsolved once the parked debt story is built: the player always owes the company, yet the shop sells upgrades. `docs/ideas/story.md`.",
+      "type": "design",
+      "priority": 2,
+      "points": null,
+      "labels": [
+        "lz0q4oa21m",
+        "l3lg2cp9gr"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "klmo8l3onm": {
+      "id": "klmo8l3onm",
+      "number": 22,
+      "title": "The endings",
+      "body": "Accept the company's renewal and get a mech, or turn on the company by unleashing the horde on it. A direction only. `docs/ideas/story.md`.",
+      "type": "design",
+      "priority": 2,
+      "points": null,
+      "labels": [
+        "lz0q4oa21m",
+        "l3lg2cp9gr"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k1vd1q3xyi": {
+      "id": "k1vd1q3xyi",
+      "number": 23,
+      "title": "Bike ammo counts and laser cooldown",
+      "body": "The bike keeps its gun, rocket pod, bomb bay and laser, each on limited ammo. The numbers for its stats resource are not set (the laser fires 10 s then cools in contract 2).",
+      "type": "design",
+      "priority": 2,
+      "points": null,
+      "labels": [
+        "lz0q4oa21m",
+        "l20pa9umb6"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kl9rcr1vo3": {
+      "id": "kl9rcr1vo3",
+      "number": 24,
+      "title": "Does the colony ever go back to sleep?",
+      "body": "Today it does not (0041). Also open: a rifle round on bare ground near the nest wakes nothing, and a new `EventBus` signal would need a record.",
+      "type": "design",
+      "priority": 2,
+      "points": null,
+      "labels": [
+        "lz0q4oa21m"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k72dwqyj6z": {
+      "id": "k72dwqyj6z",
+      "number": 25,
+      "title": "Rocket balance",
+      "body": "One bazooka load killing 7,000-8,000 may be a lack of pressure on the player rather than a kill-count problem. Rockets stay plentiful, because they are the fun.",
+      "type": "design",
+      "priority": 2,
+      "points": null,
+      "labels": [
+        "l0vlv3jp87",
+        "l20pa9umb6"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "khjt201qcp": {
+      "id": "khjt201qcp",
+      "number": 26,
+      "title": "Fear-scatter after blasts",
+      "body": "Scared cucumbers scattering after big blasts so the player must herd them back. Wanted, not implemented.",
+      "type": "design",
+      "priority": 2,
+      "points": null,
+      "labels": [
+        "l0vlv3jp87"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k05uey0g4m": {
+      "id": "k05uey0g4m",
+      "number": 27,
+      "title": "Separable body pieces on kills",
+      "body": "Pieces flying off with stylised splatter. A cucumber is one shader-drawn capsule with no separable parts; measure the cost on Iris Xe first.",
+      "type": "perf",
+      "priority": 2,
+      "points": null,
+      "labels": [
+        "l0vlv3jp87"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kpd82p6o02": {
+      "id": "kpd82p6o02",
+      "number": 28,
+      "title": "Early pacing: Cornichons first",
+      "body": "Thrown Cornichons arrive before the bigger types, so early fights feel like mowing down small fry. Revisit.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "l0vlv3jp87"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "km62th47jp": {
+      "id": "km62th47jp",
+      "number": 29,
+      "title": "Tanks defending a damaged vine",
+      "body": "Tanks rushing to guard a hit vine in a tight radius. Under 0041 harm wakes everything, so a local guard has nothing to add yet.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "l0vlv3jp87",
+        "l3lg2cp9gr"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k6mc11blm6": {
+      "id": "k6mc11blm6",
+      "number": 30,
+      "title": "Debt as the story spine",
+      "body": "The player owes the company; deaths and failures add to it with a cap; the balance prints on every invoice. Parked until the slice is played. `docs/ideas/story.md`.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "l0vlv3jp87",
+        "l3lg2cp9gr"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kf62a4w1k2": {
+      "id": "kf62a4w1k2",
+      "number": 31,
+      "title": "Show, don't tell: cold invoice wording",
+      "body": "Invoice words grow colder across the campaign, from specimens to units to biomass. No young cucumbers; no corpse-carrying.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "l0vlv3jp87",
+        "l3lg2cp9gr"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k0i9ga4nx3": {
+      "id": "k0i9ga4nx3",
+      "number": 32,
+      "title": "The recurring rival contractor",
+      "body": "A scripted boss with one visible counter per return (flares, cutting vines), who bails out instead of dying and takes your paycheck. Stay apart from the Nemesis system.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "l0vlv3jp87",
+        "l3lg2cp9gr"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "khwtlwqlfd": {
+      "id": "khwtlwqlfd",
+      "number": 33,
+      "title": "Root hearts that wither nest sections",
+      "body": "Killing a root heart withers a whole section of the nest.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "lang3uqnpk"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kvukayqwo3": {
+      "id": "kvukayqwo3",
+      "number": 34,
+      "title": "Mid-mission company bonus jobs",
+      "body": "Optional jobs offered during a contract.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "lang3uqnpk"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "khesmahnmy": {
+      "id": "khesmahnmy",
+      "number": 35,
+      "title": "Mother Brine as a roaming boss",
+      "body": "Climbing out of the main shaft as a town-contract climax. Cut from the slice.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "lang3uqnpk"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kkdqajmp2j": {
+      "id": "kkdqajmp2j",
+      "number": 36,
+      "title": "A buried queen and caves",
+      "body": "A queen too big to leave her cave, setting up a follow-up nest contract. Mole cucumbers and the underground queen are full-game.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "lang3uqnpk"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k2eemu6t9y": {
+      "id": "k2eemu6t9y",
+      "number": 37,
+      "title": "Player-called airstrike with a handheld designator",
+      "body": "An orbital cannon or airstrike the player calls.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "lang3uqnpk"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kyoo9x9ouc": {
+      "id": "kyoo9x9ouc",
+      "number": 38,
+      "title": "Cucumber sounds scaled to size",
+      "body": "Bigger cucumbers sound bigger.",
+      "type": "audio",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "lang3uqnpk"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kta68592k0": {
+      "id": "kta68592k0",
+      "number": 39,
+      "title": "Magic weapons",
+      "body": "A staff that works as a spell conduit. Kept out of the slice.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "lang3uqnpk"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "klydozrgv6": {
+      "id": "klydozrgv6",
+      "number": 40,
+      "title": "Detailed ballistics and wound channels",
+      "body": "To be checked against the brine-not-blood tone.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "lang3uqnpk"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kvlvwzvsyv": {
+      "id": "kvlvwzvsyv",
+      "number": 41,
+      "title": "A small cast of recurring rival characters",
+      "body": "Beyond the first rival.",
+      "type": "design",
+      "priority": 3,
+      "points": null,
+      "labels": [
+        "lang3uqnpk",
+        "l3lg2cp9gr"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kh6eedubdh": {
+      "id": "kh6eedubdh",
+      "number": 42,
+      "title": "Remove the prototype weapons outside the five",
+      "body": "Noted, not started (decided: do not change the weapons yet). `wpn_bayou_boomstick`, `_machete`, `_brine_burner`, `_brine_ripper`, `_dill_hammer`, `_frag_grenade`, `_gherkin_volley`, `_gravity_manipulator`, `_grenade_thrower`, `_sledge`, `_strike_designator`, `_vinegar_lance` are in the player's code and the `arsenal` and `slam` benches. Removal edits the player and those benches. Replaced by 0052's five.",
+      "type": "tech",
+      "priority": 2,
+      "points": 3,
+      "labels": [
+        "l20pa9umb6"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "ktmpclw08s": {
+      "id": "ktmpclw08s",
+      "number": 43,
+      "title": "Five core weapons, tiers 1 and 2",
+      "body": "Assault rifle (piercing, underbarrel launcher), bazooka (four-rocket volley, bigger rockets), pole saw (reach, spin; no ammo), laser cannon (shorter cooldown, wider beam; gravity-gun mode), sniper (.50, explosive rounds, airstrike). `decisions/0052`.",
+      "type": "feature",
+      "priority": 0,
+      "points": 13,
+      "labels": [
+        "l20pa9umb6"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kmebgtn62g": {
+      "id": "kmebgtn62g",
+      "number": 44,
+      "title": "Viewmodels for the five weapons",
+      "body": "Assault rifle with underbarrel launcher, bazooka, pole saw, laser cannon, .50 sniper.",
+      "type": "art",
+      "priority": 2,
+      "points": 8,
+      "labels": [
+        "l20pa9umb6"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k655vhwsq6": {
+      "id": "k655vhwsq6",
+      "number": 45,
+      "title": "Weapon wheel and aim on every weapon",
+      "body": "Mouse wheel switches weapons; right mouse button aims on every one; five slots with free choice.",
+      "type": "feature",
+      "priority": 1,
+      "points": 5,
+      "labels": [
+        "l20pa9umb6"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kjpsoklvxg": {
+      "id": "kjpsoklvxg",
+      "number": 46,
+      "title": "Specials and the consumables bar",
+      "body": "Reusable specials (minigun, fire rocket launcher) and consumable super weapons (nuke designator, orbital laser, atomic grenade, missiles); a separate bar for grenades, medkits, shield generators, ammo.",
+      "type": "feature",
+      "priority": 1,
+      "points": 8,
+      "labels": [
+        "l20pa9umb6"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "ktqdjlumun": {
+      "id": "ktqdjlumun",
+      "number": 47,
+      "title": "Nuke designator",
+      "body": "Marks a spot; the player flies clear before it lands. One-off prompt that fades if ignored. Needs the nuke blast.",
+      "type": "feature",
+      "priority": 1,
+      "points": 5,
+      "labels": [
+        "l20pa9umb6",
+        "lilhzpk48l"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k8zjkihlkf": {
+      "id": "k8zjkihlkf",
+      "number": 48,
+      "title": "Minigun special (the gift at 50%)",
+      "body": "Armour-piercing minigun, given by the company at 50% of the nest destroyed in contract 1.",
+      "type": "feature",
+      "priority": 1,
+      "points": 5,
+      "labels": [
+        "l20pa9umb6",
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-30T11:57:12.166Z"
+    },
+    "kcdoh8dnqc": {
+      "id": "kcdoh8dnqc",
+      "number": 49,
+      "title": "Six-tier upgrades and the shop",
+      "body": "Ammo, ammo, mod, mod, secondary ability, its evolution. The slice shows both tiers of every weapon but pays for two purchases in total, and logs every purchase.",
+      "type": "feature",
+      "priority": 1,
+      "points": 13,
+      "labels": [
+        "l1racleanu",
+        "l20pa9umb6"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "ksunprparv": {
+      "id": "ksunprparv",
+      "number": 50,
+      "title": "Log every shop purchase",
+      "body": "To learn which upgrades people want.",
+      "type": "feature",
+      "priority": 2,
+      "points": 3,
+      "labels": [
+        "l1racleanu"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kfwgdeu8lg": {
+      "id": "kfwgdeu8lg",
+      "number": 51,
+      "title": "Ship cabin hub",
+      "body": "Walkable cabin, a window onto the next planet, ambience. Failure wakes the player here, unpaid.",
+      "type": "feature",
+      "priority": 1,
+      "points": 8,
+      "labels": [
+        "l1racleanu"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kgc0b5h3gc": {
+      "id": "kgc0b5h3gc",
+      "number": 52,
+      "title": "Invoice printer",
+      "body": "Prints the itemised invoice (fee minus ammo, clones, damage, rentals) and stamps it PAID.",
+      "type": "feature",
+      "priority": 1,
+      "points": 5,
+      "labels": [
+        "l1racleanu"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k6opukibwo": {
+      "id": "k6opukibwo",
+      "number": 53,
+      "title": "Crate hatch",
+      "body": "The purchase arrives in a crate through a hatch.",
+      "type": "feature",
+      "priority": 2,
+      "points": 3,
+      "labels": [
+        "l1racleanu"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "ks1n6bad80": {
+      "id": "ks1n6bad80",
+      "number": 54,
+      "title": "Main menu as a live window on the ship",
+      "body": "The planet rotating slowly, ambience, a periodic beep. Play, Options, Wishlist on Steam, Join Discord, Send feedback, Credits, Quit.",
+      "type": "feature",
+      "priority": 2,
+      "points": 5,
+      "labels": [
+        "l1racleanu"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "knxwfv1ao7": {
+      "id": "knxwfv1ao7",
+      "number": 55,
+      "title": "End of the slice: empty contract screen",
+      "body": "Ends on an empty contract screen with a wishlist-on-Steam line; any contract can be replayed after.",
+      "type": "feature",
+      "priority": 2,
+      "points": 2,
+      "labels": [
+        "l1racleanu"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kglsls194t": {
+      "id": "kglsls194t",
+      "number": 56,
+      "title": "Opening sequence: unclear cloning flashes",
+      "body": "Short, deliberately unclear, shown once and never explained. `decisions/0054`.",
+      "type": "feature",
+      "priority": 1,
+      "points": 8,
+      "labels": [
+        "l9pldpud2v"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kwz3q32m1f": {
+      "id": "kwz3q32m1f",
+      "number": 57,
+      "title": "Landing pod and the descent through the window",
+      "body": "Control inside the pod, look around, watch stars, sun, atmosphere and clouds; the door opens onto the vines. Every contract arrival. Landing in a town smashes the pod through skyscrapers.",
+      "type": "feature",
+      "priority": 1,
+      "points": 8,
+      "labels": [
+        "l9pldpud2v",
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kpn1sitphx": {
+      "id": "kpn1sitphx",
+      "number": 58,
+      "title": "Replay the cloning flashes at the first death",
+      "body": "At the first death in contract 1 the lab flashes replay as the clone respawns.",
+      "type": "feature",
+      "priority": 2,
+      "points": 3,
+      "labels": [
+        "l9pldpud2v",
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "ktnv9tjmcr": {
+      "id": "ktnv9tjmcr",
+      "number": 59,
+      "title": "Free drop point on the contract screen",
+      "body": "A rough sketch of the planet and nest; scout far out or drop straight onto the nest; no mandatory setup phase.",
+      "type": "feature",
+      "priority": 1,
+      "points": 5,
+      "labels": [
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k16thyizou": {
+      "id": "k16thyizou",
+      "number": 60,
+      "title": "Extraction by pod",
+      "body": "Call extraction, a pod drops, the ground falls away through the window.",
+      "type": "feature",
+      "priority": 1,
+      "points": 5,
+      "labels": [
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k1g0shpxx2": {
+      "id": "k1g0shpxx2",
+      "number": 61,
+      "title": "The queen",
+      "body": "A stationary pod at the nest's centre: rind that rifle rounds barely mark, weak spots that open after she attacks, feeder vines that heal her until cut, a guard of Tanks and Spitters. Tuned for 2-3 minutes at tier 1, about 25 bazooka hits.",
+      "type": "feature",
+      "priority": 0,
+      "points": 13,
+      "labels": [
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kr0t7utdc6": {
+      "id": "kr0t7utdc6",
+      "number": 62,
+      "title": "Queen attacks: screech, seed spit, tearing down vines",
+      "body": "Screech knocks you off the grapple and calls the horde; sticky seed spit slows you; tearing down vines around her in a growing radius pushes you from minigun to sniper range. Each telegraphed.",
+      "type": "feature",
+      "priority": 1,
+      "points": 8,
+      "labels": [
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kgecybyw9v": {
+      "id": "kgecybyw9v",
+      "number": 63,
+      "title": "Contract 1 win and HUD",
+      "body": "Queen dead, every pod destroyed, at most 20% of cucumbers alive; the HUD marks the last pods.",
+      "type": "feature",
+      "priority": 1,
+      "points": 3,
+      "labels": [
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k8iqngmcmc": {
+      "id": "k8iqngmcmc",
+      "number": 64,
+      "title": "Contract 1 light tips",
+      "body": "Grapple first, then movement and the weapon wheel.",
+      "type": "feature",
+      "priority": 2,
+      "points": 3,
+      "labels": [
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kfbmttm8bb": {
+      "id": "kfbmttm8bb",
+      "number": 65,
+      "title": "Tank throws and punches",
+      "body": "The Thrower is folded into the Tank.",
+      "type": "feature",
+      "priority": 1,
+      "points": 5,
+      "labels": [
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k2fwqgzuoa": {
+      "id": "k2fwqgzuoa",
+      "number": 66,
+      "title": "Targeting: aggro radius and the director",
+      "body": "One flow field to the contract's anchor plus a player aggro radius that allows baiting; the director varies the radius with a telegraph such as a screech.",
+      "type": "feature",
+      "priority": 1,
+      "points": 5,
+      "labels": [
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kii3ahzcvw": {
+      "id": "kii3ahzcvw",
+      "number": 67,
+      "title": "Death: three clones, failure pays nothing",
+      "body": "Three clones a contract, nothing lost on death; losing all three fails the contract and you wake on the ship unpaid, keeping upgrades. `decisions/0053`.",
+      "type": "feature",
+      "priority": 1,
+      "points": 8,
+      "labels": [
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kggy9njlhj": {
+      "id": "kggy9njlhj",
+      "number": 68,
+      "title": "Storm planet and weather",
+      "body": "A second biome in storm season: fog, lightning, dead calm, a tornado that rips up vines. Weather is mood.",
+      "type": "feature",
+      "priority": 2,
+      "points": 8,
+      "labels": [
+        "lilhzpk48l"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k59ppbab5r": {
+      "id": "k59ppbab5r",
+      "number": 69,
+      "title": "Contract 2: fixed landing glitch",
+      "body": "The storm scrambles targeting; the player always lands at one fixed spot at the nest's edge and it must read as intended.",
+      "type": "feature",
+      "priority": 2,
+      "points": 5,
+      "labels": [
+        "lilhzpk48l"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kao9xzqxfc": {
+      "id": "kao9xzqxfc",
+      "number": 70,
+      "title": "Contract 2: crash pod and beacon",
+      "body": "The dead contractor's pod high in the tallest vine at the hive's centre, holding the nuke designator; optional call-in earns the \"piece of shit\" achievement.",
+      "type": "feature",
+      "priority": 2,
+      "points": 5,
+      "labels": [
+        "lilhzpk48l"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "ksqar6vf01": {
+      "id": "ksqar6vf01",
+      "number": 71,
+      "title": "Contract 2: tornado climax",
+      "body": "The storm peaks, a tornado rips up vines; cucumbers flung at you, telegraphed and shootable mid-air.",
+      "type": "feature",
+      "priority": 2,
+      "points": 5,
+      "labels": [
+        "lilhzpk48l"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kmensgaigg": {
+      "id": "kmensgaigg",
+      "number": 72,
+      "title": "Hoverbike as a special item with limited ammo",
+      "body": "Gun, rocket pod, bomb bay and laser on limited ammo. The prize of contract 2; a company drop at 20,000 kills in contract 3.",
+      "type": "feature",
+      "priority": 2,
+      "points": 5,
+      "labels": [
+        "lilhzpk48l",
+        "lmwufygz8g"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k74keab5cs": {
+      "id": "k74keab5cs",
+      "number": 73,
+      "title": "Contract 3: procedural town",
+      "body": "One big pad, skyscrapers, a main shaft and side shafts at the edges as spawn holes (no drill rig), 5-6 turrets. About 5,000 cucumbers at landing, ramping toward 24,000 with refill.",
+      "type": "feature",
+      "priority": 0,
+      "points": 13,
+      "labels": [
+        "lmwufygz8g"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k5zbr22nla": {
+      "id": "k5zbr22nla",
+      "number": 74,
+      "title": "Contract 3: shafts and sealing",
+      "body": "Sealing a side shaft with the bazooka or a gravity-gunned fuel tank slows the refill.",
+      "type": "feature",
+      "priority": 1,
+      "points": 5,
+      "labels": [
+        "lmwufygz8g"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k2io49x5mo": {
+      "id": "k2io49x5mo",
+      "number": 75,
+      "title": "Contract 3: turrets and roof relays",
+      "body": "Power relays on skyscraper roofs: grapple up, flip the switch, hold through the spin-up. A collapsed tower cuts that turret's power.",
+      "type": "feature",
+      "priority": 1,
+      "points": 8,
+      "labels": [
+        "lmwufygz8g"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kpahwcifjh": {
+      "id": "kpahwcifjh",
+      "number": 76,
+      "title": "Contract 3: shuttles and four targets",
+      "body": "A shuttle every 4 minutes, five in all: 1-3 ore, 4 takes 80% of the people, 5 the last 20%. Four automatic corner miniguns and a rocket launcher while landed. Three ore sites and the shelter are defended at once.",
+      "type": "feature",
+      "priority": 0,
+      "points": 13,
+      "labels": [
+        "lmwufygz8g"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kw1mwr8uik": {
+      "id": "kw1mwr8uik",
+      "number": 77,
+      "title": "Contract 3: mech drop and the ending choice",
+      "body": "A mech drops midway; the end is a choice between boarding shuttle 5 at once and defending the last 20% until they board.",
+      "type": "feature",
+      "priority": 2,
+      "points": 3,
+      "labels": [
+        "lmwufygz8g"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kyctx0noal": {
+      "id": "kyctx0noal",
+      "number": 78,
+      "title": "Company drops inside a contract",
+      "body": "Physical pickups with loaned support: fighter and tank mechs, and the laser hoverbike at the top tier.",
+      "type": "feature",
+      "priority": 2,
+      "points": 5,
+      "labels": [
+        "ls89wh4n26",
+        "lmwufygz8g"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kfs7ip2y4a": {
+      "id": "kfs7ip2y4a",
+      "number": 79,
+      "title": "Plain health bar and shield; strip pickle-themed names",
+      "body": "Replace the jar HUD, *PICKLED!* and the brine-named weapons. `decisions/0050`.",
+      "type": "polish",
+      "priority": 2,
+      "points": 3,
+      "labels": [],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k97i3fjzx1": {
+      "id": "k97i3fjzx1",
+      "number": 80,
+      "title": "Cucumber faces: scared and angry",
+      "body": "Near-tier expression via a per-agent input or a few baked variants; benched. Brine, not blood.",
+      "type": "art",
+      "priority": 2,
+      "points": 5,
+      "labels": [],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kumj8wt02i": {
+      "id": "kumj8wt02i",
+      "number": 81,
+      "title": "Whimpers and wails",
+      "body": "Heard in the quiet before the alarm and at close kills; `AudioDirector` caps and pools them.",
+      "type": "audio",
+      "priority": 3,
+      "points": 5,
+      "labels": [],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "krhuc8u7x4": {
+      "id": "krhuc8u7x4",
+      "number": 82,
+      "title": "Verify Blender .glb facing and scale",
+      "body": "Take a test asset through the pipeline and replace the two \"not yet verified\" lines in CLAUDE.md.",
+      "type": "tooling",
+      "priority": 3,
+      "points": 2,
+      "labels": [],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "knc2cn1ft9": {
+      "id": "knc2cn1ft9",
+      "number": 83,
+      "title": "Model the queen",
+      "body": "Rind plates, weak-spot hatches (emissive), seed-spit mouth, feeder roots; voxel and destructible.",
+      "type": "art",
+      "priority": 1,
+      "points": 13,
+      "labels": [
+        "ls89wh4n26"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kd51jqhjy9": {
+      "id": "kd51jqhjy9",
+      "number": 84,
+      "title": "Model the landing pod interior and ship cabin",
+      "body": "Pod seat, window and door; the cabin with invoice printer and crate hatch; cloning-lab glimpses.",
+      "type": "art",
+      "priority": 2,
+      "points": 8,
+      "labels": [
+        "l9pldpud2v",
+        "l1racleanu"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "klxvfmdvsz": {
+      "id": "klxvfmdvsz",
+      "number": 85,
+      "title": "Model the armed shuttle and colony set",
+      "body": "Shuttle with corner miniguns; skyscrapers, the armoured shelter, ore storage, shafts, turrets, relays, fuel tanks, security mechs.",
+      "type": "art",
+      "priority": 2,
+      "points": 13,
+      "labels": [
+        "lmwufygz8g"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kjy6sdopu0": {
+      "id": "kjy6sdopu0",
+      "number": 86,
+      "title": "Model the crash pod, storm planet and nuke blast",
+      "body": "The contractor's crash pod, the storm biome and tornado, and the staged planet-scale blast.",
+      "type": "art",
+      "priority": 2,
+      "points": 8,
+      "labels": [
+        "lilhzpk48l"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kkdli86jpq": {
+      "id": "kkdli86jpq",
+      "number": 87,
+      "title": "First-person hands",
+      "body": "The one rigged thing; late on purpose.",
+      "type": "art",
+      "priority": 3,
+      "points": 13,
+      "labels": [],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kphsdpdm3e": {
+      "id": "kphsdpdm3e",
+      "number": 88,
+      "title": "Repository, Godot project, Jolt and Git LFS",
+      "body": "Godot 4.7.2 mono, `net8.0`, Jolt set explicitly, LFS from the first commit (0003).",
+      "type": "tooling",
+      "priority": 2,
+      "points": 3,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kx4s7mbw9e": {
+      "id": "kx4s7mbw9e",
+      "number": 89,
+      "title": "Perf instruments",
+      "body": "`FrameProfiler`, `PhysicsStepProbe`, `PerfRecorder` (`U`) and `bench.gd` (0002).",
+      "type": "tooling",
+      "priority": 2,
+      "points": 3,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kkfpifx2ja": {
+      "id": "kkfpifx2ja",
+      "number": 90,
+      "title": "Player and the grapple",
+      "body": "Zip, swing, orbit and release float; jetpack hover and dashes.",
+      "type": "feature",
+      "priority": 2,
+      "points": 8,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kd4qf91hjp": {
+      "id": "kd4qf91hjp",
+      "number": 91,
+      "title": "The horde at 25,000",
+      "body": "Flat arrays, simulation tiers, density cap and view cull; blasts and beams reach the crowd. Allies are attacked and bitten (0012).",
+      "type": "feature",
+      "priority": 2,
+      "points": 13,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k4wu0xt1p2": {
+      "id": "k4wu0xt1p2",
+      "number": 92,
+      "title": "Voxel destruction",
+      "body": "Every voxel model breaks the same way (0011); off the frame (0015); rubble stays (0016, 0022); chunk graph and building collapse (0027); trees hold by connection (0024).",
+      "type": "feature",
+      "priority": 2,
+      "points": 13,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kyacll279v": {
+      "id": "kyacll279v",
+      "number": 93,
+      "title": "MagicaVoxel importer",
+      "body": "`.vox` imported directly: parts, colour per vertex, emission, markers (0009).",
+      "type": "feature",
+      "priority": 2,
+      "points": 8,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kwdmo9pqen": {
+      "id": "kwdmo9pqen",
+      "number": 94,
+      "title": "The planet",
+      "body": "Cube-sphere at the origin, streaming, craters, sites (0017); seeded planets and biomes (0018); the session and loading screen (0021); pinned at 1,260 m (0037).",
+      "type": "feature",
+      "priority": 2,
+      "points": 13,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k9b4szlp6x": {
+      "id": "k9b4szlp6x",
+      "number": 95,
+      "title": "Vulkan renderer",
+      "body": "As fast idle and faster under the horde than D3D12 (0048).",
+      "type": "feature",
+      "priority": 2,
+      "points": 8,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k5lubvjgqg": {
+      "id": "k5lubvjgqg",
+      "number": 96,
+      "title": "Vine nest grown at load",
+      "body": "Seeded, 25 s at 25,000; saved nests are presets (0033); only valid vines (0036); one clump, 55-70 m apart (0038).",
+      "type": "feature",
+      "priority": 2,
+      "points": 13,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k561rkmbxd": {
+      "id": "k561rkmbxd",
+      "number": 97,
+      "title": "Plants bend; leaves are meshes",
+      "body": "Spine of springs, collision that follows, wind and the grapple push (0032, 0035); vines leave no rubble (0042).",
+      "type": "feature",
+      "priority": 2,
+      "points": 8,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kvb4m7m4rn": {
+      "id": "kvb4m7m4rn",
+      "number": 98,
+      "title": "Pods in bulk and regrowth",
+      "body": "One pod per cucumber in flat arrays, drawn instanced and bent on the GPU (0040); regrow until destroyed; the win rule (0034).",
+      "type": "feature",
+      "priority": 2,
+      "points": 13,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kzyq060ft3": {
+      "id": "kzyq060ft3",
+      "number": 99,
+      "title": "The colony wakes on harm",
+      "body": "Never on nearness; every cucumber drops into the horde over 30 s (0041).",
+      "type": "feature",
+      "priority": 2,
+      "points": 5,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "klahupht8q": {
+      "id": "klahupht8q",
+      "number": 100,
+      "title": "Structure and Litter physics layers",
+      "body": "Static voxel bodies off Prop (0039).",
+      "type": "tech",
+      "priority": 2,
+      "points": 3,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k09w2avhfp": {
+      "id": "k09w2avhfp",
+      "number": 101,
+      "title": "The Vines tool",
+      "body": "Nest tab, range lab, Good/Bad training logs (0043).",
+      "type": "tooling",
+      "priority": 2,
+      "points": 8,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kxh43w0rbi": {
+      "id": "kxh43w0rbi",
+      "number": 102,
+      "title": "The editor bridge",
+      "body": "Claude works in the running editor, every change one undo; own terrain brushes (0044).",
+      "type": "tooling",
+      "priority": 2,
+      "points": 8,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k8e4iv628g": {
+      "id": "k8e4iv628g",
+      "number": 103,
+      "title": "Shallow water",
+      "body": "Wade, splash, the horde slower (0045).",
+      "type": "feature",
+      "priority": 2,
+      "points": 5,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kn2caa0emx": {
+      "id": "kn2caa0emx",
+      "number": 104,
+      "title": "Mechs fight on broken",
+      "body": "Procedural gait, only core or head kills, mend themselves, Blender moves baked to data (0046).",
+      "type": "feature",
+      "priority": 2,
+      "points": 13,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kroina331z": {
+      "id": "kroina331z",
+      "number": 105,
+      "title": "The asset lab",
+      "body": "One place to look at, tune and break any asset, in the editor and in play (0047).",
+      "type": "tooling",
+      "priority": 2,
+      "points": 8,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kfe1upum0z": {
+      "id": "kfe1upum0z",
+      "number": 106,
+      "title": "Melee strokes and the sledge",
+      "body": "Pose strokes, not clips (0028).",
+      "type": "feature",
+      "priority": 2,
+      "points": 5,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "k9wtn2beyi": {
+      "id": "k9wtn2beyi",
+      "number": 107,
+      "title": "Gamepad",
+      "body": "One layout on the same actions (0025).",
+      "type": "feature",
+      "priority": 2,
+      "points": 3,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kvco9z8pxk": {
+      "id": "kvco9z8pxk",
+      "number": 108,
+      "title": "EventBus and AudioDirector",
+      "body": "Autoloads (0006, 0007).",
+      "type": "tech",
+      "priority": 2,
+      "points": 3,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kfx25738dg": {
+      "id": "kfx25738dg",
+      "number": 109,
+      "title": "Onboarding level",
+      "body": "`lvl_nest_intro` on a saved 1,000-cucumber nest, with landmarks and prompts (0049).",
+      "type": "feature",
+      "priority": 2,
+      "points": 5,
+      "labels": [
+        "l2o4587jld"
+      ],
+      "milestone": "mmuz89xk91",
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:19:47.000Z",
+      "updated": "2026-10-29T17:19:47.000Z"
+    },
+    "kmvttb3jk1": {
+      "id": "kmvttb3jk1",
+      "number": 110,
+      "title": "Onboarding/tutorial level",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": null,
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-29T17:23:28.304Z",
+      "updated": "2026-10-29T17:23:28.304Z"
+    },
+    "kmvux337z1": {
+      "id": "kmvux337z1",
+      "number": 111,
+      "title": "Fire. Fire spreading through a dense nest is chaos that runs itself, and it can burn you too.",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": null,
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-30T11:56:59.279Z",
+      "updated": "2026-10-30T11:56:59.279Z"
+    },
+    "kmvux3nmj2": {
+      "id": "kmvux3nmj2",
+      "number": 112,
+      "title": "Laser weapon",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": null,
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-30T11:57:25.723Z",
+      "updated": "2026-10-30T11:57:25.723Z"
     }
   },
   "labels": [
@@ -209,6 +2123,61 @@
       "id": "lmvhxp8x01n",
       "name": "label",
       "color": "#6f8f7a"
+    },
+    {
+      "id": "lz0q4oa21m",
+      "name": "open question",
+      "color": "#c08a1e"
+    },
+    {
+      "id": "l0vlv3jp87",
+      "name": "parked",
+      "color": "#8b9892"
+    },
+    {
+      "id": "l3lg2cp9gr",
+      "name": "story idea",
+      "color": "#9a5bb0"
+    },
+    {
+      "id": "lang3uqnpk",
+      "name": "backlog, later",
+      "color": "#7a6f8f"
+    },
+    {
+      "id": "l9pldpud2v",
+      "name": "opening",
+      "color": "#3f7fbf"
+    },
+    {
+      "id": "ls89wh4n26",
+      "name": "contract 1",
+      "color": "#5f9a3a"
+    },
+    {
+      "id": "lilhzpk48l",
+      "name": "contract 2",
+      "color": "#2f8f8a"
+    },
+    {
+      "id": "lmwufygz8g",
+      "name": "contract 3",
+      "color": "#b4522f"
+    },
+    {
+      "id": "l20pa9umb6",
+      "name": "weapons",
+      "color": "#c43d31"
+    },
+    {
+      "id": "l1racleanu",
+      "name": "ship and shop",
+      "color": "#6f8f7a"
+    },
+    {
+      "id": "l2o4587jld",
+      "name": "built",
+      "color": "#00a86b"
     }
   ],
   "milestones": [

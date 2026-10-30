@@ -42,6 +42,8 @@ public partial class NestTab : HSplitContainer
     private OptionButton _kit;
     private SpinBox _seed;
     private SpinBox _population;
+    private SpinBox _radius;
+    private SpinBox _spacingMin, _spacingMax;
     private CheckBox _horde;
     private CheckBox _ammo;
     private CheckBox _bike;
@@ -68,7 +70,7 @@ public partial class NestTab : HSplitContainer
     private MultiMesh _pods;
     private int _podsDrawn;
     // Which nest the shown layout is: kit, seed, population.
-    private (string Kit, ulong Seed, int Population) _layoutKey;
+    private (string Kit, ulong Seed, int Population, float Radius, Vector2 Spacing) _layoutKey;
 
     private OptionButton _saved;
     private readonly List<string> _savedPaths = new();
@@ -77,16 +79,19 @@ public partial class NestTab : HSplitContainer
     private Button _good;
     private Button _bad;
     private Button _save;
+    private Button _bake;
+    private ConfirmationDialog _confirmBake;
+    private NestPreset _toBake;
     private NestPlay.Result _playResult;
     private bool _awaitingPlay;
     private bool _sawPlaying;
     private bool? _pendingVerdict;
     private Task<NestLayout> _verdictPlan;
-    private (string Kit, ulong Seed, int Population) _goodKey;
-    private (string Kit, ulong Seed, int Population) _generatingKey;
+    private (string Kit, ulong Seed, int Population, float Radius, Vector2 Spacing) _goodKey;
+    private (string Kit, ulong Seed, int Population, float Radius, Vector2 Spacing) _generatingKey;
     private string _presets = NestPreset.Folder;
 
-    private (string Kit, ulong Seed, int Population) Key() => (Kit()?.ResourcePath ?? "", (ulong)_seed.Value, (int)_population.Value);
+    private (string Kit, ulong Seed, int Population, float Radius, Vector2 Spacing) Key() => (Kit()?.ResourcePath ?? "", (ulong)_seed.Value, (int)_population.Value, (float)_radius.Value, new Vector2((float)_spacingMin.Value, (float)_spacingMax.Value));
 
     public override void _Ready()
     {
@@ -112,6 +117,19 @@ public partial class NestTab : HSplitContainer
         _population = new SpinBox { MinValue = 1000, MaxValue = 25000, Step = 100, Rounded = true, Value = 5000, SizeFlagsHorizontal = SizeFlags.ExpandFill,
             TooltipText = "Pickles, one pod each: the nest grows vines until their pods cover it." };
         column.AddChild(Row("Population", _population));
+
+        _radius = new SpinBox { MinValue = 100, MaxValue = 2000, Step = 10, Rounded = true, Value = 400, Suffix = "m", SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            TooltipText = "No vine further than this from the heart. The nest grows from the heart out until its pods cover the population, so this is a limit: a population that does not fit shifts to vines with more pods." };
+        column.AddChild(Row("Radius", _radius));
+
+        _spacingMin = new SpinBox { MinValue = 10, MaxValue = 300, Step = 1, Rounded = true, Value = 55, Suffix = "m", SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            TooltipText = "Least distance between neighbouring vines. Each ring of the nest rolls its spacing between least and most." };
+        _spacingMax = new SpinBox { MinValue = 10, MaxValue = 300, Step = 1, Rounded = true, Value = 70, Suffix = "m", SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            TooltipText = "Most distance between neighbouring vines. The grapple reaches 140 m." };
+        var spacing = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        spacing.AddChild(_spacingMin);
+        spacing.AddChild(_spacingMax);
+        column.AddChild(Row("Spacing", spacing));
 
         _horde = new CheckBox { Text = "With the horde", ButtonPressed = true,
             TooltipText = "Off: the pickles hang, and nothing drops when the colony wakes." };
@@ -143,7 +161,11 @@ public partial class NestTab : HSplitContainer
         _bad = Button("Bad", "Log this nest as bad. Bad nests are kept as carefully as good ones.", () => Verdict(false));
         _save = Button("Save", "Keep this Good nest: resources/mission/nests/, loadable from Saved.", Save);
         _save.Disabled = true;
-        foreach (Button b in new[] { _good, _bad, _save })
+        _bake = Button("Bake", "Bake the shown nest to scenes/props/nests/ (its vines to scenes/props/vines/), to place in a level and edit by hand. One-way.", BakeToScene);
+        _confirmBake = new ConfirmationDialog { Title = "Bake over a nest scene?", DialogAutowrap = true };
+        _confirmBake.Confirmed += () => DoBake(_toBake, true);
+        AddChild(_confirmBake);
+        foreach (Button b in new[] { _good, _bad, _save, _bake })
         {
             b.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             verdicts.AddChild(b);
@@ -358,6 +380,9 @@ public partial class NestTab : HSplitContainer
             return;
         _population.MinValue = kit.PopulationClamp.X;
         _population.MaxValue = kit.PopulationClamp.Y;
+        _radius.Value = kit.MaxRadiusM;
+        _spacingMin.Value = kit.SpacingM.X;
+        _spacingMax.Value = kit.SpacingM.Y;
     }
 
     private void Generate()
@@ -370,13 +395,15 @@ public partial class NestTab : HSplitContainer
         VineGrower.Context context = VineGrower.Context.For(stats, kit.Kinds);
         ulong seed = (ulong)_seed.Value;
         int population = (int)_population.Value;
+        float radius = (float)_radius.Value;
+        var spacing = new Vector2((float)_spacingMin.Value, (float)_spacingMax.Value);
         _generatingKey = Key();
         _generate.Disabled = true;
         _clock.Restart();
         _work = Task.Run(() =>
         {
             long before = GC.GetTotalMemory(false);
-            NestLayout layout = NestLayout.Plan(kit, context, seed, population);
+            NestLayout layout = NestLayout.Plan(kit, context, seed, population, radius, spacing);
             var preview = Stopwatch.StartNew();
             List<NestPreview.Vine> vines = NestPreview.Build(layout, kit, stats);
             return (layout, vines, preview.Elapsed.TotalSeconds, GC.GetTotalMemory(false) - before);
@@ -525,6 +552,9 @@ public partial class NestTab : HSplitContainer
             Kit = kit.ResourcePath,
             Seed = (ulong)_seed.Value,
             Population = (int)_population.Value,
+            RadiusM = (float)_radius.Value,
+            SpacingMin = (float)_spacingMin.Value,
+            SpacingMax = (float)_spacingMax.Value,
             Horde = _horde.ButtonPressed,
             InfiniteAmmo = _ammo.ButtonPressed,
             Bike = _bike.ButtonPressed,
@@ -578,8 +608,8 @@ public partial class NestTab : HSplitContainer
         }
         NestKit kit = Kit();
         VineGrower.Context context = VineGrower.Context.For(kit.BakeOrDefault(), kit.Kinds);
-        (string _, ulong seed, int population) = Key();
-        _verdictPlan = Task.Run(() => NestLayout.Plan(kit, context, seed, population));
+        (string _, ulong seed, int population, float radius, Vector2 spacing) = Key();
+        _verdictPlan = Task.Run(() => NestLayout.Plan(kit, context, seed, population, radius, spacing));
         _good.Disabled = _bad.Disabled = true;
         _status.Text = "Planning the nest again for its measures...";
         SetProcess(true);
@@ -604,8 +634,8 @@ public partial class NestTab : HSplitContainer
     {
         bool good = _pendingVerdict ?? false;
         _pendingVerdict = null;
-        (string kit, ulong seed, int population) = Key();
-        NestPlay.Result play = _playResult != null && _playResult.Kit == kit && _playResult.Seed == seed && _playResult.Population == population
+        (string kit, ulong seed, int population, float radius, Vector2 spacing) = Key();
+        NestPlay.Result play = _playResult != null && _playResult.Kit == kit && _playResult.Seed == seed && _playResult.Population == population && Mathf.IsEqualApprox(_playResult.RadiusM, radius) && Mathf.IsEqualApprox(_playResult.SpacingMin, spacing.X) && Mathf.IsEqualApprox(_playResult.SpacingMax, spacing.Y)
             ? _playResult : null;
         var record = new Dictionary<string, object>
         {
@@ -615,6 +645,8 @@ public partial class NestTab : HSplitContainer
             ["kit"] = kit,
             ["seed"] = seed,
             ["population"] = population,
+            ["radius_m_limit"] = radius,
+            ["spacing_m"] = new[] { spacing.X, spacing.Y },
             ["horde"] = _horde.ButtonPressed,
             ["generator"] = VineLogs.Generator(),
             ["plan"] = PlanMeasures(layout),
@@ -681,12 +713,14 @@ public partial class NestTab : HSplitContainer
             _status.Text = "Only a nest just judged Good can be saved.";
             return;
         }
-        (string _, ulong seed, int population) = Key();
+        (string _, ulong seed, int population, float radius, Vector2 spacing) = Key();
         var preset = new NestPreset
         {
             Kit = kit,
             Seed = (long)seed,
             Population = population,
+            RadiusM = radius,
+            SpacingM = spacing,
             Horde = _horde.ButtonPressed,
             Note = _note.Text,
             Saved = VineLogs.Now(),
@@ -698,6 +732,40 @@ public partial class NestTab : HSplitContainer
         _status.Text = error == Error.Ok ? $"Saved {path}." : $"Not saved: {error}.";
         EditorInterface.Singleton.GetResourceFilesystem().Scan();
         LoadSavedList();
+    }
+
+    // The nest Generate showed, kept as an authored scene (docs/decisions/0056).
+    private void BakeToScene()
+    {
+        NestKit kit = Kit();
+        if (kit == null || _layout == null || _layoutKey != Key())
+        {
+            _status.Text = "Generate the nest first: Bake lays down the one shown.";
+            return;
+        }
+        _toBake = new NestPreset { Kit = kit, Seed = (long)_seed.Value, Population = (int)_population.Value, RadiusM = (float)_radius.Value, SpacingM = new Vector2((float)_spacingMin.Value, (float)_spacingMax.Value) };
+        string scene = NestBaker.ScenePath(_toBake);
+        if (FileAccess.FileExists(scene))
+        {
+            _confirmBake.DialogText = $"{scene} exists and may hold hand edits. Write over it?";
+            _confirmBake.PopupCentered();
+            return;
+        }
+        DoBake(_toBake, false);
+    }
+
+    private void DoBake(NestPreset preset, bool overwrite)
+    {
+        try
+        {
+            NestBaker.Result baked = NestBaker.Bake(preset, _layout, preset.Kit.Bake ?? ResourceLoader.Load<VineBakeStats>(VineBakeStats.DefaultPath, cacheMode: ResourceLoader.CacheMode.Replace), overwrite);
+            EditorInterface.Singleton.GetResourceFilesystem().Scan();
+            _status.Text = $"Baked {baked.Vines} vines ({baked.Pods:N0} pods) to {baked.ScenePath}. Importing; then place it in a level.";
+        }
+        catch (Exception e)
+        {
+            _status.Text = "Not baked: " + e.Message;
+        }
     }
 
     private void LoadSavedList()
@@ -730,6 +798,13 @@ public partial class NestTab : HSplitContainer
         }
         _seed.Value = preset.Seed;
         _population.Value = preset.Population;
+        if (preset.RadiusM > 0.0f)
+            _radius.Value = preset.RadiusM;
+        if (preset.SpacingM.X > 0.0f)
+        {
+            _spacingMin.Value = preset.SpacingM.X;
+            _spacingMax.Value = preset.SpacingM.Y;
+        }
         _horde.ButtonPressed = preset.Horde;
         _note.Text = preset.Note;
         _status.Text = $"Loaded {preset.ResourcePath.GetFile()}: Generate to see it, Play to play it.";

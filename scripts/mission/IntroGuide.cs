@@ -36,6 +36,7 @@ public partial class IntroGuide : Node
     private float _shown;
     private float _wait;
     private bool _hooked, _released, _fired, _jarHit, _podDestroyed, _woke, _landed;
+    private bool _padActive;
     private CanvasLayer _layer;
     private PanelContainer _plate;
     private Label _title, _text;
@@ -231,8 +232,31 @@ public partial class IntroGuide : Node
         }
     }
 
-    // "{grapple}" to the key or button that action is on.
-    private static string Fill(string text)
+    // Follows whichever device the player touched last, so a prompt reads
+    // "SPACE" under a keyboard and "A" under a pad, and flips as they switch.
+    public override void _Input(InputEvent @event)
+    {
+        bool? pad = @event switch
+        {
+            InputEventKey { Pressed: true } or InputEventMouseButton { Pressed: true } => false,
+            InputEventMouseMotion m when m.Relative.LengthSquared() > 4.0f => false,
+            InputEventJoypadButton { Pressed: true } => true,
+            InputEventJoypadMotion { AxisValue: > 0.5f or < -0.5f } => true,
+            _ => null,
+        };
+        if (pad.HasValue && pad.Value != _padActive)
+        {
+            _padActive = pad.Value;
+            if (_plate != null && _plate.Visible && _index >= 0 && _index < Steps.Count)
+            {
+                _text.Text = Fill(Steps[_index].Text);
+            }
+        }
+    }
+
+    // "{grapple}" to the key or button that action is on, "{move}" to the
+    // four movement controls (WASD, or the stick).
+    private string Fill(string text)
     {
         int open = text.IndexOf('{');
         while (open >= 0)
@@ -243,29 +267,87 @@ public partial class IntroGuide : Node
                 break;
             }
             string action = text.Substring(open + 1, close - open - 1);
-            text = text.Substring(0, open) + KeyName(action) + text.Substring(close + 1);
+            string name = action == "move" ? MoveName() : KeyName(action);
+            text = text.Substring(0, open) + name + text.Substring(close + 1);
             open = text.IndexOf('{');
         }
         return text;
     }
 
-    private static string KeyName(string action)
+    private static readonly string[] MoveActions = { "move_forward", "move_left", "move_back", "move_right" };
+
+    private string MoveName()
+    {
+        if (_padActive)
+        {
+            var sticks = new HashSet<string>();
+            foreach (string action in MoveActions)
+            {
+                if (!InputMap.HasAction(action))
+                {
+                    continue;
+                }
+                foreach (InputEvent e in InputMap.ActionGetEvents(action))
+                {
+                    if (e is InputEventJoypadMotion m)
+                    {
+                        sticks.Add(m.Axis is JoyAxis.LeftX or JoyAxis.LeftY ? "LEFT STICK"
+                            : m.Axis is JoyAxis.RightX or JoyAxis.RightY ? "RIGHT STICK"
+                            : ModularMenu.MenuSystem.AxisLabel(m.Axis, m.AxisValue).ToUpperInvariant());
+                    }
+                }
+            }
+            if (sticks.Count > 0)
+            {
+                return string.Join(" + ", sticks);
+            }
+        }
+        var names = new List<string>();
+        foreach (string action in MoveActions)
+        {
+            names.Add(KeyName(action));
+        }
+        return string.Join(" ", names);
+    }
+
+    private static string Shorten(string name) => name switch
+    {
+        "LEFT MOUSE BUTTON" => "LMB",
+        "RIGHT MOUSE BUTTON" => "RMB",
+        "MIDDLE MOUSE BUTTON" => "MMB",
+        "MOUSE WHEEL UP" => "WHEEL UP",
+        "MOUSE WHEEL DOWN" => "WHEEL DOWN",
+        "MOUSE THUMB BUTTON 1" => "MB4",
+        "MOUSE THUMB BUTTON 2" => "MB5",
+        _ => name,
+    };
+
+    // The binding on the device in use; the other device's when it has none.
+    private string KeyName(string action)
     {
         if (!InputMap.HasAction(action))
         {
             return action;
         }
-        var names = new List<string>();
+        string key = null, pad = null;
         foreach (InputEvent e in InputMap.ActionGetEvents(action))
         {
-            if (e is InputEventKey or InputEventMouseButton)
+            switch (e)
             {
-                string name = e.AsText();
-                // "Space - Physical", "Middle Mouse Button (Mouse Button)": the name only.
-                int cut = name.IndexOfAny(new[] { '(', '-' });
-                names.Add((cut > 0 ? name.Substring(0, cut) : name).Trim().ToUpperInvariant());
+                case InputEventKey or InputEventMouseButton when key == null:
+                    string name = e.AsText();
+                    // "Space - Physical", "Middle Mouse Button (Mouse Button)": the name only.
+                    int cut = name.IndexOfAny(new[] { '(', '-' });
+                    key = Shorten((cut > 0 ? name.Substring(0, cut) : name).Trim().ToUpperInvariant());
+                    break;
+                case InputEventJoypadButton b when pad == null:
+                    pad = ModularMenu.MenuSystem.ButtonLabel(b.ButtonIndex).ToUpperInvariant();
+                    break;
+                case InputEventJoypadMotion m when pad == null:
+                    pad = ModularMenu.MenuSystem.AxisLabel(m.Axis, m.AxisValue).ToUpperInvariant();
+                    break;
             }
         }
-        return names.Count > 0 ? names[0] : action;
+        return (_padActive ? pad ?? key : key ?? pad) ?? action;
     }
 }

@@ -45,4 +45,5 @@ override.cfg
 # Perf recordings and bench screenshots. Local diagnostics, not source.
 /perflogs/
 
-/engine
+/engine/
+/.vscode/

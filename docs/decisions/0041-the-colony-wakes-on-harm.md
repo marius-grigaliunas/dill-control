@@ -1,12 +1,11 @@
 # 0041 The colony wakes on harm, never on nearness: every pickle drops into the horde over 30 s
 
-*24 October 2026. Built; decided with the user. Settles 0029's wake for
-pods (0034, 0040).*
+*24 October 2026. Built; decided with the user. The wake, for pods
+(0034, 0040).*
 
 ## Context
 
-0029 proposed that the colony never strikes first and that harm anywhere
-alerts all of it. With every pickle on a pod (0034), what counts as harm,
+The colony never strikes first, and harm anywhere alerts all of it. With every pickle on a pod (0034), what counts as harm,
 and what happens to a pickle shot where it hangs, had to be chosen.
 
 ## Decision

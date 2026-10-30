@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="ExtractionRules" format=3]
+[gd_resource type="Resource" script_class="ExtractionRules" format=3 uid="uid://ng07p1ncjamb"]
 
-[ext_resource type="Script" path="res://scripts/mission/ExtractionRules.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://5i3u7ym0ds5f" path="res://scripts/mission/ExtractionRules.cs" id="1_script"]
 
 [resource]
 resource_name = "DropRulesTutorial"
@@ -9,8 +9,5 @@ DropHeight = 520.0
 DropSeconds = 11.0
 LandingRadius = 8.0
 LandingDamage = 120.0
-ExtractionDelay = 4.0
 ExtractionMinDistance = 250.0
 ExtractionMaxDistance = 450.0
-ExtractionClearOfLanding = 120.0
-ExtractionClearOfProps = 25.0

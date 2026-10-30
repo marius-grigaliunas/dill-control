@@ -4,8 +4,10 @@ Dill Control's kanban board. It runs in any browser from `index.html`, with no G
 no server, no internet and no dependency of any kind — the whole tool is ten
 small scripts and one stylesheet.
 
-Open `index.html`. It comes populated with the vertical slice from
-`docs/plan.md`, milestone by milestone, all in one `Vertical slice` category.
+Open `index.html`. It comes populated with the vertical slice as the design now
+stands (`docs/plan.md`, `docs/decisions/0050`-`0054`): an `Open decisions` column
+for open questions and parked ideas, the decided work in `Backlog`, and what is
+built in `Done`, all in one `Vertical slice` category.
 `Settings → Delete every card` clears it out if you would rather start empty.
 
 ## What it does

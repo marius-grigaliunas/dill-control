@@ -1,6 +1,6 @@
 # 0038 The nest is one clump sized by its population: 55-70 m apart, 400 m at most, more pods a vine before more room
 
-*24 October 2026. Built; decided with the user. Builds on 0029, 0034 and 0037.*
+*24 October 2026. Built; decided with the user. Builds on 0034 and 0037.*
 
 ## Context
 

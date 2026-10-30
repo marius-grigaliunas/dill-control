@@ -1,3 +1,5 @@
+*Superseded by `docs/decisions/0051-the-slice-contracts.md` (29 October 2026). Kept below as history; the text is the early notes, not the design.*
+
 Vertical slice
 
 You have a menu with nice art?

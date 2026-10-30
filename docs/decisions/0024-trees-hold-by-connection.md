@@ -1,6 +1,6 @@
 # 0024 Trees hold by connection, not by weight
 
-*11 October 2026. Builds on 0011 and 0013.*
+*11 October 2026. Builds on 0011 and 0027.*
 
 ## Context
 
@@ -9,7 +9,7 @@ voxels), was a static `VoxelBody` on the default stats. Any hit anywhere on
 it, a branch included, cut the whole tree through about 25 m up and dropped
 everything above.
 
-That is 0013's load check doing what it was written for. It asks each layer
+That is 0027's load check doing what it was written for. It asks each layer
 whether it still carries what is above it, and counts a load that hangs off
 the layer's centre against it (`offCentre`, against half the layer's narrower
 side). A trunk is a few metres wide and the canopy hangs off it by more than

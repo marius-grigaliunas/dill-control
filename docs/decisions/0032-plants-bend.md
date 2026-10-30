@@ -1,6 +1,6 @@
 # 0032 Plants bend: a spine of springs, collision that follows, and they fall over
 
-*20 October 2026. Proposed. Builds on 0011, 0014, 0015 and 0024; a step toward 0029.*
+*20 October 2026. Proposed. Builds on 0011, 0027, 0015 and 0024.*
 
 ## Context
 
@@ -62,7 +62,7 @@ falls over.**
   its stump and smashes where it lands. What gave way hangs on a hinge just
   off the middle of the cut, on the side the weight above it leans (centres
   measured at load), starting to turn at `ToppleSpin` with the matching
-  speed, and tears free as a building's hinge does (0014).
+  speed, and tears free as a building's hinge does (0027).
 - **Data.** `resources/foliage/flex_vine.tres`, `flex_tree.tres`,
   `wind_default.tres`. A wrapper gets a `Flex` node after its model with
   `Body` and `Stats`; nothing in a level changes.

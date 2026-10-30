@@ -1,6 +1,6 @@
 # 0045 Water is shallow: you wade and splash, and it is made by flooding a hollow
 
-*24 October 2026. Agreed with the user. Builds on 0026 and 0044.*
+*24 October 2026. Agreed with the user. Builds on 0044.*
 
 ## Context
 

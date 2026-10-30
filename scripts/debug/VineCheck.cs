@@ -794,9 +794,9 @@ public partial class VineCheck : Node
     public string[] BakedVines()
     {
         var stats = GD.Load<VineBakeStats>(VineBakeStats.DefaultPath);
-        return DirAccess.GetFilesAt(stats.SceneFolder)
+        return SceneFolders(stats).SelectMany(folder => DirAccess.GetFilesAt(folder)
             .Where(f => System.Text.RegularExpressions.Regex.IsMatch(f, @"^prp_vine_[a-z]+_[0-9]+c?[.]tscn$"))
-            .Select(f => $"{stats.SceneFolder}/{f}").ToArray();
+            .Select(f => $"{folder}/{f}")).ToArray();
     }
 
     /// <summary>
@@ -860,16 +860,19 @@ public partial class VineCheck : Node
         return -1;
     }
 
+    // Vines baked before they had their own folder stand in scenes/props.
+    private static string[] SceneFolders(VineBakeStats stats) => new[] { stats.SceneFolder, "res://scenes/props" };
+
     private void BakedScenes(VineBakeStats stats)
     {
         int found = 0;
-        foreach (string file in DirAccess.GetFilesAt(stats.SceneFolder))
+        foreach ((string folder, string file) in SceneFolders(stats).SelectMany(f => DirAccess.GetFilesAt(f).Select(file => (f, file))))
         {
             if (!System.Text.RegularExpressions.Regex.IsMatch(file, @"^prp_vine_[a-z]+_\d+c?\.tscn$"))
                 continue;
             found++;
             string name = file[..^5];
-            var scene = GD.Load<PackedScene>($"{stats.SceneFolder}/{file}");
+            var scene = GD.Load<PackedScene>($"{folder}/{file}");
             Node root = scene?.Instantiate();
             if (root == null)
             {

@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_heart_4253486s1079.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_984007s893.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_6123397s1117.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_fruiting_3675600s960.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/props/vines/prp_vine_weeping_5114881s887.tscn" id="5"]
+
+[node name="prp_nest_default_145525444_1000" type="Node3D"]
+
+[node name="Vine000_heart" parent="." instance=ExtResource("1")]
+transform = Transform3D(-0.30462667, 0, -0.95247185, 0, 1, 0, 0.95247185, 0, -0.30462667, 0, -1, 0)
+
+[node name="Vine001_weeping" parent="." instance=ExtResource("2")]
+transform = Transform3D(0.2833, 0, -0.95903134, 0, 1, 0, 0.95903134, 0, 0.2833, 0.67140985, -1, -64.864876)
+
+[node name="Vine002_weeping" parent="." instance=ExtResource("3")]
+transform = Transform3D(-0.56722057, 0, 0.8235659, 0, 1, 0, -0.8235659, 0, -0.56722057, 41.437054, -1, 42.11208)
+
+[node name="Vine003_fruiting" parent="." instance=ExtResource("4")]
+transform = Transform3D(-0.6291263, 0, 0.7773031, 0, 1, 0, -0.7773031, 0, -0.6291263, -36.38088, -1, -33.23433)
+
+[node name="Vine004_weeping" parent="." instance=ExtResource("5")]
+transform = Transform3D(-0.074911274, 0, 0.99719024, 0, 1, 0, -0.99719024, 0, -0.074911274, -7.1454167, -1, 69.00609)
