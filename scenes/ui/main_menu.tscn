@@ -37,28 +37,20 @@ ambient_light_energy = 0.5
 [node name="MainMenu" type="Node" unique_id=654902782 node_paths=PackedStringArray("Menu")]
 script = ExtResource("1_main")
 Menu = NodePath("Menu")
-StartScene = null
 
 [node name="Menu" type="CanvasLayer" parent="." unique_id=1693427258]
 script = ExtResource("2_menu")
 Root = ExtResource("3_screen")
-PauseTree = null
-ManageMouse = null
-OpenOnCancel = null
 ScrimColor = Color(0, 0, 0, 0)
 TitleColor = Color(1, 1, 1, 1)
 ItemColor = Color(1, 1, 1, 1)
 SelectedColor = Color(0.24313726, 0.5058824, 1, 1)
 ValueColor = Color(0, 0.51351523, 0.91775954, 1)
-TitleSize = null
 ItemSize = 48
 TextFont = SubResource("SystemFont_tasf0")
 Across = 0
 Down = 2
 Margin = Vector4(100, 0, 0, 0)
-RowSpacing = null
-RowWidth = null
-HintText = null
 SelectedBefore = ""
 SelectedAfter = ""
 
