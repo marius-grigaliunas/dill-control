@@ -58,13 +58,20 @@ uniform float sunset_glow : hint_range(0.0, 1.0) = 0.0;
 // air adds little light back: all of it washed the planet out.
 uniform float dimming : hint_range(0.0, 1.0) = 1.0;
 uniform float exposure = 1.0;
+// How wide, in metres, the edge of the planet's shadow in the air is. A sharp
+// edge, sampled a few times down each sight line, drew a hard line across the
+// disc beside the day/night line.
+uniform float shadow_soft : hint_range(0.0, 2000.0) = 400.0;
 // 0 is smooth; 3 or 4 steps the air's brightness into flat tones, keeping its hue.
 uniform float bands : hint_range(0.0, 8.0, 1.0) = 0.0;
 
 // Sight-line samples: as many as the air crossed needs, one per step share of
 // the air's thickness, between the least and the most. Looking down crosses a
 // little air and takes the least; skimming the limb crosses kilometres and
-// takes the most. Eight everywhere cost three milliseconds.
+// takes the most. Eight everywhere cost three milliseconds. The count is not
+// rounded: the last sample covers what is left of a step, so where a sight line
+// needs one more the new sample grows in from nothing (rounded, the count's
+// steps were rings round the limb).
 uniform float step_share : hint_range(0.1, 2.0) = 0.75;
 const int MIN_SAMPLES = 3;
 const int MAX_SAMPLES = 8;
@@ -109,8 +116,9 @@ void air_light(vec3 camera, vec3 ray, float t0, float t1, out vec3 colour, out f
 	float c_r = sqrt(x_r);
 	float c_m = sqrt(x_m);
 
-	float samples = clamp(ceil((t1 - t0) / max((layer_radius - planet_radius) * step_share, 1.0)), float(MIN_SAMPLES), float(MAX_SAMPLES));
-	float dt = (t1 - t0) / samples;
+	float share = clamp((t1 - t0) / max((layer_radius - planet_radius) * step_share, 1.0), float(MIN_SAMPLES), float(MAX_SAMPLES));
+	float samples = ceil(share);
+	float step_length = (t1 - t0) / share;
 	// The air between the camera and the sample, both kinds, as surface-dense metres.
 	float view_r = 0.0;
 	float view_m = 0.0;
@@ -120,7 +128,8 @@ void air_light(vec3 camera, vec3 ray, float t0, float t1, out vec3 colour, out f
 		if (float(i) >= samples) {
 			break;
 		}
-		vec3 p = camera + (ray * (t0 + (dt * (float(i) + 0.5))));
+		float dt = step_length * min(share - float(i), 1.0);
+		vec3 p = camera + (ray * (t0 + (step_length * float(i)) + (dt * 0.5)));
 		float r = length(p);
 		float height = max(r - planet_radius, 0.0);
 		float dense_r = exp(-height / rayleigh_height);
@@ -130,14 +139,20 @@ void air_light(vec3 camera, vec3 ray, float t0, float t1, out vec3 colour, out f
 		view_r += rho_r * 0.5;
 		view_m += rho_m * 0.5;
 
-		// Sunlight here: none in the planet's shadow, where the sun is further
-		// below this point's horizon than the planet's edge (compared squared).
+		// Sunlight here: none in the planet's shadow, the cylinder behind the
+		// planet away from the sun, fading in over shadow_soft from its edge.
+		// How far out of the cylinder: (d^2 - R^2) / 2R, d the distance from its
+		// axis, near enough d - R by the edge and with no square root.
 		// Above the horizon Chapman is the density here, already worked out,
 		// times a factor of the sun's angle; below it, the whole of it.
 		vec3 up = p / r;
 		float cos_sun = dot(up, to_sun);
-		float edge = planet_radius / max(r, planet_radius);
-		if (cos_sun >= 0.0 || (cos_sun * cos_sun) < (1.0 - (edge * edge))) {
+		float lit = 1.0;
+		if (cos_sun < 0.0) {
+			float out_of_shadow = ((r * r * (1.0 - (cos_sun * cos_sun))) - (planet_radius * planet_radius)) / (2.0 * planet_radius);
+			lit = smoothstep(-0.5 * shadow_soft, 0.5 * shadow_soft, out_of_shadow);
+		}
+		if (lit > 0.0) {
 			float sun_r;
 			float sun_m;
 			if (cos_sun >= 0.0) {
@@ -153,8 +168,8 @@ void air_light(vec3 camera, vec3 ray, float t0, float t1, out vec3 colour, out f
 			// all three: the hue stays, the brightness comes back.
 			float red_loss = (beta_r.r * sun_r) + (beta_m * 1.1 * sun_m);
 			vec3 through = exp(-((beta_r * (view_r + sun_r)) + (vec3(beta_m * 1.1) * (view_m + sun_m))) + (sunset_glow * red_loss));
-			sum_r += through * rho_r;
-			sum_m += through * rho_m;
+			sum_r += through * (rho_r * lit);
+			sum_m += through * (rho_m * lit);
 		}
 		view_r += rho_r * 0.5;
 		view_m += rho_m * 0.5;

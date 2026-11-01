@@ -94,6 +94,11 @@ uniform float step_share : hint_range(0.05, 1.0) = 0.35;
 // apart into lines along the horizon. There the clouds are grown by this much
 // (in coverage), so a step catches the rim; far off they read a little fuller.
 uniform float horizon_grow : hint_range(0.0, 0.3) = 0.06;
+// Seen edge-on at the horizon a ball is thinner than a row of pixels, so each
+// row meets a different one: the deck came apart into lines however fine the
+// steps. There the balls and the finest noise fade by this share, leaving the
+// banks' own round shapes.
+uniform float horizon_smooth : hint_range(0.0, 1.0) = 0.8;
 // The least and most steps a sight line takes.
 const int MIN_STEPS = 4;
 const int MAX_STEPS = 96;
@@ -153,14 +158,15 @@ float billow_reach(float h) {
 
 // The billows at p, between -billow_reach(h) and +billow_reach(h): how deep p
 // is in the packed balls, round on top and creased where two meet, read on the
-// planet turned only by the drift. One read: a second cost a millisecond.
-float billows(vec3 p, float h) {
+// planet turned only by the drift, times detail (horizon_smooth). One read: a
+// second cost a millisecond.
+float billows(vec3 p, float h, float detail) {
 	float s = drift_turn.x;
 	float c = drift_turn.y;
 	vec3 d = p / planet_radius;
 	vec3 q = PUFF_TURN * vec3((d.x * c) + (d.z * s), d.y, (d.z * c) - (d.x * s)) * (scale * billow_scale);
 	float inside = textureLod(planet_puffs, q / PUFF_CELLS, 0.0).r;
-	return clamp((inside - billow_middle) * 2.0, -1.0, 1.0) * billow_reach(h);
+	return clamp((inside - billow_middle) * 2.0, -1.0, 1.0) * billow_reach(h) * detail;
 }
 
 // The billows b where the column under them is as cloudy as column (its two
@@ -170,26 +176,27 @@ float gated(float b, float column) {
 	return b > 0.0 ? b * smoothstep(-billow_gate, 0.0, column) : b;
 }
 
-// Above zero is cloud. p is centred on the planet.
-float density(vec3 p) {
+// Above zero is cloud. p is centred on the planet; detail is the share of the
+// balls and the finest noise kept (less at the horizon).
+float density(vec3 p, float detail) {
 	vec3 q = (flow(p / planet_radius) * scale) + offset;
 	float h = shell_height(length(p));
 	// Big slow noise first, so the clouds gather into banks with clear sky between
 	// them; the finer noise only roughens the edge of a bank.
 	float column = (value_noise((q * 0.3) + 13.0) * 0.5) + (value_noise(q) * 0.3) - (1.0 - coverage);
-	float n = column + (value_noise(q * 2.07) * 0.12) + (value_noise(q * 4.3) * (0.08 * puff));
-	return n + gated(billows(p, h), column) - rise(h);
+	float n = column + (value_noise(q * 2.07) * 0.12) + (value_noise(q * 4.3) * (0.08 * puff * detail));
+	return n + gated(billows(p, h, detail), column) - rise(h);
 }
 
 // The same test as density() > 0, cheaper: every noise adds between nothing and
 // its share (the billows as much either way), so once the sum is sure to stay
 // under the line, or is already over it, the finer noise is not read.
 // Grow adds to the coverage (horizon_grow, where the sight line skims).
-bool is_cloud(vec3 p, float grow) {
+bool is_cloud(vec3 p, float grow, float detail) {
 	vec3 q = (flow(p / planet_radius) * scale) + offset;
 	float h = shell_height(length(p));
-	float fine = 0.12 + (0.08 * puff);
-	float lobe = billow_reach(h);
+	float fine = 0.12 + (0.08 * puff * detail);
+	float lobe = billow_reach(h) * detail;
 	float n = (value_noise((q * 0.3) + 13.0) * 0.5) - (1.0 - coverage - grow) - rise(h);
 	if (n + 0.3 + fine + lobe <= 0.0) {
 		return false;
@@ -201,7 +208,7 @@ bool is_cloud(vec3 p, float grow) {
 	if (n + fine + lobe <= 0.0) {
 		return false;
 	}
-	n += gated(billows(p, h), n + rise(h));
+	n += gated(billows(p, h, detail), n + rise(h));
 	if (n > 0.0) {
 		return true;
 	}
@@ -212,7 +219,7 @@ bool is_cloud(vec3 p, float grow) {
 	if (n > 0.0) {
 		return true;
 	}
-	return n + (value_noise(q * 4.3) * (0.08 * puff)) > 0.0;
+	return n + (value_noise(q * 4.3) * (0.08 * puff * detail)) > 0.0;
 }
 
 void vertex() {
@@ -264,6 +271,7 @@ void fragment() {
 	// seen from above is caught the same on every pixel and stays clean.
 	float dither = skim * float(pcg(uint(FRAGCOORD.x) + pcg(uint(FRAGCOORD.y))) >> 8u) * (1.0 / 16777216.0);
 	float grow = horizon_grow * skim;
+	float detail = 1.0 - (horizon_smooth * skim);
 	float hit = -1.0;
 	float previous = t0;
 	for (int i = 0; i < MAX_STEPS; i++) {
@@ -271,7 +279,7 @@ void fragment() {
 			break;
 		}
 		float t = t0 + (dt * (float(i) + 1.0 - dither));
-		if (is_cloud(cam + (ray * t), grow)) {
+		if (is_cloud(cam + (ray * t), grow, detail)) {
 			hit = t;
 			break;
 		}
@@ -285,7 +293,7 @@ void fragment() {
 	float hi = hit;
 	for (int i = 0; i < 4; i++) {
 		float mid = 0.5 * (lo + hi);
-		if (is_cloud(cam + (ray * mid), grow)) {
+		if (is_cloud(cam + (ray * mid), grow, detail)) {
 			hi = mid;
 		} else {
 			lo = mid;
@@ -300,7 +308,7 @@ void fragment() {
 	float shut = 0.0;
 	for (int i = 1; i <= 3; i++) {
 		vec3 q = p + (to_sun * thickness * light_reach * (float(i) / 3.0));
-		shut += is_cloud(q, grow) ? 1.0 : 0.0;
+		shut += is_cloud(q, grow, detail) ? 1.0 : 0.0;
 	}
 	// Which way the cloud's skin faces here: down the slope of the density. A
 	// lump is then lit on the sun's side and shaded on the far side, a flat top
@@ -309,15 +317,15 @@ void fragment() {
 	// p is on the skin, where the density is nothing to a few metres.
 	float here = 0.0;
 	vec3 slope = vec3(
-		density(p + vec3(reach, 0.0, 0.0)) - here,
-		density(p + vec3(0.0, reach, 0.0)) - here,
-		density(p + vec3(0.0, 0.0, reach)) - here);
+		density(p + vec3(reach, 0.0, 0.0), detail) - here,
+		density(p + vec3(0.0, reach, 0.0), detail) - here,
+		density(p + vec3(0.0, 0.0, reach), detail) - here);
 	vec3 skin = -slope / max(length(slope), 0.00001);
 	float facing = (dot(skin, to_sun) * 0.5) + 0.5;
 	float open_sky = 1.0 - (shut / 3.0);
 	float lit = mix(open_sky, open_sky * facing, facing_weight);
 	float tone = (lit * (1.0 - belly_shade)) + (h * belly_shade);
-	float lobe = billows(p, h) / max(billow_reach(h), 0.0001);
+	float lobe = (billows(p, h, 1.0) / max(billow_reach(h), 0.0001)) * detail;
 	tone += crease_shade * 0.5 * lobe;
 
 	vec3 colour = mix(shade_colour, mid_colour, step(mid_from, tone));
