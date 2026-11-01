@@ -257,7 +257,13 @@ void fragment() {
 	// As many steps as the shell crossed needs: a sight line skimming the deck
 	// at the horizon crosses kilometres of it.
 	float thickness = r_out - r_in;
-	float skim = smoothstep(4.0, 8.0, (t1 - t0) / max(thickness, 1.0));
+	float crossing = (t1 - t0) / max(thickness, 1.0);
+	float skim = smoothstep(4.0, 8.0, crossing);
+	// Slanting through the deck short of the horizon, the steps sweep across a
+	// thin cloud in step from pixel to pixel: stripes. The jitter and the growth
+	// start there, before the steps shorten and the clouds are smoothed (shorter
+	// steps there too cost two milliseconds).
+	float slant = smoothstep(2.5, 4.0, crossing);
 	float steps = clamp(ceil((t1 - t0) / max(thickness * step_share * (1.0 - (0.5 * skim)), 1.0)), float(MIN_STEPS), float(MAX_STEPS));
 	float dt = (t1 - t0) / steps;
 	// Where the sight line skims the deck it crosses the clouds' thin edges
@@ -269,8 +275,8 @@ void fragment() {
 	// misses are grain, not rows, and the clouds there are grown so there are
 	// few misses. Everywhere else the last step is on the bellies, so an edge
 	// seen from above is caught the same on every pixel and stays clean.
-	float dither = skim * float(pcg(uint(FRAGCOORD.x) + pcg(uint(FRAGCOORD.y))) >> 8u) * (1.0 / 16777216.0);
-	float grow = horizon_grow * skim;
+	float dither = slant * float(pcg(uint(FRAGCOORD.x) + pcg(uint(FRAGCOORD.y))) >> 8u) * (1.0 / 16777216.0);
+	float grow = horizon_grow * slant;
 	float detail = 1.0 - (horizon_smooth * skim);
 	float hit = -1.0;
 	float previous = t0;
@@ -278,7 +284,9 @@ void fragment() {
 		if (float(i) >= steps) {
 			break;
 		}
-		float t = t0 + (dt * (float(i) + 1.0 - dither));
+		// The last step stays on the bellies, jittered or not: a thin cloud low in
+		// the deck is caught there on every pixel, not on some (speckle).
+		float t = (float(i) + 1.0 >= steps) ? t1 : t0 + (dt * (float(i) + 1.0 - dither));
 		if (is_cloud(cam + (ray * t), grow, detail)) {
 			hit = t;
 			break;
