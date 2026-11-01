@@ -62,6 +62,7 @@ public partial class EditorBridgePlugin : EditorPlugin
         SceneCommands.Register();
         RunCommands.Register();
         DebugCommands.Register();
+        MaterialCommands.Register();
         _catcher = new RunCommands.Catcher();
         OS.AddLogger(_catcher);
         _server = new BridgeServer();
