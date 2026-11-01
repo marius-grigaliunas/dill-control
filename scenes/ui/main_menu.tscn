@@ -100,15 +100,15 @@ AboveSurface = 2000.0
 [node name="Clouds" type="MeshInstance3D" parent="Window" unique_id=1312213053 node_paths=PackedStringArray("Planet", "Sun")]
 material_override = ExtResource("9_7suek")
 cast_shadow = 0
-instance_shader_parameters/base_height = 150.0
-instance_shader_parameters/layer_radius = 6450.0
+instance_shader_parameters/base_height = 60.0
+instance_shader_parameters/layer_radius = 6200.0
 instance_shader_parameters/planet_radius = 6000.0
 instance_shader_parameters/sun_direction = Vector3(-0.9283848, 0.3023699, -0.21604194)
 script = ExtResource("8_8g5eo")
 Planet = NodePath("../Planet")
 Sun = NodePath("../Sun")
-AboveSurface = 450.0
-BaseAboveSurface = 150.0
+AboveSurface = 200.0
+BaseAboveSurface = 60.0
 
 [node name="Stars" type="MeshInstance3D" parent="Window" unique_id=1916977745 node_paths=PackedStringArray("Planet", "Sun")]
 material_override = ExtResource("10_8g5eo")

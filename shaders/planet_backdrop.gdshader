@@ -21,10 +21,8 @@
 // Cost (the menu's 60 fps on Iris Xe): a pixel reads the noise about twenty
 // times. Where a read's coordinates stay inside the lattice texture's window
 // (NoiseLattice, the global planet_noise: cells -64 to 63) it is a texture read of
-// the same values, lattice_noise(); the sea's flecks use it too, past the
-// window (other values, the same kind of noise: they move, so no one shape
-// matters); the rest of the land's finest scales hash. The ice cap is only worked out where its ragged
-// edge can reach.
+// the same values, lattice_noise(); the rest of the land's finest scales hash.
+// The ice cap is only worked out where its ragged edge can reach.
 
 shader_type spatial;
 render_mode cull_back, diffuse_toon, specular_disabled;
@@ -65,14 +63,12 @@ uniform float sand_max = 0.03;
 // Sea. The depth bands are the sea floor and never move, as from orbit: the
 // shelf round each coast is shallow, past its edge the slope is a narrow band,
 // and beyond that the sea is deep and stays deep. Depths below the sea level, in
-// terrain amplitudes. What moves is on the surface: the crests drift (at swell
-// speed) and the ripples run in over the shallows.
+// terrain amplitudes. What moves is on the surface: the ripples run in over
+// the shallows.
 uniform float shelf_depth : hint_range(0.0, 1.0) = 0.22;
 uniform float slope_depth : hint_range(0.0, 1.0) = 0.3;
-uniform float swell_speed = 0.04;
 uniform float ripple_lines = 4.0;
 uniform float ripple_speed = 0.06;
-uniform float crest_share : hint_range(0.0, 0.5) = 0.04;
 
 // Forests: where the lowland is dark, and how much of it.
 uniform float forest_share : hint_range(0.0, 1.0) = 0.4;
@@ -170,16 +166,10 @@ void fragment() {
 	vec3 colour;
 
 	if (edge_depth < 0.0) {
-		vec3 drift = vec3(TIME * swell_speed, 0.0, TIME * swell_speed * 0.7);
 		float sea_depth = edge_depth;
 
 		colour = mix(deep_sea, mid_sea, step(-slope_depth, sea_depth));
 		colour = mix(colour, shallow_sea, step(-shelf_depth, sea_depth));
-
-		// Crests: small bright flecks on all the water, drifting.
-		float fleck = lattice_noise(local_dir * 85.0 - drift * 3.0);
-		float crest = step(1.0 - crest_share, fleck);
-		colour = mix(colour, foam, crest * 0.85);
 
 		// Ripples: pale lines that run along the depth contours and slide toward
 		// the shore, a few pixels wide, so the shallows read as moving water.
