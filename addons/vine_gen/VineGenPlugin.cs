@@ -45,7 +45,7 @@ public partial class VineGenPlugin : EditorPlugin
     }
 
     // The old code is going: nothing of it may stay in the editor's tree.
-    private void OnUnloading(AssemblyLoadContext context) => TearDown();
+    private void OnUnloading(AssemblyLoadContext context) => DillControl.Core.CodeUnload.Safely("vines tool", TearDown);
 
     public override void _Process(double delta)
     {

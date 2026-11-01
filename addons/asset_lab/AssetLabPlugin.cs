@@ -44,7 +44,13 @@ public partial class AssetLabPlugin : EditorPlugin
         TearDown();
     }
 
-    private void OnUnloading(AssemblyLoadContext context) => TearDown();
+    // The editor tears the plugin down before the code unloads; then the new
+    // code's first frame clears up after it instead.
+    private void OnUnloading(AssemblyLoadContext context)
+    {
+        if (IsInstanceValid(this))
+            DillControl.Core.CodeUnload.Safely("asset lab", TearDown);
+    }
 
     public override void _Process(double delta)
     {

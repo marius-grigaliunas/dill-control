@@ -17,6 +17,11 @@ namespace DillControl.Core;
 /// renderer, audio and Windows keep one), and items are handed out one at a
 /// time: a thread that is late to wake finds nothing left and costs nothing.
 /// The background voxel work stays below normal (VoxelWorkers).
+///
+/// The threads end when the assembly unloads (the editor reloading the code
+/// after a build): a thread still in <c>Loop</c> holds the assembly, the
+/// unload fails, and every tool plugin is left half dead (the planet builds
+/// with these in the editor).
 /// </summary>
 public static class Jobs
 {
@@ -31,6 +36,7 @@ public static class Jobs
     private static readonly SemaphoreSlim Wake = new(0);
     private static Batch _current;
     private static Thread[] _threads;
+    private static volatile bool _stopping;
 
     public static int Workers => _threads?.Length ?? 0;
 
@@ -50,6 +56,22 @@ public static class Jobs
                 Priority = ThreadPriority.AboveNormal,
             };
             _threads[i].Start();
+        }
+        CodeUnload.Hook("job threads", Stop);
+    }
+
+    private static void Stop()
+    {
+        Thread[] threads = _threads;
+        if (threads == null)
+        {
+            return;
+        }
+        _stopping = true;
+        Wake.Release(threads.Length);
+        foreach (Thread thread in threads)
+        {
+            thread.Join(1000);
         }
     }
 
@@ -116,6 +138,10 @@ public static class Jobs
         while (true)
         {
             Wake.Wait();
+            if (_stopping)
+            {
+                return;
+            }
             Batch batch = Volatile.Read(ref _current);
             if (batch == null)
             {

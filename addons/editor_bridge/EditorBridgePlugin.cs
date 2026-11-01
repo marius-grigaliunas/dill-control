@@ -37,7 +37,7 @@ public partial class EditorBridgePlugin : EditorPlugin
         Stop();
     }
 
-    private void OnUnloading(AssemblyLoadContext context) => Stop();
+    private void OnUnloading(AssemblyLoadContext context) => DillControl.Core.CodeUnload.Safely("editor bridge", Stop);
 
     public override void _Process(double delta)
     {
@@ -70,15 +70,21 @@ public partial class EditorBridgePlugin : EditorPlugin
         _startedByThisCode = true;
     }
 
+    // The port first: on an unload the logger may already be torn down, and
+    // throws when it is taken off.
     private void Stop()
     {
+        BridgeServer server = _server;
+        _server = null;
+        server?.Stop();
         if (_catcher != null)
         {
-            OS.RemoveLogger(_catcher);
+            RunCommands.Catcher catcher = _catcher;
             _catcher = null;
+            // On an unload the editor has already torn it down, and taken it off.
+            if (IsInstanceValid(catcher))
+                OS.RemoveLogger(catcher);
         }
-        _server?.Stop();
-        _server = null;
     }
 }
 #endif

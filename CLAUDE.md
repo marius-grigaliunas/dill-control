@@ -177,8 +177,11 @@ when they are not listed, `python tools/editor-bridge/godot_mcp.py call <command
 | Pointing | `select`, `frame` |
 | Asset lab | `lab_assets`, `lab_open`, `lab_view`, `lab_resource`, `lab_test`, `lab_do` |
 
-Build the code with `dotnet build`; the editor loads it when its window next gets
-focus. Check a level's routes against the grapple's 140 m
+Build the code with `dotnet build`; the editor loads it within seconds, focused or
+not, and the bridge is back on the new code (~8 s). A reload fails, and the editor
+gives up reloading for the session, if anything still holds the old code: a thread
+in [Tool] code ends through `CodeUnload.Hook`, and every unload handler runs
+through `CodeUnload.Safely` (the editor has already torn down the C# objects). Check a level's routes against the grapple's 140 m
 (`grapple_tuning_default.tres`) and look at it from where a player stands, not only
 from above. Every command that changes a scene is one undo; the bridge never
 answers while it is already answering (a save once re-entered its own request and

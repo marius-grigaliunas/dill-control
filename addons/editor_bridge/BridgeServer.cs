@@ -52,20 +52,25 @@ public sealed class BridgeServer
         return false;
     }
 
+    // Each step alone: on an unload any of these objects may already be torn
+    // down, and the port must close whatever else fails.
     public void Stop()
     {
+        TcpServer server = _server;
+        _server = null;
+        if (server != null)
+            DillControl.Core.CodeUnload.Safely("bridge port", server.Stop);
         foreach (Client client in _clients)
-            client.Peer.DisconnectFromHost();
+            DillControl.Core.CodeUnload.Safely("bridge client", client.Peer.DisconnectFromHost);
         _clients.Clear();
-        if (_server != null)
+        DillControl.Core.CodeUnload.Safely("bridge info file", () =>
         {
-            _server.Stop();
-            _server = null;
-            GD.Print("[bridge] stopped");
-        }
-        string info = ProjectSettings.GlobalizePath(InfoPath);
-        if (System.IO.File.Exists(info))
-            System.IO.File.Delete(info);
+            string info = ProjectSettings.GlobalizePath(InfoPath);
+            if (System.IO.File.Exists(info))
+                System.IO.File.Delete(info);
+        });
+        if (server != null)
+            DillControl.Core.CodeUnload.Safely("bridge log", () => GD.Print("[bridge] stopped"));
     }
 
     // The editor runs whole frames inside some of its own work (a save's
