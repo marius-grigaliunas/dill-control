@@ -68,7 +68,7 @@ PlanetMaterial = ExtResource("6_wb0q5")
 SpinDegreesPerSecond = 0.5
 
 [node name="Sun" type="DirectionalLight3D" parent="Window" unique_id=1881969285]
-transform = Transform3D(-0.22665133, 0.29450098, -0.9283847, 0, 0.9531906, 0.30236986, 0.9739759, 0.068532534, -0.21604194, 0, 0, 0)
+transform = Transform3D(0.68454707, 0.45677456, 0.5681129, 0, -0.7793379, 0.6266039, 0.72896856, -0.42893988, -0.5334936, 0, 0, 0)
 light_energy = 1.25
 
 [node name="Space" type="WorldEnvironment" parent="Window" unique_id=1334880720]
@@ -86,7 +86,7 @@ cast_shadow = 0
 instance_shader_parameters/layer_radius = 7200.0
 instance_shader_parameters/planet_radius = 6000.0
 instance_shader_parameters/stop_radius = 6450.0
-instance_shader_parameters/sun_direction = Vector3(-0.9283848, 0.3023699, -0.21604194)
+instance_shader_parameters/sun_direction = Vector3(0.5681129, 0.6266039, -0.5334936)
 script = ExtResource("8_8g5eo")
 Planet = NodePath("../Planet")
 Sun = NodePath("../Sun")
@@ -100,7 +100,7 @@ cast_shadow = 0
 instance_shader_parameters/base_height = 150.0
 instance_shader_parameters/layer_radius = 6450.0
 instance_shader_parameters/planet_radius = 6000.0
-instance_shader_parameters/sun_direction = Vector3(-0.9283848, 0.3023699, -0.21604194)
+instance_shader_parameters/sun_direction = Vector3(0.5681129, 0.6266039, -0.5334936)
 script = ExtResource("8_8g5eo")
 Planet = NodePath("../Planet")
 Sun = NodePath("../Sun")
@@ -110,7 +110,7 @@ BaseAboveSurface = 150.0
 [node name="Stars" type="MeshInstance3D" parent="Window" unique_id=1916977745 node_paths=PackedStringArray("Planet", "Sun")]
 material_override = ExtResource("10_8g5eo")
 cast_shadow = 0
-instance_shader_parameters/sun_direction = Vector3(-0.9283848, 0.3023699, -0.21604194)
+instance_shader_parameters/sun_direction = Vector3(0.5681129, 0.6266039, -0.5334936)
 script = ExtResource("8_8g5eo")
 Planet = NodePath("../Planet")
 Sun = NodePath("../Sun")

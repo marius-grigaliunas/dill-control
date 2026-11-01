@@ -89,6 +89,11 @@ uniform vec3 night_colour : source_color = vec3(0.12, 0.16, 0.32);
 // The longest step through the shell, as a share of its thickness: smaller is
 // finer at the horizon and dearer there.
 uniform float step_share : hint_range(0.05, 1.0) = 0.35;
+// Where the sight line skims the deck its steps are longer than a ball's thin
+// rim, which falls between them on some pixels and not others: the edges came
+// apart into lines along the horizon. There the clouds are grown by this much
+// (in coverage), so a step catches the rim; far off they read a little fuller.
+uniform float horizon_grow : hint_range(0.0, 0.3) = 0.06;
 // The least and most steps a sight line takes.
 const int MIN_STEPS = 4;
 const int MAX_STEPS = 96;
@@ -104,9 +109,11 @@ varying vec3 world_position;
 // The deck's drift this frame as a sine and cosine, for the billows.
 varying flat vec2 drift_turn;
 
-uint hash_bits(uvec3 q) {
-	q *= uvec3(1597334673u, 3812015801u, 2798796415u);
-	return (q.x ^ q.y ^ q.z) * 1597334673u;
+// PCG's output hash: white even between neighbouring integers.
+uint pcg(uint v) {
+	uint state = (v * 747796405u) + 2891336453u;
+	uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+	return (word >> 22u) ^ word;
 }
 
 // Value noise on the integer lattice, smoothed between cells. The lattice's
@@ -177,12 +184,13 @@ float density(vec3 p) {
 // The same test as density() > 0, cheaper: every noise adds between nothing and
 // its share (the billows as much either way), so once the sum is sure to stay
 // under the line, or is already over it, the finer noise is not read.
-bool is_cloud(vec3 p) {
+// Grow adds to the coverage (horizon_grow, where the sight line skims).
+bool is_cloud(vec3 p, float grow) {
 	vec3 q = (flow(p / planet_radius) * scale) + offset;
 	float h = shell_height(length(p));
 	float fine = 0.12 + (0.08 * puff);
 	float lobe = billow_reach(h);
-	float n = (value_noise((q * 0.3) + 13.0) * 0.5) - (1.0 - coverage) - rise(h);
+	float n = (value_noise((q * 0.3) + 13.0) * 0.5) - (1.0 - coverage - grow) - rise(h);
 	if (n + 0.3 + fine + lobe <= 0.0) {
 		return false;
 	}
@@ -249,11 +257,13 @@ void fragment() {
 	// between steps, so the same edge is caught on one pixel and missed on the
 	// next, in rows: lines along the horizon. There the steps are half as long and
 	// start a fixed fraction further back per pixel (a hash of the pixel: white,
-	// as a pattern with structure shows its own diagonals), so the misses are
-	// grain, not rows. Everywhere else the last step is on the
-	// bellies, so an edge seen from above is caught the same on every pixel and
-	// stays clean.
-	float dither = skim * float(hash_bits(uvec3(uvec2(FRAGCOORD.xy), 7u)) >> 8u) * (1.0 / 16777216.0);
+	// as a pattern with structure shows its own diagonals; PCG, as hash_bits on
+	// neighbouring pixels was not white and drew diagonal hatching), so the
+	// misses are grain, not rows, and the clouds there are grown so there are
+	// few misses. Everywhere else the last step is on the bellies, so an edge
+	// seen from above is caught the same on every pixel and stays clean.
+	float dither = skim * float(pcg(uint(FRAGCOORD.x) + pcg(uint(FRAGCOORD.y))) >> 8u) * (1.0 / 16777216.0);
+	float grow = horizon_grow * skim;
 	float hit = -1.0;
 	float previous = t0;
 	for (int i = 0; i < MAX_STEPS; i++) {
@@ -261,7 +271,7 @@ void fragment() {
 			break;
 		}
 		float t = t0 + (dt * (float(i) + 1.0 - dither));
-		if (is_cloud(cam + (ray * t))) {
+		if (is_cloud(cam + (ray * t), grow)) {
 			hit = t;
 			break;
 		}
@@ -275,7 +285,7 @@ void fragment() {
 	float hi = hit;
 	for (int i = 0; i < 4; i++) {
 		float mid = 0.5 * (lo + hi);
-		if (is_cloud(cam + (ray * mid))) {
+		if (is_cloud(cam + (ray * mid), grow)) {
 			hi = mid;
 		} else {
 			lo = mid;
@@ -290,7 +300,7 @@ void fragment() {
 	float shut = 0.0;
 	for (int i = 1; i <= 3; i++) {
 		vec3 q = p + (to_sun * thickness * light_reach * (float(i) / 3.0));
-		shut += is_cloud(q) ? 1.0 : 0.0;
+		shut += is_cloud(q, grow) ? 1.0 : 0.0;
 	}
 	// Which way the cloud's skin faces here: down the slope of the density. A
 	// lump is then lit on the sun's side and shaded on the far side, a flat top

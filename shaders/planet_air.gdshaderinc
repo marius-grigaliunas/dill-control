@@ -49,6 +49,14 @@ uniform float sun_intensity = 20.0;
 // crosses a few scale heights, not Earth's forty, and comes through white.
 // Longer, it reddens there (sunrise, sunset) and is all but unchanged at noon.
 uniform float sunset : hint_range(1.0, 10.0) = 1.0;
+// How bright the reddened sunlight stays: 0 is as the air leaves it, dim as
+// well as red (a sunset is then a dull ochre); 1 keeps its colour at the
+// brightness it had before the air, so the day/night line glows orange.
+uniform float sunset_glow : hint_range(0.0, 1.0) = 0.0;
+// How much of the air's dimming of what is behind it is applied. One share for
+// all colours dims toward grey, and on the dim side of the day/night line the
+// air adds little light back: all of it washed the planet out.
+uniform float dimming : hint_range(0.0, 1.0) = 1.0;
 uniform float exposure = 1.0;
 // 0 is smooth; 3 or 4 steps the air's brightness into flat tones, keeping its hue.
 uniform float bands : hint_range(0.0, 8.0, 1.0) = 0.0;
@@ -141,7 +149,10 @@ void air_light(vec3 camera, vec3 ray, float t0, float t1, out vec3 colour, out f
 			}
 			sun_r *= rayleigh_height * sunset;
 			sun_m *= mie_height * sunset;
-			vec3 through = exp(-((beta_r * (view_r + sun_r)) + (vec3(beta_m * 1.1) * (view_m + sun_m))));
+			// The glow takes back the dimming of red, the least dimmed colour, from
+			// all three: the hue stays, the brightness comes back.
+			float red_loss = (beta_r.r * sun_r) + (beta_m * 1.1 * sun_m);
+			vec3 through = exp(-((beta_r * (view_r + sun_r)) + (vec3(beta_m * 1.1) * (view_m + sun_m))) + (sunset_glow * red_loss));
 			sum_r += through * rho_r;
 			sum_m += through * rho_m;
 		}
@@ -157,7 +168,7 @@ void air_light(vec3 camera, vec3 ray, float t0, float t1, out vec3 colour, out f
 	vec3 inscatter = ((sum_r * beta_r * phase_r) + (sum_m * beta_m * phase_m)) * sun_intensity;
 	colour = vec3(1.0) - exp(-inscatter * exposure);
 	vec3 through_view = exp(-((beta_r * view_r) + vec3(beta_m * 1.1 * view_m)));
-	alpha = 1.0 - dot(through_view, vec3(1.0 / 3.0));
+	alpha = (1.0 - dot(through_view, vec3(1.0 / 3.0))) * dimming;
 
 	// Cel: one amount, the brighter of the air's light and its dimming, rounded
 	// down to a step with an edge a pixel wide, and both scaled by it, so the
