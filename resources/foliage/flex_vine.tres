@@ -1,12 +1,11 @@
-[gd_resource type="Resource" script_class="FlexStats" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="FlexStats" format=3 uid="uid://5a3irwrkcyx7"]
 
-[ext_resource type="Script" path="res://scripts/foliage/FlexStats.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://bt1n7dpd4iwhk" path="res://scripts/foliage/FlexStats.cs" id="1_script"]
 
 [resource]
 resource_name = "FlexVine"
 script = ExtResource("1_script")
 Segments = 12
-Taper = 1.0
 PeriodSeconds = 6.0
 MassKg = 6000.0
 Damping = 0.12
@@ -14,14 +13,7 @@ MaxLeanDegrees = 12.0
 WindPush = 0.1
 KickPerDamage = 40.0
 MaxKick = 8000.0
-LinePull = 1.0
-Weakening = 2.0
-RecountSeconds = 0.25
-FallDustPuffs = 6
-FallDustEdgeM = 12.0
-FallDustStepM = 9.0
-FallLandK = 1.6
-FallDustColour = Color(0.24, 0.24, 0.17, 1)
-FollowNearMetres = 60.0
-ToppleSpin = 0.7
 GiveWaySeconds = 0.3
+ToppleSpin = 0.7
+FallDustPuffs = 6
+FallLandK = 1.6

@@ -1,0 +1,30 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://ceuw8vcaktwmc"]
+
+[ext_resource type="Shader" uid="uid://vcrfwi1ycqpn" path="res://shaders/planet_backdrop.gdshader" id="1_shader"]
+
+[resource]
+resource_name = "planet_backdrop"
+render_priority = 0
+shader = ExtResource("1_shader")
+shader_parameter/planet_radius = 5000.0
+shader_parameter/terrain_amplitude = 300.0
+shader_parameter/sea_level = -0.22899996337749995
+shader_parameter/deep_sea = Color(0.04, 0.17, 0.42, 1)
+shader_parameter/mid_sea = Color(0.07, 0.32, 0.62, 1)
+shader_parameter/shallow_sea = Color(0.16, 0.56, 0.78, 1)
+shader_parameter/foam = Color(0.82, 0.93, 0.95, 1)
+shader_parameter/shore = Color(0.78, 0.72, 0.5, 1)
+shader_parameter/lowland = Color(0.24, 0.5, 0.2, 1)
+shader_parameter/midland = Color(0.4, 0.55, 0.22, 1)
+shader_parameter/highland = Color(0.55, 0.47, 0.3, 1)
+shader_parameter/rock = Color(0.4, 0.37, 0.35, 1)
+shader_parameter/ice = Color(0.92, 0.96, 1, 1)
+shader_parameter/rock_slope_start = 0.93
+shader_parameter/rock_slope_end = 0.8
+shader_parameter/ice_latitude = 0.9
+shader_parameter/ice_ragged = 0.22
+shader_parameter/dry_lowland = Color(0.7, 0.55, 0.28, 1)
+shader_parameter/dry_midland = Color(0.78, 0.4, 0.2, 1)
+shader_parameter/dry_highland = Color(0.55, 0.3, 0.22, 1)
+shader_parameter/dry_scale = 2.2
+shader_parameter/dry_share = 0.42

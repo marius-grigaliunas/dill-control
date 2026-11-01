@@ -13,16 +13,17 @@ namespace DillControl.Planet;
 /// Defaults are the lab's planet, which held 25,000 pickles on the target
 /// machine: 1200 m, 22 m of relief.
 /// </summary>
+[Tool]
 [GlobalClass]
 public partial class PlanetSpec : Resource
 {
     [ExportGroup("Shape")]
     /// <summary>Mean radius. Vertex spacing stays constant, so chunk count grows with its square.</summary>
-    [Export(PropertyHint.Range, "300,4000,10,suffix:m")]
+    [Export(PropertyHint.Range, "300,8000,10,suffix:m")]
     public float Radius { get; set; } = 1200.0f;
 
     /// <summary>Height of the highest ridge above the mean radius, and depth of the lowest hollow below it.</summary>
-    [Export(PropertyHint.Range, "0,200,0.5,suffix:m")]
+    [Export(PropertyHint.Range, "0,800,0.5,suffix:m")]
     public float Amplitude { get; set; } = 22.0f;
 
     [Export]

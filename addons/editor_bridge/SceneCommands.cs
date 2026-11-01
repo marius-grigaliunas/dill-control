@@ -31,6 +31,13 @@ public static class SceneCommands
             "e.g. rendering/rendering_device/driver.windows. Some settings apply when the editor or the game next starts.",
             """{"type":"object","required":["name"],"properties":{"name":{"type":"string"},"value":{}}}""",
             ProjectSetting);
+        Bridge.Register("shader_global",
+            "Add a global shader uniform, as Project Settings > Shader Globals does: written to project.godot under shader_globals/ and " +
+            "registered with the running editor's renderer, so a shader that declares it compiles at once. 'type' is the shader type " +
+            "(bool, int, float, vec2, vec3, vec4, color, sampler2D, sampler3D, samplerCube); a sampler starts empty, set by code. " +
+            "Does nothing to one that exists with that type.",
+            """{"type":"object","required":["name","type"],"properties":{"name":{"type":"string"},"type":{"type":"string"},"value":{}}}""",
+            ShaderGlobal);
         Bridge.Register("plugin",
             "Switch one of our own editor plugins (a folder in addons/) on or off, as Project Settings > Plugins does.",
             """{"type":"object","required":["plugin"],"properties":{"plugin":{"type":"string","description":"its folder, e.g. terrain_brush"},"enabled":{"type":"boolean"}}}""",
@@ -67,6 +74,53 @@ public static class SceneCommands
             result["saved"] = true;
         }
         return result;
+    }
+
+    private static readonly System.Collections.Generic.Dictionary<string, (RenderingServer.GlobalShaderParameterType Kind, Variant.Type Value)> GlobalTypes = new()
+    {
+        ["bool"] = (RenderingServer.GlobalShaderParameterType.Bool, Variant.Type.Bool),
+        ["int"] = (RenderingServer.GlobalShaderParameterType.Int, Variant.Type.Int),
+        ["float"] = (RenderingServer.GlobalShaderParameterType.Float, Variant.Type.Float),
+        ["vec2"] = (RenderingServer.GlobalShaderParameterType.Vec2, Variant.Type.Vector2),
+        ["vec3"] = (RenderingServer.GlobalShaderParameterType.Vec3, Variant.Type.Vector3),
+        ["vec4"] = (RenderingServer.GlobalShaderParameterType.Vec4, Variant.Type.Vector4),
+        ["color"] = (RenderingServer.GlobalShaderParameterType.Color, Variant.Type.Color),
+        ["sampler2D"] = (RenderingServer.GlobalShaderParameterType.Sampler2D, Variant.Type.Nil),
+        ["sampler3D"] = (RenderingServer.GlobalShaderParameterType.Sampler3D, Variant.Type.Nil),
+        ["samplerCube"] = (RenderingServer.GlobalShaderParameterType.Samplercube, Variant.Type.Nil),
+    };
+
+    private static JsonNode ShaderGlobal(JsonObject args)
+    {
+        string name = Bridge.Text(args, "name") ?? throw new Bridge.Refused("'name' is missing");
+        string type = Bridge.Text(args, "type") ?? throw new Bridge.Refused("'type' is missing");
+        if (!GlobalTypes.TryGetValue(type, out var kinds))
+            throw new Bridge.Refused($"'{type}' is not a type this command knows ({string.Join(", ", GlobalTypes.Keys)})");
+
+        string key = $"shader_globals/{name}";
+        if (ProjectSettings.HasSetting(key))
+        {
+            var had = ProjectSettings.GetSetting(key).AsGodotDictionary();
+            string hadType = had.ContainsKey("type") ? had["type"].AsString() : "";
+            if (hadType != type)
+                throw new Bridge.Refused($"'{name}' exists as a {hadType}; change it in Project Settings");
+            return new JsonObject { ["name"] = name, ["type"] = type, ["added"] = false };
+        }
+
+        // Project Settings keeps a sampler's value as a texture path, empty for none.
+        Variant value = kinds.Value == Variant.Type.Nil
+            ? ""
+            : args["value"] is JsonNode given ? Values.FromJson(given, kinds.Value, "", name) : default;
+        if (kinds.Value != Variant.Type.Nil && value.VariantType == Variant.Type.Nil)
+            throw new Bridge.Refused($"a {type} global wants a 'value'");
+
+        ProjectSettings.SetSetting(key, new Godot.Collections.Dictionary { ["type"] = type, ["value"] = value });
+        Error error = ProjectSettings.Save();
+        if (error != Error.Ok)
+            throw new Bridge.Refused($"not saved: {error}");
+        if (!RenderingServer.GlobalShaderParameterGetList().Contains(name))
+            RenderingServer.GlobalShaderParameterAdd(name, kinds.Kind, kinds.Value == Variant.Type.Nil ? default : value);
+        return new JsonObject { ["name"] = name, ["type"] = type, ["added"] = true, ["saved"] = true };
     }
 
     // Only ours, under addons/ (CLAUDE.md rule 7).

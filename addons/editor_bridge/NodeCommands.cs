@@ -300,7 +300,11 @@ public static class NodeCommands
                 node.Free();
                 throw new Bridge.Refused($"'{scriptPath}' is not a script for a {type}");
             }
+            // A C# script makes the engine a new managed instance and disposes
+            // the wrapper we hold: take the live one by its id.
+            ulong id = node.GetInstanceId();
             node.SetScript(script);
+            node = (Node)GodotObject.InstanceFromId(id);
         }
 
         // Every value read and checked before the node joins the scene.

@@ -18,11 +18,18 @@ namespace DillControl.Planet;
 /// little further, so the coarse triangles stay under the fine ones wherever
 /// both are drawn and the near chunks always win the depth test.
 /// </summary>
+[Tool]
 public partial class PlanetFarShell : Node3D
 {
     private readonly MeshInstance3D[] _faces = new MeshInstance3D[CubeSphere.FaceCount];
 
-    public void Build(PlanetHeightfield heights, int vertexEdge, float sink, Material material)
+    /// <summary>
+    /// <paramref name="underChunks"/> keeps the shell below the fine ground (the
+    /// lowest height each vertex covers, then sunk). Off, every vertex takes its
+    /// own height exactly, which makes the seams between faces match: for a shell
+    /// that is the only ground, with no chunks over it to hide a crack.
+    /// </summary>
+    public void Build(PlanetHeightfield heights, int vertexEdge, float sink, Material material, bool underChunks = true)
     {
         int edge = Mathf.Max(3, vertexEdge);
         int fine = heights.FaceVertexEdge;
@@ -49,9 +56,10 @@ public partial class PlanetFarShell : Node3D
                     int cu = Mathf.RoundToInt(i * stride);
                     int cv = Mathf.RoundToInt(j * stride);
                     float lowest = float.MaxValue;
-                    for (int v = Mathf.Max(0, cv - window); v <= Mathf.Min(fine - 1, cv + window); v++)
+                    int reach = underChunks ? window : 0;
+                    for (int v = Mathf.Max(0, cv - reach); v <= Mathf.Min(fine - 1, cv + reach); v++)
                     {
-                        for (int u = Mathf.Max(0, cu - window); u <= Mathf.Min(fine - 1, cu + window); u++)
+                        for (int u = Mathf.Max(0, cu - reach); u <= Mathf.Min(fine - 1, cu + reach); u++)
                         {
                             lowest = Mathf.Min(lowest, heights.HeightAt(heights.VertexIndex(f, u, v)));
                         }

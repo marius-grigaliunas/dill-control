@@ -17,7 +17,7 @@ public partial class MainMenu : Node
     [Export]
     public MenuSystem Menu { get; set; }
 
-    /// <summary>Drawn behind the menu: the ground, the name, the premise.</summary>
+    /// <summary>Drawn behind the menu, over the 3D window: the name.</summary>
     [Export]
     public Control Backdrop { get; set; }
 
@@ -44,11 +44,18 @@ public partial class MainMenu : Node
         Menu.OpenOnCancel = false;
         Menu.ScrimColor = new Color(0, 0, 0, 0);
         Menu.CustomActivated += OnCustom;
+        Menu.QuitRequested += OnQuit;
 
         // Nothing to go back to from the title: reopen if Escape closed it.
         Menu.Closed += () => Callable.From(Menu.Open).CallDeferred();
         Input.MouseMode = Input.MouseModeEnum.Visible;
         Callable.From(Menu.Open).CallDeferred();
+    }
+
+    private void OnQuit()
+    {
+        GD.Print("[menu] quit");
+        GetTree().Quit();
     }
 
     private void OnCustom(string id)
@@ -59,21 +66,10 @@ public partial class MainMenu : Node
         }
     }
 
-    /// <summary>A brine-green ground with inked speed lines, the name in the display face, and the premise.</summary>
+    /// <summary>The name, in the display face, over the window onto the planet. The ground is the 3D scene behind.</summary>
     private void DrawBackdrop()
     {
         Vector2 size = Backdrop.Size;
-        Backdrop.DrawRect(new Rect2(Vector2.Zero, size), PickleStyle.Ink.Lerp(PickleStyle.BrineDeep, 0.55f));
-        for (int i = 0; i < 9; i++)
-        {
-            float x = (size.X * (i / 8.0f)) - 200.0f;
-            Vector2[] stripe =
-            {
-                new(x, 0), new(x + 90, 0), new(x - 160, size.Y), new(x - 250, size.Y),
-            };
-            Backdrop.DrawColoredPolygon(stripe, PickleStyle.Ink with { A = 0.12f });
-        }
-
         PickleStyle.TextCentred(Backdrop, new Vector2(size.X * 0.5f, size.Y * 0.16f), "DILL CONTROL", 128, PickleStyle.Brine, -0.04f);
     }
 }

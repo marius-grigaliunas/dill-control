@@ -304,3 +304,11 @@ sky_atmosphere_blend={
 "type": "float",
 "value": 1.0
 }
+planet_cloud_flow={
+"type": "sampler2D",
+"value": ""
+}
+planet_noise={
+"type": "sampler3D",
+"value": ""
+}

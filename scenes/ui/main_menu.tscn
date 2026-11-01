@@ -2,25 +2,123 @@
 
 [ext_resource type="Script" uid="uid://nlps2iot5eh3" path="res://scripts/ui/MainMenu.cs" id="1_main"]
 [ext_resource type="Script" uid="uid://cldpwxgo0kf5g" path="res://scripts/ui/menu/MenuSystem.cs" id="2_menu"]
-[ext_resource type="Resource" path="res://resources/ui/menu_main.tres" id="3_screen"]
+[ext_resource type="Resource" uid="uid://4pd5r557eihf" path="res://resources/ui/menu_main.tres" id="3_screen"]
+[ext_resource type="Script" uid="uid://hl86vhygyl4r" path="res://scripts/planet/PlanetBackdrop.cs" id="4_uhagc"]
+[ext_resource type="Script" uid="uid://c1aq33atfas1q" path="res://scripts/planet/PlanetSpec.cs" id="5_q85j6"]
+[ext_resource type="Material" uid="uid://ceuw8vcaktwmc" path="res://art/materials/mat_planet_backdrop.tres" id="6_wb0q5"]
+[ext_resource type="Material" path="res://art/materials/mat_planet_atmosphere.tres" id="7_q85j6"]
+[ext_resource type="Script" uid="uid://cxsyjksst2aeh" path="res://scripts/planet/PlanetLayer.cs" id="8_8g5eo"]
+[ext_resource type="Material" uid="uid://bcn1rh4lhkn56" path="res://art/materials/mat_planet_clouds.tres" id="9_7suek"]
+[ext_resource type="Material" uid="uid://3rnfvde1n0h1" path="res://art/materials/mat_space_stars.tres" id="10_8g5eo"]
+[ext_resource type="Script" uid="uid://7010umle7umn" path="res://scripts/planet/CloudMaps.cs" id="11_7suek"]
 
-[node name="MainMenu" type="Node" unique_id=654902782 node_paths=PackedStringArray("Menu", "Backdrop")]
+[sub_resource type="SystemFont" id="SystemFont_tasf0"]
+
+[sub_resource type="Resource" id="Resource_8g5eo"]
+script = ExtResource("5_q85j6")
+Radius = 6000.0
+Amplitude = 250.0
+Seed = 20261030
+NoiseFrequency = 2.3
+Octaves = 6
+Lacunarity = 3.0
+Gain = 0.39
+RidgeShare = 0.8
+CraterCount = 2
+metadata/_custom_type_script = "uid://c1aq33atfas1q"
+
+[sub_resource type="Environment" id="Environment_q85j6"]
+background_mode = 1
+background_color = Color(0.005, 0.008, 0.02, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.12, 0.2, 0.4, 1)
+ambient_light_energy = 0.5
+
+[node name="MainMenu" type="Node" unique_id=654902782 node_paths=PackedStringArray("Menu")]
 script = ExtResource("1_main")
 Menu = NodePath("Menu")
-Backdrop = NodePath("BackdropLayer/Backdrop")
-
-[node name="BackdropLayer" type="CanvasLayer" parent="." unique_id=907185807]
-layer = -1
-
-[node name="Backdrop" type="Control" parent="BackdropLayer" unique_id=54087931]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
+StartScene = null
 
 [node name="Menu" type="CanvasLayer" parent="." unique_id=1693427258]
 script = ExtResource("2_menu")
 Root = ExtResource("3_screen")
+PauseTree = null
+ManageMouse = null
+OpenOnCancel = null
+ScrimColor = Color(0, 0, 0, 0)
+TitleColor = Color(1, 1, 1, 1)
+ItemColor = Color(1, 1, 1, 1)
+SelectedColor = Color(0.24313726, 0.5058824, 1, 1)
+ValueColor = Color(0, 0.51351523, 0.91775954, 1)
+TitleSize = null
+ItemSize = 48
+TextFont = SubResource("SystemFont_tasf0")
+Across = 0
+Margin = Vector4(100, 0, 0, 0)
+RowSpacing = null
+RowWidth = null
+HintText = null
+SelectedBefore = ""
+SelectedAfter = ""
+
+[node name="Window" type="Node3D" parent="." unique_id=358427053]
+
+[node name="Planet" type="Node3D" parent="Window" unique_id=704240752]
+transform = Transform3D(1, 0, 0, 0, 0.9781476, 0.2079117, 0, -0.2079117, 0.9781476, 0, 0, 0)
+script = ExtResource("4_uhagc")
+Spec = SubResource("Resource_8g5eo")
+HeightEdge = 897
+ShellEdge = 97
+SeaShare = 0.71
+PlanetMaterial = ExtResource("6_wb0q5")
+SpinDegreesPerSecond = 0.5
+
+[node name="Sun" type="DirectionalLight3D" parent="Window" unique_id=1881969285]
+transform = Transform3D(-0.22665133, 0.29450098, -0.9283847, 0, 0.9531906, 0.30236986, 0.9739759, 0.068532534, -0.21604194, 0, 0, 0)
+light_energy = 1.25
+
+[node name="Space" type="WorldEnvironment" parent="Window" unique_id=1334880720]
+environment = SubResource("Environment_q85j6")
+
+[node name="WindowCamera" type="Camera3D" parent="Window" unique_id=628984580]
+transform = Transform3D(0.16074269, -0.14240481, -0.9766692, 0, 0.98953676, -0.14428098, 0.98699635, 0.023192113, 0.15906079, -8539.265, 774.7306, -1609.9408)
+current = true
+fov = 60.0
+far = 40000.0
+
+[node name="Atmosphere" type="MeshInstance3D" parent="Window" unique_id=1093437819 node_paths=PackedStringArray("Planet", "Sun")]
+material_override = ExtResource("7_q85j6")
+cast_shadow = 0
+instance_shader_parameters/layer_radius = 8000.0
+instance_shader_parameters/planet_radius = 6000.0
+instance_shader_parameters/sun_direction = Vector3(-0.9283848, 0.3023699, -0.21604194)
+script = ExtResource("8_8g5eo")
+Planet = NodePath("../Planet")
+Sun = NodePath("../Sun")
+AboveSurface = 2000.0
+
+[node name="Clouds" type="MeshInstance3D" parent="Window" unique_id=1312213053 node_paths=PackedStringArray("Planet", "Sun")]
+material_override = ExtResource("9_7suek")
+cast_shadow = 0
+instance_shader_parameters/base_height = 150.0
+instance_shader_parameters/layer_radius = 6450.0
+instance_shader_parameters/planet_radius = 6000.0
+instance_shader_parameters/sun_direction = Vector3(-0.9283848, 0.3023699, -0.21604194)
+script = ExtResource("8_8g5eo")
+Planet = NodePath("../Planet")
+Sun = NodePath("../Sun")
+AboveSurface = 450.0
+BaseAboveSurface = 150.0
+
+[node name="Stars" type="MeshInstance3D" parent="Window" unique_id=1916977745 node_paths=PackedStringArray("Planet", "Sun")]
+material_override = ExtResource("10_8g5eo")
+cast_shadow = 0
+instance_shader_parameters/sun_direction = Vector3(-0.9283848, 0.3023699, -0.21604194)
+script = ExtResource("8_8g5eo")
+Planet = NodePath("../Planet")
+Sun = NodePath("../Sun")
+AboveSurface = 12000.0
+
+[node name="CloudMaps" type="Node" parent="Window" unique_id=873140321 node_paths=PackedStringArray("Clouds")]
+script = ExtResource("11_7suek")
+Clouds = NodePath("../Clouds")

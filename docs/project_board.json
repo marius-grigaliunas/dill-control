@@ -1,7 +1,7 @@
 {
   "version": 1,
   "title": "Dill Control — vertical slice",
-  "nextNumber": 113,
+  "nextNumber": 115,
   "columns": [
     {
       "id": "chs7kyuxiq",
@@ -38,7 +38,9 @@
         "kyoo9x9ouc",
         "kta68592k0",
         "klydozrgv6",
-        "kvlvwzvsyv"
+        "kvlvwzvsyv",
+        "kmvvaeh8m3",
+        "kmvvaein34"
       ]
     },
     {
@@ -47,6 +49,8 @@
       "wip": 0,
       "done": false,
       "cards": [
+        "kmvux337z1",
+        "kmvux3nmj2",
         "k8zjkihlkf",
         "kmvhxxa0e1w",
         "kmvhxyep21z",
@@ -61,7 +65,6 @@
         "kfwgdeu8lg",
         "kgc0b5h3gc",
         "k6opukibwo",
-        "ks1n6bad80",
         "knxwfv1ao7",
         "kglsls194t",
         "kwz3q32m1f",
@@ -104,8 +107,7 @@
       "done": false,
       "cards": [
         "kmvttb3jk1",
-        "kmvux337z1",
-        "kmvux3nmj2"
+        "ks1n6bad80"
       ]
     },
     {
@@ -148,8 +150,7 @@
         "kroina331z",
         "kfe1upum0z",
         "k9wtn2beyi",
-        "kvco9z8pxk",
-        "kfx25738dg"
+        "kvco9z8pxk"
       ]
     },
     {
@@ -1077,7 +1078,7 @@
       "checklist": [],
       "archived": false,
       "created": "2026-10-29T17:19:47.000Z",
-      "updated": "2026-10-29T17:19:47.000Z"
+      "updated": "2026-10-30T18:50:43.214Z"
     },
     "knxwfv1ao7": {
       "id": "knxwfv1ao7",
@@ -2046,24 +2047,6 @@
       "created": "2026-10-29T17:19:47.000Z",
       "updated": "2026-10-29T17:19:47.000Z"
     },
-    "kfx25738dg": {
-      "id": "kfx25738dg",
-      "number": 109,
-      "title": "Onboarding level",
-      "body": "`lvl_nest_intro` on a saved 1,000-cucumber nest, with landmarks and prompts (0049).",
-      "type": "feature",
-      "priority": 2,
-      "points": 5,
-      "labels": [
-        "l2o4587jld"
-      ],
-      "milestone": "mmuz89xk91",
-      "assignee": "",
-      "checklist": [],
-      "archived": false,
-      "created": "2026-10-29T17:19:47.000Z",
-      "updated": "2026-10-29T17:19:47.000Z"
-    },
     "kmvttb3jk1": {
       "id": "kmvttb3jk1",
       "number": 110,
@@ -2094,7 +2077,7 @@
       "checklist": [],
       "archived": false,
       "created": "2026-10-30T11:56:59.279Z",
-      "updated": "2026-10-30T11:56:59.279Z"
+      "updated": "2026-10-30T18:49:38.972Z"
     },
     "kmvux3nmj2": {
       "id": "kmvux3nmj2",
@@ -2110,7 +2093,39 @@
       "checklist": [],
       "archived": false,
       "created": "2026-10-30T11:57:25.723Z",
-      "updated": "2026-10-30T11:57:25.723Z"
+      "updated": "2026-10-30T18:49:37.338Z"
+    },
+    "kmvvaeh8m3": {
+      "id": "kmvvaeh8m3",
+      "number": 113,
+      "title": "one large planet or many small planets",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": null,
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-30T18:09:45.670Z",
+      "updated": "2026-10-30T18:09:45.670Z"
+    },
+    "kmvvaein34": {
+      "id": "kmvvaein34",
+      "number": 114,
+      "title": "one large planet or many small planets",
+      "body": "",
+      "type": "feature",
+      "priority": 2,
+      "points": null,
+      "labels": [],
+      "milestone": null,
+      "assignee": "",
+      "checklist": [],
+      "archived": false,
+      "created": "2026-10-30T18:09:47.487Z",
+      "updated": "2026-10-30T18:09:47.487Z"
     }
   },
   "labels": [

@@ -34,6 +34,12 @@ public static partial class RunCommands
                 EditorInterface.Singleton.StopPlayingScene();
                 return new JsonObject { ["was_playing"] = was };
             });
+        Bridge.Register("reload",
+            "Restart the editor on this project, as File > Reload Current Project does: what a rebuilt C# assembly needs before the editor " +
+            "knows its new classes. 'save' (default true) saves every open scene first; false drops unsaved changes. A playing game is stopped. " +
+            "The reply comes first; the bridge is silent while the editor restarts, so poll editor_status until it answers again.",
+            """{"type":"object","properties":{"save":{"type":"boolean"}}}""",
+            Reload);
         Bridge.Register("output",
             "What was printed: 'game' (default) is the playing (or last played) game's log; 'editor' is the editor's own messages since the bridge started; " +
             "'panel' is the editor's Output panel as it shows, which keeps what was printed while the code reloaded (the bridge restarts then). " +
@@ -66,6 +72,28 @@ public static partial class RunCommands
             ["scene"] = scene ?? Bridge.SceneRoot.SceneFilePath,
             ["note"] = "the game writes user://logs/godot.log as it runs: output {\"source\":\"game\"}",
         };
+    }
+
+    private static JsonNode Reload(JsonObject args)
+    {
+        bool save = Bridge.Flag(args, "save", true);
+        _ = RestartSoon(save);
+        return new JsonObject
+        {
+            ["restarting"] = true,
+            ["saved"] = save,
+            ["note"] = "the editor closes and opens again; editor_status answers once the bridge is back",
+        };
+    }
+
+    /// <summary>Waits for the reply to leave before the editor goes: it would otherwise take the bridge with it.</summary>
+    private static async Task RestartSoon(bool save)
+    {
+        for (int i = 0; i < 30; i++)
+            await Bridge.NextFrame();
+        if (EditorInterface.Singleton.IsPlayingScene())
+            EditorInterface.Singleton.StopPlayingScene();
+        EditorInterface.Singleton.RestartEditor(save);
     }
 
     private static JsonNode Output(JsonObject args)

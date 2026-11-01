@@ -5,15 +5,15 @@
 
 [sub_resource type="Resource" id="Start"]
 script = ExtResource("2_entry")
-Label = "Clock in"
+Label = "PLAY"
 Id = "start"
 
 [sub_resource type="Resource" id="Quit"]
 script = ExtResource("2_entry")
-Label = "Quit"
+Label = "QUIT"
 Action = 7
 
 [resource]
 script = ExtResource("1_screen")
-Title = "Dill Control"
+Title = " "
 Entries = Array[ExtResource("2_entry")]([SubResource("Start"), SubResource("Quit")])

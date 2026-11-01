@@ -169,7 +169,7 @@ when they are not listed, `python tools/editor-bridge/godot_mcp.py call <command
 | For | Commands |
 |---|---|
 | Seeing | `view`, `here`, `tree`, `selection`, `get`, `history`, `debugger` |
-| Project | `project_setting` (never edit project.godot by hand while the editor is open) |
+| Project | `project_setting`, `shader_global` (never edit project.godot by hand while the editor is open) |
 | Making and changing | `new_level`, `place`, `add`, `set`, `delete`, `batch` (one undo), `undo`, `redo` |
 | Ground, plants, water | `terrain_create`, `sculpt`, `terrain`, `terrain_reload`, `scatter`, `forest`, `vines`, `flood`, `water_paint` |
 | Vines | `vine_kinds`, `vine_kind`, `vine_roll`, `vine_bake`, `vine_judge` |

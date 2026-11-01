@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PlanetSpec" format=3 uid="uid://sschmewe5mis"]
+
+[ext_resource type="Script" uid="uid://c1aq33atfas1q" path="res://scripts/planet/PlanetSpec.cs" id="1_spec"]
+
+[resource]
+script = ExtResource("1_spec")
+Radius = 5000.0
+Amplitude = 300.0
+Seed = 2026
+NoiseFrequency = 2.6
+Octaves = 5
+Gain = 0.5
+RidgeShare = 0.25
+CraterCount = 0
+DigFloorDepth = 25.0

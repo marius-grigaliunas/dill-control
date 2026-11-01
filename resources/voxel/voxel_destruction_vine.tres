@@ -1,15 +1,15 @@
-[gd_resource type="Resource" script_class="VoxelDestructionStats" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="VoxelDestructionStats" format=3 uid="uid://cqsg2h6806oil"]
 
-[ext_resource type="Script" path="res://scripts/voxel/VoxelDestructionStats.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://cln36m7w60wol" path="res://scripts/voxel/VoxelDestructionStats.cs" id="1_script"]
 
 [resource]
 resource_name = "VoxelDestructionVine"
 script = ExtResource("1_script")
-MinSupportFraction = 0.0
-DustScale = 0.0
-LeavesRubble = false
-CoarseFromMetres = 60.0
-CoarsestFromMetres = 150.0
-CoarseShadows = false
-SectionEdge = 64
 IntegrityDelay = 0.03
+MinSupportFraction = 0.0
+LeavesRubble = false
+DustScale = 0.0
+CoarseFromMetres = 60.0
+CoarseShadows = false
+CoarsestFromMetres = 150.0
+SectionEdge = 64

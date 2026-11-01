@@ -1,0 +1,19 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://3rnfvde1n0h1"]
+
+[ext_resource type="Shader" uid="uid://bkdarn2y2kpa5" path="res://shaders/space_stars.gdshader" id="1_shader"]
+
+[resource]
+resource_name = "space_stars"
+render_priority = -10
+shader = ExtResource("1_shader")
+shader_parameter/faint_density = 120.0
+shader_parameter/bright_density = 45.0
+shader_parameter/faint_share = 0.07
+shader_parameter/bright_share = 0.03
+shader_parameter/brightness = 1.0
+shader_parameter/twinkle = 0.25
+shader_parameter/warm = Color(1, 0.82, 0.62, 1)
+shader_parameter/cold = Color(0.68, 0.8, 1, 1)
+shader_parameter/haze_colour = Color(0.1, 0.12, 0.3, 1)
+shader_parameter/haze_axis = Vector3(0.3, 1, 0.2)
+shader_parameter/haze_strength = 0.35
