@@ -53,24 +53,27 @@ else uses `drift`, remove both. Not in the `.tres`, so nothing to clean there.
 (Optional later: sun glints, a few pixels wide at any distance, only near the
 sun's reflection on the lit side. Not now.)
 
-### 1b. Thin the cloud layer
+### 1b. Clouds: puffy, not thin (done differently)
 
-Its tops are 450 m up on a 6000 m planet (7.5 % of the radius; Earth's are
-~0.2 %). Edge-on it stands off the planet as a white crust. Through the bridge
-(the scene is open in the editor, never edit the `.tscn`):
+Thinning the layer to 60-200 m was tried and rejected: the clouds went flat.
+**The user wants them extremely puffy and comfortable**, cartoon cumulus, so the
+deck stays 150-450 m. Done instead:
 
-```
-set {"node":"Window/Clouds","properties":{"AboveSurface":200,"BaseAboveSurface":60}}
-save
-```
+- The billows are packed round balls (`CloudPuffs`, global `planet_puffs`), not
+  folded value noise: clouds heap into cauliflower lobes, each shaded like a ball.
+- `billow_gate`: balls heap only over cloudy columns, so clear sky has no
+  popcorn. `billow_scale` 3.5 (5 read busy), `billow_middle` 0.35, `puff` 0.3,
+  `lit_from` 0.7.
+- The storms and jets ride the drift (`planet_weather.gdshaderinc`): a cloud
+  keeps its shape as the deck turns. Fixed storms tore every cloud drifting
+  through them apart in half a minute (the "timelapse" the user saw). Breathing
+  is `storm_breath` 0.08 over `storm_breath_seconds` 600.
+- `drift_degrees_per_second` is still 2 (the user asked to keep the rotation);
+  that is ~210 m/s at the equator, a lap in 3 min. Offer a slower drift if the
+  motion still reads fast.
+- The thin crust past the limb is mostly the old atmosphere ring; step 2.
 
-Everything in the cloud shader is relative to the shell's thickness (steps,
-light reach, gradient reach, dome/billow height), so the clouds keep their
-shapes. Shorter crossings mean fewer steps, so it is cheaper too. Look at the
-menu view and at the limb; if the domes now read flat, raise `dome` a little.
-
-Acceptance: no white crust past the planet's edge; cloud edges still crisp; the
-row of cumulus tops on the limb still there, just lower.
+Material parameters change through the bridge's `material` command.
 
 ## Step 2: the atmosphere (single scattering)
 

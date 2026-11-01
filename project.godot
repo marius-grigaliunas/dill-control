@@ -312,3 +312,7 @@ planet_noise={
 "type": "sampler3D",
 "value": ""
 }
+planet_puffs={
+"type": "sampler3D",
+"value": ""
+}

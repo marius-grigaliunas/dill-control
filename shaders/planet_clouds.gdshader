@@ -29,6 +29,7 @@ render_mode unshaded, cull_back;
 
 global uniform sampler2D planet_cloud_flow : filter_linear, repeat_enable;
 global uniform sampler3D planet_noise : filter_linear, repeat_enable;
+global uniform sampler3D planet_puffs : filter_linear, repeat_enable;
 
 instance uniform float planet_radius = 5000.0;
 instance uniform float layer_radius = 5320.0;
@@ -51,12 +52,19 @@ uniform float puff : hint_range(0.0, 1.0) = 0.5;
 // thin low edges, not a slab cut flat by the top of the shell (which nothing
 // reaches anyway: the last quarter fades every cloud out).
 uniform float dome : hint_range(0.0, 2.0) = 0.4;
-// Billows: rounded lobes over the tops and edges, more of them higher up, from
-// a noise that drifts with the deck but is not drawn out by the jets, so they
-// stay round where the clouds are streaked. Billow is how big, billow scale how
-// many (lobes per shape).
+// Billows: round lobes heaped over the tops and edges, more of them higher up,
+// from packed balls (CloudPuffs) that drift with the deck but are not drawn out
+// by the jets, so they stay round where the clouds are streaked. Billow is how
+// far they bulge the cloud, billow scale how many (balls per shape). Billow
+// middle is how deep inside a ball counts as nothing: shallower than it the
+// ball carves the cloud (the creases), deeper it heaps it.
 uniform float billow : hint_range(0.0, 1.0) = 0.42;
 uniform float billow_scale : hint_range(1.0, 8.0) = 5.0;
+uniform float billow_middle : hint_range(0.0, 1.0) = 0.3;
+// The balls heap only where the column under them is cloud: billow gate is how
+// far short of cloud a column can be and still be heaped on. Without it balls
+// stood alone in the clear sky, popcorn. Carving is everywhere.
+uniform float billow_gate : hint_range(0.01, 0.5) = 0.1;
 
 // Light. The three tones, where the tones break, and how far toward the sun a
 // cloud is looked through (a share of the shell's thickness).
@@ -84,6 +92,11 @@ const int MIN_STEPS = 4;
 const int MAX_STEPS = 96;
 // The noise texture's edge, in lattice cells (NoiseLattice.Edge).
 const float NOISE_EDGE = 128.0;
+// The balls texture's edge, in balls (CloudPuffs.Cells).
+const float PUFF_CELLS = 8.0;
+// The balls are turned off the planet's axes, so their texture's repeat does
+// not line up with the poles or the equator.
+const mat3 PUFF_TURN = mat3(vec3(0.855392, 0.353339, -0.378757), vec3(-0.201275, 0.900490, 0.385496), vec3(0.477277, -0.253516, 0.841390));
 
 varying vec3 world_position;
 // The deck's drift this frame as a sine and cosine, for the billows.
@@ -129,18 +142,23 @@ float billow_reach(float h) {
 	return 0.75 * billow * (0.15 + (0.85 * h));
 }
 
-// The billows at p, between -billow_reach(h) and +billow_reach(h): lobes, the
-// noise folded about its middle (round on top, creased between), read on the
-// planet turned only by the drift. One octave: a second cost a millisecond.
+// The billows at p, between -billow_reach(h) and +billow_reach(h): how deep p
+// is in the packed balls, round on top and creased where two meet, read on the
+// planet turned only by the drift. One read: a second cost a millisecond.
 float billows(vec3 p, float h) {
 	float s = drift_turn.x;
 	float c = drift_turn.y;
 	vec3 d = p / planet_radius;
-	vec3 q = vec3((d.x * c) + (d.z * s), d.y, (d.z * c) - (d.x * s)) * (scale * billow_scale);
-	float lobes = abs((value_noise(q + 5.0) * 2.0) - 1.0);
-	// Folded value noise averages 0.3, not a half: centred there, the billows
-	// add as much cloud as they take away.
-	return clamp((lobes - 0.3) * 2.0, -1.0, 1.0) * billow_reach(h);
+	vec3 q = PUFF_TURN * vec3((d.x * c) + (d.z * s), d.y, (d.z * c) - (d.x * s)) * (scale * billow_scale);
+	float inside = textureLod(planet_puffs, q / PUFF_CELLS, 0.0).r;
+	return clamp((inside - billow_middle) * 2.0, -1.0, 1.0) * billow_reach(h);
+}
+
+// The billows b where the column under them is as cloudy as column (its two
+// coarse noises against the coverage, before the height takes its share): the
+// heaping held to cloudy columns, the carving left alone.
+float gated(float b, float column) {
+	return b > 0.0 ? b * smoothstep(-billow_gate, 0.0, column) : b;
 }
 
 // Above zero is cloud. p is centred on the planet.
@@ -149,9 +167,9 @@ float density(vec3 p) {
 	float h = shell_height(length(p));
 	// Big slow noise first, so the clouds gather into banks with clear sky between
 	// them; the finer noise only roughens the edge of a bank.
-	float bank = value_noise((q * 0.3) + 13.0);
-	float n = (bank * 0.5) + (value_noise(q) * 0.3) + (value_noise(q * 2.07) * 0.12) + (value_noise(q * 4.3) * (0.08 * puff));
-	return n + billows(p, h) - (1.0 - coverage) - rise(h);
+	float column = (value_noise((q * 0.3) + 13.0) * 0.5) + (value_noise(q) * 0.3) - (1.0 - coverage);
+	float n = column + (value_noise(q * 2.07) * 0.12) + (value_noise(q * 4.3) * (0.08 * puff));
+	return n + gated(billows(p, h), column) - rise(h);
 }
 
 // The same test as density() > 0, cheaper: every noise adds between nothing and
@@ -173,7 +191,7 @@ bool is_cloud(vec3 p) {
 	if (n + fine + lobe <= 0.0) {
 		return false;
 	}
-	n += billows(p, h);
+	n += gated(billows(p, h), n + rise(h));
 	if (n > 0.0) {
 		return true;
 	}

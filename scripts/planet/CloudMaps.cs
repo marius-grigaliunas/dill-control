@@ -3,10 +3,11 @@ using Godot;
 namespace DillControl.Planet;
 
 /// <summary>
-/// The two textures the menu planet's cloud deck reads instead of working them
+/// The textures the menu planet's cloud deck reads instead of working them
 /// out per sample (<c>planet_clouds.gdshader</c>): the weather drawn into a map
-/// once a frame, and the value noise's lattice (<see cref="NoiseLattice"/>). Handed
-/// to every shader as the globals <c>planet_cloud_flow</c> and <c>planet_noise</c>,
+/// once a frame, the value noise's lattice (<see cref="NoiseLattice"/>) and the
+/// balls the clouds heap into (<see cref="CloudPuffs"/>). Handed to every shader as
+/// the globals <c>planet_cloud_flow</c>, <c>planet_noise</c> and <c>planet_puffs</c>,
 /// so the shared cloud material is never written to. A scene with a cloud deck
 /// needs one.
 ///
@@ -26,6 +27,7 @@ public partial class CloudMaps : Node
     private static readonly string[] WeatherParameters =
     {
         "drift_degrees_per_second", "jet_swing_degrees", "jets", "storm_size", "storm_twist_degrees",
+        "storm_breath", "storm_breath_seconds",
     };
 
     /// <summary>The cloud deck whose material holds the weather settings.</summary>
@@ -48,6 +50,7 @@ public partial class CloudMaps : Node
     public override void _Ready()
     {
         NoiseLattice.Publish();
+        CloudPuffs.Publish();
 
         _bake = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/planet_weather_bake.gdshader") };
         _viewport = new SubViewport

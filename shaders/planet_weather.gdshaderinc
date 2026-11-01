@@ -7,7 +7,12 @@
 // The air does not turn as one: it runs in bands round the planet, each at its
 // own speed (jet streams), and in places it winds into storms that turn one way
 // in the north and the other in the south. Each is a turning of the point the
-// noise is read at, so the clouds shear and curl as the time goes on.
+// noise is read at, so the clouds shear and curl.
+//
+// The storms and bands ride on the deck's drift: a cloud keeps its shape as the
+// deck turns and changes only as slowly as the storms breathe. With the storms
+// fixed to the planet instead, every cloud the drift carried into one was wound
+// round and torn apart in half a minute, a timelapse.
 
 // How fast the whole deck drifts round the poles.
 uniform float drift_degrees_per_second = 0.6;
@@ -20,6 +25,11 @@ uniform float jet_swing_degrees : hint_range(0.0, 90.0) = 14.0;
 uniform float jets : hint_range(0.0, 12.0) = 5.0;
 uniform float storm_size : hint_range(0.05, 1.5) = 0.4;
 uniform float storm_twist_degrees : hint_range(0.0, 720.0) = 110.0;
+// The storms breathe: their twist swells and eases by this share, once in so
+// many seconds, each out of step with the others. The only change in the
+// clouds' shapes, so it is slow.
+uniform float storm_breath : hint_range(0.0, 0.5) = 0.08;
+uniform float storm_breath_seconds = 600.0;
 
 // Vortices are a direction on the planet and a signed strength (north +, south -).
 const vec4 STORMS[7] = vec4[7](
@@ -41,7 +51,8 @@ vec3 turn_about(vec3 v, vec3 axis, float angle) {
 // from now. Turning keeps the length, so it is a unit vector too.
 vec3 weather_flow(vec3 d) {
 	float latitude = d.y;
-	vec3 q = d;
+	// The whole deck drifts round the poles first, so what follows rides on it.
+	vec3 q = turn_about(d, vec3(0.0, 1.0, 0.0), radians(drift_degrees_per_second) * TIME);
 	float reach = storm_size * 1.5;
 	// Storms: the pattern is wound round each centre, most at the middle, so the
 	// clouds there are bent into spirals. They breathe a little, never run away.
@@ -52,15 +63,14 @@ vec3 weather_flow(vec3 d) {
 		// is a perfect circle in the clouds. Past it the turn is nothing.
 		if (away < reach) {
 			float wind = smoothstep(0.0, 1.0, 1.0 - (away / reach));
-			float breath = 1.0 + (0.2 * sin((TIME * 0.05) + float(i)));
+			float breath = 1.0 + (storm_breath * sin((TIME * TAU / max(storm_breath_seconds, 1.0)) + float(i)));
 			q = turn_about(q, centre, radians(storm_twist_degrees) * STORMS[i].w * wind * breath);
 		}
 	}
 	// Bands: each latitude is shifted round the poles by its own amount, some one
-	// way and some the other, so neighbouring bands slide past each other.
-	float shift = radians(jet_swing_degrees) * sin((latitude * jets) + (0.4 * sin(TIME * 0.03)));
-	// The whole deck then drifts, together, on top.
-	return turn_about(q, vec3(0.0, 1.0, 0.0), shift + (radians(drift_degrees_per_second) * TIME));
+	// way and some the other, so the clouds are streaked along them.
+	float shift = radians(jet_swing_degrees) * sin(latitude * jets);
+	return turn_about(q, vec3(0.0, 1.0, 0.0), shift);
 }
 
 // The weather map's layout: octahedral (a direction folded onto a square, the
