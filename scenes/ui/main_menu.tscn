@@ -54,6 +54,7 @@ TitleSize = null
 ItemSize = 48
 TextFont = SubResource("SystemFont_tasf0")
 Across = 0
+Down = 2
 Margin = Vector4(100, 0, 0, 0)
 RowSpacing = null
 RowWidth = null

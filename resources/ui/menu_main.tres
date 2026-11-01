@@ -10,7 +10,7 @@ Id = "start"
 
 [sub_resource type="Resource" id="Quit"]
 script = ExtResource("2_entry")
-Label = "QUIT"
+Label = "EXIT"
 Action = 7
 
 [resource]
