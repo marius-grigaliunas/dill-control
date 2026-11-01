@@ -71,7 +71,21 @@ stale fast." Keep the cel style.
 ### 2. Sun lens flare
 
 The streaks are in (`space_stars.gdshader`, `sun_streak_length`); a real lens
-flare is not. Wanted: ghosts along the line from the sun through the screen
+flare is not.
+
+**First, the user: the streaks are "way too harsh".** With the sun rising at
+the limb they are two hard, bright lines crossing most of the screen. They are
+`exp(-|sy| / 0.0025) * exp(-|sx| / sun_streak_length) * 0.8` in the sky shader:
+the width (0.0025) is hard-coded, the length is an instance uniform set from the
+sun's node, and the strength is a fixed 0.8. Make width and strength settings
+too, then shorten, soften and dim them (and consider fading them as the sun
+clears the limb) until the user is happy, before adding anything.
+
+In the same screenshot the clouds at the sunrise limb stay dark blue against
+the orange air; the cloud dusk tint (see "Known small things") belongs with this
+step.
+
+Then the flare itself. Wanted: ghosts along the line from the sun through the screen
 centre, drawn only when the sun is on screen and not behind the planet (the sky
 shader already hides the sun behind the planet; the flare must too, e.g. test
 the sun's ray against the planet sphere, or the clouds' stencil). Cartoon and
