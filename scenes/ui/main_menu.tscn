@@ -65,7 +65,7 @@ HeightEdge = 897
 ShellEdge = 97
 SeaShare = 0.71
 PlanetMaterial = ExtResource("6_wb0q5")
-SpinDegreesPerSecond = 0.5
+SpinDegreesPerSecond = 0.1
 
 [node name="Sun" type="DirectionalLight3D" parent="Window" unique_id=1881969285]
 transform = Transform3D(0.68454707, 0.45677456, 0.5681129, 0, -0.7793379, 0.6266039, 0.72896856, -0.42893988, -0.5334936, 0, 0, 0)

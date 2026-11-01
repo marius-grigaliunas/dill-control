@@ -6,7 +6,7 @@
 resource_name = "planet_clouds"
 render_priority = 0
 shader = ExtResource("1_shader")
-shader_parameter/drift_degrees_per_second = 1.0
+shader_parameter/drift_degrees_per_second = 0.5
 shader_parameter/jet_swing_degrees = 40.6590019313025
 shader_parameter/jets = 3.05200014497
 shader_parameter/storm_size = 0.34300001466256
