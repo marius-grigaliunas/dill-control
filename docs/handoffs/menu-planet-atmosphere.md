@@ -75,7 +75,35 @@ deck stays 150-450 m. Done instead:
 
 Material parameters change through the bridge's `material` command.
 
-## Step 2: the atmosphere (single scattering)
+## Step 2: the atmosphere (single scattering): done
+
+Built as below, with these differences (2026-11-01):
+
+- **No depth read.** `hint_depth_texture` alone cost 1.1 ms on Iris Xe (twice
+  the scattering). Instead the clouds write stencil 1; `planet_atmosphere`
+  (stencil != 1) stops each sight line on the planet's mean sphere or where it
+  leaves the air; `planet_atmosphere_clouds` (stencil == 1) stops at the cloud
+  deck's top. The light is shared in `planet_air.gdshaderinc`. The cloud pass is
+  `PlanetLayer`'s material overlay, made at runtime from `StopShader`, its
+  settings copied from the air material every frame (`StopAt` = Clouds).
+- **Sun transmittance in closed form** (Schuler's Chapman approximation), not
+  4 sun samples; above the horizon it reuses the sample's density.
+- **3-8 view samples** by the length of air crossed (`step_share` 0.75).
+- **`sunset`** lengthens the sun's path for colouring: a 6 km planet's air is
+  too thin edge-on to redden sunlight. Warm tint at the terminator limb is
+  still subtle; more `mie` makes it stronger.
+- Tuned: `Atmosphere.AboveSurface` 1200, `rayleigh_height` 200 with `rayleigh`
+  (2.3e-4, 5.4e-4, 1.32e-3) (same column as the 110 m start, wider halo),
+  `mie` 1.6e-3, `mie_height` 70, `density` 0.6, `sun_intensity` 13, `sunset` 6.
+- `bands` 0 is saved (smooth); 4 shown to the user for comparison. Banding
+  steps one amount (light or dimming, the larger) rounded down, both scaled by
+  it; stepping them apart made a grey shell in space.
+- Bench (paired, editor at 29 % GPU in the background): GPU 12.0-12.7 ms, mean
+  14.9-15.7, against the old atmosphere's 11.3 / 14.2 earlier that day. The 70 s
+  sustained check is still to do.
+
+The original plan, for reference:
+
 
 ### Goal
 

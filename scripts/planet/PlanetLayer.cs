@@ -11,6 +11,12 @@ namespace DillControl.Planet;
 /// It also tells the material where the sun is (an instance uniform, so one
 /// material can serve several layers), and the planet's and its own radius:
 /// the atmosphere shader works out how much air a sight line crosses from them.
+///
+/// With <see cref="StopAt"/> and <see cref="StopShader"/> it draws a second
+/// pass of the same sphere (the material overlay, made here and never saved):
+/// the air over the clouds, whose sight lines stop at the deck. The pass's
+/// settings are copied from this layer's material every frame, so the air is
+/// tuned in one place.
 /// </summary>
 [Tool]
 [GlobalClass]
@@ -36,6 +42,19 @@ public partial class PlanetLayer : MeshInstance3D
 	[Export(PropertyHint.Range, "0,2000,1,or_greater,suffix:m")]
 	public float BaseAboveSurface { get; set; }
 
+	/// <summary>
+	/// For the air: the layer whose top a second pass's sight lines stop at (the
+	/// cloud deck), pushed to that pass as the instance uniform stop_radius.
+	/// </summary>
+	[Export]
+	public PlanetLayer StopAt { get; set; }
+
+	/// <summary>The second pass's shader (planet_atmosphere_clouds).</summary>
+	[Export]
+	public Shader StopShader { get; set; }
+
+	private ShaderMaterial _stopPass;
+
 	private float _radius = -1.0f;
 
 	/// <summary>
@@ -46,7 +65,8 @@ public partial class PlanetLayer : MeshInstance3D
 	/// </summary>
 	public override void _ValidateProperty(Godot.Collections.Dictionary property)
 	{
-		if (property["name"].AsStringName() == MeshInstance3D.PropertyName.Mesh)
+		StringName name = property["name"].AsStringName();
+		if (name == MeshInstance3D.PropertyName.Mesh || name == GeometryInstance3D.PropertyName.MaterialOverlay)
 		{
 			property["usage"] = (int)PropertyUsageFlags.None;
 		}
@@ -98,5 +118,34 @@ public partial class PlanetLayer : MeshInstance3D
 			// A directional light shines along its own -Z: toward the sun is +Z.
 			SetInstanceShaderParameter("sun_direction", Sun.GlobalBasis.Z.Normalized());
 		}
+		UpdateStopPass(planetRadius);
+	}
+
+	private void UpdateStopPass(float planetRadius)
+	{
+		if (StopAt == null || StopShader == null || MaterialOverride is not ShaderMaterial air)
+		{
+			if (_stopPass != null)
+			{
+				MaterialOverlay = null;
+				_stopPass = null;
+			}
+			return;
+		}
+		if (_stopPass == null || _stopPass.Shader != StopShader)
+		{
+			_stopPass = new ShaderMaterial { Shader = StopShader, RenderPriority = air.RenderPriority };
+			MaterialOverlay = _stopPass;
+		}
+		foreach (Godot.Collections.Dictionary uniform in air.Shader.GetShaderUniformList())
+		{
+			StringName name = uniform["name"].AsStringName();
+			Variant value = air.GetShaderParameter(name);
+			if (value.VariantType != Variant.Type.Nil)
+			{
+				_stopPass.SetShaderParameter(name, value);
+			}
+		}
+		SetInstanceShaderParameter("stop_radius", planetRadius + StopAt.AboveSurface);
 	}
 }

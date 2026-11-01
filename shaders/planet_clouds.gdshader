@@ -24,6 +24,8 @@
 
 shader_type spatial;
 render_mode unshaded, cull_back;
+// Marks its pixels, so the air hazes them as far as the deck (planet_atmosphere_clouds).
+stencil_mode write, compare_always, 1;
 
 #include "res://shaders/planet_weather.gdshaderinc"
 

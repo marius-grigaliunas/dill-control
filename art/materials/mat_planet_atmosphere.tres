@@ -1,8 +1,19 @@
-[gd_resource type="ShaderMaterial" format=3]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://dxkuijyo5wkan"]
 
-[ext_resource type="Shader" path="res://shaders/planet_atmosphere.gdshader" id="1_shader"]
+[ext_resource type="Shader" uid="uid://c5f7fbko8o4nr" path="res://shaders/planet_atmosphere.gdshader" id="1_shader"]
 
 [resource]
 resource_name = "planet_atmosphere"
 render_priority = 1
 shader = ExtResource("1_shader")
+shader_parameter/rayleigh_height = 200.0
+shader_parameter/mie_height = 70.0
+shader_parameter/rayleigh = Vector3(0.00023, 0.00054, 0.00132)
+shader_parameter/mie = 0.0016
+shader_parameter/mie_g = 0.76
+shader_parameter/density = 0.6
+shader_parameter/sun_intensity = 13.0
+shader_parameter/sunset = 6.0
+shader_parameter/exposure = 1.0
+shader_parameter/bands = 0.0
+shader_parameter/step_share = 0.75
